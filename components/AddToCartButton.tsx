@@ -1,16 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
-import type { Product } from "@/lib/woocommerce";
+import type { Product } from "@/lib/woocommerce"; 
+import ColorSwatch from "../app/products/[id]/ColorSwatch";
 
-export default function AddToCartButton({ product }: { product: Product }) {
+type Props = {
+  product: Product;
+  onOptionChange?: (name: string, value: string | null) => void;
+};
+
+export default function AddToCartButton({ product, onOptionChange }: Props) {
   const { addItem } = useCart();
   const { notify } = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Record<string, string | null>>(() => {
+    const initial: Record<string, string | null> = {};
+    product.attributes?.forEach(attr => initial[attr.name] = null);
+    return initial;
+  });
   const [error, setError] = useState<string | null>(null);
+
+  const handleSelect = (name: string, value: string) => {
+    setSelected(prev => ({ ...prev, [name]: value }));
+    setError(null);
+    onOptionChange?.(name, value);
+  };
+
+  const isOptionAvailable = (attrName: string, optionName: string) => {
+    if (!product.variations || product.variations.length === 0) {
+      return true; // Simple product, always available
+    }
+
+    // Check if any variation with this option is in stock, considering other selections.
+    return product.variations.some(variation => {
+      if (!variation.is_in_stock) return false;
+
+      // Does this variation match the option we're checking?
+      const hasOption = Object.entries(variation.attributes).some(
+        ([key, val]) => key === attrName && val === optionName
+      );
+      if (!hasOption) return false;
+
+      // Does this variation also match all *other* selected options?
+      return Object.entries(selected).every(([selectedAttr, selectedVal]) => {
+        if (!selectedVal || selectedAttr === attrName) return true; // Ignore the attribute we're currently checking or unselected ones
+        return variation.attributes[selectedAttr] === selectedVal;
+      });
+    });
+  };
 
   const attributes = product.attributes ?? [];
 
@@ -26,7 +65,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
   }
 
   const add = () => {
-    const missing = attributes.find((attr) => !selected[attr.name]);
+    const missing = attributes.find((attr) => !selected[attr.name] && attr.options.length > 0);
     if (missing) {
       setError(`Please select a ${missing.name.toLowerCase()}`);
       return;
@@ -38,7 +77,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
         name: product.name,
         price: product.price,
         image: product.image,
-        options: attributes.length > 0 ? selected : undefined,
+        options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
       },
       quantity
     );
@@ -48,40 +87,53 @@ export default function AddToCartButton({ product }: { product: Product }) {
   return (
     <div className="space-y-5">
       {/* Option pickers (e.g. Size) */}
-      {attributes.map((attr) => (
-        <div key={attr.name}>
-          <p className="text-sm font-bold mb-2">
-            {attr.name}
-            {selected[attr.name] && (
-              <span className="font-normal text-gray-500">
-                : {selected[attr.name]}
-              </span>
-            )}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {attr.options.map((option) => {
-              const active = selected[attr.name] === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    setSelected((prev) => ({ ...prev, [attr.name]: option }));
-                    setError(null);
-                  }}
-                  className={`min-w-14 px-3 py-2.5 border text-sm font-semibold transition-colors ${
-                    active
-                      ? "border-black bg-black text-white"
-                      : "border-gray-300 hover:border-black"
-                  }`}
-                >
-                  {option}
-                </button>
-              );
-            })}
+      {attributes.map((attr) => {
+        if (attr.options.length === 0) return null;
+
+        // Render color swatches for 'Color' attribute
+        if (attr.name.toLowerCase() === 'color') {
+          return (
+            <div key={attr.name}>
+              <p className="text-sm font-medium text-gray-800 mb-2">
+                Color: <span className="font-bold text-gray-900">{selected[attr.name] || 'Select a color'}</span>
+              </p>
+              <ColorSwatch
+                options={attr.options}
+                value={selected[attr.name]}
+                isOptionAvailable={(optionName) => isOptionAvailable(attr.name, optionName)}
+                onChange={(colorName) => {
+                  handleSelect(attr.name, colorName);
+                }}
+              />
+            </div>
+          );
+        }
+
+        // Render standard buttons for other attributes like 'Size'
+        return (
+          <div key={attr.name}>
+            <p className="text-sm font-medium text-gray-800 mb-2">
+              {attr.name}: <span className="font-bold text-gray-900">{selected[attr.name] || `Select a ${attr.name.toLowerCase()}`}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {attr.options.map((option) => {
+                const available = isOptionAvailable(attr.name, option.name);
+                const active = selected[attr.name] === option.name;
+                return (
+                  <button key={option.name} type="button" disabled={!available} onClick={() => {
+                      handleSelect(attr.name, option.name);
+                    }} className={`relative min-w-14 px-3 py-2.5 border text-sm font-semibold transition-colors rounded-md disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200 ${
+                      active ? "border-market bg-market/10 text-market" : "border-gray-300 hover:border-gray-400"
+                    }`}>
+                    {option.name}
+                    {!available && <span className="absolute inset-0 flex items-center justify-center"><span className="w-4/5 h-px bg-gray-400 rotate-[-10deg]"></span></span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {error && <p className="text-sale text-sm font-semibold">{error}</p>}
 

@@ -57,31 +57,133 @@ function baseUrl(): string {
   return url.replace(/\/$/, "");
 }
 
-async function wpFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    next: { revalidate: REVALIDATE_SECONDS },
-  });
+function storeApiBaseUrl(): string {
+  const url = baseUrl().replace(/\/$/, "");
+  const wpJsonMatch = url.match(/^(.*\/wp-json)(?:\/[^/]+)?$/i);
+  return wpJsonMatch ? `${wpJsonMatch[1]}/wc/store/v1` : `${url}/wc/store/v1`;
+}
 
-  if (!res.ok) {
+function getCandidateUrls(path: string, fallbackPath?: string): string[] {
+  const customUrl = `${baseUrl()}${path}`;
+  if (!fallbackPath) {
+    return [customUrl];
+  }
+
+  return [customUrl, `${storeApiBaseUrl()}${fallbackPath}`];
+}
+
+async function wpFetchRaw(path: string, fallbackPath?: string): Promise<unknown | null> {
+  const urls = getCandidateUrls(path, fallbackPath);
+  let lastStatus = 0;
+
+  for (const url of urls) {
+    const res = await fetch(url, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+
+    if (res.ok) {
+      return res.json();
+    }
+
+    if ([404, 405, 500, 401, 403].includes(res.status)) {
+      lastStatus = res.status;
+      continue;
+    }
+
     throw new Error(`WordPress request failed (${res.status}): ${path}`);
   }
 
-  return res.json();
+  if (lastStatus) {
+    console.warn(`[kandi-store] WordPress request failed (${lastStatus}): ${path}`);
+  }
+
+  return null;
+}
+
+function toProduct(raw: any): Product {
+  const product = raw ?? {};
+  const prices = product.prices ?? {};
+  const price = Number(prices.price ?? product.price ?? 0);
+  const regularPrice = Number(prices.regular_price ?? prices.price ?? product.regular_price ?? price);
+  const salePrice = prices.sale_price != null ? Number(prices.sale_price) : product.sale_price != null ? Number(product.sale_price) : null;
+  const onSale = salePrice != null && regularPrice > 0 && salePrice < regularPrice;
+
+  const categories = Array.isArray(product.categories)
+    ? product.categories.map((category: any) => ({
+        id: Number(category.id ?? 0),
+        name: category.name ?? "",
+        slug: category.slug ?? "",
+        count: category.count ?? undefined,
+      }))
+    : Array.isArray(product.categories)
+      ? []
+      : [];
+
+  const images = Array.isArray(product.images) ? product.images : [];
+  const gallery = images.map((image: any) => image?.src ?? "").filter(Boolean);
+
+  return {
+    id: Number(product.id ?? 0),
+    name: product.name ?? "",
+    slug: product.slug ?? "",
+    price,
+    regular_price: regularPrice,
+    sale_price: salePrice,
+    on_sale: Boolean(product.on_sale ?? onSale),
+    featured: Boolean(product.featured),
+    stock_status: (product.stock_status as Product["stock_status"]) ?? "outofstock",
+    stock_quantity: product.stock_quantity ?? null,
+    image: gallery[0] ?? product.image ?? "",
+    gallery,
+    date_created: product.date_created ?? null,
+    short_description: product.short_description ?? product.shortDescription ?? "",
+    categories,
+    attributes: Array.isArray(product.attributes) ? product.attributes : [],
+    description: product.description ?? undefined,
+  };
+}
+
+function toCategory(raw: any): ProductCategory {
+  return {
+    id: Number(raw?.id ?? 0),
+    name: raw?.name ?? "",
+    slug: raw?.slug ?? "",
+    count: raw?.count != null ? Number(raw.count) : undefined,
+  };
 }
 
 export async function getProducts(
   query: ProductQuery = {}
 ): Promise<ProductListResponse> {
-  const params = new URLSearchParams();
-  if (query.page) params.set("page", String(query.page));
-  if (query.per_page) params.set("per_page", String(query.per_page));
-  if (query.category) params.set("category", query.category);
-  if (query.search) params.set("search", query.search);
-  if (query.on_sale) params.set("on_sale", "1");
-  if (query.featured) params.set("featured", "1");
+  try {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.per_page) params.set("per_page", String(query.per_page));
+    if (query.category) params.set("category", query.category);
+    if (query.search) params.set("search", query.search);
+    if (query.on_sale) params.set("on_sale", "1");
+    if (query.featured) params.set("featured", "1");
 
-  const qs = params.toString();
-  return wpFetch<ProductListResponse>(`/products${qs ? `?${qs}` : ""}`);
+    const qs = params.toString();
+    const path = `/products${qs ? `?${qs}` : ""}`;
+    const raw = await wpFetchRaw(path, path);
+
+    if (!raw) {
+      return { products: [], total: 0, total_pages: 0 };
+    }
+
+    const payload = (Array.isArray(raw) ? { products: raw } : raw) as Partial<ProductListResponse>;
+    const products = Array.isArray(payload?.products) ? payload.products : [];
+
+    return {
+      products: products.map(toProduct),
+      total: Number(payload?.total ?? products.length ?? 0),
+      total_pages: Number(payload?.total_pages ?? 1),
+    };
+  } catch (error) {
+    console.error("[kandi-store] getProducts failed:", error);
+    return { products: [], total: 0, total_pages: 0 };
+  }
 }
 
 /** Same as getProducts but returns an empty list instead of throwing, so the
@@ -99,7 +201,11 @@ export async function getProductsSafe(
 
 export async function getProduct(id: number): Promise<Product | null> {
   try {
-    return await wpFetch<Product>(`/products/${id}`);
+    const raw = await wpFetchRaw(`/products/${id}`, `/products/${id}`);
+    if (!raw) {
+      return null;
+    }
+    return toProduct(raw);
   } catch {
     return null;
   }
@@ -107,7 +213,21 @@ export async function getProduct(id: number): Promise<Product | null> {
 
 export async function getCategories(): Promise<ProductCategory[]> {
   try {
-    return await wpFetch<ProductCategory[]>(`/categories`);
+    const raw = await wpFetchRaw(`/categories`, `/products/categories`);
+    if (!raw) {
+      return [];
+    }
+
+    const payload = raw as { categories?: unknown; products?: unknown };
+    const items = Array.isArray(raw)
+      ? raw
+      : Array.isArray(payload.categories)
+        ? payload.categories
+        : Array.isArray(payload.products)
+          ? payload.products
+          : [];
+
+    return items.map(toCategory);
   } catch (error) {
     console.error("[kandi-store] getCategories failed:", error);
     return [];

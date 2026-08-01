@@ -57,16 +57,52 @@ function kandi_format_product( $product, $with_description = false ) {
 	$attributes = array();
 	foreach ( $product->get_attributes() as $attribute ) {
 		if ( is_object( $attribute ) && $attribute->is_taxonomy() ) {
-			$options = wc_get_product_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'names' ) );
+			$terms = wc_get_product_terms( $product->get_id(), $attribute->get_name() );
+			$options = array();
+			foreach($terms as $term) {
+				// Assumes a swatch plugin saves color hex as 'color' term meta.
+				// Common plugins: 'WooCommerce Attribute Swatches', 'Variation Swatches for WooCommerce'.
+				$color_val = get_term_meta( $term->term_id, 'color', true );
+				$image_id  = get_term_meta( $term->term_id, 'thumbnail_id', true ); // Common key for swatch images
+				$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : null;
+				$options[] = array(
+					'name'  => $term->name,
+					'value' => $color_val ?: null, // e.g. #RRGGBB
+					'image' => $image_url,
+				);
+			}
 		} elseif ( is_object( $attribute ) ) {
-			$options = $attribute->get_options();
+			$options = array_map(function($opt) {
+				return array('name' => $opt, 'value' => null);
+			}, $attribute->get_options());
 		} else {
 			continue;
 		}
 		if ( ! empty( $options ) ) {
 			$attributes[] = array(
-				'name'    => wc_attribute_label( $attribute->get_name() ),
-				'options' => array_map( 'strval', array_values( $options ) ),
+				'name'    => wc_attribute_label( $attribute->get_name() ), // e.g. "Color"
+				'options' => $options, // e.g. [{ name: "Blue", value: "#0000FF" }]
+			);
+		}
+	}
+
+	// For variable products, add variation data (attributes, stock status, price).
+	$variations_data = array();
+	if ( $product->is_type( 'variable' ) ) {
+		$available_variations = $product->get_available_variations();
+		foreach ( $available_variations as $variation_obj ) {
+			$variation_product = wc_get_product( $variation_obj['variation_id'] );
+			if ( ! $variation_product ) {
+				continue;
+			}
+			$variation_attributes = array();
+			foreach ( $variation_product->get_variation_attributes() as $attr_key => $attr_value ) {
+				$attr_name = wc_attribute_label( str_replace( 'attribute_', '', $attr_key ) );
+				$variation_attributes[ $attr_name ] = $attr_value;
+			}
+			$variations_data[] = array(
+				'attributes'   => $variation_attributes,
+				'is_in_stock'  => $variation_product->is_in_stock(),
 			);
 		}
 	}
@@ -88,6 +124,7 @@ function kandi_format_product( $product, $with_description = false ) {
 		'short_description' => wp_strip_all_tags( $product->get_short_description() ),
 		'categories'        => $categories,
 		'attributes'        => $attributes,
+		'variations'        => $variations_data,
 	);
 
 	if ( $with_description ) {

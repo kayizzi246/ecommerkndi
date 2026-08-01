@@ -23,7 +23,7 @@ export default function AppBanner() {
   };
 
   return (
-    <div className="banner-up fixed bottom-0 inset-x-0 z-50 bg-black text-white shadow-2xl">
+    <div className="banner-up fixed bottom-0 inset-x-0 z-50 border-t border-white/20 bg-black text-white">
       <div className="max-w-7xl mx-auto flex items-center gap-4 px-4 md:px-8 py-3">
         <span className="bg-sun rounded-xl w-11 h-11 flex items-center justify-center text-xl shrink-0">
           🛍️

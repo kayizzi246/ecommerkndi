@@ -7,6 +7,7 @@ import { getCategories } from "@/lib/woocommerce";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AppBanner from "@/components/AppBanner";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 // Jost: geometric display face for headings, prices, buttons (Brands For Less look).
 const jost = Jost({
@@ -48,6 +49,7 @@ export default async function RootLayout({
             <div className="flex-1">{children}</div>
             <Footer />
             <AppBanner />
+            <MobileBottomNav />
           </ToastProvider>
         </CartProvider>
       </body>

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
+  --background: #f8f7f4;
+  --foreground: #181818;
 }
 
 @theme inline {
@@ -13,23 +13,26 @@
 }
 
 @theme {
-  /* Brands For Less inspired palette */
-  --color-kandi: #111111;
+  --color-kandi: #181818;
   --color-kandi-dark: #000000;
-  --color-sale: #e4002b;
-  --color-fresh: #00a651;
-  --color-sun: #ffcc00;
+  --color-sale: #a13b2a;
+  --color-fresh: #55705c;
+  --color-sun: #c7a36a;
+  --color-market: #181818;
+  --color-market-dark: #000000;
+  --color-star: #bd8b38;
+  --color-sold: #767676;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Geometric display face for headings, prices and buttons */
+/* Marketplace typography */
 h1,
 h2,
 h3,
@@ -43,7 +46,18 @@ button,
 
 h1,
 h2 {
-  letter-spacing: 0.02em;
+  letter-spacing: -0.035em;
+}
+
+::selection {
+  background: #ded7c9;
+}
+
+/* The store uses borders and spacing for hierarchy, never elevation. */
+*,
+*::before,
+*::after {
+  box-shadow: none !important;
 }
 
 /* Toast slide-in */
@@ -103,4 +117,63 @@ h2 {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* Editorial card hover */
+@keyframes card-lift {
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+/* Horizontal scrollbar hide */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Price animation */
+@keyframes pulse-price {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+.animate-pulse-price {
+  animation: pulse-price 2s ease-in-out infinite;
+}
+
+/* Gradient underline for tabs */
+.tab-underline {
+  position: relative;
+}
+.tab-underline.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #ff6a00;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+.animate-skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }

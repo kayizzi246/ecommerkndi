@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.acculifepharma.co.ug" },
       { protocol: "https", hostname: "7thculturetribe.com" },
       { protocol: "https", hostname: "www.7thculturetribe.com" },
+      { protocol: "https", hostname: "shop.kandiug.com" },
     ],
   },
 };
