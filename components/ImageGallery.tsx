@@ -26,13 +26,13 @@ export default function ImageGallery({ images, productName, activeImage, setActi
   return (
     <div className="flex flex-col gap-3">
       {/* Main Image */}
-      <div className="relative aspect-square bg-[#f5f5f5] rounded-lg overflow-hidden group">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#efede8] group">
         <Image
           key={activeImage} // Force re-render on image change for transition
           src={activeImage || images[0]}
           alt={`${productName} - image ${activeIndex + 1}`}
           fill
-          sizes="(max-width: 1024px) 100vw, 55vw"
+          sizes="(max-width: 1024px) 100vw, 60vw"
           className="object-cover transition-opacity duration-300"
           priority
         />
@@ -62,7 +62,7 @@ export default function ImageGallery({ images, productName, activeImage, setActi
         )}
         {/* Image counter badge */}
         {images.length > 1 && (
-          <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
+          <span className="absolute bottom-3 right-3 bg-black px-2.5 py-1 text-[10px] font-semibold text-white">
             {activeIndex + 1}/{images.length}
           </span>
         )}
@@ -76,10 +76,10 @@ export default function ImageGallery({ images, productName, activeImage, setActi
               key={src}
               type="button"
               onClick={() => setActiveImage(src)}
-              className={`relative w-14 h-14 md:w-16 md:h-16 shrink-0 rounded-md border-2 overflow-hidden transition-all ${
+              className={`relative h-16 w-14 shrink-0 overflow-hidden border md:h-20 md:w-16 transition-all ${
                 i === activeIndex
-                  ? "border-market ring-1 ring-market/30"
-                  : "border-gray-200 hover:border-gray-400"
+                  ? "border-black"
+                  : "border-black/15 hover:border-black/50"
               }`}
             >
               <Image
@@ -95,8 +95,8 @@ export default function ImageGallery({ images, productName, activeImage, setActi
       )}
 
       {/* Zoom hint */}
-      <p className="text-[11px] text-gray-400 text-center hidden md:block">
-        Hover or tap to zoom
+      <p className="hidden text-center text-[10px] uppercase tracking-[0.14em] text-gray-500 md:block">
+        Select an image to view
       </p>
     </div>
   );

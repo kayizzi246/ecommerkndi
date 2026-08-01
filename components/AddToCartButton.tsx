@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import type { Product } from "@/lib/woocommerce"; 
@@ -57,7 +57,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
     return (
       <button
         disabled
-        className="w-full bg-gray-200 text-gray-500 font-bold uppercase py-4 cursor-not-allowed"
+        className="w-full bg-gray-200 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 cursor-not-allowed"
       >
         Sold out
       </button>
@@ -94,7 +94,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (attr.name.toLowerCase() === 'color') {
           return (
             <div key={attr.name}>
-              <p className="text-sm font-medium text-gray-800 mb-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-800">
                 Color: <span className="font-bold text-gray-900">{selected[attr.name] || 'Select a color'}</span>
               </p>
               <ColorSwatch
@@ -112,7 +112,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         // Render standard buttons for other attributes like 'Size'
         return (
           <div key={attr.name}>
-            <p className="text-sm font-medium text-gray-800 mb-2">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-800">
               {attr.name}: <span className="font-bold text-gray-900">{selected[attr.name] || `Select a ${attr.name.toLowerCase()}`}</span>
             </p>
             <div className="flex flex-wrap gap-2">
@@ -122,8 +122,8 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                 return (
                   <button key={option.name} type="button" disabled={!available} onClick={() => {
                       handleSelect(attr.name, option.name);
-                    }} className={`relative min-w-14 px-3 py-2.5 border text-sm font-semibold transition-colors rounded-md disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200 ${
-                      active ? "border-market bg-market/10 text-market" : "border-gray-300 hover:border-gray-400"
+                    }} className={`relative min-w-14 border px-3 py-3 text-sm font-semibold transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200 ${
+                      active ? "border-black bg-black text-white" : "border-gray-300 hover:border-black"
                     }`}>
                     {option.name}
                     {!available && <span className="absolute inset-0 flex items-center justify-center"><span className="w-4/5 h-px bg-gray-400 rotate-[-10deg]"></span></span>}
@@ -158,7 +158,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         <button
           type="button"
           onClick={add}
-          className="flex-1 bg-sun hover:brightness-95 text-black font-extrabold uppercase tracking-wide py-4 transition"
+          className="flex-1 bg-black py-4 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-black/75"
         >
           Add to cart
         </button>

@@ -34,7 +34,7 @@ export default function ProductPage({
 
   if (!product) {
     // You can return a loading skeleton here
-    return <main className="max-w-7xl mx-auto px-4 md:px-8 py-4 pb-24 lg:pb-8">Loading...</main>;
+    return <main className="mx-auto max-w-[1440px] px-4 py-20 text-center text-xs font-semibold uppercase tracking-[0.16em] md:px-8">Loading product…</main>;
   }
 
   const discount = product.on_sale
@@ -58,37 +58,41 @@ export default function ProductPage({
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 md:px-8 py-4 pb-24 lg:pb-8">
+    <main className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* Breadcrumbs */}
-      <nav className="text-xs text-gray-500 mb-4 pb-3 border-b border-gray-100 overflow-x-auto whitespace-nowrap no-scrollbar">
+      <nav className="mb-4 overflow-x-auto whitespace-nowrap border-b border-black/10 pb-3 text-[10px] uppercase tracking-[0.12em] text-gray-500 no-scrollbar">
         <Link href="/" className="hover:text-market transition-colors">Home</Link>
         {brand && <> <span className="mx-1.5">/</span> <Link href={`/category/${brand.slug}`} className="hover:text-market transition-colors">{brand.name}</Link> </>}
         <span className="mx-1.5">/</span>
         <span className="text-gray-800 font-medium">{product.name}</span>
       </nav>
 
+      <div className="mb-5 bg-black px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+        Style now, pay later · Free delivery on orders over UGX 50,000
+      </div>
+
       {/* Product main section */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_520px]">
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px] lg:gap-10">
         {/* Gallery */}
         <ImageGallery images={images} productName={product.name} activeImage={activeImage} setActiveImage={setActiveImage} />
 
         {/* Product info column */}
-        <div>
+        <div className="lg:sticky lg:top-6 lg:self-start">
           {/* Brand */}
           {brand && (
-            <p className="text-sm font-bold text-market uppercase tracking-wider mb-1">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
               {brand.name}
             </p>
           )}
 
           {/* Title */}
-          <h1 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">
+          <h1 className="text-2xl font-semibold uppercase leading-tight tracking-[-0.035em] text-black md:text-3xl">
             {product.name}
           </h1>
 
           {/* Rating row */}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-sm font-bold text-market">{simulatedRating.toFixed(1)}</span>
+          <div className="mt-3 flex items-center gap-2 border-b border-black/10 pb-4">
+            <span className="text-sm font-semibold text-black">{simulatedRating.toFixed(1)}</span>
             <StarRating rating={simulatedRating} size="sm" />
             <span className="text-xs text-gray-500">({simulatedReviews} reviews)</span>
             <span className="text-gray-300">|</span>
@@ -101,9 +105,9 @@ export default function ProductPage({
           </div>
 
           {/* Price block */}
-          <div className="mt-4 bg-gray-50 rounded-lg p-4">
+          <div className="mt-5 border-b border-black/15 pb-5">
             <div className="flex items-baseline gap-2">
-              <span className="font-heading text-3xl font-extrabold text-market">
+              <span className="font-heading text-3xl font-semibold text-black">
                 {formatPrice(product.price)}
               </span>
               {discount > 0 && (
@@ -114,7 +118,7 @@ export default function ProductPage({
             </div>
             {discount > 0 && (
               <div className="mt-1 flex items-center gap-2">
-                <span className="bg-market/10 text-market text-xs font-bold px-2 py-0.5 rounded">
+                <span className="bg-[#a13b2a] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
                   -{discount}%
                 </span>
                 <span className="text-xs text-gray-500">
@@ -150,7 +154,7 @@ export default function ProductPage({
           </div>
 
           {/* Shipping info panel */}
-          <div className="mt-4 border border-gray-200 rounded-lg p-3 space-y-2 text-xs">
+          <div className="mt-5 border border-black/15 p-4 space-y-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="text-fresh">🚚</span>
               <span>
@@ -175,13 +179,13 @@ export default function ProductPage({
           )}
 
           {/* Add to cart section */}
-          <div className="mt-5">
+          <div className="mt-5 border-y border-black/15 py-5">
             <AddToCartButton product={product} onOptionChange={handleOptionChange} />
           </div>
 
           {/* Seller / Brand card */}
           {brand && (
-            <div className="mt-5 border border-gray-200 rounded-lg p-4 flex items-center justify-between gap-4">
+            <div className="mt-5 flex items-center justify-between gap-4 border border-black/15 p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-lg font-bold text-gray-600 shrink-0">
                   {brand.name.charAt(0)}
@@ -206,8 +210,8 @@ export default function ProductPage({
           )}
 
           {/* Product details table */}
-          <section className="mt-8">
-            <h2 className="text-sm font-bold border-b-2 border-market inline-block pb-0.5 mb-4">
+          <section className="mt-8 border-t border-black/15 pt-5">
+            <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em]">
               Product Details
             </h2>
 
@@ -237,15 +241,13 @@ export default function ProductPage({
 
           {/* Full description */}
           {product.description && (
-            <div className="mt-6">
-              <h2 className="text-sm font-bold border-b-2 border-market inline-block pb-0.5 mb-3">
-                Description
-              </h2>
+            <details className="mt-6 border-y border-black/15 py-4">
+              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.16em]">Description</summary>
               <div
-                className="text-sm text-gray-700 leading-relaxed [&_p]:my-2.5"
+                className="pt-4 text-sm leading-relaxed text-gray-700 [&_p]:my-2.5"
                 dangerouslySetInnerHTML={{ __html: product.description }}
               />
-            </div>
+            </details>
           )}
         </div>
       </div>
@@ -255,9 +257,10 @@ export default function ProductPage({
 
       {/* Related products */}
       {related.length > 0 && (
-        <section className="mt-12 border-t border-gray-200 pt-8">
-          <h2 className="text-lg font-bold mb-5">You may also like</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <section className="mt-14 border-t border-black/15 pt-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Complete the look</p>
+          <h2 className="mb-6 mt-2 text-2xl font-semibold uppercase">You may also like</h2>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-7 md:grid-cols-4 lg:grid-cols-5">
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
