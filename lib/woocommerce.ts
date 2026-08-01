@@ -5,9 +5,20 @@ export type ProductCategory = {
   count?: number;
 };
 
+export type ProductAttributeOption = {
+  name: string;
+  value?: string;
+  image?: string;
+};
+
 export type ProductAttribute = {
   name: string;
-  options: string[];
+  options: ProductAttributeOption[];
+};
+
+export type ProductVariation = {
+  attributes: Record<string, string>;
+  is_in_stock: boolean;
 };
 
 export type Product = {
@@ -27,6 +38,7 @@ export type Product = {
   short_description: string;
   categories: ProductCategory[];
   attributes: ProductAttribute[];
+  variations?: ProductVariation[];
   description?: string;
 };
 
@@ -138,7 +150,28 @@ function toProduct(raw: any): Product {
     date_created: product.date_created ?? null,
     short_description: product.short_description ?? product.shortDescription ?? "",
     categories,
-    attributes: Array.isArray(product.attributes) ? product.attributes : [],
+    attributes: Array.isArray(product.attributes)
+      ? product.attributes.map((attribute: any) => ({
+          name: String(attribute?.name ?? ""),
+          options: Array.isArray(attribute?.options)
+            ? attribute.options.map((option: any) =>
+                typeof option === "string"
+                  ? { name: option }
+                  : {
+                      name: String(option?.name ?? option?.label ?? ""),
+                      value: option?.value ?? undefined,
+                      image: option?.image ?? option?.image_url ?? undefined,
+                    }
+              )
+            : [],
+        }))
+      : [],
+    variations: Array.isArray(product.variations)
+      ? product.variations.map((variation: any) => ({
+          attributes: variation?.attributes ?? {},
+          is_in_stock: Boolean(variation?.is_in_stock ?? variation?.in_stock),
+        }))
+      : undefined,
     description: product.description ?? undefined,
   };
 }

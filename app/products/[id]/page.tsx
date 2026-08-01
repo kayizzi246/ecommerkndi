@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
-import { getProduct, getProductsSafe, Product } from "@/lib/woocommerce";
+import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
@@ -23,20 +22,12 @@ export default function ProductPage({
 
   useEffect(() => {
     async function fetchData() {
-      const fetchedProduct = await getProduct(Number(id));
-      setProduct(fetchedProduct);
-
-      if (fetchedProduct) {
-        setActiveImage(fetchedProduct.image);
-        const brand = fetchedProduct.categories[0];
-        if (brand) {
-          const relatedRes = await getProductsSafe({ category: brand.slug, per_page: 6 });
-          const filteredRelated = relatedRes.products
-            .filter((p) => p.id !== fetchedProduct.id)
-            .slice(0, 5);
-          setRelated(filteredRelated);
-        }
-      }
+      const response = await fetch(`/api/products/${encodeURIComponent(id)}`);
+      if (!response.ok) return;
+      const data = (await response.json()) as { product: Product; related: Product[] };
+      setProduct(data.product);
+      setRelated(data.related);
+      setActiveImage(data.product.image);
     }
     fetchData();
   }, [id]);
@@ -226,7 +217,7 @@ export default function ProductPage({
                   ["Style code", `KD-${product.id}`],
                   brand ? ["Category", brand.name] : null,
                   ...(product.attributes ?? []).map(
-                    (attr) => [attr.name, attr.options.join(", ")] as [string, string]
+                    (attr) => [attr.name, attr.options.map((option) => option.name).join(", ")] as [string, string]
                   ),
                   [
                     "Availability",

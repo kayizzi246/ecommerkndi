@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
 
 type Props = {
   images: string[];
@@ -34,7 +33,7 @@ export default function ImageGallery({ images, productName, activeImage, setActi
           alt={`${productName} - image ${activeIndex + 1}`}
           fill
           sizes="(max-width: 1024px) 100vw, 55vw"
-          className="object-contain p-4 md:p-8 transition-opacity duration-300"
+          className="object-cover transition-opacity duration-300"
           priority
         />
         {images.length > 1 && (
@@ -88,7 +87,7 @@ export default function ImageGallery({ images, productName, activeImage, setActi
                 alt={`${productName} thumbnail ${i + 1}`}
                 fill
                 sizes="64px"
-                className="object-contain p-1"
+                className="object-cover"
               />
             </button>
           ))}

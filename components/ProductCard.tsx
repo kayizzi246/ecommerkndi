@@ -36,7 +36,7 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           fill
           sizes="(max-width: 768px) 50vw, 20vw"
-          className="object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />
         {/* Badges */}
         {discount > 0 && (
