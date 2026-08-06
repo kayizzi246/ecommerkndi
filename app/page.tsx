@@ -1,113 +1,156 @@
 import Link from "next/link";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
 import ProductCard from "@/components/ProductCard";
+import ProductCarousel from "@/components/ProductCarousel";
 import FlashSaleCountdown from "@/components/FlashSaleCountdown";
 import RecentlyViewed from "@/components/RecentlyViewed";
+
+const PROMO_TILES = [
+  { title: "Up to 80% off", copy: "Super Price Store", href: "/sale", tone: "bg-bfl-red text-white" },
+  { title: "New arrivals", copy: "Fresh drops every week", href: "/search", tone: "bg-black text-white" },
+  { title: "Kids & babies", copy: "From UGX 15,000", href: "/category/kids", tone: "bg-bfl-yellow text-black" },
+  { title: "Home & living", copy: "Refresh every room", href: "/category/home-living", tone: "bg-bfl-ink text-white" },
+];
 
 export default async function Home() {
   const [categories, onSale, latest] = await Promise.all([
     getCategories(),
-    getProductsSafe({ on_sale: true, per_page: 8 }),
+    getProductsSafe({ on_sale: true, per_page: 10 }),
     getProductsSafe({ per_page: 12 }),
   ]);
 
   return (
     <main className="pb-24 lg:pb-12">
-      <div className="border-b border-black/10 bg-[#efede8] px-4 py-2 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-black md:px-8">
-        Complimentary delivery on orders over UGX 50,000 · Secure local payment
+      {/* Announcement strip */}
+      <div className="bg-bfl-yellow px-4 py-2 text-center text-[12px] font-bold text-black md:px-8">
+        Free delivery on orders over UGX 50,000 · Pay on delivery across Uganda
       </div>
 
-      <section className="border-b border-black/10 bg-[#d8d0c2]">
-        <div className="mx-auto grid max-w-[1440px] md:grid-cols-2">
-          <div className="flex min-h-[430px] flex-col justify-end px-6 py-12 md:min-h-[560px] md:px-12 lg:px-20">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/60">
-              The Kandi edit · August 2026
+      {/* Hero */}
+      <section className="bg-black">
+        <div className="mx-auto grid max-w-[1440px] items-stretch md:grid-cols-[1.35fr_1fr]">
+          <div className="flex min-h-[320px] flex-col justify-center px-6 py-12 md:min-h-[420px] md:px-12 lg:px-16">
+            <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-bfl-yellow">
+              Big brands · Small prices
             </p>
-            <h1 className="mt-4 max-w-xl font-heading text-5xl font-semibold leading-[0.88] text-black md:text-7xl">
-              The new
-              <br />
-              essentials.
+            <h1 className="mt-4 max-w-2xl text-[38px] font-bold leading-[1.05] text-white md:text-[56px]">
+              Original brands, up to 80% less.
             </h1>
-            <p className="mt-6 max-w-sm text-sm leading-6 text-black/70">
-              Elevated finds for the way you live, move and show up—curated for every day in Uganda.
+            <p className="mt-4 max-w-md text-[15px] leading-6 text-white/70">
+              Shoes, fashion, sportswear and homeware from the labels you know — delivered anywhere
+              in Uganda.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="#new-arrivals" className="bg-black px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-black/75">
-                Shop new arrivals
+              <Link href="/sale" className="btn-bfl px-8 py-3.5 text-[14px]">
+                Shop the Super Price Store
               </Link>
-              <Link href="/sale" className="border border-black px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-black transition-colors hover:bg-black hover:text-white">
-                Explore sale
+              <Link
+                href="#new-arrivals"
+                className="border border-white/40 px-8 py-3.5 text-[14px] font-bold uppercase tracking-wide text-white transition-colors hover:border-bfl-yellow hover:text-bfl-yellow"
+              >
+                New arrivals
               </Link>
             </div>
           </div>
-          <div className="relative min-h-[300px] border-t border-black/10 bg-[#b9ab98] md:min-h-0 md:border-l md:border-t-0">
-            <div className="absolute inset-0 flex items-center justify-center p-8">
-              <div className="aspect-square w-4/5 border border-black/25" />
-              <p className="absolute max-w-[13rem] text-center font-heading text-3xl font-semibold leading-none text-black md:text-5xl">
-                Everyday,
-                <br />
-                refined.
+
+          <div className="relative flex min-h-[220px] items-center justify-center bg-bfl-yellow px-8 py-12">
+            <div className="text-center">
+              <p className="text-[64px] font-bold leading-none text-black md:text-[86px]">80%</p>
+              <p className="mt-1 text-[18px] font-bold uppercase tracking-wide text-black">Off RRP</p>
+              <p className="mt-3 flex items-center justify-center gap-2 text-[13px] font-bold text-black">
+                Ends in <FlashSaleCountdown />
               </p>
             </div>
-            <p className="absolute bottom-5 right-6 text-[10px] uppercase tracking-[0.18em] text-black/60">Kandi Collection 01</p>
           </div>
         </div>
       </section>
 
       <div className="mx-auto max-w-[1440px] px-4 md:px-8">
+        {/* Shop by department */}
         {categories.length > 0 && (
-          <section className="border-b border-black/10 py-9 md:py-12">
-            <div className="mb-6 flex items-end justify-between">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Shop by mood</p>
-                <h2 className="mt-2 font-heading text-3xl font-semibold">Choose your edit</h2>
-              </div>
-              <Link href="/sale" className="hidden text-[10px] font-semibold uppercase tracking-[0.15em] underline underline-offset-4 sm:block">View all collections</Link>
-            </div>
-            <div className="grid grid-cols-2 border-l border-t border-black/10 sm:grid-cols-4 lg:grid-cols-6">
-              {categories.slice(0, 6).map((cat, index) => (
-                <Link key={cat.id} href={`/category/${cat.slug}`} className="group min-h-36 border-b border-r border-black/10 p-4 transition-colors hover:bg-[#efede8] md:min-h-44 md:p-5">
-                  <span className="text-[10px] text-gray-500">0{index + 1}</span>
-                  <span className="mt-10 block font-heading text-xl font-semibold leading-none group-hover:underline underline-offset-4">{cat.name}</span>
-                  <span className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-gray-500">Discover →</span>
+          <section id="categories" className="py-9">
+            <h2 className="mb-6 text-center text-[26px] font-normal text-black">Shop by department</h2>
+            <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar sm:justify-center">
+              {categories.slice(0, 8).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className="group flex w-[92px] shrink-0 flex-col items-center gap-2 text-center"
+                >
+                  <span className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-bfl-surface text-[22px] font-bold text-bfl-ink transition-colors group-hover:bg-bfl-yellow group-hover:text-black">
+                    {category.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-[12px] leading-tight text-[#333] group-hover:text-black">
+                    {category.name}
+                  </span>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
+        {/* Promo tiles */}
+        <section className="grid gap-3 pb-9 sm:grid-cols-2 lg:grid-cols-4">
+          {PROMO_TILES.map((tile) => (
+            <Link
+              key={tile.title}
+              href={tile.href}
+              className={`flex min-h-[130px] flex-col justify-end p-5 transition-opacity hover:opacity-90 ${tile.tone}`}
+            >
+              <p className="text-[20px] font-bold leading-tight">{tile.title}</p>
+              <p className="mt-1 text-[13px] opacity-80">{tile.copy}</p>
+            </Link>
+          ))}
+        </section>
+
+        {/* Super price rail */}
         {onSale.products.length > 0 && (
-          <section className="border-b border-black/10 py-10 md:py-14">
-            <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#a13b2a]">Private sale</p>
-                <h2 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">Selected pieces, considered prices.</h2>
-              </div>
-              <div className="border border-black px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]">Ends in <FlashSaleCountdown /></div>
+          <section className="border-t border-bfl-line pt-9">
+            <div className="mb-1 flex flex-wrap items-center justify-center gap-3">
+              <span className="nav-slant bg-bfl-red px-6 py-1.5 text-[13px] font-bold text-white">
+                Super Price Store
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
-              {onSale.products.map((product) => <ProductCard key={product.id} product={product} />)}
+            <ProductCarousel title="Today's biggest savings" products={onSale.products} />
+            <div className="mt-6 text-center">
+              <Link href="/sale" className="btn-bfl inline-block px-8 py-3 text-[13px]">
+                See all deals
+              </Link>
             </div>
-            <Link href="/sale" className="mt-8 inline-block border-b border-black pb-1 text-[10px] font-semibold uppercase tracking-[0.16em]">Shop the sale</Link>
           </section>
         )}
 
         <RecentlyViewed />
 
+        {/* New arrivals grid */}
         {latest.products.length > 0 && (
-          <section id="new-arrivals" className="py-10 md:py-14">
-            <div className="mb-7 flex items-end justify-between">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Just arrived</p>
-                <h2 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">New in, for now.</h2>
-              </div>
-              <Link href="/search" className="hidden border-b border-black pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] sm:block">View all</Link>
+          <section id="new-arrivals" className="border-t border-bfl-line pt-9 mt-12">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="text-[26px] font-normal text-black">New arrivals</h2>
+              <Link href="/search" className="link-bfl text-[13px] font-bold">
+                View all
+              </Link>
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {latest.products.map((product) => <ProductCard key={product.id} product={product} />)}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              {latest.products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
             </div>
           </section>
         )}
+
+        {/* Sell with us */}
+        <section className="mt-14 flex flex-wrap items-center justify-between gap-5 border border-bfl-line bg-bfl-surface px-6 py-7">
+          <div>
+            <h2 className="text-[20px] font-bold text-black">Sell your brand on Kandi</h2>
+            <p className="mt-1 text-[13px] text-bfl-grey">
+              No listing fees, nationwide delivery and weekly payouts. Set up in minutes.
+            </p>
+          </div>
+          <Link href="/seller/register" className="btn-bfl px-8 py-3 text-[13px]">
+            Become a seller
+          </Link>
+        </section>
       </div>
     </main>
   );

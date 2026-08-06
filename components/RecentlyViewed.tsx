@@ -11,33 +11,31 @@ export default function RecentlyViewed() {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-10">
+    <section className="mt-12 border-t border-bfl-line pt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold">Recently viewed</h2>
-        <span className="text-xs text-gray-400">{items.length} items</span>
+        <h2 className="text-[20px] font-normal text-black">Recently viewed</h2>
+        <span className="text-[12px] text-bfl-grey">{items.length} items</span>
       </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+      <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
         {items.map((item) => (
           <Link
             key={item.productId}
             href={`/products/${item.productId}`}
-            className="shrink-0 w-28 group"
+            className="group w-28 shrink-0"
           >
-            <div className="aspect-square bg-[#f7f7f7] rounded-lg overflow-hidden relative">
+            <div className="relative aspect-[3/4] overflow-hidden bg-bfl-surface">
               <Image
                 src={item.image}
                 alt={item.name}
                 fill
                 sizes="112px"
-                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
             </div>
-            <p className="mt-1.5 text-xs text-gray-600 line-clamp-1 leading-tight">
+            <p className="mt-1.5 line-clamp-2 text-[12px] leading-tight text-[#4a4a4a]">
               {item.name}
             </p>
-            <p className="text-xs font-bold text-market mt-0.5">
-              {formatPrice(item.price)}
-            </p>
+            <p className="mt-1 text-[13px] font-bold text-black">{formatPrice(item.price)}</p>
           </Link>
         ))}
       </div>

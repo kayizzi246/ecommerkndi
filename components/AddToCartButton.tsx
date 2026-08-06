@@ -11,10 +11,14 @@ type Props = {
   onOptionChange?: (name: string, value: string | null) => void;
 };
 
+/** Size charts shoppers can switch between; the chips themselves are the store's own labels. */
+const SIZE_SYSTEMS = ["EU", "UK", "US"];
+
 export default function AddToCartButton({ product, onOptionChange }: Props) {
   const { addItem } = useCart();
   const { notify } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const [sizeSystem, setSizeSystem] = useState(SIZE_SYSTEMS[0]);
   const [selected, setSelected] = useState<Record<string, string | null>>(() => {
     const initial: Record<string, string | null> = {};
     product.attributes?.forEach(attr => initial[attr.name] = null);
@@ -55,10 +59,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
 
   if (product.stock_status === "outofstock") {
     return (
-      <button
-        disabled
-        className="w-full bg-gray-200 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 cursor-not-allowed"
-      >
+      <button disabled className="btn-bfl w-full py-4 text-[13px]">
         Sold out
       </button>
     );
@@ -94,8 +95,8 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (attr.name.toLowerCase() === 'color') {
           return (
             <div key={attr.name}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-800">
-                Color: <span className="font-bold text-gray-900">{selected[attr.name] || 'Select a color'}</span>
+              <p className="mb-2 text-[13px] text-[#333]">
+                Color: <span className="font-bold text-black">{selected[attr.name] || 'Select a color'}</span>
               </p>
               <ColorSwatch
                 options={attr.options}
@@ -109,43 +110,65 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           );
         }
 
-        // Render standard buttons for other attributes like 'Size'
+        // Size and other text options render as the BFL square chips.
+        const isSize = ["size", "sizes", "shoe size"].includes(attr.name.toLowerCase());
+
         return (
           <div key={attr.name}>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-800">
-              {attr.name}: <span className="font-bold text-gray-900">{selected[attr.name] || `Select a ${attr.name.toLowerCase()}`}</span>
-            </p>
             <div className="flex flex-wrap gap-2">
               {attr.options.map((option) => {
                 const available = isOptionAvailable(attr.name, option.name);
                 const active = selected[attr.name] === option.name;
                 return (
-                  <button key={option.name} type="button" disabled={!available} onClick={() => {
-                      handleSelect(attr.name, option.name);
-                    }} className={`relative min-w-14 border px-3 py-3 text-sm font-semibold transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200 ${
-                      active ? "border-black bg-black text-white" : "border-gray-300 hover:border-black"
-                    }`}>
+                  <button
+                    key={option.name}
+                    type="button"
+                    disabled={!available}
+                    onClick={() => handleSelect(attr.name, option.name)}
+                    className={`relative min-w-[58px] border px-4 py-3 text-[13px] transition-colors disabled:cursor-not-allowed disabled:border-bfl-line disabled:bg-bfl-surface disabled:text-[#bbb] ${
+                      active
+                        ? "border-black font-bold text-black"
+                        : "border-bfl-line text-[#333] hover:border-[#8a8a8a]"
+                    }`}
+                  >
                     {option.name}
-                    {!available && <span className="absolute inset-0 flex items-center justify-center"><span className="w-4/5 h-px bg-gray-400 rotate-[-10deg]"></span></span>}
+                    {!available && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="h-px w-4/5 rotate-[-18deg] bg-[#cfcfcf]" />
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+
+            {/* Size-system switch, as on the BFL size row */}
+            {isSize && (
+              <select
+                aria-label="Size system"
+                value={sizeSystem}
+                onChange={(event) => setSizeSystem(event.target.value)}
+                className="mt-3 w-[150px] border border-bfl-line bg-white px-3 py-2.5 text-[13px] focus:border-black focus:outline-none"
+              >
+                {SIZE_SYSTEMS.map((system) => (
+                  <option key={system}>{system}</option>
+                ))}
+              </select>
+            )}
           </div>
         );
       })}
 
-      {error && <p className="text-sale text-sm font-semibold">{error}</p>}
+      {error && <p className="text-[13px] font-bold text-bfl-red">{error}</p>}
 
       <div className="flex items-stretch gap-3">
-        <label className="border border-gray-300 px-3 flex flex-col justify-center shrink-0">
-          <span className="text-[10px] uppercase text-gray-500 font-bold">
-            Qty
-          </span>
+        <label className="flex w-[76px] shrink-0 flex-col justify-center border border-bfl-line px-3">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-bfl-grey">Qty.</span>
           <select
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
-            className="text-sm font-bold focus:outline-none bg-transparent pr-1"
+            aria-label="Quantity"
+            className="-ml-0.5 bg-transparent text-[14px] font-bold focus:outline-none"
           >
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
@@ -155,11 +178,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           </select>
         </label>
 
-        <button
-          type="button"
-          onClick={add}
-          className="flex-1 bg-black py-4 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-black/75"
-        >
+        <button type="button" onClick={add} className="btn-bfl flex-1 py-4 text-[14px] tracking-wide">
           Add to cart
         </button>
 
@@ -167,9 +186,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           type="button"
           aria-label="Save to wishlist"
           onClick={() => notify("Saved to your wishlist ♥")}
-          className="w-14 border border-gray-300 hover:border-black rounded-full flex items-center justify-center shrink-0"
+          className="flex w-14 shrink-0 items-center justify-center rounded-full bg-bfl-surface text-[#333] transition-colors hover:bg-[#ececec]"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

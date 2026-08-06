@@ -131,7 +131,11 @@ function kandi_format_product( $product, $with_description = false ) {
 		$data['description'] = wpautop( $product->get_description() );
 	}
 
-	return $data;
+	/**
+	 * Lets companion plugins extend the storefront payload. The Kandi Seller
+	 * Centre uses this to attach the owning store to each product.
+	 */
+	return apply_filters( 'kandi_product_payload', $data, $product );
 }
 
 add_action( 'rest_api_init', function () {
@@ -201,9 +205,11 @@ add_action( 'rest_api_init', function () {
 		'methods'             => WP_REST_Server::READABLE,
 		'permission_callback' => '__return_true',
 		'callback'            => function () {
+			// hide_empty is off so a parent department still appears when its
+			// products all sit in child categories.
 			$terms = get_terms( array(
 				'taxonomy'   => 'product_cat',
-				'hide_empty' => true,
+				'hide_empty' => false,
 			) );
 
 			if ( is_wp_error( $terms ) ) {
@@ -215,11 +221,17 @@ add_action( 'rest_api_init', function () {
 				if ( 'uncategorized' === $term->slug ) {
 					continue;
 				}
+				// `parent` lets the storefront assemble the mega-menu tree;
+				// `image` is the promo tile WooCommerce stores against a category.
+				$thumbnail_id = get_term_meta( $term->term_id, 'thumbnail_id', true );
+
 				$categories[] = array(
-					'id'    => $term->term_id,
-					'name'  => $term->name,
-					'slug'  => $term->slug,
-					'count' => (int) $term->count,
+					'id'     => $term->term_id,
+					'name'   => $term->name,
+					'slug'   => $term->slug,
+					'count'  => (int) $term->count,
+					'parent' => (int) $term->parent,
+					'image'  => $thumbnail_id ? wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ) : null,
 				);
 			}
 
@@ -358,6 +370,192 @@ add_action( 'rest_api_init', function () {
 				'total'     => (float) $order->get_total(),
 				'currency'  => $order->get_currency(),
 			) );
+		},
+	) );
+} );
+
+/* -------------------------------------------------------------------------
+ * Shopper accounts — Google sign-in
+ *
+ * The Next.js storefront verifies the Google ID token with Google before it
+ * calls anything here, so these endpoints receive an email address that has
+ * already been proven. They are still gated on the shared secret so only the
+ * storefront can reach them.
+ * ---------------------------------------------------------------------- */
+
+if ( ! defined( 'KANDI_CUSTOMER_TOKEN_TTL' ) ) {
+	define( 'KANDI_CUSTOMER_TOKEN_TTL', 30 * DAY_IN_SECONDS );
+}
+
+function kandi_customer_token_key( $token ) {
+	return 'kandi_cust_tok_' . hash( 'sha256', $token );
+}
+
+function kandi_customer_issue_token( $user_id ) {
+	$token = bin2hex( random_bytes( 32 ) );
+	set_transient( kandi_customer_token_key( $token ), (int) $user_id, KANDI_CUSTOMER_TOKEN_TTL );
+	return $token;
+}
+
+function kandi_customer_bearer( WP_REST_Request $request ) {
+	$header = (string) $request->get_header( 'authorization' );
+	return 0 === stripos( $header, 'bearer ' ) ? trim( substr( $header, 7 ) ) : '';
+}
+
+/** Checks the storefront's shared secret. */
+function kandi_customer_check_secret( WP_REST_Request $request ) {
+	$secret = defined( 'KANDI_API_SECRET' ) ? KANDI_API_SECRET : get_option( 'kandi_api_secret' );
+	if ( empty( $secret ) ) {
+		return new WP_Error( 'kandi_no_secret', 'KANDI_API_SECRET is not configured.', array( 'status' => 500 ) );
+	}
+	$sent = (string) $request->get_header( 'x-kandi-secret' );
+	if ( '' === $sent || ! hash_equals( $secret, $sent ) ) {
+		return new WP_Error( 'kandi_forbidden', 'Invalid API secret.', array( 'status' => 403 ) );
+	}
+	return true;
+}
+
+function kandi_customer_permission( WP_REST_Request $request ) {
+	$secret = kandi_customer_check_secret( $request );
+	if ( is_wp_error( $secret ) ) {
+		return $secret;
+	}
+	$token   = kandi_customer_bearer( $request );
+	$user_id = '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
+	return $user_id > 0 ? true : new WP_Error( 'kandi_unauthorised', 'Not signed in.', array( 'status' => 401 ) );
+}
+
+function kandi_customer_current_id( WP_REST_Request $request ) {
+	$token = kandi_customer_bearer( $request );
+	return '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
+}
+
+/** Shapes a WP user into the shopper object the storefront expects. */
+function kandi_format_customer( $user_id ) {
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return null;
+	}
+
+	return array(
+		'id'          => (int) $user->ID,
+		'name'        => $user->display_name ?: $user->user_email,
+		'email'       => $user->user_email,
+		'avatar'      => (string) get_user_meta( $user->ID, '_kandi_avatar', true ),
+		'onboarded'   => (bool) get_user_meta( $user->ID, '_kandi_onboarded', true ),
+		'preferences' => array(
+			'departments' => (array) ( get_user_meta( $user->ID, '_kandi_pref_departments', true ) ?: array() ),
+			'size'        => (string) get_user_meta( $user->ID, '_kandi_pref_size', true ),
+			'city'        => (string) get_user_meta( $user->ID, '_kandi_pref_city', true ),
+		),
+	);
+}
+
+add_action( 'rest_api_init', function () {
+
+	// POST /wp-json/kandi/v1/customers/google — find or create the shopper.
+	register_rest_route( 'kandi/v1', '/customers/google', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_customer_check_secret',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body  = (array) $request->get_json_params();
+			$email = sanitize_email( $body['email'] ?? '' );
+
+			if ( ! is_email( $email ) ) {
+				return new WP_Error( 'kandi_bad_email', 'A verified email address is required.', array( 'status' => 400 ) );
+			}
+
+			$name    = sanitize_text_field( $body['name'] ?? '' );
+			$picture = esc_url_raw( $body['picture'] ?? '' );
+			$user    = get_user_by( 'email', $email );
+
+			if ( ! $user ) {
+				$username = sanitize_user( 'kandi_' . strtok( $email, '@' ), true );
+				$base     = $username;
+				$suffix   = 1;
+				while ( username_exists( $username ) ) {
+					$username = $base . $suffix++;
+				}
+
+				$user_id = wp_insert_user( array(
+					'user_login'   => $username,
+					'user_email'   => $email,
+					'user_pass'    => wp_generate_password( 24, true, true ),
+					'display_name' => $name ?: $username,
+					'role'         => 'customer',
+				) );
+
+				if ( is_wp_error( $user_id ) ) {
+					return $user_id;
+				}
+			} else {
+				$user_id = $user->ID;
+				if ( $name && $user->display_name === $user->user_login ) {
+					wp_update_user( array( 'ID' => $user_id, 'display_name' => $name ) );
+				}
+			}
+
+			update_user_meta( $user_id, '_kandi_google_id', sanitize_text_field( $body['google_id'] ?? '' ) );
+			if ( $picture ) {
+				update_user_meta( $user_id, '_kandi_avatar', $picture );
+			}
+
+			return rest_ensure_response( array(
+				'token'      => kandi_customer_issue_token( $user_id ),
+				'expires_in' => KANDI_CUSTOMER_TOKEN_TTL,
+				'customer'   => kandi_format_customer( $user_id ),
+			) );
+		},
+	) );
+
+	// GET /wp-json/kandi/v1/customers/me
+	register_rest_route( 'kandi/v1', '/customers/me', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => 'kandi_customer_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			return rest_ensure_response( array(
+				'customer' => kandi_format_customer( kandi_customer_current_id( $request ) ),
+			) );
+		},
+	) );
+
+	// PUT /wp-json/kandi/v1/customers/preferences — saves the onboarding answers.
+	register_rest_route( 'kandi/v1', '/customers/preferences', array(
+		'methods'             => WP_REST_Server::EDITABLE,
+		'permission_callback' => 'kandi_customer_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$user_id = kandi_customer_current_id( $request );
+			$body    = (array) $request->get_json_params();
+
+			if ( isset( $body['departments'] ) && is_array( $body['departments'] ) ) {
+				update_user_meta(
+					$user_id,
+					'_kandi_pref_departments',
+					array_map( 'sanitize_title', $body['departments'] )
+				);
+			}
+			if ( isset( $body['size'] ) ) {
+				update_user_meta( $user_id, '_kandi_pref_size', sanitize_text_field( $body['size'] ) );
+			}
+			if ( isset( $body['city'] ) ) {
+				update_user_meta( $user_id, '_kandi_pref_city', sanitize_text_field( $body['city'] ) );
+			}
+			update_user_meta( $user_id, '_kandi_onboarded', 1 );
+
+			return rest_ensure_response( array( 'customer' => kandi_format_customer( $user_id ) ) );
+		},
+	) );
+
+	// POST /wp-json/kandi/v1/customers/logout
+	register_rest_route( 'kandi/v1', '/customers/logout', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_customer_check_secret',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$token = kandi_customer_bearer( $request );
+			if ( '' !== $token ) {
+				delete_transient( kandi_customer_token_key( $token ) );
+			}
+			return rest_ensure_response( array( 'ok' => true ) );
 		},
 	) );
 } );

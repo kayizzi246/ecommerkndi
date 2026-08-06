@@ -11,38 +11,50 @@ export default async function OrderReceivedPage({
   const { id, total } = await searchParams;
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-24 text-center">
-      <p className="text-[11px] tracking-[0.4em] uppercase text-gray-500 mb-4">
-        Thank you
-      </p>
-      <h1 className="text-2xl md:text-3xl tracking-[0.2em] uppercase font-semibold mb-4">
-        Order received
-      </h1>
-      {id && (
-        <p className="text-sm text-gray-700 mb-2">
-          Your order number is <span className="font-bold">#{id}</span>
-          {total && Number(total) > 0 && (
-            <>
-              {" "}— total <span className="font-bold">{formatPrice(Number(total))}</span>
-            </>
-          )}
-          .
+    <main className="mx-auto max-w-2xl px-4 py-20">
+      <div className="border border-bfl-line bg-white px-6 py-12 text-center md:px-10">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-bfl-yellow">
+          <svg className="h-7 w-7" fill="none" stroke="#000" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+          </svg>
+        </span>
+
+        <h1 className="mt-5 text-[26px] font-bold text-black">Order received</h1>
+        <p className="mt-2 text-[13px] text-bfl-grey">Thank you for shopping with Kandi.</p>
+
+        {id && (
+          <div className="mx-auto mt-6 max-w-sm border border-bfl-line bg-bfl-surface px-5 py-4 text-[14px]">
+            <div className="flex items-baseline justify-between">
+              <span className="text-bfl-grey">Order number</span>
+              <span className="font-bold text-black">#{id}</span>
+            </div>
+            {total && Number(total) > 0 && (
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-bfl-grey">Order total</span>
+                <span className="font-bold text-black">{formatPrice(Number(total))}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className="mt-6 text-[13px] leading-6 text-bfl-grey">
+          We&apos;ll call you shortly to confirm delivery — you pay when your order arrives.
+          If you gave us an email address, check your inbox: we&apos;ve created your Kandi account
+          and sent a link to set your password.
         </p>
-      )}
-      <p className="text-sm text-gray-500 mb-3">
-        We&apos;ll call you shortly to confirm delivery. You pay when your
-        order arrives.
-      </p>
-      <p className="text-sm text-gray-500 mb-10">
-        If you provided an email, check your inbox — we&apos;ve created your
-        Kandi account and sent a link to set your password.
-      </p>
-      <Link
-        href="/"
-        className="inline-block bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-gray-800 transition-colors"
-      >
-        Continue shopping
-      </Link>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/" className="btn-bfl px-8 py-3 text-[14px]">
+            Continue shopping
+          </Link>
+          <Link
+            href="/track-order"
+            className="border border-bfl-line px-8 py-3 text-[14px] font-bold text-[#333] transition-colors hover:border-black"
+          >
+            Track your order
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }

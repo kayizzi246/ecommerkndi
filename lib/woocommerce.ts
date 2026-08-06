@@ -3,7 +3,40 @@ export type ProductCategory = {
   name: string;
   slug: string;
   count?: number;
+  /** 0 for a top-level department; otherwise the parent term id. */
+  parent?: number;
+  /** Optional promo tile used in the mega menu. */
+  image?: string | null;
 };
+
+/** A top-level department with its child categories, for the mega menu. */
+export type CategoryNode = ProductCategory & { children: ProductCategory[] };
+
+/**
+ * Groups the flat category list from WordPress into departments and their
+ * children. Categories whose parent is missing from the list are promoted to
+ * top level so nothing silently disappears from the nav.
+ */
+export function buildCategoryTree(categories: ProductCategory[]): CategoryNode[] {
+  const byId = new Map(categories.map((category) => [category.id, category]));
+  const nodes = new Map<number, CategoryNode>();
+
+  for (const category of categories) {
+    const parentId = category.parent ?? 0;
+    if (parentId === 0 || !byId.has(parentId)) {
+      nodes.set(category.id, { ...category, children: [] });
+    }
+  }
+
+  for (const category of categories) {
+    const parentId = category.parent ?? 0;
+    if (parentId !== 0 && nodes.has(parentId)) {
+      nodes.get(parentId)!.children.push(category);
+    }
+  }
+
+  return [...nodes.values()].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+}
 
 export type ProductAttributeOption = {
   name: string;
@@ -19,6 +52,14 @@ export type ProductAttribute = {
 export type ProductVariation = {
   attributes: Record<string, string>;
   is_in_stock: boolean;
+};
+
+/** The marketplace store that owns a listing, when the Seller Centre plugin is active. */
+export type ProductSeller = {
+  id: number;
+  store_name: string;
+  store_slug: string;
+  logo?: string;
 };
 
 export type Product = {
@@ -40,6 +81,7 @@ export type Product = {
   attributes: ProductAttribute[];
   variations?: ProductVariation[];
   description?: string;
+  seller?: ProductSeller;
 };
 
 export type ProductListResponse = {
@@ -173,6 +215,14 @@ function toProduct(raw: any): Product {
         }))
       : undefined,
     description: product.description ?? undefined,
+    seller: product.seller
+      ? {
+          id: Number(product.seller.id ?? 0),
+          store_name: String(product.seller.store_name ?? ""),
+          store_slug: String(product.seller.store_slug ?? ""),
+          logo: product.seller.logo || undefined,
+        }
+      : undefined,
   };
 }
 
@@ -182,6 +232,8 @@ function toCategory(raw: any): ProductCategory {
     name: raw?.name ?? "",
     slug: raw?.slug ?? "",
     count: raw?.count != null ? Number(raw.count) : undefined,
+    parent: raw?.parent != null ? Number(raw.parent) : 0,
+    image: raw?.image ?? raw?.image?.src ?? null,
   };
 }
 

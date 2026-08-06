@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import StarRating from "@/components/StarRating";
 
 type Review = {
@@ -35,39 +34,38 @@ export default function ReviewSection({
 }: Props) {
   const total = RATING_BREAKDOWN.reduce((a, b) => a + b, 0);
 
-  const reviews = useMemo(() => {
-    return MOCK_REVIEWS.sort(() => Math.random() - 0.5).slice(0, 4);
-  }, []);
+  // Most recent first — a random shuffle would both mutate the shared array and
+  // read the clock during render.
+  const reviews = [...MOCK_REVIEWS]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 4);
 
   return (
-    <section id="reviews" className="mt-12 max-w-4xl">
-      <h2 className="text-lg font-bold mb-6">Customer Reviews</h2>
+    <section id="reviews" className="mt-14 max-w-4xl border-t border-bfl-line pt-8">
+      <h2 className="mb-6 text-[20px] font-normal text-black">Customer reviews</h2>
 
-      {/* Rating Summary */}
-      <div className="flex flex-wrap gap-8 items-start p-5 bg-gray-50 rounded-xl mb-8">
+      {/* Rating summary */}
+      <div className="mb-8 flex flex-wrap items-start gap-8 border border-bfl-line bg-bfl-surface p-5">
         <div className="text-center">
-          <p className="text-4xl font-bold text-market">{averageRating.toFixed(1)}</p>
-          <StarRating rating={averageRating} size="md" showCount={false} />
-          <p className="text-sm text-gray-500 mt-1">{totalReviews} reviews</p>
+          <p className="text-[40px] font-bold leading-none text-black">
+            {averageRating.toFixed(1)}
+          </p>
+          <div className="mt-2">
+            <StarRating rating={averageRating} size="md" showCount={false} />
+          </div>
+          <p className="mt-1 text-[13px] text-bfl-grey">{totalReviews} reviews</p>
         </div>
-        <div className="flex-1 min-w-[200px] space-y-1.5">
+        <div className="min-w-[200px] flex-1 space-y-1.5">
           {RATING_BREAKDOWN.map((count, i) => {
             const star = 5 - i;
             const pct = total > 0 ? (count / total) * 100 : 0;
             return (
-              <div key={star} className="flex items-center gap-2 text-sm">
-                <span className="w-12 text-right text-gray-600 shrink-0">
-                  {star} stars
-                </span>
-                <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-star rounded-full"
-                    style={{ width: `${pct}%` }}
-                  />
+              <div key={star} className="flex items-center gap-2 text-[13px]">
+                <span className="w-12 shrink-0 text-right text-bfl-grey">{star} star</span>
+                <div className="h-2.5 flex-1 overflow-hidden bg-[#e4e4e4]">
+                  <div className="h-full bg-bfl-yellow" style={{ width: `${pct}%` }} />
                 </div>
-                <span className="w-8 text-xs text-gray-400 shrink-0">
-                  {pct.toFixed(0)}%
-                </span>
+                <span className="w-8 shrink-0 text-[12px] text-bfl-grey">{pct.toFixed(0)}%</span>
               </div>
             );
           })}
@@ -77,23 +75,23 @@ export default function ReviewSection({
       {/* Review List */}
       <div className="space-y-6">
         {reviews.map((review) => (
-          <div key={review.id} className="pb-6 border-b border-gray-100 last:border-0">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 shrink-0">
+          <div key={review.id} className="border-b border-bfl-line pb-6 last:border-0">
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bfl-surface text-[12px] font-bold text-bfl-ink">
                 {review.author.charAt(0)}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">{review.author}</p>
+                  <p className="text-[14px] font-bold text-black">{review.author}</p>
                   {review.verified && (
-                    <span className="text-[10px] bg-fresh/10 text-fresh px-1.5 py-0.5 rounded font-medium">
+                    <span className="rounded bg-[#e7f7ea] px-1.5 py-0.5 text-[10px] font-bold text-[#0a7a2f]">
                       Verified purchase
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <StarRating rating={review.rating} size="sm" showCount={false} />
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-bfl-grey">
                     {new Date(review.date).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -103,18 +101,15 @@ export default function ReviewSection({
                 </div>
               </div>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed ml-11">
-              {review.text}
-            </p>
+            <p className="ml-11 text-[13px] leading-relaxed text-[#444]">{review.text}</p>
           </div>
         ))}
       </div>
 
-      {/* Write a review button */}
       <div className="mt-8 text-center">
         <button
           type="button"
-          className="border border-gray-300 hover:border-market text-sm font-medium px-8 py-2.5 rounded-lg transition-colors"
+          className="border border-bfl-line px-8 py-2.5 text-[13px] font-bold text-[#333] transition-colors hover:border-black"
         >
           Write a review
         </button>

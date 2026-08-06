@@ -1,0 +1,174 @@
+"use client";
+
+import { useState } from "react";
+import { sellerApi, type Seller } from "@/lib/seller";
+import { useSellerSession } from "@/lib/seller-session";
+
+const INPUT =
+  "w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none";
+
+const PAYOUT_METHODS = ["MTN Mobile Money", "Airtel Money", "Bank transfer"];
+
+export default function SellerSettingsPage() {
+  const { seller, refresh } = useSellerSession();
+
+  // The form seeds its fields from the seller record, so it only mounts once
+  // the session has resolved — no effect is needed to copy values in.
+  if (!seller) return null;
+
+  return <SettingsForm seller={seller} onSaved={refresh} />;
+}
+
+function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Promise<void> }) {
+  const [storeName, setStoreName] = useState(seller.store_name);
+  const [ownerName, setOwnerName] = useState(seller.owner_name);
+  const [phone, setPhone] = useState(seller.phone);
+  const [logo, setLogo] = useState(seller.logo ?? "");
+  const [payoutMethod, setPayoutMethod] = useState(seller.payout_method || PAYOUT_METHODS[0]);
+  const [payoutAccount, setPayoutAccount] = useState(seller.payout_account ?? "");
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await sellerApi.updateSettings({
+        store_name: storeName,
+        owner_name: ownerName,
+        phone,
+        logo,
+        payout_method: payoutMethod,
+        payout_account: payoutAccount,
+      });
+      await onSaved();
+      setNotice("Your store details have been saved.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save your changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-[820px]">
+      <h1 className="text-[24px] font-bold text-black">Store settings</h1>
+      <p className="mt-1 text-[13px] text-bfl-grey">
+        How your store appears to shoppers, and where we send your money.
+      </p>
+
+      <form onSubmit={save} className="mt-6 space-y-5">
+        <section className="border border-bfl-line bg-white p-5">
+          <h2 className="mb-4 text-[15px] font-bold text-black">Store profile</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Store name">
+              <input required value={storeName} onChange={(e) => setStoreName(e.target.value)} className={INPUT} />
+            </Field>
+            <Field label="Contact name">
+              <input required value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className={INPUT} />
+            </Field>
+            <Field label="Phone number">
+              <input required value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT} />
+            </Field>
+            <Field label="Email address" hint="Contact support to change your sign-in email.">
+              <input value={seller.email} disabled className={`${INPUT} bg-bfl-surface text-bfl-grey`} />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Logo URL" hint="Square image, at least 200×200.">
+                <input value={logo} onChange={(e) => setLogo(e.target.value)} className={INPUT} />
+              </Field>
+            </div>
+          </div>
+        </section>
+
+        <section className="border border-bfl-line bg-white p-5">
+          <h2 className="mb-4 text-[15px] font-bold text-black">Payout details</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Payout method">
+              <select value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)} className={INPUT}>
+                {PAYOUT_METHODS.map((method) => (
+                  <option key={method}>{method}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Account / phone number">
+              <input
+                value={payoutAccount}
+                onChange={(e) => setPayoutAccount(e.target.value)}
+                placeholder="07XX XXX XXX"
+                className={INPUT}
+              />
+            </Field>
+          </div>
+        </section>
+
+        <section className="border border-bfl-line bg-white p-5">
+          <h2 className="mb-4 text-[15px] font-bold text-black">Marketplace terms</h2>
+          <dl className="space-y-2.5 text-[13px]">
+            <Row label="Commission rate" value={`${seller.commission_rate}% per completed order`} />
+            <Row label="Account status" value={seller.status} />
+            <Row
+              label="Selling since"
+              value={new Date(seller.registered_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            />
+            <Row label="Store URL" value={`/sellers/${seller.store_slug}`} />
+          </dl>
+          <p className="mt-3 text-[12px] text-bfl-grey">
+            Your commission rate is set by the Kandi marketplace team. Contact support if you think
+            it should change.
+          </p>
+        </section>
+
+        {error && (
+          <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[13px] text-[#0a7a2f]">
+            {notice}
+          </p>
+        )}
+
+        <button type="submit" disabled={saving} className="btn-bfl px-8 py-3 text-[14px]">
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-bold text-[#333]">{label}</span>
+      {children}
+      {hint && <span className="mt-1 block text-[11px] text-bfl-grey">{hint}</span>}
+    </label>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-bfl-line pb-2.5 last:border-0">
+      <dt className="text-bfl-grey">{label}</dt>
+      <dd className="font-bold capitalize text-black">{value}</dd>
+    </div>
+  );
+}

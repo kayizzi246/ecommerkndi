@@ -48,7 +48,7 @@ export default function MobileBottomNav() {
   const { count } = useCart();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-bfl-line bg-white lg:hidden">
       <div className="flex items-center justify-around h-14">
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -62,14 +62,14 @@ export default function MobileBottomNav() {
               href={item.href}
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full text-[10px] font-medium transition-colors ${
-                isActive ? "text-market" : "text-gray-500 hover:text-gray-800"
+              className={`relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
+                isActive ? "font-bold text-black" : "text-bfl-grey hover:text-black"
               }`}
             >
               <span className="relative">
                 {item.icon(isActive)}
                 {item.label === "Cart" && count > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-market text-[9px] font-bold text-white px-1">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bfl-yellow px-1 text-[9px] font-bold text-black">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}

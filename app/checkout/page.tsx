@@ -7,9 +7,8 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 
 const inputClass =
-  "w-full border-b border-gray-300 px-1 py-2.5 text-sm focus:outline-none focus:border-black transition-colors bg-transparent";
-const labelClass =
-  "block text-[11px] tracking-[0.2em] uppercase text-gray-600 mb-1";
+  "w-full border border-bfl-line bg-white px-3 py-2.5 text-[14px] transition-colors focus:border-black focus:outline-none";
+const labelClass = "mb-1.5 block text-[12px] font-bold text-[#333]";
 
 export default function CheckoutPage() {
   const { items, count, subtotal, clearCart } = useCart();
@@ -19,15 +18,10 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <main className="max-w-7xl mx-auto px-4 py-24 text-center">
-        <h1 className="text-xl tracking-[0.3em] uppercase font-semibold mb-3">
-          Nothing to check out
-        </h1>
-        <p className="text-sm text-gray-500 mb-8">Your bag is empty.</p>
-        <Link
-          href="/"
-          className="inline-block bg-black text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-gray-800 transition-colors"
-        >
+      <main className="mx-auto max-w-[1440px] px-4 py-24 text-center">
+        <h1 className="mb-3 text-[24px] font-bold text-black">Nothing to check out</h1>
+        <p className="mb-8 text-[13px] text-bfl-grey">Your cart is empty.</p>
+        <Link href="/" className="btn-bfl inline-block px-10 py-3.5 text-[14px]">
           Start shopping
         </Link>
       </main>
@@ -82,21 +76,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-      <h1 className="text-xl md:text-2xl tracking-[0.3em] uppercase font-semibold mb-10">
-        Checkout
-      </h1>
+    <main className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
+      <h1 className="mb-8 text-[26px] font-normal text-black">Checkout</h1>
 
       <form
         onSubmit={handleSubmit}
         className="grid gap-10 lg:grid-cols-[1fr_380px] items-start"
       >
-        <div className="space-y-12 max-w-2xl">
-          <section>
-            <h2 className="text-sm tracking-[0.25em] uppercase font-semibold border-b border-gray-200 pb-4 mb-6">
-              1 · Delivery details
+        <div className="max-w-2xl space-y-8">
+          <section className="border border-bfl-line bg-white p-6">
+            <h2 className="mb-6 border-b border-bfl-line pb-4 text-[16px] font-bold text-black">
+              1. Delivery details
             </h2>
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="first_name">
                   First name *
@@ -127,7 +119,7 @@ export default function CheckoutPage() {
                   Email
                 </label>
                 <input id="email" name="email" type="email" className={inputClass} />
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="mt-1.5 text-[12px] text-bfl-grey">
                   We&apos;ll automatically create your Kandi account with this
                   email so you can track orders — you&apos;ll receive a link to
                   set your password.
@@ -155,76 +147,62 @@ export default function CheckoutPage() {
                 <label className={labelClass} htmlFor="notes">
                   Order notes (optional)
                 </label>
-                <textarea id="notes" name="notes" rows={3} className={`${inputClass} border`} />
+                <textarea id="notes" name="notes" rows={3} className={inputClass} />
               </div>
             </div>
           </section>
 
-          <section>
-            <h2 className="text-sm tracking-[0.25em] uppercase font-semibold border-b border-gray-200 pb-4 mb-6">
-              2 · Payment method
+          <section className="border border-bfl-line bg-white p-6">
+            <h2 className="mb-6 border-b border-bfl-line pb-4 text-[16px] font-bold text-black">
+              2. Payment method
             </h2>
-            <label className="flex items-center gap-4 border border-black p-5 cursor-pointer">
-              <input
-                type="radio"
-                name="payment"
-                value="cod"
-                defaultChecked
-                className="accent-black"
-              />
+            <label className="flex cursor-pointer items-center gap-4 border-2 border-black p-5">
+              <input type="radio" name="payment" value="cod" defaultChecked className="accent-black" />
               <span>
-                <span className="text-xs tracking-[0.2em] uppercase font-semibold block">
-                  Cash on delivery
-                </span>
-                <span className="text-sm text-gray-500">
-                  Pay with cash or mobile money when your order arrives.
+                <span className="block text-[14px] font-bold text-black">Cash on delivery</span>
+                <span className="text-[13px] text-bfl-grey">
+                  Pay with cash, MTN MoMo or Airtel Money when your order arrives.
                 </span>
               </span>
             </label>
           </section>
         </div>
 
-        <aside className="border border-gray-200 p-6 lg:sticky lg:top-40">
-          <h2 className="text-sm tracking-[0.25em] uppercase font-semibold border-b border-gray-200 pb-4 mb-4">
-            Order Summary
+        <aside className="border border-bfl-line bg-white p-6 lg:sticky lg:top-40">
+          <h2 className="mb-4 border-b border-bfl-line pb-4 text-[16px] font-bold text-black">
+            Order summary
           </h2>
-          <ul className="space-y-3 text-sm mb-5 max-h-64 overflow-y-auto">
+          <ul className="mb-5 max-h-64 space-y-3 overflow-y-auto text-[13px]">
             {items.map((item) => (
               <li key={item.key} className="flex justify-between gap-3">
-                <span className="text-gray-600 line-clamp-1">
+                <span className="line-clamp-1 text-[#555]">
                   {item.quantity} × {item.name}
                   {item.options &&
                     Object.entries(item.options)
                       .map(([k, v]) => ` (${k} ${v})`)
                       .join("")}
                 </span>
-                <span className="font-semibold whitespace-nowrap">
+                <span className="whitespace-nowrap font-bold text-black">
                   {formatPrice(item.price * item.quantity)}
                 </span>
               </li>
             ))}
           </ul>
-          <div className="flex justify-between border-t border-gray-200 pt-4 mb-6">
-            <span className="text-xs tracking-[0.2em] uppercase text-gray-600">
-              Subtotal ({count})
-            </span>
-            <span className="font-bold">{formatPrice(subtotal)}</span>
+          <div className="mb-6 flex items-baseline justify-between border-t border-bfl-line pt-4">
+            <span className="text-[14px] font-bold text-black">Subtotal ({count})</span>
+            <span className="text-[20px] font-bold text-black">{formatPrice(subtotal)}</span>
           </div>
 
           {error && (
-            <p className="border border-sale text-sale text-sm p-3 mb-5">
+            <p role="alert" className="mb-5 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
               {error}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-black hover:bg-gray-800 disabled:opacity-60 disabled:cursor-wait text-white text-xs tracking-[0.25em] uppercase py-4 transition-colors"
-          >
+          <button type="submit" disabled={submitting} className="btn-bfl w-full py-4 text-[14px]">
             {submitting ? "Placing order…" : "Place order"}
           </button>
-          <p className="text-xs text-gray-400 mt-4 text-center">
+          <p className="mt-4 text-center text-[12px] text-bfl-grey">
             By placing this order you agree to our terms of sale.
           </p>
         </aside>

@@ -23,29 +23,25 @@ export default function AppBanner() {
   };
 
   return (
-    <div className="banner-up fixed bottom-0 inset-x-0 z-50 border-t border-white/20 bg-black text-white">
-      <div className="max-w-7xl mx-auto flex items-center gap-4 px-4 md:px-8 py-3">
-        <span className="bg-sun rounded-xl w-11 h-11 flex items-center justify-center text-xl shrink-0">
+    <div className="banner-up fixed inset-x-0 bottom-0 z-50 bg-black text-white">
+      <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-4 py-3 md:px-8">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-bfl-yellow text-xl">
           🛍️
         </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold">Shop faster on the Kandi app</p>
-          <p className="text-xs text-gray-300 hidden sm:block">
-            Exclusive app-only deals · order tracking · instant notifications
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-bold">Shop faster on the Kandi app</p>
+          <p className="hidden text-[12px] text-white/65 sm:block">
+            App-only prices · order tracking · instant notifications
           </p>
         </div>
-        <a
-          href="#kandi-app"
-          onClick={dismiss}
-          className="bg-sale hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide px-4 py-2.5 rounded-full shrink-0"
-        >
+        <a href="#kandi-app" onClick={dismiss} className="btn-bfl shrink-0 px-5 py-2.5 text-[12px]">
           Get the app
         </a>
         <button
           type="button"
           onClick={dismiss}
           aria-label="Dismiss"
-          className="text-gray-400 hover:text-white text-xl leading-none shrink-0"
+          className="shrink-0 text-xl leading-none text-white/60 hover:text-white"
         >
           ×
         </button>

@@ -65,9 +65,9 @@ export default function SearchBar() {
   };
 
   return (
-    <div ref={boxRef} className="relative flex-1 max-w-2xl">
+    <div ref={boxRef} className="relative flex-1 max-w-[460px]">
       <form onSubmit={submit}>
-        <div className="flex items-center border-b border-black/30 bg-transparent px-1 focus-within:border-black">
+        <div className="flex items-center gap-2 rounded-full border border-bfl-line bg-white px-5 focus-within:border-[#b9b9b9]">
           <input
             type="search"
             value={query}
@@ -76,11 +76,11 @@ export default function SearchBar() {
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
-            placeholder="Search products, brands and styles"
-            className="w-full bg-transparent py-2 text-sm focus:outline-none placeholder:text-gray-500"
+            placeholder="Search for items or brands"
+            className="w-full bg-transparent py-2.5 text-[13px] focus:outline-none placeholder:text-[#8a8a8a]"
           />
-          <button type="submit" aria-label="Search" className="shrink-0 text-black hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <button type="submit" aria-label="Search" className="shrink-0 text-[#333] hover:text-black">
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -92,7 +92,7 @@ export default function SearchBar() {
       </form>
 
       {open && query.trim().length >= 2 && (
-        <div className="absolute top-full left-0 right-0 mt-2 border border-black/15 bg-[#f8f7f4] overflow-hidden z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-bfl-line bg-white overflow-hidden z-50 shadow-lg">
           {loading && suggestions.length === 0 ? (
             <p className="px-4 py-3 text-sm text-gray-500">Searching…</p>
           ) : suggestions.length === 0 ? (
@@ -124,7 +124,7 @@ export default function SearchBar() {
                           <span className="block text-xs text-gray-400">{s.category}</span>
                         )}
                       </span>
-                      <span className={`text-sm font-bold shrink-0 ${s.on_sale ? "text-sale" : ""}`}>
+                      <span className={`text-sm font-bold shrink-0 ${s.on_sale ? "text-bfl-red" : "text-bfl-ink"}`}>
                         {formatPrice(s.price)}
                       </span>
                     </button>

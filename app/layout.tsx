@@ -3,19 +3,17 @@ import { Jost, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
-import { getCategories } from "@/lib/woocommerce";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import AppBanner from "@/components/AppBanner";
-import MobileBottomNav from "@/components/MobileBottomNav";
+import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
+import { CustomerSessionProvider } from "@/lib/customer-session";
+import StoreChrome from "@/components/StoreChrome";
 
-// Jost: geometric display face for headings, prices, buttons (Brands For Less look).
+// Jost: geometric display face used across the whole Brands For Less look.
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
 });
 
-// Inter: highly readable body text.
+// Inter: fallback face for dense tabular UI in the Seller Centre.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -35,23 +33,21 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const categories = await getCategories();
+  const departments = buildCategoryTree(await getCategories());
 
   return (
     <html
       lang="en"
       className={`${jost.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <CartProvider>
-          <ToastProvider>
-            <Header categories={categories} />
-            <div className="flex-1">{children}</div>
-            <Footer />
-            <AppBanner />
-            <MobileBottomNav />
-          </ToastProvider>
-        </CartProvider>
+      <body className="min-h-full flex flex-col bg-white">
+        <CustomerSessionProvider>
+          <CartProvider>
+            <ToastProvider>
+              <StoreChrome departments={departments}>{children}</StoreChrome>
+            </ToastProvider>
+          </CartProvider>
+        </CustomerSessionProvider>
       </body>
     </html>
   );

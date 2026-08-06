@@ -46,7 +46,6 @@ export default function FilterSidebar({
   );
 
   const clearFilters = useCallback(() => {
-    const params = new URLSearchParams();
     router.push(pathname);
     onClose?.();
   }, [router, pathname, onClose]);
@@ -55,33 +54,32 @@ export default function FilterSidebar({
     currentMin > minPrice || currentMax < maxPrice || currentRating > 0;
 
   return (
-    <aside
-      className={`bg-white rounded-lg border border-gray-200 p-4 ${className}`}
-    >
+    <aside className={`border border-bfl-line bg-white p-4 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-        <h3 className="text-sm font-bold uppercase tracking-wider">Filters</h3>
+      <div className="mb-4 flex items-center justify-between border-b border-bfl-line pb-3">
+        <h3 className="text-[14px] font-bold text-black">Filters</h3>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-xs text-market hover:underline"
-            >
+            <button type="button" onClick={clearFilters} className="link-bfl text-[12px] font-bold">
               Clear all
             </button>
           )}
           {onClose && (
-            <button type="button" onClick={onClose} className="text-gray-400 hover:text-black text-lg leading-none">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close filters"
+              className="text-lg leading-none text-bfl-grey hover:text-black"
+            >
               ×
             </button>
           )}
         </div>
       </div>
 
-      {/* Price Range */}
+      {/* Price range */}
       <div className="mb-5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
+        <h4 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-[#333]">
           Price range
         </h4>
         <div className="flex items-center gap-2">
@@ -90,52 +88,51 @@ export default function FilterSidebar({
             value={localMin}
             onChange={(e) => setLocalMin(Number(e.target.value))}
             placeholder="Min"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-market"
+            aria-label="Minimum price"
+            className="w-full border border-bfl-line px-2 py-2 text-[13px] focus:border-black focus:outline-none"
           />
-          <span className="text-gray-400">—</span>
+          <span className="text-bfl-grey">—</span>
           <input
             type="number"
             value={localMax}
             onChange={(e) => setLocalMax(Number(e.target.value))}
             placeholder="Max"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-market"
+            aria-label="Maximum price"
+            className="w-full border border-bfl-line px-2 py-2 text-[13px] focus:border-black focus:outline-none"
           />
         </div>
         <button
           type="button"
-          onClick={() => applyFilters({ min_price: String(localMin), max_price: String(localMax) })}
-          className="mt-2 w-full text-center text-xs text-market hover:underline py-1"
+          onClick={() =>
+            applyFilters({ min_price: String(localMin), max_price: String(localMax) })
+          }
+          className="mt-2 w-full border border-bfl-line py-2 text-center text-[12px] font-bold text-[#333] transition-colors hover:border-black"
         >
           Apply price
         </button>
       </div>
 
-      {/* Rating Filter */}
+      {/* Rating */}
       <div className="mb-5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
-          Rating
-        </h4>
-        <ul className="space-y-2">
+        <h4 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-[#333]">Rating</h4>
+        <ul className="space-y-1">
           {RATING_OPTIONS.map((r) => {
             const active = currentRating === r;
             return (
               <li key={r}>
                 <button
                   type="button"
-                  onClick={() =>
-                    applyFilters({
-                      rating: active ? undefined : String(r),
-                    })
-                  }
-                  className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
-                    active ? "bg-market/10 text-market font-semibold" : "hover:bg-gray-50"
+                  onClick={() => applyFilters({ rating: active ? undefined : String(r) })}
+                  aria-pressed={active}
+                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-[13px] transition-colors ${
+                    active ? "bg-bfl-yellow font-bold text-black" : "hover:bg-bfl-surface"
                   }`}
                 >
                   <span className="flex">
                     {Array.from({ length: 5 }, (_, i) => (
                       <svg
                         key={i}
-                        className={`w-3.5 h-3.5 ${i < r ? "text-star" : "text-gray-300"}`}
+                        className={`h-3.5 w-3.5 ${i < r ? "text-bfl-yellow" : "text-[#dcdcdc]"}`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -143,7 +140,7 @@ export default function FilterSidebar({
                       </svg>
                     ))}
                   </span>
-                  <span className="text-xs text-gray-500">& up</span>
+                  <span className="text-[12px] text-bfl-grey">&amp; up</span>
                 </button>
               </li>
             );
@@ -151,14 +148,9 @@ export default function FilterSidebar({
         </ul>
       </div>
 
-      {/* Active Filters Summary */}
       {hasActiveFilters && (
-        <div className="pt-3 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="w-full bg-market text-white text-xs font-bold uppercase tracking-wider py-2.5 rounded hover:bg-market-dark transition-colors"
-          >
+        <div className="border-t border-bfl-line pt-3">
+          <button type="button" onClick={clearFilters} className="btn-bfl w-full py-2.5 text-[12px]">
             Reset all filters
           </button>
         </div>
@@ -166,4 +158,3 @@ export default function FilterSidebar({
     </aside>
   );
 }
-
