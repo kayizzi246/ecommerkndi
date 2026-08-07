@@ -1,28 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   images: string[];
   productName: string;
   activeImage: string | null;
   setActiveImage: (image: string) => void;
-  /** Green NEW flag, for recently listed products. */
+  /** NEW flag, for recently listed products. */
   isNew?: boolean;
-  /** Red "-N% OFF" flag in the top-right corner. */
+  /** "−N%" flag in the top-left corner. */
   discount?: number;
-  /** Red SUPER PRICE flag along the bottom edge. */
+  /** Super price flag, for deep discounts. */
   superPrice?: boolean;
 };
 
 /**
- * Brands For Less product gallery.
+ * Product gallery, following the Next.js Commerce gallery: one large square
+ * white frame showing the whole product with `object-contain`, a single
+ * rounded arrow pill floating over its bottom edge, and a row of bordered
+ * square thumbnails underneath that highlight the active shot.
  *
- * The frame is deliberately capped rather than stretched to the column: a
- * contained frame keeps the product large *relative to its box*, which is what
- * makes the shot read as big. Rollover pans a magnified copy inside that frame
- * (nothing escapes the container), and a click opens the full-size lightbox.
+ * Clicking the frame opens a full-size lightbox.
  */
 export default function ImageGallery({
   images,
@@ -33,11 +33,8 @@ export default function ImageGallery({
   discount = 0,
   superPrice = false,
 }: Props) {
-  const [zooming, setZooming] = useState(false);
-  const [origin, setOrigin] = useState("50% 50%");
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState(false);
-  const frameRef = useRef<HTMLDivElement>(null);
 
   const activeIndex = Math.max(0, activeImage ? images.indexOf(activeImage) : 0);
 
@@ -57,20 +54,11 @@ export default function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-[3/4] max-w-[520px] items-center justify-center bg-bfl-surface text-sm text-bfl-grey">
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-shop-line bg-white text-sm text-shop-muted">
         No image
       </div>
     );
   }
-
-  const trackCursor = (event: React.MouseEvent<HTMLDivElement>) => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const rect = frame.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    setOrigin(`${x}% ${y}%`);
-  };
 
   const step = (direction: 1 | -1) => {
     const next = (activeIndex + direction + images.length) % images.length;
@@ -93,128 +81,114 @@ export default function ImageGallery({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[600px] lg:mx-0">
-      <div className="flex gap-3">
-        {/* Thumbnail rail */}
-        {images.length > 1 && (
-          <div className="flex max-h-[600px] shrink-0 flex-col gap-2 overflow-y-auto no-scrollbar">
-            {images.map((src, i) => (
-              <button
-                key={src}
-                type="button"
-                onMouseEnter={() => setActiveImage(src)}
-                onClick={() => setActiveImage(src)}
-                aria-label={`View image ${i + 1}`}
-                aria-current={i === activeIndex}
-                className={`relative h-[86px] w-[68px] shrink-0 overflow-hidden border bg-white transition-colors ${
-                  i === activeIndex ? "border-bfl-yellow" : "border-bfl-line hover:border-[#b0b0b0]"
-                }`}
-              >
-                <Image src={src} alt="" fill sizes="68px" className="object-contain p-1" />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Main frame */}
-        <div
-          ref={frameRef}
-          onMouseEnter={() => setZooming(true)}
-          onMouseLeave={() => setZooming(false)}
-          onMouseMove={trackCursor}
+    <div>
+      {/* Main frame */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-shop-line bg-white">
+        <button
+          type="button"
           onClick={() => setLightbox(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") setLightbox(true);
-            if (event.key === "ArrowRight") step(1);
-            if (event.key === "ArrowLeft") step(-1);
-          }}
           aria-label="Open full-size image"
-          className="relative aspect-[3/4] flex-1 cursor-zoom-in overflow-hidden bg-[#f5f5f5]"
+          className="absolute inset-0 h-full w-full cursor-zoom-in"
         >
           <Image
             key={activeImage}
             src={activeImage || images[0]}
             alt={`${productName} — image ${activeIndex + 1}`}
             fill
-            sizes="(max-width: 1024px) 92vw, 520px"
-            className="object-contain p-3 transition-transform duration-200 ease-out"
-            style={{ transform: zooming ? "scale(2.2)" : "scale(1)", transformOrigin: origin }}
+            sizes="(min-width: 1024px) 440px, 100vw"
+            className="h-full w-full object-contain p-3"
             priority
           />
+        </button>
 
+        {/* Flags */}
+        <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
           {discount > 0 && (
-            <span className="pointer-events-none absolute right-0 top-4 bg-bfl-red px-3 py-1.5 text-[13px] font-bold text-white">
-              {discount}% OFF
+            <span className="rounded-full bg-shop-sale px-3 py-1 text-[12px] font-semibold text-white">
+              −{discount}%
             </span>
           )}
           {superPrice && (
-            <span className="pointer-events-none absolute bottom-0 left-0 bg-bfl-red px-4 py-1.5 text-[12px] font-bold uppercase tracking-wide text-white">
-              Super Price
+            <span className="rounded-full bg-shop-ink px-3 py-1 text-[12px] font-semibold text-white">
+              Super price
             </span>
           )}
-          {isNew && !superPrice && (
-            <span className="pointer-events-none absolute bottom-0 left-0 bg-bfl-green px-4 py-1.5 text-[12px] font-bold uppercase tracking-wide text-white">
-              New
+          {isNew && !superPrice && discount === 0 && (
+            <span className="rounded-full bg-shop-ink px-3 py-1 text-[12px] font-semibold text-white">
+              New in
             </span>
           )}
+        </div>
 
-          {/* Mobile arrows — desktop uses the thumbnail rail */}
-          {images.length > 1 && (
-            <>
+        {/* Share sits opposite the flags. */}
+        <button
+          type="button"
+          onClick={share}
+          aria-label="Share this product"
+          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[12px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />
+          </svg>
+          {copied ? "Copied" : "Share"}
+        </button>
+
+        {/* Single arrow pill, centred on the bottom edge. */}
+        {images.length > 1 && (
+          <div className="absolute bottom-[15%] flex w-full justify-center">
+            <div className="mx-auto flex h-11 items-center rounded-full border border-shop-line bg-white/70 text-shop-ink backdrop-blur-md">
               <button
                 type="button"
-                aria-label="Previous image"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  step(-1);
-                }}
-                className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-md md:hidden"
+                aria-label="Previous product image"
+                onClick={() => step(-1)}
+                className="flex h-full items-center justify-center px-6 transition-all ease-in-out hover:scale-110"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
+              <div className="mx-1 h-6 w-px bg-shop-line" />
               <button
                 type="button"
-                aria-label="Next image"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  step(1);
-                }}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-md md:hidden"
+                aria-label="Next product image"
+                onClick={() => step(1)}
+                className="flex h-full items-center justify-center px-6 transition-all ease-in-out hover:scale-110"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Share / zoom hint */}
-      <div className="mt-4 flex items-center gap-10 md:pl-[80px]">
-        <button
-          type="button"
-          onClick={share}
-          className="flex items-center gap-2 text-[13px] text-[#333] hover:text-black"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />
-          </svg>
-          {copied ? "Link copied" : "Share"}
-        </button>
-
-        <span className="hidden items-center gap-2 text-[13px] text-bfl-grey md:flex">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="6.5" />
-            <path strokeLinecap="round" d="M20 20l-4.4-4.4M9 11h4M11 9v4" />
-          </svg>
-          Rollover image to zoom
-        </span>
-      </div>
+      {/* Thumbnail row */}
+      {images.length > 1 && (
+        <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          {images.map((src, i) => (
+            <li key={src} className="h-16 w-16">
+              <button
+                type="button"
+                onClick={() => setActiveImage(src)}
+                aria-label={`View image ${i + 1}`}
+                aria-current={i === activeIndex}
+                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-white transition-colors hover:border-shop-ink ${
+                  i === activeIndex ? "border-2 border-shop-ink" : "border-shop-line"
+                }`}
+              >
+                <Image
+                  src={src}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-contain p-1"
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Full-size lightbox */}
       {lightbox && (

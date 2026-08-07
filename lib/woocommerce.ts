@@ -173,8 +173,28 @@ function toProduct(raw: any): Product {
       ? []
       : [];
 
-  const images = Array.isArray(product.images) ? product.images : [];
-  const gallery = images.map((image: any) => image?.src ?? "").filter(Boolean);
+  // Two payload shapes reach this mapper and they name their images
+  // differently, so both are normalised here:
+  //   • the kandi/v1 endpoint sends `image` (string) + `gallery` (string[])
+  //   • the WooCommerce Store API fallback sends `images` ({ src }[])
+  // Reading only one shape is why gallery thumbnails never appeared.
+  const toSrc = (entry: any): string =>
+    typeof entry === "string" ? entry : (entry?.src ?? entry?.url ?? "");
+
+  const storeApiImages = (Array.isArray(product.images) ? product.images : [])
+    .map(toSrc)
+    .filter(Boolean);
+  const customGallery = (Array.isArray(product.gallery) ? product.gallery : [])
+    .map(toSrc)
+    .filter(Boolean);
+
+  const mainImage: string = toSrc(product.image) || storeApiImages[0] || customGallery[0] || "";
+
+  // Every other shot, main image excluded and duplicates dropped — the product
+  // page prepends the main image itself.
+  const gallery = [...storeApiImages, ...customGallery].filter(
+    (src, index, all) => src !== mainImage && all.indexOf(src) === index
+  );
 
   return {
     id: Number(product.id ?? 0),
@@ -187,7 +207,7 @@ function toProduct(raw: any): Product {
     featured: Boolean(product.featured),
     stock_status: (product.stock_status as Product["stock_status"]) ?? "outofstock",
     stock_quantity: product.stock_quantity ?? null,
-    image: gallery[0] ?? product.image ?? "",
+    image: mainImage,
     gallery,
     date_created: product.date_created ?? null,
     short_description: product.short_description ?? product.shortDescription ?? "",

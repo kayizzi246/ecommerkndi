@@ -20,8 +20,12 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
             type="button"
             disabled={!available}
             onClick={() => onChange(option.name)}
-            className={`relative w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 disabled:cursor-not-allowed ${
-              value === option.name ? "border-market" : "border-transparent"
+            // A ring rather than a border, so the swatch colour keeps its full
+            // area and the selected state never resizes the dot.
+            className={`relative h-9 w-9 rounded-full transition-shadow disabled:cursor-not-allowed ${
+              value === option.name
+                ? "ring-2 ring-shop-ink ring-offset-2"
+                : "ring-1 ring-black/10 hover:ring-shop-line hover:ring-offset-2"
             }`}
             style={{ backgroundColor: option.value || option.name.toLowerCase() }}
             aria-label={`Select color ${option.name}`}

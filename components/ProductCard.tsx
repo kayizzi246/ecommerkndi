@@ -12,77 +12,82 @@ function isNew(product: Product): boolean {
   return Date.now() - created < NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 }
 
-/** The size run Brands For Less prints above the brand name on every PLP tile. */
-function sizeRun(product: Product): string[] {
-  const sizeAttr = product.attributes?.find((attr) =>
-    ["size", "sizes", "shoe size"].includes(attr.name.toLowerCase())
-  );
-  return (sizeAttr?.options ?? []).map((option) => option.name).slice(0, 7);
-}
-
+/**
+ * Product tile, following the Next.js Commerce grid tile: a square white frame
+ * with a bordered edge that picks up the accent on hover, the whole product
+ * shown with `object-contain` (never cropped), and a rounded label plate
+ * floating over the bottom edge carrying the title and a price pill.
+ */
 export default function ProductCard({ product }: { product: Product }) {
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
-  const brand = product.categories[0]?.name ?? "Kandi";
-  const sizes = sizeRun(product);
+  const soldOut = product.stock_status === "outofstock";
 
   return (
-    <Link href={`/products/${product.id}`} className="group block bg-white">
-      {/* Image */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-bfl-surface">
+    <div className="group relative h-full">
+      <Link
+        href={`/products/${product.id}`}
+        className="relative flex aspect-square h-full w-full items-center justify-center overflow-hidden rounded-lg border border-shop-line bg-white transition-colors hover:border-shop-ink"
+      >
         <Image
           src={product.image}
           alt={product.name}
           fill
-          sizes="(max-width: 768px) 50vw, 20vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className={`relative h-full w-full object-contain p-2 transition duration-300 ease-in-out group-hover:scale-105 ${
+            soldOut ? "opacity-60" : ""
+          }`}
         />
 
-        {isNew(product) && (
-          <span className="absolute bottom-0 left-0 bg-bfl-green px-3 py-1 text-[11px] font-bold uppercase text-white">
-            New
-          </span>
-        )}
-        {product.stock_status === "outofstock" && (
-          <span className="absolute inset-0 flex items-center justify-center bg-white/70 text-xs font-bold uppercase tracking-wider text-black">
-            Sold out
-          </span>
-        )}
-
-        <div className="absolute right-2 top-2">
-          <WishlistButton
-            productId={product.id}
-            name={product.name}
-            image={product.image}
-            price={product.price}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 hover:bg-white"
-            iconClassName="w-4 h-4"
-          />
+        {/* Flags */}
+        <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {discount > 0 && (
+            <span className="rounded-full bg-shop-sale px-2.5 py-1 text-[11px] font-semibold text-white">
+              −{discount}%
+            </span>
+          )}
+          {isNew(product) && discount === 0 && (
+            <span className="rounded-full bg-shop-ink px-2.5 py-1 text-[11px] font-semibold text-white">
+              New in
+            </span>
+          )}
+          {soldOut && (
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-shop-ink backdrop-blur-md">
+              Sold out
+            </span>
+          )}
         </div>
+
+        {/* Label plate */}
+        <div className="absolute bottom-0 left-0 flex w-full px-3 pb-3">
+          <div className="flex w-full items-center rounded-full border border-shop-line bg-white/70 p-1 text-[12px] font-semibold text-shop-ink backdrop-blur-md">
+            <h3 className="mr-3 line-clamp-2 grow pl-2.5 leading-none tracking-tight">
+              {product.name}
+            </h3>
+            <span className="flex flex-none items-baseline gap-1.5 rounded-full bg-shop-ink px-3 py-2 text-white">
+              {formatPrice(product.price)}
+              {discount > 0 && (
+                <span className="text-[10px] font-normal text-white/60 line-through">
+                  {formatPrice(product.regular_price)}
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+      </Link>
+
+      {/* Wishlist sits outside the link so the heart never navigates. */}
+      <div className="absolute right-3 top-3 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <WishlistButton
+          productId={product.id}
+          name={product.name}
+          image={product.image}
+          price={product.price}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-shop-line bg-white/80 text-shop-ink backdrop-blur-md transition-colors hover:bg-white"
+          iconClassName="w-[18px] h-[18px]"
+        />
       </div>
-
-      {/* Copy block */}
-      <div className="pb-4 pt-2.5">
-        {sizes.length > 0 && (
-          <p className="truncate text-[11px] text-bfl-grey">{sizes.join("  |  ")}</p>
-        )}
-
-        <p className="mt-1 truncate text-[13px] font-bold text-black">{brand}</p>
-
-        <h3 className="mt-0.5 line-clamp-2 min-h-[2.6rem] text-[13px] leading-snug text-[#4a4a4a]">
-          {product.name}
-        </h3>
-
-        <p className="mt-1.5 text-[15px] font-bold text-black">{formatPrice(product.price)}</p>
-
-        {discount > 0 && (
-          <p className="mt-0.5 text-[11px] text-bfl-grey">
-            RRP: <span className="line-through">{formatPrice(product.regular_price)}</span>{" "}
-            <span className="font-bold text-bfl-red">({discount}% OFF)</span>
-          </p>
-        )}
-      </div>
-    </Link>
+    </div>
   );
 }

@@ -25,18 +25,18 @@ export default async function SalePage({
   const sorted = sortProducts(products, sort);
 
   return (
-    <main className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-8 lg:pb-10">
+    <main className="w-full px-4 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* Breadcrumbs */}
-      <nav className="mb-4 flex items-center gap-2 text-[13px] text-[#555]">
-        <Link href="/" className="hover:text-black hover:underline">
+      <nav className="mb-5 flex items-center gap-2 text-[12px] text-shop-muted">
+        <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
-        <span className="text-[#999]">›</span>
-        <span className="text-black">Super Price Store</span>
+        <span aria-hidden>›</span>
+        <span className="text-shop-ink">Super Price Store</span>
       </nav>
 
       {/* Hero */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-5 bg-bfl-red px-6 py-7 text-white md:px-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-5 rounded-lg bg-shop-sale px-6 py-8 text-white md:px-10">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/80">
             Limited time
@@ -48,7 +48,7 @@ export default async function SalePage({
             {total} {total === 1 ? "item" : "items"} at their lowest price.
           </p>
         </div>
-        <div className="bg-bfl-yellow px-6 py-3 text-center text-black">
+        <div className="rounded-lg bg-white px-6 py-3 text-center text-shop-ink">
           <p className="text-[11px] font-bold uppercase tracking-wide">Ends in</p>
           <p className="text-[20px] font-bold">
             <FlashSaleCountdown />
@@ -57,8 +57,8 @@ export default async function SalePage({
       </div>
 
       {/* Result bar */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-bfl-line pb-4">
-        <p className="text-[13px] text-bfl-grey">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-4">
+        <p className="text-[13px] text-shop-muted">
           Showing {sorted.length} of {total} deals
         </p>
         <SortDropdown />
@@ -71,7 +71,7 @@ export default async function SalePage({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -85,10 +85,10 @@ export default async function SalePage({
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
   return (
-    <div className="border border-bfl-line bg-bfl-surface px-6 py-16 text-center">
-      <p className="text-[16px] font-bold text-black">{title}</p>
-      <p className="mt-1.5 text-[13px] text-bfl-grey">{copy}</p>
-      <Link href="/" className="btn-bfl mt-5 inline-block px-6 py-2.5 text-[13px]">
+    <div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
+      <p className="text-[17px] font-semibold text-shop-ink">{title}</p>
+      <p className="mt-2 text-[13px] text-shop-muted">{copy}</p>
+      <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[13px]">
         Continue shopping
       </Link>
     </div>

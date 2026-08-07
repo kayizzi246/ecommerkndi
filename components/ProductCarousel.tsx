@@ -26,15 +26,15 @@ export default function ProductCarousel({
   };
 
   return (
-    <section className="relative mt-14">
-      <h2 className="mb-6 text-center text-[26px] font-normal text-black">{title}</h2>
+    <section className="relative mt-16">
+      <h2 className="mb-6 text-[22px] font-semibold text-shop-ink md:text-[26px]">{title}</h2>
 
       <div
         ref={trackRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar"
+        className="flex gap-5 overflow-x-auto scroll-smooth no-scrollbar"
       >
         {products.map((product) => (
-          <div key={product.id} className="w-[46%] shrink-0 sm:w-[31%] md:w-[23%] lg:w-[15.5%]">
+          <div key={product.id} className="w-[46%] shrink-0 sm:w-[31%] md:w-[23%] lg:w-[18%]">
             <ProductCard product={product} />
           </div>
         ))}
@@ -46,7 +46,7 @@ export default function ProductCarousel({
             type="button"
             onClick={() => scrollBy(-1)}
             aria-label="Previous products"
-            className="absolute left-0 top-[42%] hidden h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md md:flex"
+            className="absolute left-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink shadow-sm transition-colors hover:bg-shop-surface md:flex"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -56,7 +56,7 @@ export default function ProductCarousel({
             type="button"
             onClick={() => scrollBy(1)}
             aria-label="Next products"
-            className="absolute right-0 top-[42%] hidden h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md md:flex"
+            className="absolute right-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink shadow-sm transition-colors hover:bg-shop-surface md:flex"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -33,6 +33,22 @@
   --color-bfl-line: #e2e2e2;
   --color-bfl-surface: #f7f7f7;
 
+  /* ---------- Storefront palette (cart, checkout, PLP tiles, PDP) ----------
+   * A Shopify-style neutral system: near-black ink for actions and headings,
+   * hairline greys for structure, and a single critical red for sale copy.
+   * Light-only by design — there is no dark step and no color-scheme switch.
+   */
+  --color-shop-ink: #1a1a1a;
+  --color-shop-body: #4a4a4a;
+  --color-shop-muted: #737373;
+  --color-shop-line: #e3e3e3;
+  --color-shop-hairline: #f0f0f0;
+  --color-shop-surface: #f6f6f6;
+  --color-shop-cream: #fbfbfb;
+  --color-shop-sale: #d72c0d;
+  --color-shop-success: #0c7c59;
+  --color-shop-successbg: #ecfaf3;
+
   /* Legacy aliases kept so existing pages keep compiling */
   --color-kandi: #16505f;
   --color-kandi-dark: #000000;
@@ -94,6 +110,93 @@ h3 {
   background: #e8e8e8;
   color: #9a9a9a;
   cursor: not-allowed;
+}
+
+/* ---------- Storefront primitives ----------
+ * Used by the cart, checkout, product tiles and the PDP. Actions are solid ink
+ * with a soft radius; structure comes from radius + hairline, not from heavy
+ * borders, so the pages read closer to a modern Shopify theme.
+ */
+
+.btn-shop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-shop-ink);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 10px;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+.btn-shop:hover {
+  background: #000;
+  transform: translateY(-1px);
+}
+.btn-shop:active {
+  transform: translateY(0);
+}
+.btn-shop:disabled {
+  background: #d9d9d9;
+  color: #8f8f8f;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-shop-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #fff;
+  color: var(--color-shop-ink);
+  font-weight: 600;
+  border: 1px solid var(--color-shop-ink);
+  border-radius: 10px;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+.btn-shop-outline:hover {
+  background: var(--color-shop-ink);
+  color: #fff;
+}
+
+/* Rounded white panel that carries most storefront content. */
+.card-shop {
+  background: #fff;
+  border: 1px solid var(--color-shop-line);
+  border-radius: 14px;
+}
+
+/* Text inputs and selects on the checkout form. */
+.field-shop {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--color-shop-line);
+  border-radius: 10px;
+  padding: 0.75rem 0.875rem;
+  font-size: 14px;
+  color: var(--color-shop-ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.field-shop::placeholder {
+  color: #a3a3a3;
+}
+.field-shop:focus {
+  outline: none;
+  border-color: var(--color-shop-ink);
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+}
+
+/* Safari still paints a disclosure triangle when list-style is none. */
+summary::-webkit-details-marker {
+  display: none;
 }
 
 /* Teal underlined informational links used across the PDP. */

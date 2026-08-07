@@ -38,17 +38,17 @@ export default function InfoModal({ open, title, onClose, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto bg-white shadow-xl"
+        className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl"
       >
-        <div className="flex items-center justify-between border-b border-bfl-line px-5 py-4">
-          <h2 className="text-[15px] font-bold text-black">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-bfl-grey hover:text-black">
+        <div className="flex items-center justify-between border-b border-shop-line px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-shop-ink">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-shop-muted hover:text-shop-ink">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
             </svg>
           </button>
         </div>
-        <div className="px-5 py-5 text-[13px] leading-6 text-[#444]">{children}</div>
+        <div className="px-5 py-5 text-[13px] leading-6 text-shop-body">{children}</div>
       </div>
     </div>
   );

@@ -14,14 +14,17 @@ import AccountMenu from "@/components/AccountMenu";
  * angled red promo tab and the account cluster.
  */
 export default function Header({ departments = [] }: { departments?: CategoryNode[] }) {
-  const { count } = useCart();
+  const { count, openDrawer } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-white">
-      {/* ---- Utility row ---- */}
-      <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-4 py-3 md:gap-8 md:px-8 md:py-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
+      {/* ---- Utility row ----
+           A three-column grid from md up, so the search sits on the exact
+           centre of the row regardless of how wide the logo or the utility
+           cluster get. Below md it wraps to its own full-width line. */}
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:px-8 md:py-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2 md:justify-self-start">
           <span className="flex h-8 w-8 items-center justify-center rounded-[3px] bg-bfl-yellow">
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />
@@ -33,41 +36,45 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
           </span>
         </Link>
 
-        <SearchBar />
+        <div className="order-last w-full md:order-none md:w-[520px] md:justify-self-center">
+          <SearchBar />
+        </div>
 
-        <a
-          href="#kandi-app"
-          className="hidden shrink-0 items-center gap-2 text-[13px] text-[#333] hover:text-black lg:flex"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24">
-            <rect x="7" y="2.5" width="10" height="19" rx="2" />
-            <path strokeLinecap="round" d="M10.5 18.5h3" />
-          </svg>
-          Download our mobile app
-        </a>
+        <div className="ml-auto flex shrink-0 items-center gap-5 md:ml-0 md:justify-self-end md:gap-6">
+          <a
+            href="#kandi-app"
+            className="hidden items-center gap-2 text-[13px] text-[#333] hover:text-black lg:flex"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24">
+              <rect x="7" y="2.5" width="10" height="19" rx="2" />
+              <path strokeLinecap="round" d="M10.5 18.5h3" />
+            </svg>
+            Download our mobile app
+          </a>
 
-        <button
-          type="button"
-          className="hidden shrink-0 items-center gap-1.5 text-[13px] text-[#333] hover:text-black md:flex"
-        >
-          <span className="text-base leading-none">🇺🇬</span>
-          <span>UG | UGX</span>
-          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-          </svg>
-        </button>
+          <button
+            type="button"
+            className="hidden items-center gap-1.5 text-[13px] text-[#333] hover:text-black md:flex"
+          >
+            <span className="text-base leading-none">🇺🇬</span>
+            <span>UG | UGX</span>
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-          className="shrink-0 text-black lg:hidden"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-            <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
-        </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label="Menu"
+            aria-expanded={menuOpen}
+            className="text-black lg:hidden"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ---- Department bar ---- */}
@@ -113,7 +120,12 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
               </svg>
             </Link>
 
-            <Link href="/cart" aria-label="Cart" className="relative text-white hover:text-bfl-yellow">
+            <button
+              type="button"
+              onClick={openDrawer}
+              aria-label="Open cart"
+              className="relative text-white hover:text-bfl-yellow"
+            >
               <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
                 <circle cx="9" cy="20" r="1.2" />
@@ -124,7 +136,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
                   {count > 9 ? "9+" : count}
                 </span>
               )}
-            </Link>
+            </button>
           </div>
         </div>
       </nav>

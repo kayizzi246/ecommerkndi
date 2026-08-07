@@ -2,29 +2,31 @@
 
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { formatPrice } from "@/lib/currency";
 
-const RATING_OPTIONS = [4, 3, 2, 1];
+type Brand = { slug: string; name: string; count: number };
 
 type Props = {
-  minPrice?: number;
-  maxPrice?: number;
+  /** Brand facet, counted from the products on the page. */
+  brands?: Brand[];
   onClose?: () => void;
   className?: string;
 };
 
-export default function FilterSidebar({
-  minPrice = 0,
-  maxPrice = 500000,
-  onClose,
-  className = "",
-}: Props) {
+/**
+ * Listing filters. Every control here maps to a query parameter that
+ * `filterProducts` understands, so nothing in this panel is decorative.
+ */
+export default function FilterSidebar({ brands = [], onClose, className = "" }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const currentMin = Number(searchParams.get("min_price") || minPrice);
-  const currentMax = Number(searchParams.get("max_price") || maxPrice);
-  const currentRating = Number(searchParams.get("rating") || 0);
+  const currentMin = searchParams.get("min_price") ?? "";
+  const currentMax = searchParams.get("max_price") ?? "";
+  const inStockOnly = searchParams.get("stock") === "1";
+  const onSaleOnly = searchParams.get("sale") === "1";
+  const currentBrand = searchParams.get("brand") ?? "";
 
   const [localMin, setLocalMin] = useState(currentMin);
   const [localMax, setLocalMax] = useState(currentMax);
@@ -40,27 +42,47 @@ export default function FilterSidebar({
         }
       }
       params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      const qs = params.toString();
+      router.push(qs ? `${pathname}?${qs}` : pathname);
     },
     [router, pathname, searchParams]
   );
 
   const clearFilters = useCallback(() => {
-    router.push(pathname);
+    const params = new URLSearchParams(searchParams.toString());
+    ["min_price", "max_price", "stock", "sale", "brand", "page"].forEach((key) =>
+      params.delete(key)
+    );
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
     onClose?.();
-  }, [router, pathname, onClose]);
+  }, [router, pathname, searchParams, onClose]);
 
-  const hasActiveFilters =
-    currentMin > minPrice || currentMax < maxPrice || currentRating > 0;
+  const activeCount =
+    (currentMin ? 1 : 0) +
+    (currentMax ? 1 : 0) +
+    (inStockOnly ? 1 : 0) +
+    (onSaleOnly ? 1 : 0) +
+    (currentBrand ? 1 : 0);
 
   return (
-    <aside className={`border border-bfl-line bg-white p-4 ${className}`}>
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between border-b border-bfl-line pb-3">
-        <h3 className="text-[14px] font-bold text-black">Filters</h3>
-        <div className="flex items-center gap-2">
-          {hasActiveFilters && (
-            <button type="button" onClick={clearFilters} className="link-bfl text-[12px] font-bold">
+    <aside className={`text-[13px] ${className}`}>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-[15px] font-semibold text-shop-ink">
+          Filters{" "}
+          {activeCount > 0 && (
+            <span className="ml-1 rounded-full bg-shop-ink px-2 py-0.5 text-[11px] font-semibold text-white">
+              {activeCount}
+            </span>
+          )}
+        </h3>
+        <div className="flex items-center gap-3">
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+            >
               Clear all
             </button>
           )}
@@ -69,7 +91,7 @@ export default function FilterSidebar({
               type="button"
               onClick={onClose}
               aria-label="Close filters"
-              className="text-lg leading-none text-bfl-grey hover:text-black"
+              className="text-lg leading-none text-shop-muted hover:text-shop-ink"
             >
               ×
             </button>
@@ -77,83 +99,108 @@ export default function FilterSidebar({
         </div>
       </div>
 
-      {/* Price range */}
-      <div className="mb-5">
-        <h4 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-[#333]">
-          Price range
+      {/* Availability */}
+      <section className="border-t border-shop-line py-5">
+        <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+          Availability
+        </h4>
+        <label className="flex cursor-pointer items-center gap-2.5 py-1 text-shop-body">
+          <input
+            type="checkbox"
+            checked={inStockOnly}
+            onChange={() => applyFilters({ stock: inStockOnly ? undefined : "1" })}
+            className="h-4 w-4 rounded accent-shop-ink"
+          />
+          In stock only
+        </label>
+        <label className="flex cursor-pointer items-center gap-2.5 py-1 text-shop-body">
+          <input
+            type="checkbox"
+            checked={onSaleOnly}
+            onChange={() => applyFilters({ sale: onSaleOnly ? undefined : "1" })}
+            className="h-4 w-4 rounded accent-shop-ink"
+          />
+          On sale
+        </label>
+      </section>
+
+      {/* Price */}
+      <section className="border-t border-shop-line py-5">
+        <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+          Price
         </h4>
         <div className="flex items-center gap-2">
           <input
             type="number"
+            min={0}
             value={localMin}
-            onChange={(e) => setLocalMin(Number(e.target.value))}
+            onChange={(e) => setLocalMin(e.target.value)}
             placeholder="Min"
             aria-label="Minimum price"
-            className="w-full border border-bfl-line px-2 py-2 text-[13px] focus:border-black focus:outline-none"
+            className="field-shop px-2.5 py-2 text-[13px]"
           />
-          <span className="text-bfl-grey">—</span>
+          <span className="text-shop-muted">–</span>
           <input
             type="number"
+            min={0}
             value={localMax}
-            onChange={(e) => setLocalMax(Number(e.target.value))}
+            onChange={(e) => setLocalMax(e.target.value)}
             placeholder="Max"
             aria-label="Maximum price"
-            className="w-full border border-bfl-line px-2 py-2 text-[13px] focus:border-black focus:outline-none"
+            className="field-shop px-2.5 py-2 text-[13px]"
           />
         </div>
         <button
           type="button"
           onClick={() =>
-            applyFilters({ min_price: String(localMin), max_price: String(localMax) })
+            applyFilters({
+              min_price: localMin || undefined,
+              max_price: localMax || undefined,
+            })
           }
-          className="mt-2 w-full border border-bfl-line py-2 text-center text-[12px] font-bold text-[#333] transition-colors hover:border-black"
+          className="btn-shop-outline mt-2.5 w-full py-2 text-[12px]"
         >
           Apply price
         </button>
-      </div>
+        {(currentMin || currentMax) && (
+          <p className="mt-2 text-[12px] text-shop-muted">
+            Showing {currentMin ? formatPrice(Number(currentMin)) : "any"} –{" "}
+            {currentMax ? formatPrice(Number(currentMax)) : "any"}
+          </p>
+        )}
+      </section>
 
-      {/* Rating */}
-      <div className="mb-5">
-        <h4 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-[#333]">Rating</h4>
-        <ul className="space-y-1">
-          {RATING_OPTIONS.map((r) => {
-            const active = currentRating === r;
-            return (
-              <li key={r}>
-                <button
-                  type="button"
-                  onClick={() => applyFilters({ rating: active ? undefined : String(r) })}
-                  aria-pressed={active}
-                  className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-[13px] transition-colors ${
-                    active ? "bg-bfl-yellow font-bold text-black" : "hover:bg-bfl-surface"
-                  }`}
-                >
-                  <span className="flex">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <svg
-                        key={i}
-                        className={`h-3.5 w-3.5 ${i < r ? "text-bfl-yellow" : "text-[#dcdcdc]"}`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </span>
-                  <span className="text-[12px] text-bfl-grey">&amp; up</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {hasActiveFilters && (
-        <div className="border-t border-bfl-line pt-3">
-          <button type="button" onClick={clearFilters} className="btn-bfl w-full py-2.5 text-[12px]">
-            Reset all filters
-          </button>
-        </div>
+      {/* Brand facet */}
+      {brands.length > 0 && (
+        <section className="border-t border-shop-line py-5">
+          <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+            Category
+          </h4>
+          <ul className="max-h-64 space-y-0.5 overflow-y-auto">
+            {brands.map((brand) => {
+              const active = currentBrand === brand.slug;
+              return (
+                <li key={brand.slug}>
+                  <button
+                    type="button"
+                    onClick={() => applyFilters({ brand: active ? undefined : brand.slug })}
+                    aria-pressed={active}
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                      active
+                        ? "bg-shop-ink font-medium text-white"
+                        : "text-shop-body hover:bg-shop-surface"
+                    }`}
+                  >
+                    <span className="truncate">{brand.name}</span>
+                    <span className={active ? "text-white/70" : "text-shop-muted"}>
+                      {brand.count}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
     </aside>
   );

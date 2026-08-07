@@ -41,6 +41,10 @@ type CartContextValue = {
   updateQuantity: (key: string, quantity: number) => void;
   removeItem: (key: string) => void;
   clearCart: () => void;
+  /** Side-cart drawer. Adding a line opens it, the way Shopify themes do. */
+  drawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -50,6 +54,7 @@ const STORAGE_KEY = "kandi-cart-v2";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -78,7 +83,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...item, key, quantity }];
     });
+    setDrawerOpen(true);
   }, []);
+
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   const updateQuantity = useCallback((key: string, quantity: number) => {
     setItems((prev) =>
@@ -92,13 +101,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.filter((i) => i.key !== key));
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    setItems([]);
+    setDrawerOpen(false);
+  }, []);
 
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((sum, i) => sum + i.quantity, 0);
     const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    return { items, count, subtotal, addItem, updateQuantity, removeItem, clearCart };
-  }, [items, addItem, updateQuantity, removeItem, clearCart]);
+    return {
+      items,
+      count,
+      subtotal,
+      addItem,
+      updateQuantity,
+      removeItem,
+      clearCart,
+      drawerOpen,
+      openDrawer,
+      closeDrawer,
+    };
+  }, [
+    items,
+    addItem,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    drawerOpen,
+    openDrawer,
+    closeDrawer,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

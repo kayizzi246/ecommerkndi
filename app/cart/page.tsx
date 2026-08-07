@@ -10,16 +10,16 @@ import { formatPrice } from "@/lib/currency";
 const DELIVERY_METHODS = [
   {
     id: "express",
-    name: "Express Shipping",
+    name: "Express",
     fee: 12000,
-    eta: "Get it tomorrow by 10:00 PM",
+    eta: "Tomorrow by 10:00 PM",
     note: "Order before 12 AM",
   },
   {
     id: "standard",
-    name: "Standard Shipping",
+    name: "Standard",
     fee: 8000,
-    eta: "Get it within 2–3 business days",
+    eta: "2–3 business days",
     note: "Kampala and major towns",
   },
   {
@@ -34,10 +34,10 @@ const DELIVERY_METHODS = [
 const FREE_DELIVERY_THRESHOLD = 50000;
 
 export default function CartPage() {
-  const { items, subtotal, updateQuantity, removeItem } = useCart();
+  const { items, updateQuantity, removeItem } = useCart();
   const { notify } = useToast();
 
-  // Shoppers tick the lines they want to check out, exactly as on BFL.
+  // Shoppers tick the lines they want to check out.
   const [deselected, setDeselected] = useState<string[]>([]);
   const [method, setMethod] = useState(DELIVERY_METHODS[1].id);
 
@@ -57,21 +57,25 @@ export default function CartPage() {
   const shipping = qualifiesFree ? 0 : chosenMethod.fee;
   const total = selectedSubtotal + shipping;
 
+  // Progress toward the free-delivery threshold, capped so the bar never overruns.
+  const freeProgress = Math.min(100, (selectedSubtotal / FREE_DELIVERY_THRESHOLD) * 100);
+  const away = Math.max(0, FREE_DELIVERY_THRESHOLD - selectedSubtotal);
+
   if (items.length === 0) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <div className="border border-bfl-line bg-white px-6 py-14">
-          <svg className="mx-auto mb-4 h-16 w-16 text-[#dcdcdc]" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+      <main className="mx-auto max-w-2xl px-4 py-24 text-center">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-shop-surface">
+          <svg className="h-9 w-9 text-shop-muted" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
           </svg>
-          <h1 className="mb-2 text-[20px] font-bold text-black">Your cart is empty</h1>
-          <p className="mb-8 text-[13px] text-bfl-grey">
-            Discover this week&apos;s arrivals and find something you love.
-          </p>
-          <Link href="/" className="btn-bfl inline-block px-10 py-3.5 text-[14px]">
-            Start shopping
-          </Link>
         </div>
+        <h1 className="mb-3 text-[26px] font-semibold text-shop-ink">Your cart is empty</h1>
+        <p className="mb-8 text-[14px] text-shop-muted">
+          Discover this week&apos;s arrivals and find something you love.
+        </p>
+        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
+          Continue shopping
+        </Link>
       </main>
     );
   }
@@ -79,58 +83,74 @@ export default function CartPage() {
   const allSelected = deselected.length === 0;
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-6 pb-24 md:px-8 lg:pb-12">
-      <h1 className="mb-5 text-[24px] font-normal text-black">
-        My Cart <span className="text-bfl-grey">({items.length} {items.length === 1 ? "Item" : "Items"})</span>
-      </h1>
+    <main className="mx-auto max-w-[1200px] px-4 py-8 pb-28 md:px-8 lg:pb-16">
+      <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="text-[28px] font-semibold text-shop-ink md:text-[32px]">Your cart</h1>
+        <Link
+          href="/"
+          className="text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+        >
+          Continue shopping
+        </Link>
+      </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-4">
+      {/* Free-delivery progress */}
+      <div className="card-shop mb-6 px-5 py-4">
+        <p className="text-[13px] text-shop-body">
+          {qualifiesFree ? (
+            <span className="font-semibold text-shop-success">
+              Nice — your order ships free.
+            </span>
+          ) : (
+            <>
+              You&apos;re{" "}
+              <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> away from
+              free delivery.
+            </>
+          )}
+        </p>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-shop-surface">
+          <div
+            className={`h-full rounded-full transition-[width] duration-500 ${
+              qualifiesFree ? "bg-shop-success" : "bg-shop-ink"
+            }`}
+            style={{ width: `${freeProgress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_364px]">
+        <div>
           {/* Select-all bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border border-bfl-line bg-white px-4 py-3">
-            <label className="flex cursor-pointer items-center gap-3 text-[14px] font-medium text-black">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
+            <label className="flex cursor-pointer items-center gap-3 text-[13px] text-shop-body">
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={() => setDeselected(allSelected ? items.map((item) => item.key) : [])}
-                className="h-4 w-4 accent-bfl-yellow"
+                className="h-4 w-4 rounded accent-shop-ink"
               />
-              {selectedItems.length}/{items.length} Items Selected
+              {selectedItems.length} of {items.length} selected
             </label>
 
-            <div className="flex items-center gap-5">
-              <button
-                type="button"
-                onClick={() => notify("Saved for later ♥")}
-                className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#333] hover:text-black"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                </svg>
-                Save for later
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  selectedItems.forEach((item) => removeItem(item.key));
-                  notify("Selected items removed");
-                }}
-                className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#333] hover:text-bfl-red"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" />
-                </svg>
-                Remove
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                selectedItems.forEach((item) => removeItem(item.key));
+                notify("Selected items removed");
+              }}
+              className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
+            >
+              Remove selected
+            </button>
           </div>
 
           {/* Lines */}
-          {items.map((item) => {
-            const selected = !deselected.includes(item.key);
-            return (
-              <div key={item.key} className="border border-bfl-line bg-white p-4">
-                <div className="flex gap-4">
+          <ul className="divide-y divide-shop-line">
+            {items.map((item) => {
+              const selected = !deselected.includes(item.key);
+              return (
+                <li key={item.key} className="flex gap-4 py-5">
                   <input
                     type="checkbox"
                     checked={selected}
@@ -142,132 +162,116 @@ export default function CartPage() {
                           : current.filter((key) => key !== item.key)
                       )
                     }
-                    className="mt-1 h-4 w-4 shrink-0 accent-bfl-yellow"
+                    className="mt-1 h-4 w-4 shrink-0 rounded accent-shop-ink"
                   />
 
                   <Link
                     href={`/products/${item.productId}`}
-                    className="relative h-28 w-24 shrink-0 overflow-hidden bg-bfl-surface"
+                    className="relative h-[112px] w-24 shrink-0 overflow-hidden rounded-xl bg-shop-surface"
                   >
-                    <Image src={item.image} alt={item.name} fill sizes="96px" className="object-contain p-2" />
+                    <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
                   </Link>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-4">
                       <Link
                         href={`/products/${item.productId}`}
-                        className="text-[15px] font-bold text-black hover:underline"
+                        className="text-[15px] font-medium leading-snug text-shop-ink hover:underline"
                       >
                         {item.name}
                       </Link>
-                      <p className="text-[16px] font-bold text-bfl-red">{formatPrice(item.price)}</p>
+                      <p className="whitespace-nowrap text-[15px] font-semibold text-shop-ink">
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
                     </div>
 
                     {item.options && Object.keys(item.options).length > 0 && (
-                      <p className="mt-3 text-[13px] text-[#333]">
-                        {Object.entries(item.options).map(([key, value], index) => (
-                          <span key={key}>
-                            {index > 0 && <span className="mx-2 text-bfl-line">|</span>}
-                            {key}: <span className="font-bold">{value}</span>
-                          </span>
-                        ))}
+                      <p className="mt-1.5 text-[12px] text-shop-muted">
+                        {Object.entries(item.options)
+                          .map(([key, value]) => `${key}: ${value}`)
+                          .join(" · ")}
                       </p>
                     )}
 
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <label className="flex items-center gap-2 text-[13px] text-[#333]">
-                        Qty:
-                        <select
-                          value={item.quantity}
-                          onChange={(event) => updateQuantity(item.key, Number(event.target.value))}
-                          aria-label={`Quantity for ${item.name}`}
-                          className="border border-bfl-line bg-white px-2 py-1.5 text-[13px] font-bold focus:border-black focus:outline-none"
-                        >
-                          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                    <p className="mt-1 text-[12px] text-shop-muted">
+                      {formatPrice(item.price)} each
+                    </p>
 
-                      <div className="flex items-center gap-4">
-                        <span className="text-[13px] text-bfl-grey">
-                          Line total{" "}
-                          <span className="font-bold text-black">
-                            {formatPrice(item.price * item.quantity)}
-                          </span>
+                    <div className="mt-auto flex flex-wrap items-center gap-4 pt-3">
+                      <div className="flex items-center rounded-lg border border-shop-line">
+                        <button
+                          type="button"
+                          aria-label={`Decrease quantity of ${item.name}`}
+                          onClick={() => updateQuantity(item.key, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1}
+                          className="flex h-9 w-9 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9]"
+                        >
+                          −
+                        </button>
+                        <span className="w-7 text-center text-[13px] font-semibold text-shop-ink">
+                          {item.quantity}
                         </span>
                         <button
                           type="button"
-                          onClick={() => {
-                            removeItem(item.key);
-                            notify("Item removed");
-                          }}
-                          className="flex items-center gap-1.5 text-[13px] text-[#555] hover:text-bfl-red"
+                          aria-label={`Increase quantity of ${item.name}`}
+                          onClick={() => updateQuantity(item.key, item.quantity + 1)}
+                          className="flex h-9 w-9 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink"
                         >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" />
-                          </svg>
-                          Remove
+                          +
                         </button>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeItem(item.key);
+                          notify("Item removed");
+                        }}
+                        className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Wishlist prompt */}
-          <Link
-            href="/#wishlist"
-            className="flex items-center justify-center gap-2 border border-bfl-line bg-white py-4 text-[14px] font-medium text-[#333] hover:text-black"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-            </svg>
-            Add more from wishlist
-          </Link>
+                </li>
+              );
+            })}
+          </ul>
 
           {/* Delivery methods */}
-          <section className="border border-bfl-line bg-white p-4">
-            <h2 className="mb-3 text-[15px] font-bold text-black">Delivery Methods</h2>
+          <section className="mt-8">
+            <h2 className="mb-3 text-[15px] font-semibold text-shop-ink">Delivery method</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               {DELIVERY_METHODS.map((option) => {
                 const active = method === option.id;
-                const away = FREE_DELIVERY_THRESHOLD - selectedSubtotal;
                 return (
                   <label
                     key={option.id}
-                    className={`cursor-pointer border p-3 transition-colors ${
-                      active ? "border-black" : "border-bfl-line hover:border-[#b0b0b0]"
+                    className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                      active
+                        ? "border-shop-ink bg-shop-cream"
+                        : "border-shop-line hover:border-[#c2c2c2]"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="delivery-method"
-                        checked={active}
-                        onChange={() => setMethod(option.id)}
-                        className="accent-black"
-                      />
-                      <span className="text-[13px] font-bold text-black">
-                        {option.name}{" "}
-                        <span className="font-normal text-bfl-grey">
-                          ({option.fee === 0 ? "Free" : formatPrice(option.fee)})
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="delivery-method"
+                          checked={active}
+                          onChange={() => setMethod(option.id)}
+                          className="accent-shop-ink"
+                        />
+                        <span className="text-[13px] font-semibold text-shop-ink">
+                          {option.name}
                         </span>
                       </span>
-                    </span>
-                    <span className="mt-2 block text-[12px] text-[#444]">{option.eta}</span>
-                    <span className="mt-0.5 block text-[11px] text-bfl-grey">{option.note}</span>
-                    {option.fee > 0 && (
-                      <span className="mt-1.5 block text-[12px] font-medium text-bfl-green">
-                        {away > 0
-                          ? `Only ${formatPrice(away)} away from free shipping`
-                          : "Free shipping unlocked"}
+                      <span className="text-[13px] text-shop-body">
+                        {option.fee === 0 ? "Free" : formatPrice(option.fee)}
                       </span>
-                    )}
+                    </span>
+                    <span className="mt-2 block text-[12px] text-shop-body">{option.eta}</span>
+                    <span className="mt-0.5 block text-[11px] text-shop-muted">{option.note}</span>
                   </label>
                 );
               })}
@@ -276,68 +280,62 @@ export default function CartPage() {
         </div>
 
         {/* Order summary */}
-        <aside className="border border-bfl-line bg-white lg:sticky lg:top-32">
-          <h2 className="border-b border-bfl-line px-5 py-4 text-[17px] font-bold text-black">
-            Order Summary
-          </h2>
+        <aside className="card-shop p-6 lg:sticky lg:top-32">
+          <h2 className="text-[17px] font-semibold text-shop-ink">Order summary</h2>
 
-          <div className="px-5 py-4">
-            <p className="mb-3 text-[13px] font-bold uppercase tracking-wide text-[#333]">
-              Price details
-            </p>
+          <dl className="mt-5 space-y-3 text-[14px]">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-shop-muted">
+                Subtotal · {selectedCount} {selectedCount === 1 ? "item" : "items"}
+              </dt>
+              <dd className="font-medium text-shop-ink">{formatPrice(selectedSubtotal)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-shop-muted">{chosenMethod.name} delivery</dt>
+              <dd className={shipping === 0 ? "font-medium text-shop-success" : "font-medium text-shop-ink"}>
+                {shipping === 0 ? "Free" : formatPrice(shipping)}
+              </dd>
+            </div>
+          </dl>
 
-            <dl className="space-y-2.5 text-[14px]">
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-bfl-grey">
-                  Subtotal ({selectedCount} {selectedCount === 1 ? "Item" : "Items"})
-                </dt>
-                <dd className="font-bold text-black">{formatPrice(selectedSubtotal)}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-bfl-grey">{chosenMethod.name}</dt>
-                <dd className={shipping === 0 ? "font-bold text-bfl-green" : "font-bold text-black"}>
-                  {shipping === 0 ? "Free" : formatPrice(shipping)}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="mt-4 flex items-baseline justify-between border-t border-bfl-line pt-4">
-              <span className="text-[15px] font-bold text-black">
-                Total <span className="text-[12px] font-normal text-bfl-grey">(Incl. VAT)</span>
+          <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
+            <span className="text-[15px] font-semibold text-shop-ink">Total</span>
+            <div className="text-right">
+              <span className="block text-[22px] font-semibold text-shop-ink">
+                {formatPrice(total)}
               </span>
-              <span className="text-[20px] font-bold text-black">{formatPrice(total)}</span>
+              <span className="text-[11px] text-shop-muted">Incl. VAT</span>
             </div>
+          </div>
 
-            {qualifiesFree && (
-              <p className="mt-4 flex items-center gap-2 bg-[#e4f5e6] px-3 py-2.5 text-[13px] text-[#0a7a2f]">
-                <span aria-hidden>🎉</span>
-                You&apos;re saving {formatPrice(chosenMethod.fee)} on delivery.
-              </p>
-            )}
-
-            <Link
-              href="/checkout"
-              aria-disabled={selectedItems.length === 0}
-              className={`mt-4 block py-3.5 text-center text-[14px] font-bold uppercase tracking-wide ${
-                selectedItems.length === 0
-                  ? "pointer-events-none bg-[#e8e8e8] text-[#9a9a9a]"
-                  : "btn-bfl"
-              }`}
-            >
-              Checkout ({selectedCount})
-            </Link>
-
-            <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-[#333]">
-              {["Cash", "MTN MoMo", "Airtel Money", "Visa", "Mastercard"].map((label) => (
-                <span key={label} className="border border-bfl-line px-2 py-1">
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            <p className="mt-4 text-[12px] leading-5 text-bfl-grey">
-              Got a coupon or voucher code? You can apply it during payment.
+          {qualifiesFree && (
+            <p className="mt-4 rounded-lg bg-shop-successbg px-3 py-2.5 text-[12px] text-shop-success">
+              You&apos;re saving {formatPrice(chosenMethod.fee)} on delivery.
             </p>
+          )}
+
+          <Link
+            href="/checkout"
+            aria-disabled={selectedItems.length === 0}
+            className={`mt-5 block rounded-[10px] py-4 text-center text-[14px] font-semibold ${
+              selectedItems.length === 0
+                ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
+                : "btn-shop w-full"
+            }`}
+          >
+            Checkout · {formatPrice(total)}
+          </Link>
+
+          <p className="mt-3 text-center text-[12px] text-shop-muted">
+            Coupons and vouchers are applied at payment.
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-1.5 border-t border-shop-line pt-5 text-[11px] text-shop-muted">
+            {["Cash", "MTN MoMo", "Airtel Money", "Visa", "Mastercard"].map((label) => (
+              <span key={label} className="rounded-md border border-shop-line px-2 py-1">
+                {label}
+              </span>
+            ))}
           </div>
         </aside>
       </div>

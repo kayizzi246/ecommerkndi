@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 /**
- * The bordered "Brand — Follow for new brand updates" panel that sits directly
- * under Add to Cart on the Brands For Less product page.
+ * The "Brand — Follow for new brand updates" panel that sits directly under
+ * Add to Cart on the product page.
  */
 export default function FollowBrand({
   brandName,
@@ -16,19 +16,19 @@ export default function FollowBrand({
   const [following, setFollowing] = useState(false);
 
   return (
-    <div className="mt-5 flex items-center justify-between gap-4 border border-bfl-line px-4 py-3">
+    <div className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-shop-line px-4 py-3.5">
       <div className="min-w-0">
-        <p className="truncate text-[14px] font-bold text-black">{brandName}</p>
-        <p className="mt-0.5 text-[12px] text-bfl-grey">{subtitle}</p>
+        <p className="truncate text-[14px] font-semibold text-shop-ink">{brandName}</p>
+        <p className="mt-0.5 text-[12px] text-shop-muted">{subtitle}</p>
       </div>
       <button
         type="button"
         onClick={() => setFollowing((value) => !value)}
         aria-pressed={following}
-        className={`shrink-0 border px-8 py-2 text-[13px] font-bold transition-colors ${
+        className={`shrink-0 rounded-lg border px-7 py-2 text-[13px] font-semibold transition-colors ${
           following
-            ? "border-black bg-black text-white"
-            : "border-bfl-ink text-bfl-ink hover:bg-bfl-surface"
+            ? "border-shop-ink bg-shop-ink text-white"
+            : "border-shop-ink text-shop-ink hover:bg-shop-surface"
         }`}
       >
         {following ? "Following" : "Follow"}
