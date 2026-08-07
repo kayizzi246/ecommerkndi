@@ -3,22 +3,64 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
+import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
 import SearchBar from "@/components/SearchBar";
 import MegaMenu from "@/components/MegaMenu";
 import AccountMenu from "@/components/AccountMenu";
 
+const FREE_DELIVERY_THRESHOLD = 50000;
+
 /**
- * Brands For Less style masthead: a white utility row (logo, pill search, app
- * link, market switcher) above the black department bar, which ends in the
- * angled red promo tab and the account cluster.
+ * Storefront masthead: a promo bar, then a white utility row (logo, centred
+ * search, market switcher) above the black department bar which ends in the
+ * red promo tab and the account cluster.
  */
 export default function Header({ departments = [] }: { departments?: CategoryNode[] }) {
-  const { count, openDrawer } = useCart();
+  const { count, subtotal, openDrawer } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const awayFromFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
 
   return (
     <header className="sticky top-0 z-40 bg-white">
+      {/* ---- Promo bar ----
+           Site-wide reassurance, and once there is something in the cart the
+           first slot turns into live free-delivery progress. Every figure here
+           is real: the threshold, the shopper's own subtotal, the payment
+           methods actually accepted at checkout. */}
+      <div className="bg-shop-nav text-white">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
+          {count > 0 && awayFromFreeDelivery > 0 ? (
+            <button
+              type="button"
+              onClick={openDrawer}
+              className="truncate font-semibold text-pop-orange-on-dark transition-opacity hover:opacity-85"
+            >
+              Add {formatPrice(awayFromFreeDelivery)} more for FREE delivery ›
+            </button>
+          ) : count > 0 ? (
+            <span className="truncate font-semibold text-pop-green-on-dark">
+              Your order qualifies for FREE delivery 🎉
+            </span>
+          ) : (
+            <span className="truncate">
+              <span className="font-bold text-pop-green-on-dark">FREE delivery</span> on orders over{" "}
+              {formatPrice(FREE_DELIVERY_THRESHOLD)}
+            </span>
+          )}
+
+          <div className="hidden items-center gap-5 text-white/75 sm:flex">
+            <span>Pay on delivery</span>
+            <span className="hidden md:inline">14-day free returns</span>
+            <Link href="/sale" className="font-bold text-pop-orange-on-dark hover:opacity-85">
+              Up to 80% off ›
+            </Link>
+          </div>
+        </div>
+      </div>
       {/* ---- Utility row ----
            A three-column grid from md up, so the search sits on the exact
            centre of the row regardless of how wide the logo or the utility
@@ -31,8 +73,8 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
               <path strokeLinecap="round" d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
             </svg>
           </span>
-          <span className="font-heading text-lg font-bold leading-none tracking-tight text-bfl-ink md:text-xl">
-            Kandi<span className="text-black"> For Less</span>
+          <span className="font-heading text-lg font-bold leading-none tracking-tight text-shop-primary md:text-xl">
+            Kandi<span className="text-shop-ink"> For Less</span>
           </span>
         </Link>
 
@@ -43,7 +85,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
         <div className="ml-auto flex shrink-0 items-center gap-5 md:ml-0 md:justify-self-end md:gap-6">
           <a
             href="#kandi-app"
-            className="hidden items-center gap-2 text-[13px] text-[#333] hover:text-black lg:flex"
+            className="hidden items-center gap-2 text-[13px] text-shop-body hover:text-shop-primary lg:flex"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24">
               <rect x="7" y="2.5" width="10" height="19" rx="2" />
@@ -54,7 +96,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
 
           <button
             type="button"
-            className="hidden items-center gap-1.5 text-[13px] text-[#333] hover:text-black md:flex"
+            className="hidden items-center gap-1.5 text-[13px] text-shop-body hover:text-shop-primary md:flex"
           >
             <span className="text-base leading-none">🇺🇬</span>
             <span>UG | UGX</span>
@@ -68,7 +110,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
-            className="text-black lg:hidden"
+            className="text-shop-ink lg:hidden"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -77,12 +119,14 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
         </div>
       </div>
 
-      {/* ---- Department bar ---- */}
-      <nav className="bg-black text-white">
+      {/* ---- Department bar ----
+           A warm light band rather than a black slab: only the thin promo
+           strip above stays dark, which is the one place the page needs it. */}
+      <nav className="border-b border-shop-line bg-shop-surface text-shop-body">
         <div className="mx-auto flex max-w-[1440px] items-stretch px-4 md:px-8">
           <Link
             href="/"
-            className="mr-1 flex shrink-0 items-center gap-2 whitespace-nowrap py-3 text-[13px] font-bold text-bfl-yellow"
+            className="mr-1 flex shrink-0 items-center gap-2 whitespace-nowrap py-3 text-[13px] font-bold text-shop-primary"
           >
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h12M4 17h16" />
@@ -96,7 +140,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
 
           <Link
             href="/sale"
-            className="nav-slant ml-2 flex shrink-0 items-center whitespace-nowrap bg-bfl-red px-6 py-3 text-[13px] font-bold text-white"
+            className="nav-slant ml-2 flex shrink-0 items-center whitespace-nowrap bg-shop-sale px-6 py-3 text-[13px] font-bold text-white"
           >
             Super Price Store
           </Link>
@@ -104,7 +148,7 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
           <div className="flex shrink-0 items-center gap-5 pl-6">
             <Link
               href="/sellers"
-              className="hidden items-center gap-2 text-[13px] text-white/90 hover:text-bfl-yellow xl:flex"
+              className="hidden items-center gap-2 text-[13px] text-shop-body hover:text-shop-primary xl:flex"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h6v6H4V5Zm10 0h6v6h-6V5ZM4 13h6v6H4v-6Zm10 0h6v6h-6v-6Z" />
@@ -114,26 +158,44 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
 
             <AccountMenu />
 
-            <Link href="/#wishlist" aria-label="Wishlist" className="hidden text-white hover:text-bfl-yellow sm:block">
+            <Link
+              href="/#wishlist"
+              aria-label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount} saved)` : ""}`}
+              className="relative hidden text-shop-body hover:text-shop-primary sm:block"
+            >
               <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
               </svg>
+              {wishlistCount > 0 && (
+                <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pop-pink px-1 text-[10px] font-bold text-white">
+                  {wishlistCount > 9 ? "9+" : wishlistCount}
+                </span>
+              )}
             </Link>
 
+            {/* Cart carries its running total, so the basket value stays in
+                sight rather than only inside the drawer. */}
             <button
               type="button"
               onClick={openDrawer}
               aria-label="Open cart"
-              className="relative text-white hover:text-bfl-yellow"
+              className="flex items-center gap-2 text-shop-body hover:text-shop-primary"
             >
-              <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
-                <circle cx="9" cy="20" r="1.2" />
-                <circle cx="17.5" cy="20" r="1.2" />
-              </svg>
+              <span className="relative">
+                <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
+                  <circle cx="9" cy="20" r="1.2" />
+                  <circle cx="17.5" cy="20" r="1.2" />
+                </svg>
+                {count > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-bfl-red px-1 text-[10px] font-bold text-white">
+                    {count > 9 ? "9+" : count}
+                  </span>
+                )}
+              </span>
               {count > 0 && (
-                <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-bfl-red px-1 text-[10px] font-bold text-white">
-                  {count > 9 ? "9+" : count}
+                <span className="hidden whitespace-nowrap text-[13px] font-bold lg:inline">
+                  {formatPrice(subtotal)}
                 </span>
               )}
             </button>

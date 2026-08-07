@@ -117,7 +117,7 @@ export default function CartDrawer() {
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
                 <div
                   className={`h-full rounded-full transition-[width] duration-500 ${
-                    qualifiesFree ? "bg-shop-success" : "bg-shop-ink"
+                    qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
                   }`}
                   style={{ width: `${freeProgress}%` }}
                 />

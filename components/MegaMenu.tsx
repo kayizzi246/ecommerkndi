@@ -41,7 +41,7 @@ export default function MegaMenu({ departments }: { departments: CategoryNode[] 
               onPointerEnter={() => open(department.id)}
               onFocus={() => open(department.id)}
               className={`relative flex shrink-0 items-center whitespace-nowrap px-3 py-3 text-[13px] transition-colors ${
-                isOpen ? "text-bfl-yellow" : "text-white/90 hover:text-bfl-yellow"
+                isOpen ? "text-shop-primary" : "text-shop-body hover:text-shop-primary"
               }`}
             >
               {department.name}

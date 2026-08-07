@@ -112,7 +112,7 @@ export default function CartPage() {
         <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-shop-surface">
           <div
             className={`h-full rounded-full transition-[width] duration-500 ${
-              qualifiesFree ? "bg-shop-success" : "bg-shop-ink"
+              qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
             }`}
             style={{ width: `${freeProgress}%` }}
           />
@@ -128,7 +128,7 @@ export default function CartPage() {
                 type="checkbox"
                 checked={allSelected}
                 onChange={() => setDeselected(allSelected ? items.map((item) => item.key) : [])}
-                className="h-4 w-4 rounded accent-shop-ink"
+                className="h-4 w-4 rounded accent-shop-primary"
               />
               {selectedItems.length} of {items.length} selected
             </label>
@@ -162,7 +162,7 @@ export default function CartPage() {
                           : current.filter((key) => key !== item.key)
                       )
                     }
-                    className="mt-1 h-4 w-4 shrink-0 rounded accent-shop-ink"
+                    className="mt-1 h-4 w-4 shrink-0 rounded accent-shop-primary"
                   />
 
                   <Link
@@ -249,7 +249,7 @@ export default function CartPage() {
                     key={option.id}
                     className={`cursor-pointer rounded-xl border p-4 transition-colors ${
                       active
-                        ? "border-shop-ink bg-shop-cream"
+                        ? "border-shop-primary bg-shop-primary-soft"
                         : "border-shop-line hover:border-[#c2c2c2]"
                     }`}
                   >
@@ -260,7 +260,7 @@ export default function CartPage() {
                           name="delivery-method"
                           checked={active}
                           onChange={() => setMethod(option.id)}
-                          className="accent-shop-ink"
+                          className="accent-shop-primary"
                         />
                         <span className="text-[13px] font-semibold text-shop-ink">
                           {option.name}

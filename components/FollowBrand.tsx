@@ -27,8 +27,8 @@ export default function FollowBrand({
         aria-pressed={following}
         className={`shrink-0 rounded-lg border px-7 py-2 text-[13px] font-semibold transition-colors ${
           following
-            ? "border-shop-ink bg-shop-ink text-white"
-            : "border-shop-ink text-shop-ink hover:bg-shop-surface"
+            ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
+            : "border-shop-line text-shop-body hover:border-shop-primary hover:text-shop-primary"
         }`}
       >
         {following ? "Following" : "Follow"}

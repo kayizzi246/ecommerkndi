@@ -81,8 +81,8 @@ export default function Footer() {
             Shop faster, unlock app-only prices and track every order.
           </p>
           <div className="mt-4 flex gap-2">
-            <span className="rounded bg-black px-3 py-2 text-[11px] font-bold text-white">App Store</span>
-            <span className="rounded bg-black px-3 py-2 text-[11px] font-bold text-white">Google Play</span>
+            <span className="rounded bg-shop-nav px-3 py-2 text-[11px] font-bold text-white">App Store</span>
+            <span className="rounded bg-shop-nav px-3 py-2 text-[11px] font-bold text-white">Google Play</span>
           </div>
 
           <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-black">Follow us</h2>
@@ -90,7 +90,7 @@ export default function Footer() {
             {["f", "in", "X", "ig"].map((label) => (
               <span
                 key={label}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-[11px] font-bold text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-shop-nav text-[11px] font-bold text-white"
               >
                 {label}
               </span>
@@ -100,7 +100,7 @@ export default function Footer() {
       </div>
 
       {/* Legal bar */}
-      <div className="border-t border-bfl-line bg-black">
+      <div className="border-t border-shop-line bg-shop-nav">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-5 text-xs text-white/60 md:flex-row md:items-center md:justify-between md:px-8">
           <span>© {new Date().getFullYear()} Kandi Uganda. All rights reserved.</span>
           <span className="text-white/45">

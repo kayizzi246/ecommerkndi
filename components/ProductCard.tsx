@@ -30,15 +30,28 @@ export default function ProductCard({ product }: { product: Product }) {
         href={`/products/${product.id}`}
         className="relative flex aspect-square h-full w-full items-center justify-center overflow-hidden rounded-lg border border-shop-line bg-white transition-colors hover:border-shop-ink"
       >
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className={`relative h-full w-full object-contain p-2 transition duration-300 ease-in-out group-hover:scale-105 ${
-            soldOut ? "opacity-60" : ""
-          }`}
-        />
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className={`relative h-full w-full object-contain p-2 transition duration-300 ease-in-out group-hover:scale-105 ${
+              soldOut ? "opacity-60" : ""
+            }`}
+          />
+        ) : (
+          // Some listings reach us with no image at all; a neutral mark beats
+          // the browser's broken-image icon.
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-shop-surface text-shop-muted">
+            <svg className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="8.5" cy="10" r="1.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4 17 5-5 4 4 3-2 4 3" />
+            </svg>
+            <span className="text-[11px]">No image</span>
+          </div>
+        )}
 
         {/* Flags */}
         <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
@@ -48,7 +61,7 @@ export default function ProductCard({ product }: { product: Product }) {
             </span>
           )}
           {isNew(product) && discount === 0 && (
-            <span className="rounded-full bg-shop-ink px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="rounded-full bg-pop-green px-2.5 py-1 text-[11px] font-semibold text-white">
               New in
             </span>
           )}
@@ -59,16 +72,17 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        {/* Label plate */}
+        {/* Label plate — the price sits in a warm tinted pill rather than a
+            black one, so a grid of tiles reads calm instead of heavy. */}
         <div className="absolute bottom-0 left-0 flex w-full px-3 pb-3">
-          <div className="flex w-full items-center rounded-full border border-shop-line bg-white/70 p-1 text-[12px] font-semibold text-shop-ink backdrop-blur-md">
+          <div className="flex w-full items-center rounded-full border border-shop-line bg-white/80 p-1 text-[12px] font-semibold text-shop-ink backdrop-blur-md">
             <h3 className="mr-3 line-clamp-2 grow pl-2.5 leading-none tracking-tight">
               {product.name}
             </h3>
-            <span className="flex flex-none items-baseline gap-1.5 rounded-full bg-shop-ink px-3 py-2 text-white">
+            <span className="flex flex-none items-baseline gap-1.5 rounded-full bg-shop-primary-soft px-3 py-2 text-shop-primary">
               {formatPrice(product.price)}
               {discount > 0 && (
-                <span className="text-[10px] font-normal text-white/60 line-through">
+                <span className="text-[10px] font-normal text-shop-muted line-through">
                   {formatPrice(product.regular_price)}
                 </span>
               )}

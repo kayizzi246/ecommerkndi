@@ -1,15 +1,20 @@
 @import "tailwindcss";
 
 /*
- * Kandi Store — Brands For Less visual language.
- * White canvas, black navigation bar, yellow calls to action, teal-ink
- * typography and red discount accents. Hierarchy comes from weight and
- * hairline rules, with elevation reserved for overlays only.
+ * Kandi Store visual language.
+ *
+ * A calm, warm system: white canvas, soft-charcoal type, warm hairlines, and
+ * a terracotta primary that carries every call to action. Black is not used as
+ * a fill anywhere — the single dark band is the muted slate `shop-nav`.
+ * Hierarchy comes from weight, warmth and radius rather than heavy contrast.
+ * Light-only by design: there is no dark step and no colour-scheme switch.
  */
 
 :root {
   --background: #ffffff;
-  --foreground: #1c1c1c;
+  /* Soft charcoal rather than near-black: the page reads calmer and long
+     copy is easier on the eye, while still clearing 4.5:1 comfortably. */
+  --foreground: #33363c;
 }
 
 @theme inline {
@@ -34,20 +39,56 @@
   --color-bfl-surface: #f7f7f7;
 
   /* ---------- Storefront palette (cart, checkout, PLP tiles, PDP) ----------
-   * A Shopify-style neutral system: near-black ink for actions and headings,
-   * hairline greys for structure, and a single critical red for sale copy.
-   * Light-only by design — there is no dark step and no color-scheme switch.
+   * Calm and warm rather than black-and-white. Black is now reserved for
+   * nothing at all: `ink` is a soft charcoal used for type, `nav` is a muted
+   * slate for the one dark band on the page, and every call to action carries
+   * the warm `primary` orange instead of a black fill. Structure comes from
+   * warm hairlines on white. Light-only by design.
    */
-  --color-shop-ink: #1a1a1a;
-  --color-shop-body: #4a4a4a;
-  --color-shop-muted: #737373;
-  --color-shop-line: #e3e3e3;
-  --color-shop-hairline: #f0f0f0;
-  --color-shop-surface: #f6f6f6;
-  --color-shop-cream: #fbfbfb;
-  --color-shop-sale: #d72c0d;
-  --color-shop-success: #0c7c59;
-  --color-shop-successbg: #ecfaf3;
+  --color-shop-ink: #33363c; /* type, not fills */
+  --color-shop-body: #5b5f68;
+  --color-shop-muted: #6d727b;
+  --color-shop-line: #e7e5e1;
+  --color-shop-hairline: #f2f0ed;
+  --color-shop-surface: #f7f6f3;
+  --color-shop-cream: #fbfaf8;
+  --color-shop-nav: #3d4148; /* the single dark band, softened from black */
+
+  /* Primary action. Warm terracotta: 5.1:1 on white, 5.1:1 carrying white
+     text, and 4.6:1 on its own soft tint. */
+  --color-shop-primary: #b35218;
+  --color-shop-primary-dark: #963f0f;
+  --color-shop-primary-soft: #fdf1e8;
+
+  --color-shop-sale: #c0392c;
+  --color-shop-success: #2f7d5f;
+  --color-shop-successbg: #edf6f2;
+
+  /* ---------- Marketing accents ----------
+   * Muted, mid-toned hues rather than saturated primaries: they colour-code
+   * the homepage rails without shouting, and sit calmly beside each other.
+   * Each clears 4.5:1 on white as text and carries white text at 4.5:1 as a
+   * fill; the -soft tints are backgrounds only, read with the matching hue.
+   */
+  --color-pop-orange: #b35218;
+  --color-pop-red: #c0392c;
+  --color-pop-green: #2f7d5f;
+  --color-pop-blue: #35608f;
+  --color-pop-violet: #6a5a9c;
+  --color-pop-pink: #a8467a;
+  /* Tints for section backgrounds — text on these uses the matching hue. */
+  --color-pop-orange-soft: #fdf2ea;
+  --color-pop-red-soft: #fbeeec;
+  --color-pop-green-soft: #eef6f2;
+  --color-pop-blue-soft: #eef3f8;
+  --color-pop-violet-soft: #f2f0f8;
+
+  /* Light steps, for the same hues on the dark nav band. The mid-tones above
+     sit too close to #3d4148 to be legible there; these clear 4.5:1 on it. */
+  --color-pop-orange-on-dark: #f0a878;
+  --color-pop-green-on-dark: #8bcdad;
+  --color-pop-blue-on-dark: #9dc2e2;
+  --color-pop-violet-on-dark: #bcb0e4;
 
   /* Legacy aliases kept so existing pages keep compiling */
   --color-kandi: #16505f;
@@ -113,17 +154,18 @@ h3 {
 }
 
 /* ---------- Storefront primitives ----------
- * Used by the cart, checkout, product tiles and the PDP. Actions are solid ink
- * with a soft radius; structure comes from radius + hairline, not from heavy
- * borders, so the pages read closer to a modern Shopify theme.
+ * Used by the cart, checkout, product tiles and the PDP. Actions carry the
+ * terracotta primary with a soft radius; structure comes from radius and warm
+ * hairlines rather than heavy borders or dark fills.
  */
 
+/* Primary action — warm orange, never a black fill. */
 .btn-shop {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: var(--color-shop-ink);
+  background: var(--color-shop-primary);
   color: #fff;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -133,15 +175,15 @@ h3 {
     transform 0.18s ease;
 }
 .btn-shop:hover {
-  background: #000;
+  background: var(--color-shop-primary-dark);
   transform: translateY(-1px);
 }
 .btn-shop:active {
   transform: translateY(0);
 }
 .btn-shop:disabled {
-  background: #d9d9d9;
-  color: #8f8f8f;
+  background: #e0ddd8;
+  color: #96918a;
   cursor: not-allowed;
   transform: none;
 }
@@ -152,17 +194,17 @@ h3 {
   justify-content: center;
   gap: 0.5rem;
   background: #fff;
-  color: var(--color-shop-ink);
+  color: var(--color-shop-body);
   font-weight: 600;
-  border: 1px solid var(--color-shop-ink);
+  border: 1px solid var(--color-shop-line);
   border-radius: 10px;
   transition:
-    background-color 0.18s ease,
+    border-color 0.18s ease,
     color 0.18s ease;
 }
 .btn-shop-outline:hover {
-  background: var(--color-shop-ink);
-  color: #fff;
+  border-color: var(--color-shop-primary);
+  color: var(--color-shop-primary);
 }
 
 /* Rounded white panel that carries most storefront content. */
@@ -190,8 +232,8 @@ h3 {
 }
 .field-shop:focus {
   outline: none;
-  border-color: var(--color-shop-ink);
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+  border-color: var(--color-shop-primary);
+  box-shadow: 0 0 0 3px rgba(192, 90, 28, 0.12);
 }
 
 /* Safari still paints a disclosure triangle when list-style is none. */

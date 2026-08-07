@@ -71,7 +71,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
         <h3 className="text-[15px] font-semibold text-shop-ink">
           Filters{" "}
           {activeCount > 0 && (
-            <span className="ml-1 rounded-full bg-shop-ink px-2 py-0.5 text-[11px] font-semibold text-white">
+            <span className="ml-1 rounded-full bg-shop-primary px-2 py-0.5 text-[11px] font-semibold text-white">
               {activeCount}
             </span>
           )}
@@ -109,7 +109,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
             type="checkbox"
             checked={inStockOnly}
             onChange={() => applyFilters({ stock: inStockOnly ? undefined : "1" })}
-            className="h-4 w-4 rounded accent-shop-ink"
+            className="h-4 w-4 rounded accent-shop-primary"
           />
           In stock only
         </label>
@@ -118,7 +118,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
             type="checkbox"
             checked={onSaleOnly}
             onChange={() => applyFilters({ sale: onSaleOnly ? undefined : "1" })}
-            className="h-4 w-4 rounded accent-shop-ink"
+            className="h-4 w-4 rounded accent-shop-primary"
           />
           On sale
         </label>
@@ -187,12 +187,12 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
                     aria-pressed={active}
                     className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
                       active
-                        ? "bg-shop-ink font-medium text-white"
+                        ? "bg-shop-primary-soft font-semibold text-shop-primary"
                         : "text-shop-body hover:bg-shop-surface"
                     }`}
                   >
                     <span className="truncate">{brand.name}</span>
-                    <span className={active ? "text-white/70" : "text-shop-muted"}>
+                    <span className={active ? "text-shop-primary/70" : "text-shop-muted"}>
                       {brand.count}
                     </span>
                   </button>

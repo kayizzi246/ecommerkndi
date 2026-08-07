@@ -40,7 +40,7 @@ export default function ProductTabs({ tabs }: { tabs: Tab[] }) {
             >
               {tab.label}
               {selected && (
-                <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-shop-ink" />
+                <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-shop-primary" />
               )}
             </button>
           );

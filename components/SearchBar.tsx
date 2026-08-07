@@ -130,13 +130,13 @@ export default function SearchBar() {
         <div
           className={`flex items-center gap-2 rounded-full border bg-white px-5 transition-all duration-200 ${
             focused
-              ? "border-shop-ink shadow-[0_0_0_3px_rgba(26,26,26,0.07)]"
-              : "border-shop-line hover:border-[#c2c2c2]"
+              ? "border-shop-primary shadow-[0_0_0_3px_rgba(192,90,28,0.12)]"
+              : "border-shop-line hover:border-[#d4d1cc]"
           }`}
         >
           <svg
             className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-              focused ? "text-shop-ink" : "text-shop-muted"
+              focused ? "text-shop-primary" : "text-shop-muted"
             }`}
             fill="none"
             stroke="currentColor"
@@ -194,7 +194,7 @@ export default function SearchBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="-mr-3 shrink-0 rounded-full bg-shop-ink px-4 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-85"
+            className="-mr-3 shrink-0 rounded-full bg-shop-primary px-4 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-85"
           >
             Search
           </button>

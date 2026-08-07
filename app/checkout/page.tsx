@@ -257,7 +257,7 @@ export default function CheckoutPage() {
                   name="payment"
                   value="cod"
                   defaultChecked
-                  className="mt-0.5 accent-shop-ink"
+                  className="mt-0.5 accent-shop-primary"
                 />
                 <span>
                   <span className="block text-[14px] font-medium text-shop-ink">

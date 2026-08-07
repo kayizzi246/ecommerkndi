@@ -11,31 +11,35 @@ export default function RecentlyViewed() {
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-12 border-t border-bfl-line pt-8">
+    <section className="mt-12">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[20px] font-normal text-black">Recently viewed</h2>
-        <span className="text-[12px] text-bfl-grey">{items.length} items</span>
+        <h2 className="text-[22px] font-black uppercase tracking-tight text-shop-ink md:text-[26px]">
+          Recently viewed
+        </h2>
+        <span className="text-[12px] text-shop-muted">{items.length} items</span>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
         {items.map((item) => (
           <Link
             key={item.productId}
             href={`/products/${item.productId}`}
             className="group w-28 shrink-0"
           >
-            <div className="relative aspect-[3/4] overflow-hidden bg-bfl-surface">
+            <div className="relative aspect-square overflow-hidden rounded-lg border border-shop-line bg-white">
               <Image
                 src={item.image}
                 alt={item.name}
                 fill
                 sizes="112px"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
               />
             </div>
-            <p className="mt-1.5 line-clamp-2 text-[12px] leading-tight text-[#4a4a4a]">
+            <p className="mt-2 text-[15px] font-black leading-none text-shop-ink">
+              {formatPrice(item.price)}
+            </p>
+            <p className="mt-1 line-clamp-2 text-[12px] leading-tight text-shop-body">
               {item.name}
             </p>
-            <p className="mt-1 text-[13px] font-bold text-black">{formatPrice(item.price)}</p>
           </Link>
         ))}
       </div>

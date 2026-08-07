@@ -109,12 +109,12 @@ export default function ImageGallery({
             </span>
           )}
           {superPrice && (
-            <span className="rounded-full bg-shop-ink px-3 py-1 text-[12px] font-semibold text-white">
+            <span className="rounded-full bg-shop-nav px-3 py-1 text-[12px] font-semibold text-white">
               Super price
             </span>
           )}
           {isNew && !superPrice && discount === 0 && (
-            <span className="rounded-full bg-shop-ink px-3 py-1 text-[12px] font-semibold text-white">
+            <span className="rounded-full bg-shop-nav px-3 py-1 text-[12px] font-semibold text-white">
               New in
             </span>
           )}
@@ -173,8 +173,8 @@ export default function ImageGallery({
                 onClick={() => setActiveImage(src)}
                 aria-label={`View image ${i + 1}`}
                 aria-current={i === activeIndex}
-                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-white transition-colors hover:border-shop-ink ${
-                  i === activeIndex ? "border-2 border-shop-ink" : "border-shop-line"
+                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-white transition-colors hover:border-shop-primary ${
+                  i === activeIndex ? "border-2 border-shop-primary" : "border-shop-line"
                 }`}
               >
                 <Image

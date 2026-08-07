@@ -126,7 +126,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                       onClick={() => toggleDepartment(department.slug)}
                       className={`border px-4 py-2.5 text-[13px] transition-colors ${
                         active
-                          ? "border-black bg-black font-bold text-white"
+                          ? "border-shop-primary bg-shop-primary-soft font-bold text-shop-primary"
                           : "border-bfl-line text-[#333] hover:border-[#8a8a8a]"
                       }`}
                     >
