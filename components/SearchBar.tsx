@@ -127,29 +127,16 @@ export default function SearchBar() {
   return (
     <div ref={boxRef} className="relative w-full">
       <form onSubmit={submit} role="search">
+        {/* A rounded field with the action as a solid orange block on the right
+            — the widest, most obvious target on the page, and the one place the
+            brand orange gets to be loud. The magnifier lives inside that block:
+            with a placeholder this explicit, a second icon on the left was
+            decoration taking up room the query needs. */}
         <div
-          className={`flex items-center gap-2 rounded-full border bg-white px-5 transition-all duration-200 ${
-            focused
-              ? "border-shop-primary shadow-[0_0_0_3px_rgba(192,90,28,0.12)]"
-              : "border-shop-line hover:border-[#d4d1cc]"
+          className={`flex items-center gap-2 overflow-hidden rounded-lg border-2 bg-white pl-4 transition-colors duration-200 ${
+            focused ? "border-shop-flame" : "border-shop-line hover:border-shop-flame/50"
           }`}
         >
-          <svg
-            className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-              focused ? "text-shop-primary" : "text-shop-muted"
-            }`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
-            />
-          </svg>
-
           <input
             ref={inputRef}
             type="text"
@@ -170,8 +157,8 @@ export default function SearchBar() {
             }}
             onBlur={() => setFocused(false)}
             onKeyDown={onKeyDown}
-            placeholder="Search for items or brands"
-            className="w-full bg-transparent py-2.5 text-[13px] placeholder:text-[#8a8a8a] focus:outline-none"
+            placeholder="Search for products, brands and more"
+            className="w-full bg-transparent py-2.5 text-[15px] placeholder:text-shop-muted focus:outline-none"
           />
 
           {query && (
@@ -194,9 +181,15 @@ export default function SearchBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="-mr-3 shrink-0 rounded-full bg-shop-primary px-4 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-85"
+            className="flex h-11 w-14 shrink-0 items-center justify-center self-stretch bg-shop-flame text-white transition-colors hover:bg-shop-primary"
           >
-            Search
+            <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+              />
+            </svg>
           </button>
         </div>
       </form>
@@ -209,7 +202,7 @@ export default function SearchBar() {
         >
           {term.length === 0 ? (
             <div className="p-4">
-              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+              <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
                 Popular right now
               </p>
               <div className="flex flex-wrap gap-2">
@@ -219,7 +212,7 @@ export default function SearchBar() {
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goToSearch(label)}
-                    className="rounded-full border border-shop-line px-3 py-1.5 text-[12px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+                    className="rounded-full border border-shop-line px-3 py-1.5 text-[13px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
                   >
                     {label}
                   </button>
@@ -227,9 +220,9 @@ export default function SearchBar() {
               </div>
             </div>
           ) : loading && suggestions.length === 0 ? (
-            <p className="px-4 py-3 text-[13px] text-shop-muted">Searching…</p>
+            <p className="px-4 py-3 text-[14px] text-shop-muted">Searching…</p>
           ) : suggestions.length === 0 ? (
-            <p className="px-4 py-3 text-[13px] text-shop-muted">
+            <p className="px-4 py-3 text-[14px] text-shop-muted">
               No matches for “{term}”
             </p>
           ) : (
@@ -255,15 +248,15 @@ export default function SearchBar() {
                         className="h-11 w-11 shrink-0 rounded-lg border border-shop-line bg-white object-contain p-1"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="line-clamp-1 block text-[13px] text-shop-body">
+                        <span className="line-clamp-1 block text-[14px] text-shop-body">
                           {highlight(s.name, term)}
                         </span>
                         {s.category && (
-                          <span className="block text-[11px] text-shop-muted">{s.category}</span>
+                          <span className="block text-[12px] text-shop-muted">{s.category}</span>
                         )}
                       </span>
                       <span
-                        className={`shrink-0 text-[13px] font-semibold ${
+                        className={`shrink-0 text-[14px] font-semibold ${
                           s.on_sale ? "text-shop-sale" : "text-shop-ink"
                         }`}
                       >
@@ -277,7 +270,7 @@ export default function SearchBar() {
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goToSearch(term)}
-                className="w-full bg-shop-surface py-3 text-center text-[12px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline"
+                className="w-full bg-shop-surface py-3 text-center text-[13px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline"
               >
                 View all results for “{term}”
               </button>

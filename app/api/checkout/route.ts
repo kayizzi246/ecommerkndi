@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   let body: {
     customer?: Record<string, string>;
     items?: IncomingItem[];
+    payment_method?: string;
+    awaiting_payment?: boolean;
   };
   try {
     body = await request.json();
@@ -65,7 +67,18 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         customer,
         line_items,
-        payment_method: "cod",
+        // Card and mobile money both settle through Pesapal; the label is what
+        // shows on the order in wp-admin before payment confirms and overwrites
+        // it with the method Pesapal actually reports.
+        payment_method:
+          body.payment_method === "card"
+            ? "Card (Pesapal)"
+            : body.payment_method === "mobile"
+              ? "Mobile money (Pesapal)"
+              : "cod",
+        // Creates the order `pending` rather than `processing`, so an unpaid
+        // order is visible in wp-admin instead of looking like a real sale.
+        awaiting_payment: Boolean(body.awaiting_payment),
       }),
       cache: "no-store",
     });

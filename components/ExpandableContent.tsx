@@ -66,7 +66,7 @@ export default function ExpandableContent({
           type="button"
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
-          className="btn-shop-outline mt-4 px-5 py-2.5 text-[13px]"
+          className="btn-shop-outline mt-4 px-5 py-2.5 text-[14px]"
         >
           {expanded ? lessLabel : moreLabel}
           <svg

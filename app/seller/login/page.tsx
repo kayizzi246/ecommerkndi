@@ -38,14 +38,14 @@ export default function SellerLoginPage() {
               <path strokeLinecap="round" d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
             </svg>
           </span>
-          <span className="font-heading text-xl font-bold text-bfl-ink">
+          <span className="font-heading text-xl font-semibold text-bfl-ink">
             Kandi<span className="text-black"> For Less</span>
           </span>
         </Link>
 
         <div className="border border-bfl-line bg-white p-7">
-          <h1 className="text-[22px] font-bold text-black">Seller sign in</h1>
-          <p className="mt-1 text-[13px] text-bfl-grey">
+          <h1 className="text-[24px] font-extrabold text-black">Seller sign in</h1>
+          <p className="mt-1 text-[14px] text-bfl-grey">
             Manage your listings, orders and payouts.
           </p>
 
@@ -57,7 +57,7 @@ export default function SellerLoginPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none"
+                className="w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none"
               />
             </Field>
 
@@ -68,24 +68,24 @@ export default function SellerLoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none"
+                className="w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none"
               />
             </Field>
 
             {error && (
-              <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+              <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
                 {error}
               </p>
             )}
 
-            <button type="submit" disabled={submitting} className="btn-bfl w-full py-3 text-[14px]">
+            <button type="submit" disabled={submitting} className="btn-bfl w-full py-3 text-[15px]">
               {submitting ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
-          <p className="mt-6 border-t border-bfl-line pt-5 text-center text-[13px] text-bfl-grey">
+          <p className="mt-6 border-t border-bfl-line pt-5 text-center text-[14px] text-bfl-grey">
             New to Kandi?{" "}
-            <Link href="/seller/register" className="link-bfl font-bold">
+            <Link href="/seller/register" className="link-bfl font-semibold">
               Open a seller account
             </Link>
           </p>
@@ -98,7 +98,7 @@ export default function SellerLoginPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-bold text-[#333]">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">{label}</span>
       {children}
     </label>
   );

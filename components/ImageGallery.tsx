@@ -95,8 +95,8 @@ export default function ImageGallery({
             src={activeImage || images[0]}
             alt={`${productName} — image ${activeIndex + 1}`}
             fill
-            sizes="(min-width: 1024px) 440px, 100vw"
-            className="h-full w-full object-contain p-3"
+            sizes="(min-width: 1024px) 680px, 100vw"
+            className="h-full w-full object-contain p-1.5"
             priority
           />
         </button>
@@ -104,17 +104,17 @@ export default function ImageGallery({
         {/* Flags */}
         <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
           {discount > 0 && (
-            <span className="rounded-full bg-shop-sale px-3 py-1 text-[12px] font-semibold text-white">
+            <span className="rounded-full bg-shop-sale px-3 py-1 text-[13px] font-semibold text-white">
               −{discount}%
             </span>
           )}
           {superPrice && (
-            <span className="rounded-full bg-shop-nav px-3 py-1 text-[12px] font-semibold text-white">
+            <span className="rounded-full bg-shop-flame px-3 py-1 text-[13px] font-semibold text-white">
               Super price
             </span>
           )}
           {isNew && !superPrice && discount === 0 && (
-            <span className="rounded-full bg-shop-nav px-3 py-1 text-[12px] font-semibold text-white">
+            <span className="rounded-full bg-pop-green px-3 py-1 text-[13px] font-semibold text-white">
               New in
             </span>
           )}
@@ -125,7 +125,7 @@ export default function ImageGallery({
           type="button"
           onClick={share}
           aria-label="Share this product"
-          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[12px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
+          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[13px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />
@@ -167,7 +167,7 @@ export default function ImageGallery({
       {images.length > 1 && (
         <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {images.map((src, i) => (
-            <li key={src} className="h-16 w-16">
+            <li key={src} className="h-20 w-20">
               <button
                 type="button"
                 onClick={() => setActiveImage(src)}
@@ -180,8 +180,8 @@ export default function ImageGallery({
                 <Image
                   src={src}
                   alt=""
-                  width={64}
-                  height={64}
+                  width={80}
+                  height={80}
                   className="h-full w-full object-contain p-1"
                 />
               </button>

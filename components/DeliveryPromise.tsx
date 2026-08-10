@@ -30,7 +30,7 @@ export default function DeliveryPromise({ className = "" }: { className?: string
     <div
       className={`relative rounded-xl border border-shop-line bg-shop-cream px-4 py-3.5 ${className}`}
     >
-      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-shop-body">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] text-shop-body">
         <svg className="mr-1 h-5 w-5 shrink-0 text-shop-ink" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h10v9H3V7Zm10 3h4l3 3v3h-7v-6Z" />
           <circle cx="7" cy="18" r="1.4" />
@@ -63,7 +63,7 @@ export default function DeliveryPromise({ className = "" }: { className?: string
                   setCity(option);
                   setPicking(false);
                 }}
-                className={`block w-full px-4 py-2 text-left text-[13px] hover:bg-shop-surface ${
+                className={`block w-full px-4 py-2 text-left text-[14px] hover:bg-shop-surface ${
                   option === city ? "font-semibold text-shop-ink" : "text-shop-body"
                 }`}
               >

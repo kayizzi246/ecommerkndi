@@ -1,26 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import PesapalModal from "@/components/PesapalModal";
 
-const labelClass = "mb-1.5 block text-[12px] font-medium text-shop-body";
+const labelClass = "mb-1.5 block text-[13px] font-medium text-shop-body";
+
+type PaymentValue = "cod" | "mobile" | "card";
+
+const PAYMENT_METHODS: {
+  value: PaymentValue;
+  label: string;
+  hint: string;
+  viaPesapal: boolean;
+}[] = [
+  {
+    value: "mobile",
+    label: "Mobile money",
+    hint: "MTN MoMo or Airtel Money. Pay now and we pack immediately.",
+    viaPesapal: true,
+  },
+  {
+    value: "card",
+    label: "Visa / Mastercard",
+    hint: "Pay securely by debit or credit card.",
+    viaPesapal: true,
+  },
+  {
+    value: "cod",
+    label: "Cash on delivery",
+    hint: "Pay with cash when your order arrives.",
+    viaPesapal: false,
+  },
+];
 
 export default function CheckoutPage() {
   const { items, count, subtotal, clearCart } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [method, setMethod] = useState<PaymentValue>("mobile");
+  /** Pesapal's payment URL while the modal is open. */
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  /** The WooCommerce order awaiting payment, so we can route on success. */
+  const [pendingOrder, setPendingOrder] = useState<{ id: number; total: number } | null>(null);
+  const [pesapalReady, setPesapalReady] = useState(true);
+
+  // Whether the shop can take card / mobile money at all. Asked once, so the
+  // unavailable options are visibly disabled rather than failing on submit.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/payments/pesapal/status")
+      .then((response) => response.json())
+      .then((data: { enabled?: boolean }) => {
+        if (cancelled) return;
+        const enabled = Boolean(data.enabled);
+        setPesapalReady(enabled);
+        if (!enabled) setMethod("cod");
+      })
+      .catch(() => {
+        if (!cancelled) setPesapalReady(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (items.length === 0) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="mb-3 text-[26px] font-semibold text-shop-ink">Nothing to check out</h1>
-        <p className="mb-8 text-[14px] text-shop-muted">Your cart is empty.</p>
-        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
+        <h1 className="mb-3 text-[28px] font-extrabold text-shop-ink">Nothing to check out</h1>
+        <p className="mb-8 text-[15px] text-shop-muted">Your cart is empty.</p>
+        <Link href="/" className="btn-shop px-10 py-3.5 text-[15px]">
           Continue shopping
         </Link>
       </main>
@@ -44,7 +99,14 @@ export default function CheckoutPage() {
       country: "UG",
     };
 
+    const viaPesapal = method !== "cod";
+
     try {
+      // The order is created in WooCommerce first, either way. For a card or
+      // mobile money order it is created `pending` — so the amount Pesapal
+      // charges is the total WooCommerce calculated, not a figure the browser
+      // supplied, and an abandoned payment leaves a visible unpaid order rather
+      // than nothing at all.
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,6 +117,8 @@ export default function CheckoutPage() {
             quantity,
             options,
           })),
+          payment_method: method,
+          awaiting_payment: viaPesapal,
         }),
       });
 
@@ -65,8 +129,42 @@ export default function CheckoutPage() {
         return;
       }
 
-      clearCart();
-      router.push(`/order-received?id=${data.id}&total=${data.total}`);
+      if (!viaPesapal) {
+        clearCart();
+        router.push(`/order-received?id=${data.id}&total=${data.total}`);
+        return;
+      }
+
+      const payment = await fetch("/api/payments/pesapal/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          purpose: { kind: "order", orderId: data.id },
+          amount: data.total,
+          description: `KandiUg order #${data.id}`,
+          billing: {
+            email_address: customer.email,
+            phone_number: customer.phone,
+            first_name: customer.first_name,
+            last_name: customer.last_name,
+            line_1: customer.address_1,
+            city: customer.city,
+          },
+        }),
+      });
+
+      const paymentData = await payment.json().catch(() => null);
+
+      if (!payment.ok || !paymentData?.redirect_url) {
+        setError(
+          paymentData?.error ??
+            "Your order is saved but the payment window would not open. Please try again from your orders."
+        );
+        return;
+      }
+
+      setPendingOrder({ id: data.id, total: data.total });
+      setPaymentUrl(paymentData.redirect_url);
     } catch {
       setError("Network error. Check your connection and try again.");
     } finally {
@@ -82,48 +180,48 @@ export default function CheckoutPage() {
           <li key={item.key} className="flex items-center gap-4">
             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white">
               <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" />
-              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-500 px-1 text-[10px] font-semibold text-white">
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-500 px-1 text-[11px] font-semibold text-white">
                 {item.quantity}
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-[13px] font-medium leading-snug text-shop-ink">
+              <p className="line-clamp-2 text-[14px] font-medium leading-snug text-shop-ink">
                 {item.name}
               </p>
               {item.options && Object.keys(item.options).length > 0 && (
-                <p className="mt-0.5 text-[12px] text-shop-muted">
+                <p className="mt-0.5 text-[13px] text-shop-muted">
                   {Object.entries(item.options)
                     .map(([k, v]) => `${k}: ${v}`)
                     .join(" · ")}
                 </p>
               )}
             </div>
-            <span className="whitespace-nowrap text-[13px] font-medium text-shop-ink">
+            <span className="whitespace-nowrap text-[14px] font-medium text-shop-ink">
               {formatPrice(item.price * item.quantity)}
             </span>
           </li>
         ))}
       </ul>
 
-      <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[14px]">
+      <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[15px]">
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Subtotal · {count} {count === 1 ? "item" : "items"}</dt>
           <dd className="font-medium text-shop-ink">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Shipping</dt>
-          <dd className="text-[13px] text-shop-muted">Calculated at delivery</dd>
+          <dd className="text-[14px] text-shop-muted">Calculated at delivery</dd>
         </div>
       </dl>
 
       <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-        <span className="text-[15px] font-medium text-shop-ink">Total</span>
+        <span className="text-[16px] font-medium text-shop-ink">Total</span>
         <span className="flex items-baseline gap-2">
-          <span className="text-[12px] uppercase text-shop-muted">UGX</span>
-          <span className="text-[24px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
+          <span className="text-[13px] uppercase text-shop-muted">UGX</span>
+          <span className="text-[26px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
         </span>
       </div>
-      <p className="mt-1 text-right text-[12px] text-shop-muted">Including taxes</p>
+      <p className="mt-1 text-right text-[13px] text-shop-muted">Including taxes</p>
     </>
   );
 
@@ -132,13 +230,13 @@ export default function CheckoutPage() {
       {/* Mobile summary disclosure, as Shopify shows above the form. */}
       <details className="group border-y border-shop-line bg-shop-surface lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-4">
-          <span className="flex items-center gap-2 text-[14px] text-shop-ink">
+          <span className="flex items-center gap-2 text-[15px] text-shop-ink">
             Order summary
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
             </svg>
           </span>
-          <span className="text-[18px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
+          <span className="text-[20px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
         </summary>
         <div className="px-4 pb-6">{summary}</div>
       </details>
@@ -146,7 +244,7 @@ export default function CheckoutPage() {
       {/* Form column */}
       <div className="order-1 bg-white">
         <div className="mx-auto w-full max-w-[560px] px-4 py-10 md:px-8 lg:ml-auto lg:mr-0 lg:px-14">
-          <nav className="mb-8 flex items-center gap-2 text-[12px] text-shop-muted">
+          <nav className="mb-8 flex items-center gap-2 text-[13px] text-shop-muted">
             <Link href="/cart" className="hover:text-shop-ink">
               Cart
             </Link>
@@ -157,7 +255,7 @@ export default function CheckoutPage() {
           </nav>
 
           <section>
-            <h2 className="mb-4 text-[17px] font-semibold text-shop-ink">Contact</h2>
+            <h2 className="mb-4 text-[18px] font-extrabold text-shop-ink">Contact</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="phone">
@@ -185,14 +283,14 @@ export default function CheckoutPage() {
                 />
               </div>
             </div>
-            <p className="mt-2.5 text-[12px] leading-5 text-shop-muted">
+            <p className="mt-2.5 text-[13px] leading-5 text-shop-muted">
               We&apos;ll create your Kandi account with this email so you can track orders —
               you&apos;ll receive a link to set your password.
             </p>
           </section>
 
           <section className="mt-10">
-            <h2 className="mb-4 text-[17px] font-semibold text-shop-ink">Delivery</h2>
+            <h2 className="mb-4 text-[18px] font-extrabold text-shop-ink">Delivery</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="first_name">
@@ -245,35 +343,60 @@ export default function CheckoutPage() {
           </section>
 
           <section className="mt-10">
-            <h2 className="mb-1 text-[17px] font-semibold text-shop-ink">Payment</h2>
-            <p className="mb-4 text-[13px] text-shop-muted">
+            <h2 className="mb-1 text-[18px] font-extrabold text-shop-ink">Payment</h2>
+            <p className="mb-4 text-[14px] text-shop-muted">
               All transactions are secure and encrypted.
             </p>
 
-            <div className="overflow-hidden rounded-xl border border-shop-line">
-              <label className="flex cursor-pointer items-start gap-3 border-b-0 bg-shop-surface p-5">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cod"
-                  defaultChecked
-                  className="mt-0.5 accent-shop-primary"
-                />
-                <span>
-                  <span className="block text-[14px] font-medium text-shop-ink">
-                    Cash on delivery
-                  </span>
-                  <span className="mt-1 block text-[13px] leading-5 text-shop-muted">
-                    Pay with cash, MTN MoMo or Airtel Money when your order arrives.
-                  </span>
-                </span>
-              </label>
+            <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
+              {PAYMENT_METHODS.map((option) => {
+                const active = method === option.value;
+                // Card and mobile money both run through Pesapal; they are
+                // listed separately because that is how a shopper thinks about
+                // paying, and the Pesapal window opens on the right tab either
+                // way.
+                const unavailable = option.viaPesapal && !pesapalReady;
+
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-start gap-3 p-5 transition-colors ${
+                      active ? "bg-shop-primary-soft" : "bg-white"
+                    } ${unavailable ? "cursor-not-allowed opacity-50" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={option.value}
+                      checked={active}
+                      disabled={unavailable}
+                      onChange={() => setMethod(option.value)}
+                      className="mt-0.5 accent-shop-flame"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-medium text-shop-ink">
+                          {option.label}
+                        </span>
+                        {option.viaPesapal && (
+                          <span className="rounded bg-shop-hairline px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-shop-body">
+                            Pesapal
+                          </span>
+                        )}
+                      </span>
+                      <span className="mt-1 block text-[14px] leading-5 text-shop-muted">
+                        {unavailable ? "Not available on this shop yet." : option.hint}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             {error && (
               <p
                 role="alert"
-                className="mt-5 rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[13px] text-shop-sale"
+                className="mt-5 rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[14px] text-shop-sale"
               >
                 {error}
               </p>
@@ -282,12 +405,12 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 w-full py-4 text-[15px]"
+              className="btn-shop mt-6 w-full py-4 text-[16px]"
             >
               {submitting ? "Placing order…" : "Pay now"}
             </button>
 
-            <p className="mt-8 border-t border-shop-line pt-5 text-[12px] text-shop-muted">
+            <p className="mt-8 border-t border-shop-line pt-5 text-[13px] text-shop-muted">
               By placing this order you agree to our terms of sale.
             </p>
           </section>
@@ -300,6 +423,39 @@ export default function CheckoutPage() {
           {summary}
         </div>
       </aside>
+
+      {/* The Pesapal payment window. The order already exists in WooCommerce by
+          the time this opens, so closing it early loses nothing — the IPN
+          settles the payment whatever the shopper's browser does. */}
+      <PesapalModal
+        url={paymentUrl}
+        title={`Pay ${formatPrice(pendingOrder?.total ?? subtotal)}`}
+        onClose={() => {
+          setPaymentUrl(null);
+          setError(
+            "Payment window closed. Your order is saved as unpaid — you can pay again from your orders."
+          );
+        }}
+        onDone={(outcome) => {
+          setPaymentUrl(null);
+
+          if (outcome.paid) {
+            clearCart();
+            router.push(
+              `/order-received?id=${outcome.orderId ?? pendingOrder?.id ?? ""}&total=${
+                pendingOrder?.total ?? subtotal
+              }`
+            );
+            return;
+          }
+
+          setError(
+            outcome.cancelled
+              ? "You cancelled the payment. Your order is saved as unpaid."
+              : outcome.message || "The payment did not go through. Please try again."
+          );
+        }}
+      />
     </form>
   );
 }

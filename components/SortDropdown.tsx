@@ -34,13 +34,13 @@ export default function SortDropdown() {
   );
 
   return (
-    <div className="flex items-center gap-2 text-[13px]">
+    <div className="flex items-center gap-2 text-[14px]">
       <span className="hidden text-shop-muted sm:inline">Sort by:</span>
       <select
         value={currentSort}
         onChange={(e) => handleChange(e.target.value)}
         aria-label="Sort products"
-        className="cursor-pointer rounded-lg border border-shop-line bg-white px-3 py-2 text-[13px] text-shop-ink focus:border-shop-ink focus:outline-none"
+        className="cursor-pointer rounded-lg border border-shop-line bg-white px-3 py-2 text-[14px] text-shop-ink focus:border-shop-ink focus:outline-none"
       >
         {SORT_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>

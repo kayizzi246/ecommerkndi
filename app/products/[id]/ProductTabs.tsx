@@ -32,7 +32,7 @@ export default function ProductTabs({ tabs }: { tabs: Tab[] }) {
               aria-controls={`panel-${tab.id}`}
               id={`tab-${tab.id}`}
               onClick={() => setActive(tab.id)}
-              className={`relative whitespace-nowrap px-4 py-4 text-[14px] transition-colors ${
+              className={`relative whitespace-nowrap px-4 py-4 text-[15px] transition-colors ${
                 selected
                   ? "font-semibold text-shop-ink"
                   : "text-shop-muted hover:text-shop-body"

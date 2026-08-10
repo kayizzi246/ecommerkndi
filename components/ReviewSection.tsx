@@ -1,120 +1,181 @@
 "use client";
 
+import Image from "next/image";
+import { useMemo, useState } from "react";
 import StarRating from "@/components/StarRating";
+import ReviewForm from "@/components/ReviewForm";
+import { useCustomerSession } from "@/lib/customer-session";
+import type { ProductReview, ProductReviews } from "@/lib/woocommerce";
 
-type Review = {
-  id: number;
-  author: string;
-  rating: number;
-  date: string;
-  text: string;
-  avatar?: string;
-  verified?: boolean;
-};
-
-const MOCK_REVIEWS: Review[] = [
-  { id: 1, author: "Sarah K.", rating: 5, date: "2024-12-15", text: "Absolutely love them! True to size and very comfortable. Fast delivery too!", verified: true },
-  { id: 2, author: "John M.", rating: 4, date: "2024-11-28", text: "Good quality for the price. Would recommend.", verified: true },
-  { id: 3, author: "Grace A.", rating: 5, date: "2024-11-10", text: "My second pair from this brand. They last really well.", verified: true },
-  { id: 4, author: "Peter O.", rating: 3, date: "2024-10-22", text: "Nice design but sizing runs a bit small. Order one size up.", verified: false },
-  { id: 5, author: "Faith N.", rating: 5, date: "2024-10-05", text: "Fast shipping and exactly as described. Will order again!", verified: true },
-  { id: 6, author: "Daniel W.", rating: 4, date: "2024-09-18", text: "Great value for money. The materials feel premium.", verified: true },
-];
-
-const RATING_BREAKDOWN = [82, 12, 3, 2, 1];
+const PAGE_SIZE = 6;
 
 type Props = {
-  totalReviews?: number;
-  averageRating?: number;
+  productId: number;
+  /** Fetched on the server so the reviews are in the HTML, not loaded after. */
+  initial: ProductReviews;
 };
 
-export default function ReviewSection({
-  totalReviews = MOCK_REVIEWS.length,
-  averageRating = 4.5,
-}: Props) {
-  const total = RATING_BREAKDOWN.reduce((a, b) => a + b, 0);
+/**
+ * Customer reviews for one product, read from and written back to WordPress —
+ * they are stored as WooCommerce review comments, so they also appear in
+ * wp-admin under Products > Reviews and feed the product's average rating.
+ *
+ * The summary, the star breakdown and the list all come from that same data;
+ * nothing here is illustrative.
+ */
+export default function ReviewSection({ productId, initial }: Props) {
+  const { customer } = useCustomerSession();
+  const [reviews, setReviews] = useState<ProductReview[]>(initial.reviews);
+  const [average, setAverage] = useState(initial.average_rating);
+  const [count, setCount] = useState(initial.rating_count);
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
-  // Most recent first — a random shuffle would both mutate the shared array and
-  // read the clock during render.
-  const reviews = [...MOCK_REVIEWS]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 4);
+  // Counted from the reviews on hand rather than the server's snapshot, so the
+  // bars move the moment a shopper posts.
+  const breakdown = useMemo(() => {
+    const tally = [0, 0, 0, 0, 0]; // index 0 = 5 stars
+    for (const review of reviews) {
+      const index = 5 - review.rating;
+      if (index >= 0 && index < 5) tally[index] += 1;
+    }
+    return tally;
+  }, [reviews]);
+
+  const total = breakdown.reduce((a, b) => a + b, 0);
+  const mine = customer
+    ? (reviews.find((review) => review.author === customer.name) ?? null)
+    : null;
+
+  const onSaved = (review: ProductReview, nextAverage: number, nextCount: number) => {
+    setReviews((current) => [review, ...current.filter((entry) => entry.id !== review.id)]);
+    setAverage(nextAverage);
+    setCount(nextCount);
+  };
 
   return (
-    <section id="reviews" className="mt-14 max-w-4xl border-t border-bfl-line pt-8">
-      <h2 className="mb-6 text-[20px] font-normal text-black">Customer reviews</h2>
+    <section id="reviews" className="mt-14 border-t border-shop-line pt-8">
+      <h2 className="mb-6 text-[20px] font-extrabold uppercase tracking-tight text-shop-ink">
+        Customer reviews
+      </h2>
 
-      {/* Rating summary */}
-      <div className="mb-8 flex flex-wrap items-start gap-8 border border-bfl-line bg-bfl-surface p-5">
-        <div className="text-center">
-          <p className="text-[40px] font-bold leading-none text-black">
-            {averageRating.toFixed(1)}
-          </p>
-          <div className="mt-2">
-            <StarRating rating={averageRating} size="md" showCount={false} />
-          </div>
-          <p className="mt-1 text-[13px] text-bfl-grey">{totalReviews} reviews</p>
-        </div>
-        <div className="min-w-[200px] flex-1 space-y-1.5">
-          {RATING_BREAKDOWN.map((count, i) => {
-            const star = 5 - i;
-            const pct = total > 0 ? (count / total) * 100 : 0;
-            return (
-              <div key={star} className="flex items-center gap-2 text-[13px]">
-                <span className="w-12 shrink-0 text-right text-bfl-grey">{star} star</span>
-                <div className="h-2.5 flex-1 overflow-hidden bg-[#e4e4e4]">
-                  <div className="h-full bg-bfl-yellow" style={{ width: `${pct}%` }} />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div>
+          {/* Rating summary */}
+          {count > 0 ? (
+            <div className="mb-8 flex flex-wrap items-start gap-8 rounded-xl border border-shop-line bg-white p-5">
+              <div className="text-center">
+                <p className="text-[44px] font-semibold leading-none text-shop-ink">
+                  {average.toFixed(1)}
+                </p>
+                <div className="mt-2">
+                  <StarRating rating={average} size="md" showCount={false} />
                 </div>
-                <span className="w-8 shrink-0 text-[12px] text-bfl-grey">{pct.toFixed(0)}%</span>
+                <p className="mt-1 text-[14px] text-shop-muted">
+                  {count} {count === 1 ? "review" : "reviews"}
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Review List */}
-      <div className="space-y-6">
-        {reviews.map((review) => (
-          <div key={review.id} className="border-b border-bfl-line pb-6 last:border-0">
-            <div className="mb-2 flex items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bfl-surface text-[12px] font-bold text-bfl-ink">
-                {review.author.charAt(0)}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[14px] font-bold text-black">{review.author}</p>
-                  {review.verified && (
-                    <span className="rounded bg-[#e7f7ea] px-1.5 py-0.5 text-[10px] font-bold text-[#0a7a2f]">
-                      Verified purchase
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <StarRating rating={review.rating} size="sm" showCount={false} />
-                  <span className="text-[11px] text-bfl-grey">
-                    {new Date(review.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
+              <div className="min-w-[220px] flex-1 space-y-1.5">
+                {breakdown.map((tally, i) => {
+                  const star = 5 - i;
+                  const pct = total > 0 ? (tally / total) * 100 : 0;
+                  return (
+                    <div key={star} className="flex items-center gap-2 text-[14px]">
+                      <span className="w-14 shrink-0 text-right text-shop-muted">
+                        {star} star
+                      </span>
+                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-shop-hairline">
+                        <div
+                          className="h-full rounded-full bg-shop-flame"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="w-10 shrink-0 text-[13px] text-shop-muted">
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <p className="ml-11 text-[13px] leading-relaxed text-[#444]">{review.text}</p>
-          </div>
-        ))}
-      </div>
+          ) : (
+            <p className="mb-8 rounded-xl border border-dashed border-shop-line bg-white p-6 text-center text-[15px] text-shop-muted">
+              No reviews yet — be the first to rate this product.
+            </p>
+          )}
 
-      <div className="mt-8 text-center">
-        <button
-          type="button"
-          className="border border-bfl-line px-8 py-2.5 text-[13px] font-bold text-[#333] transition-colors hover:border-black"
-        >
-          Write a review
-        </button>
+          {/* Review list */}
+          <div className="space-y-6">
+            {reviews.slice(0, visible).map((review) => (
+              <article
+                key={review.id}
+                className="border-b border-shop-hairline pb-6 last:border-0"
+              >
+                <div className="mb-2 flex items-center gap-3">
+                  {review.avatar ? (
+                    <Image
+                      src={review.avatar}
+                      alt=""
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 shrink-0 rounded-full"
+                    />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[14px] font-semibold text-shop-ink">
+                      {review.author.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[15px] font-semibold text-shop-ink">{review.author}</p>
+                      {review.verified && (
+                        <span className="rounded bg-shop-successbg px-1.5 py-0.5 text-[11px] font-semibold text-shop-success">
+                          Verified purchase
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StarRating rating={review.rating} size="sm" showCount={false} />
+                      <span className="text-[12px] text-shop-muted">
+                        {formatDate(review.date)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="ml-12 whitespace-pre-line text-[15px] leading-relaxed text-shop-body">
+                  {review.text}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          {reviews.length > visible && (
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                onClick={() => setVisible((n) => n + PAGE_SIZE)}
+                className="btn-shop-outline px-8 py-2.5 text-[14px]"
+              >
+                Show more reviews
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <ReviewForm productId={productId} existing={mine} onSaved={onSaved} />
+        </div>
       </div>
     </section>
   );
 }
 
+/** Empty or unparseable dates render as nothing rather than "Invalid Date". */
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}

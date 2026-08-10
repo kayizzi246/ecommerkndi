@@ -90,13 +90,13 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
             </svg>
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold text-black">{steps[step]}</p>
-            <p className="text-[12px] text-bfl-grey">Step {step + 1} of 3</p>
+            <p className="truncate text-[16px] font-semibold text-black">{steps[step]}</p>
+            <p className="text-[13px] text-bfl-grey">Step {step + 1} of 3</p>
           </div>
           <button
             type="button"
             onClick={() => save(false)}
-            className="shrink-0 text-[13px] text-bfl-grey hover:text-black"
+            className="shrink-0 text-[14px] text-bfl-grey hover:text-black"
           >
             Skip
           </button>
@@ -112,7 +112,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
         <div className="min-h-[240px] flex-1 overflow-y-auto px-6 py-6">
           {step === 0 && (
             <>
-              <p className="mb-4 text-[13px] text-bfl-grey">
+              <p className="mb-4 text-[14px] text-bfl-grey">
                 Pick a few departments and we&apos;ll lead with them on your homepage.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -124,9 +124,9 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                       type="button"
                       aria-pressed={active}
                       onClick={() => toggleDepartment(department.slug)}
-                      className={`border px-4 py-2.5 text-[13px] transition-colors ${
+                      className={`border px-4 py-2.5 text-[14px] transition-colors ${
                         active
-                          ? "border-shop-primary bg-shop-primary-soft font-bold text-shop-primary"
+                          ? "border-shop-primary bg-shop-primary-soft font-semibold text-shop-primary"
                           : "border-bfl-line text-[#333] hover:border-[#8a8a8a]"
                       }`}
                     >
@@ -135,7 +135,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                   );
                 })}
                 {departments.length === 0 && (
-                  <p className="text-[13px] text-bfl-grey">
+                  <p className="text-[14px] text-bfl-grey">
                     Departments load from your store — add product categories in WordPress to see
                     them here.
                   </p>
@@ -147,7 +147,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <p className="mb-2 text-[13px] font-bold text-black">Usual clothing size</p>
+                <p className="mb-2 text-[14px] font-semibold text-black">Usual clothing size</p>
                 <div className="flex flex-wrap gap-2">
                   {SIZES.map((option) => (
                     <button
@@ -155,9 +155,9 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                       type="button"
                       aria-pressed={size === option}
                       onClick={() => setSize(size === option ? "" : option)}
-                      className={`min-w-[58px] border px-4 py-2.5 text-[13px] transition-colors ${
+                      className={`min-w-[58px] border px-4 py-2.5 text-[14px] transition-colors ${
                         size === option
-                          ? "border-black font-bold text-black"
+                          ? "border-black font-semibold text-black"
                           : "border-bfl-line text-[#333] hover:border-[#8a8a8a]"
                       }`}
                     >
@@ -168,21 +168,21 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
               </div>
 
               <div>
-                <label className="mb-2 block text-[13px] font-bold text-black" htmlFor="onboard-city">
+                <label className="mb-2 block text-[14px] font-semibold text-black" htmlFor="onboard-city">
                   Where should we deliver?
                 </label>
                 <select
                   id="onboard-city"
                   value={city}
                   onChange={(event) => setCity(event.target.value)}
-                  className="w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none"
+                  className="w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none"
                 >
                   <option value="">Select your city</option>
                   {CITIES.map((option) => (
                     <option key={option}>{option}</option>
                   ))}
                 </select>
-                <p className="mt-2 text-[12px] text-bfl-grey">
+                <p className="mt-2 text-[13px] text-bfl-grey">
                   We use this to show accurate delivery dates on every product.
                 </p>
               </div>
@@ -198,17 +198,17 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                       <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                     </svg>
                   </span>
-                  <p className="mt-4 text-[16px] font-bold text-black">
+                  <p className="mt-4 text-[17px] font-semibold text-black">
                     You&apos;re all set, {customer.name.split(" ")[0]}
                   </p>
-                  <p className="mt-1 text-[13px] text-bfl-grey">
+                  <p className="mt-1 text-[14px] text-bfl-grey">
                     Your picks are saved to this device and your Kandi account.
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[15px] font-bold text-black">Save your picks to your account</p>
-                  <p className="mx-auto mb-5 mt-1 max-w-sm text-[13px] leading-5 text-bfl-grey">
+                  <p className="text-[16px] font-semibold text-black">Save your picks to your account</p>
+                  <p className="mx-auto mb-5 mt-1 max-w-sm text-[14px] leading-5 text-bfl-grey">
                     Sign in with Google to keep your wishlist, track orders and check out without
                     retyping your details.
                   </p>
@@ -218,7 +218,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                     text="continue_with"
                     width={300}
                   />
-                  <p className="mt-4 text-[12px] text-bfl-grey">
+                  <p className="mt-4 text-[13px] text-bfl-grey">
                     You can keep browsing without an account — nothing is lost.
                   </p>
                 </>
@@ -233,12 +233,12 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
             <button
               type="button"
               onClick={() => setStep((value) => value - 1)}
-              className="border border-bfl-line px-5 py-2.5 text-[13px] font-bold text-[#333] hover:border-black"
+              className="border border-bfl-line px-5 py-2.5 text-[14px] font-semibold text-[#333] hover:border-black"
             >
               Back
             </button>
           ) : (
-            <Link href="/sale" onClick={() => save(false)} className="link-bfl text-[13px]">
+            <Link href="/sale" onClick={() => save(false)} className="link-bfl text-[14px]">
               Just show me the deals
             </Link>
           )}
@@ -247,12 +247,12 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
             <button
               type="button"
               onClick={() => setStep((value) => value + 1)}
-              className="btn-bfl px-8 py-2.5 text-[13px]"
+              className="btn-bfl px-8 py-2.5 text-[14px]"
             >
               Continue
             </button>
           ) : (
-            <button type="button" onClick={() => save(true)} className="btn-bfl px-8 py-2.5 text-[13px]">
+            <button type="button" onClick={() => save(true)} className="btn-bfl px-8 py-2.5 text-[14px]">
               Start shopping
             </button>
           )}

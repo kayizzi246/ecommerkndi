@@ -22,23 +22,23 @@ export default function StatTile({ label, value, delta, deltaPeriod, trend, hint
 
   return (
     <div className="viz-root rounded border border-bfl-line bg-white p-4">
-      <p className="text-[12px] text-[color:var(--text-secondary)]">{label}</p>
+      <p className="text-[13px] text-[color:var(--text-secondary)]">{label}</p>
 
-      <p className="mt-1.5 text-[26px] font-semibold leading-none text-[color:var(--text-primary)]">
+      <p className="mt-1.5 text-[28px] font-semibold leading-none text-[color:var(--text-primary)]">
         {value}
       </p>
 
       {hasDelta && (
-        <p className="mt-2 flex items-center gap-1.5 text-[12px]">
+        <p className="mt-2 flex items-center gap-1.5 text-[13px]">
           <span
             aria-hidden
-            className="text-[13px] leading-none"
+            className="text-[14px] leading-none"
             style={{ color: flat ? "var(--text-muted)" : up ? "var(--delta-good)" : "var(--status-critical)" }}
           >
             {flat ? "→" : up ? "↑" : "↓"}
           </span>
           <span
-            className="font-bold"
+            className="font-semibold"
             style={{ color: flat ? "var(--text-muted)" : up ? "var(--delta-good)" : "var(--status-critical)" }}
           >
             {delta > 0 ? "+" : ""}
@@ -48,7 +48,7 @@ export default function StatTile({ label, value, delta, deltaPeriod, trend, hint
         </p>
       )}
 
-      {hint && !hasDelta && <p className="mt-2 text-[12px] text-[color:var(--text-muted)]">{hint}</p>}
+      {hint && !hasDelta && <p className="mt-2 text-[13px] text-[color:var(--text-muted)]">{hint}</p>}
 
       {trend && trend.length > 1 && <Sparkline values={trend} />}
     </div>

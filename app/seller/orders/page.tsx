@@ -59,8 +59,8 @@ export default function SellerOrdersPage() {
 
   return (
     <div className="mx-auto max-w-[1200px]">
-      <h1 className="text-[24px] font-bold text-black">Orders &amp; sales</h1>
-      <p className="mt-1 text-[13px] text-bfl-grey">
+      <h1 className="text-[26px] font-extrabold text-black">Orders &amp; sales</h1>
+      <p className="mt-1 text-[14px] text-bfl-grey">
         Every order containing one of your products, with your share broken out.
       </p>
 
@@ -71,9 +71,9 @@ export default function SellerOrdersPage() {
             type="button"
             aria-pressed={status === item.value}
             onClick={() => setStatus(item.value)}
-            className={`rounded border px-3 py-1.5 text-[12px] transition-colors ${
+            className={`rounded border px-3 py-1.5 text-[13px] transition-colors ${
               status === item.value
-                ? "border-black bg-black font-bold text-white"
+                ? "border-black bg-black font-semibold text-white"
                 : "border-bfl-line bg-white text-[#333] hover:border-[#b0b0b0]"
             }`}
           >
@@ -83,7 +83,7 @@ export default function SellerOrdersPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
           {error}
         </p>
       )}
@@ -97,8 +97,8 @@ export default function SellerOrdersPage() {
             ["Net payout", totals.net],
           ].map(([label, value]) => (
             <div key={label as string} className="rounded border border-bfl-line bg-white px-4 py-3">
-              <p className="text-[12px] text-bfl-grey">{label as string}</p>
-              <p className="mt-1 text-[18px] font-semibold text-black">
+              <p className="text-[13px] text-bfl-grey">{label as string}</p>
+              <p className="mt-1 text-[20px] font-semibold text-black">
                 {formatPrice(value as number)}
               </p>
             </div>
@@ -107,16 +107,16 @@ export default function SellerOrdersPage() {
       )}
 
       <div className="overflow-x-auto rounded border border-bfl-line bg-white">
-        <table className="w-full min-w-[860px] text-[13px]">
-          <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[12px] text-bfl-grey">
+        <table className="w-full min-w-[860px] text-[14px]">
+          <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[13px] text-bfl-grey">
             <tr>
-              <th className="px-4 py-3 font-bold">Order</th>
-              <th className="px-4 py-3 font-bold">Date</th>
-              <th className="px-4 py-3 font-bold">Customer</th>
-              <th className="px-4 py-3 font-bold">Status</th>
-              <th className="px-4 py-3 text-right font-bold">Your total</th>
-              <th className="px-4 py-3 text-right font-bold">Commission</th>
-              <th className="px-4 py-3 text-right font-bold">Net</th>
+              <th className="px-4 py-3 font-semibold">Order</th>
+              <th className="px-4 py-3 font-semibold">Date</th>
+              <th className="px-4 py-3 font-semibold">Customer</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 text-right font-semibold">Your total</th>
+              <th className="px-4 py-3 text-right font-semibold">Commission</th>
+              <th className="px-4 py-3 text-right font-semibold">Net</th>
             </tr>
           </thead>
           <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -131,8 +131,8 @@ export default function SellerOrdersPage() {
             {orders !== null && orders.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-14 text-center">
-                  <p className="text-[14px] font-bold text-black">No orders in this view</p>
-                  <p className="mt-1 text-[13px] text-bfl-grey">
+                  <p className="text-[15px] font-semibold text-black">No orders in this view</p>
+                  <p className="mt-1 text-[14px] text-bfl-grey">
                     Orders appear here as soon as a shopper buys one of your products.
                   </p>
                 </td>
@@ -145,7 +145,7 @@ export default function SellerOrdersPage() {
                   onClick={() => setExpanded(expanded === order.id ? null : order.id)}
                   className="cursor-pointer border-b border-bfl-line hover:bg-bfl-surface"
                 >
-                  <td className="px-4 py-3 font-bold text-bfl-ink">#{order.number}</td>
+                  <td className="px-4 py-3 font-semibold text-bfl-ink">#{order.number}</td>
                   <td className="px-4 py-3 text-[#333]">
                     {new Date(order.date).toLocaleDateString("en-GB", {
                       day: "numeric",
@@ -155,24 +155,24 @@ export default function SellerOrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-black">{order.customer}</p>
-                    <p className="text-[12px] text-bfl-grey">{order.city}</p>
+                    <p className="text-[13px] text-bfl-grey">{order.city}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-block rounded px-2 py-1 text-[11px] font-bold capitalize ${
+                      className={`inline-block rounded px-2 py-1 text-[12px] font-semibold capitalize ${
                         STATUS_BADGE[order.status] ?? STATUS_BADGE.pending
                       }`}
                     >
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-black">
+                  <td className="px-4 py-3 text-right font-semibold text-black">
                     {formatPrice(order.seller_total)}
                   </td>
                   <td className="px-4 py-3 text-right text-bfl-grey">
                     − {formatPrice(order.commission)}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-black">
+                  <td className="px-4 py-3 text-right font-semibold text-black">
                     {formatPrice(order.net_payout)}
                   </td>
                 </tr>
@@ -180,12 +180,12 @@ export default function SellerOrdersPage() {
                 {expanded === order.id && (
                   <tr className="border-b border-bfl-line bg-bfl-surface">
                     <td colSpan={7} className="px-4 py-3">
-                      <p className="mb-2 text-[12px] font-bold text-black">Your items in this order</p>
+                      <p className="mb-2 text-[13px] font-semibold text-black">Your items in this order</p>
                       <ul className="space-y-1.5">
                         {order.items.map((item) => (
                           <li
                             key={`${order.id}-${item.product_id}`}
-                            className="flex items-baseline justify-between gap-4 text-[13px]"
+                            className="flex items-baseline justify-between gap-4 text-[14px]"
                           >
                             <span className="min-w-0 truncate text-[#333]">
                               {item.quantity} × {item.name}

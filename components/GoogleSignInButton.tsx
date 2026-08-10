@@ -128,7 +128,7 @@ export default function GoogleSignInButton({
     return (
       <p
         id={fallbackId}
-        className="border border-dashed border-bfl-line px-3 py-2.5 text-center text-[12px] text-bfl-grey"
+        className="border border-dashed border-bfl-line px-3 py-2.5 text-center text-[13px] text-bfl-grey"
       >
         Google sign-in is not configured yet. Add{" "}
         <code className="font-mono">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to <code>.env.local</code>.
@@ -140,7 +140,7 @@ export default function GoogleSignInButton({
     <div className="relative">
       <div ref={containerRef} className="flex justify-center [color-scheme:light]" />
       {busy && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-[13px] text-bfl-grey">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-[14px] text-bfl-grey">
           Signing you in…
         </div>
       )}

@@ -22,6 +22,11 @@ export type Seller = {
   payout_account: string;
   registered_at: string;
   logo: string;
+  /** One-off registration fee. "waived" when the shop charges nothing. */
+  fee_status: "unpaid" | "paid" | "waived";
+  fee_amount: number;
+  /** The reference the seller quotes when paying. */
+  fee_reference: string;
 };
 
 export type SellerStats = {

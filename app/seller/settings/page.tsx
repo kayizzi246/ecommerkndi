@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { sellerApi, type Seller } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
+import { formatPrice } from "@/lib/currency";
 
 const INPUT =
-  "w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none";
+  "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
 
 const PAYOUT_METHODS = ["MTN Mobile Money", "Airtel Money", "Bank transfer"];
 
@@ -56,14 +57,48 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
 
   return (
     <div className="mx-auto max-w-[820px]">
-      <h1 className="text-[24px] font-bold text-black">Store settings</h1>
-      <p className="mt-1 text-[13px] text-bfl-grey">
+      <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">Store settings</h1>
+      <p className="mt-1 text-[15px] text-shop-muted">
         How your store appears to shoppers, and where we send your money.
       </p>
 
+      {/* The joining fee, and the reference to quote when paying it. Shown
+          until the team marks it received in wp-admin. */}
+      {seller.fee_status === "unpaid" && seller.fee_amount > 0 && (
+        <section className="mt-6 rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-6">
+          <h2 className="text-[18px] font-extrabold text-shop-primary">Joining fee outstanding</h2>
+          <p className="mt-1 text-[15px] leading-relaxed text-shop-body">
+            Your store cannot be approved until this clears. It is charged once and never again —
+            it covers verifying your business, setting up your store and payout details, and the
+            first review of your listings by a person.
+          </p>
+
+          <dl className="mt-4 space-y-2.5 text-[15px]">
+            <div className="flex items-baseline justify-between gap-4 border-b border-shop-primary/15 pb-2">
+              <dt className="text-shop-body">Amount</dt>
+              <dd className="text-[19px] font-semibold text-shop-primary">
+                {formatPrice(seller.fee_amount)}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-shop-body">Your reference</dt>
+              <dd className="font-mono text-[16px] font-semibold tracking-wide text-shop-ink">
+                {seller.fee_reference}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="mt-4 text-[14px] leading-relaxed text-shop-body">
+            Quote that reference when you pay so we can match it to your store. We confirm by
+            email, usually the same day. If your application is turned down, the fee is refunded
+            in full.
+          </p>
+        </section>
+      )}
+
       <form onSubmit={save} className="mt-6 space-y-5">
         <section className="border border-bfl-line bg-white p-5">
-          <h2 className="mb-4 text-[15px] font-bold text-black">Store profile</h2>
+          <h2 className="mb-4 text-[16px] font-extrabold text-black">Store profile</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Store name">
               <input required value={storeName} onChange={(e) => setStoreName(e.target.value)} className={INPUT} />
@@ -86,7 +121,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
         </section>
 
         <section className="border border-bfl-line bg-white p-5">
-          <h2 className="mb-4 text-[15px] font-bold text-black">Payout details</h2>
+          <h2 className="mb-4 text-[16px] font-extrabold text-black">Payout details</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Payout method">
               <select value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)} className={INPUT}>
@@ -107,8 +142,8 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
         </section>
 
         <section className="border border-bfl-line bg-white p-5">
-          <h2 className="mb-4 text-[15px] font-bold text-black">Marketplace terms</h2>
-          <dl className="space-y-2.5 text-[13px]">
+          <h2 className="mb-4 text-[16px] font-extrabold text-black">Marketplace terms</h2>
+          <dl className="space-y-2.5 text-[14px]">
             <Row label="Commission rate" value={`${seller.commission_rate}% per completed order`} />
             <Row label="Account status" value={seller.status} />
             <Row
@@ -121,24 +156,24 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
             />
             <Row label="Store URL" value={`/sellers/${seller.store_slug}`} />
           </dl>
-          <p className="mt-3 text-[12px] text-bfl-grey">
+          <p className="mt-3 text-[13px] text-bfl-grey">
             Your commission rate is set by the Kandi marketplace team. Contact support if you think
             it should change.
           </p>
         </section>
 
         {error && (
-          <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+          <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
             {error}
           </p>
         )}
         {notice && (
-          <p className="border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[13px] text-[#0a7a2f]">
+          <p className="border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[14px] text-[#0a7a2f]">
             {notice}
           </p>
         )}
 
-        <button type="submit" disabled={saving} className="btn-bfl px-8 py-3 text-[14px]">
+        <button type="submit" disabled={saving} className="btn-bfl px-8 py-3 text-[15px]">
           {saving ? "Saving…" : "Save changes"}
         </button>
       </form>
@@ -157,9 +192,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-bold text-[#333]">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[11px] text-bfl-grey">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12px] text-bfl-grey">{hint}</span>}
     </label>
   );
 }
@@ -168,7 +203,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-bfl-line pb-2.5 last:border-0">
       <dt className="text-bfl-grey">{label}</dt>
-      <dd className="font-bold capitalize text-black">{value}</dd>
+      <dd className="font-semibold capitalize text-black">{value}</dd>
     </div>
   );
 }

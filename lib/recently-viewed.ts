@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 type ViewedProduct = {
   productId: number;
@@ -42,16 +42,26 @@ if (typeof window !== "undefined") {
   load();
 }
 
-export function useRecentlyViewed() {
-  const [, setTick] = useState(0);
+function subscribe(listener: () => void): () => void {
+  globalListeners.push(listener);
+  return () => {
+    globalListeners = globalListeners.filter((fn) => fn !== listener);
+  };
+}
 
-  useEffect(() => {
-    const handler = () => setTick((t) => t + 1);
-    globalListeners.push(handler);
-    return () => {
-      globalListeners = globalListeners.filter((fn) => fn !== handler);
-    };
-  }, []);
+const getSnapshot = () => globalItems;
+
+/** The server has no localStorage, so it always renders an empty list. */
+const EMPTY: ViewedProduct[] = [];
+const getServerSnapshot = () => EMPTY;
+
+export function useRecentlyViewed() {
+  // The list is read from localStorage as soon as this module loads, so the
+  // first client render would otherwise already have items while the server
+  // rendered none. `useSyncExternalStore` is built for exactly this: it uses
+  // the server snapshot during hydration and swaps to the real one straight
+  // after, instead of mismatching.
+  const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const addProduct = useCallback((product: ViewedProduct) => {
     // Remove duplicate if exists
@@ -64,14 +74,6 @@ export function useRecentlyViewed() {
     notify();
   }, []);
 
-  const value = useMemo(
-    () => ({
-      items: [...globalItems],
-      addProduct,
-    }),
-    [addProduct, globalItems.length]
-  );
-
-  return value;
+  return useMemo(() => ({ items, addProduct }), [items, addProduct]);
 }
 

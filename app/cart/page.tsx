@@ -69,11 +69,11 @@ export default function CartPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
           </svg>
         </div>
-        <h1 className="mb-3 text-[26px] font-semibold text-shop-ink">Your cart is empty</h1>
-        <p className="mb-8 text-[14px] text-shop-muted">
+        <h1 className="mb-3 section-title text-[26px] text-shop-ink">Your cart is empty</h1>
+        <p className="mb-8 text-[15px] text-shop-muted">
           Discover this week&apos;s arrivals and find something you love.
         </p>
-        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
+        <Link href="/" className="btn-shop px-10 py-3.5 text-[15px]">
           Continue shopping
         </Link>
       </main>
@@ -85,10 +85,10 @@ export default function CartPage() {
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 pb-28 md:px-8 lg:pb-16">
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-[28px] font-semibold text-shop-ink md:text-[32px]">Your cart</h1>
+        <h1 className="section-title text-[28px] text-shop-ink md:text-[32px]">Your cart</h1>
         <Link
           href="/"
-          className="text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+          className="text-[14px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
         >
           Continue shopping
         </Link>
@@ -96,7 +96,7 @@ export default function CartPage() {
 
       {/* Free-delivery progress */}
       <div className="card-shop mb-6 px-5 py-4">
-        <p className="text-[13px] text-shop-body">
+        <p className="text-[14px] text-shop-body">
           {qualifiesFree ? (
             <span className="font-semibold text-shop-success">
               Nice — your order ships free.
@@ -123,7 +123,7 @@ export default function CartPage() {
         <div>
           {/* Select-all bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
-            <label className="flex cursor-pointer items-center gap-3 text-[13px] text-shop-body">
+            <label className="flex cursor-pointer items-center gap-3 text-[14px] text-shop-body">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -139,7 +139,7 @@ export default function CartPage() {
                 selectedItems.forEach((item) => removeItem(item.key));
                 notify("Selected items removed");
               }}
-              className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
+              className="text-[14px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
             >
               Remove selected
             </button>
@@ -176,24 +176,24 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-4">
                       <Link
                         href={`/products/${item.productId}`}
-                        className="text-[15px] font-medium leading-snug text-shop-ink hover:underline"
+                        className="text-[16px] font-medium leading-snug text-shop-ink hover:underline"
                       >
                         {item.name}
                       </Link>
-                      <p className="whitespace-nowrap text-[15px] font-semibold text-shop-ink">
+                      <p className="whitespace-nowrap text-[16px] font-semibold text-shop-ink">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
 
                     {item.options && Object.keys(item.options).length > 0 && (
-                      <p className="mt-1.5 text-[12px] text-shop-muted">
+                      <p className="mt-1.5 text-[13px] text-shop-muted">
                         {Object.entries(item.options)
                           .map(([key, value]) => `${key}: ${value}`)
                           .join(" · ")}
                       </p>
                     )}
 
-                    <p className="mt-1 text-[12px] text-shop-muted">
+                    <p className="mt-1 text-[13px] text-shop-muted">
                       {formatPrice(item.price)} each
                     </p>
 
@@ -204,18 +204,18 @@ export default function CartPage() {
                           aria-label={`Decrease quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.key, Math.max(1, item.quantity - 1))}
                           disabled={item.quantity <= 1}
-                          className="flex h-9 w-9 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9]"
+                          className="flex h-9 w-9 items-center justify-center text-[17px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9]"
                         >
                           −
                         </button>
-                        <span className="w-7 text-center text-[13px] font-semibold text-shop-ink">
+                        <span className="w-7 text-center text-[14px] font-semibold text-shop-ink">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           aria-label={`Increase quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                          className="flex h-9 w-9 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink"
+                          className="flex h-9 w-9 items-center justify-center text-[17px] text-shop-body hover:text-shop-ink"
                         >
                           +
                         </button>
@@ -227,7 +227,7 @@ export default function CartPage() {
                           removeItem(item.key);
                           notify("Item removed");
                         }}
-                        className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
+                        className="text-[14px] text-shop-muted underline underline-offset-4 hover:text-shop-sale"
                       >
                         Remove
                       </button>
@@ -240,7 +240,7 @@ export default function CartPage() {
 
           {/* Delivery methods */}
           <section className="mt-8">
-            <h2 className="mb-3 text-[15px] font-semibold text-shop-ink">Delivery method</h2>
+            <h2 className="mb-3 text-[16px] font-extrabold text-shop-ink">Delivery method</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               {DELIVERY_METHODS.map((option) => {
                 const active = method === option.id;
@@ -262,16 +262,16 @@ export default function CartPage() {
                           onChange={() => setMethod(option.id)}
                           className="accent-shop-primary"
                         />
-                        <span className="text-[13px] font-semibold text-shop-ink">
+                        <span className="text-[14px] font-semibold text-shop-ink">
                           {option.name}
                         </span>
                       </span>
-                      <span className="text-[13px] text-shop-body">
+                      <span className="text-[14px] text-shop-body">
                         {option.fee === 0 ? "Free" : formatPrice(option.fee)}
                       </span>
                     </span>
-                    <span className="mt-2 block text-[12px] text-shop-body">{option.eta}</span>
-                    <span className="mt-0.5 block text-[11px] text-shop-muted">{option.note}</span>
+                    <span className="mt-2 block text-[13px] text-shop-body">{option.eta}</span>
+                    <span className="mt-0.5 block text-[12px] text-shop-muted">{option.note}</span>
                   </label>
                 );
               })}
@@ -281,9 +281,9 @@ export default function CartPage() {
 
         {/* Order summary */}
         <aside className="card-shop p-6 lg:sticky lg:top-32">
-          <h2 className="text-[17px] font-semibold text-shop-ink">Order summary</h2>
+          <h2 className="text-[18px] font-extrabold text-shop-ink">Order summary</h2>
 
-          <dl className="mt-5 space-y-3 text-[14px]">
+          <dl className="mt-5 space-y-3 text-[15px]">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-shop-muted">
                 Subtotal · {selectedCount} {selectedCount === 1 ? "item" : "items"}
@@ -299,17 +299,17 @@ export default function CartPage() {
           </dl>
 
           <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-            <span className="text-[15px] font-semibold text-shop-ink">Total</span>
+            <span className="text-[16px] font-semibold text-shop-ink">Total</span>
             <div className="text-right">
-              <span className="block text-[22px] font-semibold text-shop-ink">
+              <span className="block text-[21px] font-semibold text-shop-ink">
                 {formatPrice(total)}
               </span>
-              <span className="text-[11px] text-shop-muted">Incl. VAT</span>
+              <span className="text-[12px] text-shop-muted">Incl. VAT</span>
             </div>
           </div>
 
           {qualifiesFree && (
-            <p className="mt-4 rounded-lg bg-shop-successbg px-3 py-2.5 text-[12px] text-shop-success">
+            <p className="mt-4 rounded-lg bg-shop-successbg px-3 py-2.5 text-[13px] text-shop-success">
               You&apos;re saving {formatPrice(chosenMethod.fee)} on delivery.
             </p>
           )}
@@ -317,7 +317,7 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`mt-5 block rounded-[10px] py-4 text-center text-[14px] font-semibold ${
+            className={`mt-5 block rounded-[10px] py-4 text-center text-[15px] font-semibold ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop w-full"
@@ -326,11 +326,11 @@ export default function CartPage() {
             Checkout · {formatPrice(total)}
           </Link>
 
-          <p className="mt-3 text-center text-[12px] text-shop-muted">
+          <p className="mt-3 text-center text-[13px] text-shop-muted">
             Coupons and vouchers are applied at payment.
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-1.5 border-t border-shop-line pt-5 text-[11px] text-shop-muted">
+          <div className="mt-5 flex flex-wrap gap-1.5 border-t border-shop-line pt-5 text-[12px] text-shop-muted">
             {["Cash", "MTN MoMo", "Airtel Money", "Visa", "Mastercard"].map((label) => (
               <span key={label} className="rounded-md border border-shop-line px-2 py-1">
                 {label}

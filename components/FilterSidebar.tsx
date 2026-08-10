@@ -66,12 +66,12 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
     (currentBrand ? 1 : 0);
 
   return (
-    <aside className={`text-[13px] ${className}`}>
+    <aside className={`text-[14px] ${className}`}>
       <div className="mb-5 flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-shop-ink">
+        <h3 className="text-[16px] font-extrabold text-shop-ink">
           Filters{" "}
           {activeCount > 0 && (
-            <span className="ml-1 rounded-full bg-shop-primary px-2 py-0.5 text-[11px] font-semibold text-white">
+            <span className="ml-1 rounded-full bg-shop-primary px-2 py-0.5 text-[12px] font-semibold text-white">
               {activeCount}
             </span>
           )}
@@ -81,7 +81,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+              className="text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
             >
               Clear all
             </button>
@@ -101,7 +101,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
 
       {/* Availability */}
       <section className="border-t border-shop-line py-5">
-        <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+        <h4 className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
           Availability
         </h4>
         <label className="flex cursor-pointer items-center gap-2.5 py-1 text-shop-body">
@@ -126,7 +126,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
 
       {/* Price */}
       <section className="border-t border-shop-line py-5">
-        <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+        <h4 className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
           Price
         </h4>
         <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
             onChange={(e) => setLocalMin(e.target.value)}
             placeholder="Min"
             aria-label="Minimum price"
-            className="field-shop px-2.5 py-2 text-[13px]"
+            className="field-shop px-2.5 py-2 text-[14px]"
           />
           <span className="text-shop-muted">–</span>
           <input
@@ -147,7 +147,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
             onChange={(e) => setLocalMax(e.target.value)}
             placeholder="Max"
             aria-label="Maximum price"
-            className="field-shop px-2.5 py-2 text-[13px]"
+            className="field-shop px-2.5 py-2 text-[14px]"
           />
         </div>
         <button
@@ -158,12 +158,12 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
               max_price: localMax || undefined,
             })
           }
-          className="btn-shop-outline mt-2.5 w-full py-2 text-[12px]"
+          className="btn-shop-outline mt-2.5 w-full py-2 text-[13px]"
         >
           Apply price
         </button>
         {(currentMin || currentMax) && (
-          <p className="mt-2 text-[12px] text-shop-muted">
+          <p className="mt-2 text-[13px] text-shop-muted">
             Showing {currentMin ? formatPrice(Number(currentMin)) : "any"} –{" "}
             {currentMax ? formatPrice(Number(currentMax)) : "any"}
           </p>
@@ -173,7 +173,7 @@ export default function FilterSidebar({ brands = [], onClose, className = "" }: 
       {/* Brand facet */}
       {brands.length > 0 && (
         <section className="border-t border-shop-line py-5">
-          <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+          <h4 className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
             Category
           </h4>
           <ul className="max-h-64 space-y-0.5 overflow-y-auto">

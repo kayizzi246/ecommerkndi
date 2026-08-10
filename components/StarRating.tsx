@@ -45,7 +45,7 @@ export default function StarRating({
         </svg>
       ))}
       {showCount && reviewCount !== undefined && (
-        <span className="text-[11px] text-gray-400 ml-1">({reviewCount})</span>
+        <span className="text-[12px] text-gray-400 ml-1">({reviewCount})</span>
       )}
     </span>
   );

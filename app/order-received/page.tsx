@@ -19,37 +19,37 @@ export default async function OrderReceivedPage({
           </svg>
         </span>
 
-        <h1 className="mt-5 text-[26px] font-bold text-black">Order received</h1>
-        <p className="mt-2 text-[13px] text-bfl-grey">Thank you for shopping with Kandi.</p>
+        <h1 className="mt-5 text-[28px] font-extrabold text-black">Order received</h1>
+        <p className="mt-2 text-[14px] text-bfl-grey">Thank you for shopping with Kandi.</p>
 
         {id && (
-          <div className="mx-auto mt-6 max-w-sm border border-bfl-line bg-bfl-surface px-5 py-4 text-[14px]">
+          <div className="mx-auto mt-6 max-w-sm border border-bfl-line bg-bfl-surface px-5 py-4 text-[15px]">
             <div className="flex items-baseline justify-between">
               <span className="text-bfl-grey">Order number</span>
-              <span className="font-bold text-black">#{id}</span>
+              <span className="font-semibold text-black">#{id}</span>
             </div>
             {total && Number(total) > 0 && (
               <div className="mt-2 flex items-baseline justify-between">
                 <span className="text-bfl-grey">Order total</span>
-                <span className="font-bold text-black">{formatPrice(Number(total))}</span>
+                <span className="font-semibold text-black">{formatPrice(Number(total))}</span>
               </div>
             )}
           </div>
         )}
 
-        <p className="mt-6 text-[13px] leading-6 text-bfl-grey">
+        <p className="mt-6 text-[14px] leading-6 text-bfl-grey">
           We&apos;ll call you shortly to confirm delivery — you pay when your order arrives.
           If you gave us an email address, check your inbox: we&apos;ve created your Kandi account
           and sent a link to set your password.
         </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/" className="btn-bfl px-8 py-3 text-[14px]">
+          <Link href="/" className="btn-bfl px-8 py-3 text-[15px]">
             Continue shopping
           </Link>
           <Link
             href="/track-order"
-            className="border border-bfl-line px-8 py-3 text-[14px] font-bold text-[#333] transition-colors hover:border-black"
+            className="border border-bfl-line px-8 py-3 text-[15px] font-semibold text-[#333] transition-colors hover:border-black"
           >
             Track your order
           </Link>

@@ -65,7 +65,7 @@ export default function CartDrawer() {
         }`}
       >
         <div className="flex items-center justify-between px-6 py-5">
-          <p className="text-[17px] font-semibold text-shop-ink">
+          <p className="text-[18px] font-semibold text-shop-ink">
             My cart{" "}
             {count > 0 && <span className="font-normal text-shop-muted">({count})</span>}
           </p>
@@ -87,11 +87,11 @@ export default function CartDrawer() {
             <svg className="h-16 w-16 text-shop-ink" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
-            <p className="mt-6 text-[22px] font-bold text-shop-ink">Your cart is empty.</p>
+            <p className="mt-6 text-[24px] font-semibold text-shop-ink">Your cart is empty.</p>
             <button
               type="button"
               onClick={closeDrawer}
-              className="btn-shop mt-8 w-full py-3.5 text-[14px]"
+              className="btn-shop mt-8 w-full py-3.5 text-[15px]"
             >
               Continue shopping
             </button>
@@ -101,7 +101,7 @@ export default function CartDrawer() {
             {/* Free-delivery progress — the single highest-leverage nudge in a
                 side cart, and it is computed from the real subtotal. */}
             <div className="shrink-0 rounded-lg bg-shop-surface px-4 py-3">
-              <p className="text-[12px] text-shop-body">
+              <p className="text-[13px] text-shop-body">
                 {qualifiesFree ? (
                   <span className="font-semibold text-shop-success">
                     Your order ships free.
@@ -157,11 +157,11 @@ export default function CartDrawer() {
                         />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="line-clamp-2 text-[14px] leading-tight text-shop-ink">
+                        <span className="line-clamp-2 text-[15px] leading-tight text-shop-ink">
                           {item.name}
                         </span>
                         {item.options && Object.keys(item.options).length > 0 && (
-                          <p className="mt-1 text-[12px] text-shop-muted">
+                          <p className="mt-1 text-[13px] text-shop-muted">
                             {Object.entries(item.options)
                               .map(([k, v]) => `${k}: ${v}`)
                               .join(" · ")}
@@ -171,7 +171,7 @@ export default function CartDrawer() {
                     </Link>
 
                     <div className="flex h-16 shrink-0 flex-col justify-between">
-                      <p className="text-right text-[13px] font-semibold text-shop-ink">
+                      <p className="text-right text-[14px] font-semibold text-shop-ink">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                       <div className="ml-auto flex h-9 flex-row items-center rounded-full border border-shop-line">
@@ -180,11 +180,11 @@ export default function CartDrawer() {
                           aria-label={`Reduce quantity of ${item.name}`}
                           tabIndex={drawerOpen ? 0 : -1}
                           onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                          className="flex h-full w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink"
+                          className="flex h-full w-8 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink"
                         >
                           −
                         </button>
-                        <span className="w-6 text-center text-[13px] text-shop-ink">
+                        <span className="w-6 text-center text-[14px] text-shop-ink">
                           {item.quantity}
                         </span>
                         <button
@@ -192,7 +192,7 @@ export default function CartDrawer() {
                           aria-label={`Increase quantity of ${item.name}`}
                           tabIndex={drawerOpen ? 0 : -1}
                           onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                          className="flex h-full w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink"
+                          className="flex h-full w-8 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink"
                         >
                           +
                         </button>
@@ -203,10 +203,10 @@ export default function CartDrawer() {
               ))}
             </ul>
 
-            <div className="py-4 text-[13px] text-shop-muted">
+            <div className="py-4 text-[14px] text-shop-muted">
               <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
                 <p>Taxes</p>
-                <p className="text-right text-[15px] text-shop-ink">Included</p>
+                <p className="text-right text-[16px] text-shop-ink">Included</p>
               </div>
               <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
                 <p>Shipping</p>
@@ -214,7 +214,7 @@ export default function CartDrawer() {
               </div>
               <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
                 <p>Total</p>
-                <p className="text-right text-[15px] font-semibold text-shop-ink">
+                <p className="text-right text-[16px] font-semibold text-shop-ink">
                   {formatPrice(subtotal)}
                 </p>
               </div>
@@ -225,7 +225,7 @@ export default function CartDrawer() {
                 href="/checkout"
                 onClick={closeDrawer}
                 tabIndex={drawerOpen ? 0 : -1}
-                className="btn-shop block w-full rounded-full p-3.5 text-center text-[14px]"
+                className="btn-shop block w-full rounded-full p-3.5 text-center text-[15px]"
               >
                 Proceed to checkout
               </Link>
@@ -233,7 +233,7 @@ export default function CartDrawer() {
                 href="/cart"
                 onClick={closeDrawer}
                 tabIndex={drawerOpen ? 0 : -1}
-                className="block w-full p-1 text-center text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+                className="block w-full p-1 text-center text-[14px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
               >
                 View full cart
               </Link>

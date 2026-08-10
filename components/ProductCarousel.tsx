@@ -27,7 +27,7 @@ export default function ProductCarousel({
 
   return (
     <section className="relative mt-16">
-      <h2 className="mb-6 text-[22px] font-semibold text-shop-ink md:text-[26px]">{title}</h2>
+      <h2 className="mb-6 text-[24px] font-extrabold text-shop-ink md:text-[28px]">{title}</h2>
 
       <div
         ref={trackRef}

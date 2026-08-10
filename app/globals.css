@@ -1,136 +1,297 @@
 @import "tailwindcss";
 
 /*
- * Kandi Store visual language.
+ * KandiUg visual language — orange.
  *
- * A calm, warm system: white canvas, soft-charcoal type, warm hairlines, and
- * a terracotta primary that carries every call to action. Black is not used as
- * a fill anywhere — the single dark band is the muted slate `shop-nav`.
- * Hierarchy comes from weight, warmth and radius rather than heavy contrast.
+ * The ratio is the point: roughly 90% white and light grey, 5–8% orange, small
+ * amounts of near-black, red for discounts only and green for delivery only. An
+ * orange page reads as a template; orange used sparingly on a white page reads
+ * as a brand.
+ *
+ * Orange is a light hue, which constrains where it can carry text:
+ *   • #ff6a00 on white is 2.9:1 — fine for a fill, a logo or 24px+ display type,
+ *     under the 4.5:1 that body-sized text needs.
+ *   • white on #ff6a00 is the same 2.9:1, so a small white button label on an
+ *     orange fill does not meet AA either. `--color-shop-primary-ink` exists for
+ *     the cases that must pass.
+ *
  * Light-only by design: there is no dark step and no colour-scheme switch.
  */
 
 :root {
+  /* Cool near-white, not pure white. One step of separation is what lets a white
+     product card read as a card without needing a shadow to say so. */
   --background: #ffffff;
-  /* Soft charcoal rather than near-black: the page reads calmer and long
-     copy is easier on the eye, while still clearing 4.5:1 comfortably. */
-  --foreground: #33363c;
+  /* Near-black rather than soft charcoal: marketplace listings are dense and
+     scanned fast, so product type wants the extra contrast. */
+  --foreground: #171717;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jost);
-  --font-heading: var(--font-jost);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-poppins);
   --font-body: var(--font-inter);
 }
 
 @theme {
   /* Brand */
-  --color-bfl-yellow: #f9d100;
-  --color-bfl-yellow-dark: #e5c000;
-  --color-bfl-black: #000000;
-  --color-bfl-ink: #16505f; /* teal headings, brand + product titles */
-  --color-bfl-ink-soft: #3d7a89;
-  --color-bfl-red: #e4002b; /* Super Price Store, discount % */
-  --color-bfl-green: #00a94f; /* NEW badge */
-  --color-bfl-grey: #767676;
-  --color-bfl-line: #e2e2e2;
-  --color-bfl-surface: #f7f7f7;
+  --color-bfl-yellow: #facc15;
+  --color-bfl-yellow-dark: #eab308;
+  --color-bfl-black: #09090b;
+  --color-bfl-ink: #18181b; /* headings, brand + product titles */
+  --color-bfl-ink-soft: #52525b;
+  --color-bfl-red: #e53935; /* Super Price Store, discount % */
+  --color-bfl-green: #16a34a; /* NEW badge */
+  --color-bfl-grey: #71717a;
+  --color-bfl-line: #e4e4e7;
+  --color-bfl-surface: #f4f4f5;
 
-  /* ---------- Storefront palette (cart, checkout, PLP tiles, PDP) ----------
-   * Calm and warm rather than black-and-white. Black is now reserved for
-   * nothing at all: `ink` is a soft charcoal used for type, `nav` is a muted
-   * slate for the one dark band on the page, and every call to action carries
-   * the warm `primary` orange instead of a black fill. Structure comes from
-   * warm hairlines on white. Light-only by design.
+  /* ---------- KandiUg brand palette ----------
+   * The greys are the slate ramp — very slightly cool, which is what makes
+   * product photography read as warm and separate from the page rather than
+   * blending into it.
    */
-  --color-shop-ink: #33363c; /* type, not fills */
-  --color-shop-body: #5b5f68;
-  --color-shop-muted: #6d727b;
-  --color-shop-line: #e7e5e1;
-  --color-shop-hairline: #f2f0ed;
-  --color-shop-surface: #f7f6f3;
-  --color-shop-cream: #fbfaf8;
-  --color-shop-nav: #3d4148; /* the single dark band, softened from black */
+  --color-shop-ink: #171717; /* type, not fills */
+  --color-shop-body: #475569;
+  --color-shop-muted: #64748b; /* ratings, sold counts, secondary labels */
+  --color-shop-title: #334155; /* product names — a step lighter than ink */
+  --color-shop-faint: #94a3b8; /* struck-through was-prices */
+  --color-shop-line: #e5e7eb;
+  --color-shop-hairline: #f3f4f6;
+  --color-shop-surface: #fafafa; /* the rare tinted panel; the page itself is white */
+  --color-shop-cream: #fff3e8;
+  --color-shop-search: #f3f4f6; /* the search field ground */
+  /* The thin announcement strip above the masthead. */
+  --color-shop-nav: #171717;
+  --color-shop-nav-dark: #000000;
+  --color-shop-band: #141414;
 
-  /* Primary action. Warm terracotta: 5.1:1 on white, 5.1:1 carrying white
-     text, and 4.6:1 on its own soft tint. */
-  --color-shop-primary: #b35218;
-  --color-shop-primary-dark: #963f0f;
-  --color-shop-primary-soft: #fdf1e8;
+  /* Kept for the odd accent that still wants it (seller badges, chart series). */
+  --color-shop-olive: #6f7c02;
+  --color-shop-olive-bright: #a4b504;
+  --color-shop-olive-dark: #5a6502;
 
-  --color-shop-sale: #c0392c;
-  --color-shop-success: #2f7d5f;
-  --color-shop-successbg: #edf6f2;
+  /* The brand orange. Fills, the logo, prices at display size, active nav. */
+  --color-shop-primary: #ff6a00;
+  --color-shop-primary-dark: #e85d00; /* hover */
+  --color-shop-primary-soft: #fff3e8; /* tint behind an active or selected row */
+  /* The same hue darkened until white text on it clears 4.6:1. Used where a
+     small label sits on an orange fill — a 14px button caption on #ff6a00 is
+     2.9:1 and fails AA, and no amount of brand consistency is worth a button
+     nobody with low vision can read. */
+  --color-shop-primary-ink: #b34a00;
+  --color-shop-flame: #ff6a00; /* alias of primary, kept so components compile */
+  --color-shop-ember: #e85d00; /* the second stop of the one gradient allowed */
+
+  --color-shop-sale: #e53935; /* discounts only — never a resting price */
+  --color-shop-success: #16a34a;
+  --color-shop-successbg: #f0fdf4;
+  --color-shop-warning: #f59e0b;
+  --color-shop-error: #e53935;
 
   /* ---------- Marketing accents ----------
-   * Muted, mid-toned hues rather than saturated primaries: they colour-code
-   * the homepage rails without shouting, and sit calmly beside each other.
-   * Each clears 4.5:1 on white as text and carries white text at 4.5:1 as a
-   * fill; the -soft tints are backgrounds only, read with the matching hue.
+   * One saturated step per hue for text and fills, one bright step for large
+   * display, one tint for backgrounds. Kept deliberately few: a marketplace
+   * grid is already visually busy, and the products have to win.
    */
-  --color-pop-orange: #b35218;
-  --color-pop-red: #c0392c;
-  --color-pop-green: #2f7d5f;
-  --color-pop-blue: #35608f;
-  --color-pop-violet: #6a5a9c;
-  --color-pop-pink: #a8467a;
+  --color-pop-orange: #ff6a00;
+  --color-pop-orange-bright: #ff8c33;
+  --color-pop-red: #e53935;
+  --color-pop-green: #16a34a;
+  --color-pop-blue: #1a4fd6;
+  --color-pop-violet: #6d28d9;
+  --color-pop-pink: #d6006e;
+  --color-pop-olive: #6f7c02;
   /* Tints for section backgrounds — text on these uses the matching hue. */
-  --color-pop-orange-soft: #fdf2ea;
-  --color-pop-red-soft: #fbeeec;
-  --color-pop-green-soft: #eef6f2;
-  --color-pop-blue-soft: #eef3f8;
-  --color-pop-violet-soft: #f2f0f8;
+  --color-pop-orange-soft: #fff3e8;
+  --color-pop-red-soft: #fef2f2;
+  --color-pop-green-soft: #f0fdf4;
+  --color-pop-blue-soft: #eaf0ff;
+  --color-pop-violet-soft: #f3ecff;
 
-  /* Light steps, for the same hues on the dark nav band. The mid-tones above
-     sit too close to #3d4148 to be legible there; these clear 4.5:1 on it. */
-  --color-pop-orange-on-dark: #f0a878;
-  --color-pop-green-on-dark: #8bcdad;
-  --color-pop-blue-on-dark: #9dc2e2;
-  --color-pop-violet-on-dark: #bcb0e4;
+  /* Light steps, for the same hues on the near-black band. The mid-tones above
+     sit far too close to #18181b to be legible there; these clear 4.5:1. */
+  --color-pop-orange-on-dark: #fdba74;
+  --color-pop-green-on-dark: #6ee7a0;
+  --color-pop-blue-on-dark: #93c5fd;
+  --color-pop-violet-on-dark: #c4b5fd;
 
   /* Legacy aliases kept so existing pages keep compiling */
-  --color-kandi: #16505f;
-  --color-kandi-dark: #000000;
-  --color-sale: #e4002b;
-  --color-fresh: #00a94f;
-  --color-sun: #f9d100;
-  --color-market: #16505f;
-  --color-market-dark: #000000;
-  --color-star: #f9d100;
-  --color-sold: #767676;
+  --color-kandi: #ff6a00;
+  --color-kandi-dark: #e85d00;
+  --color-sale: #e53935;
+  --color-fresh: #16a34a;
+  --color-sun: #facc15;
+  --color-market: #d24500;
+  --color-market-dark: #a63500;
+  --color-star: #f59e0b;
+  --color-sold: #71717a;
+}
+
+/* Two faces, split by job rather than by page.
+   `--font-ui` (Inter) is the default for the whole document: navigation, product
+   names, descriptions, filters, forms, tables — everything meant to be read.
+   `--font-display` (Poppins) is opted into by headings, prices and promotional
+   type — everything meant to be noticed. */
+:root {
+  --font-ui:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display:
+    var(--font-poppins), "Century Gothic", "Futura", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
+  --font-tabular: var(--font-ui);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-jost), "Century Gothic", Arial, Helvetica, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-ui);
+  /* 16px base. The store used to run at 14px, which left product titles,
+     prices and form labels a step smaller than they read comfortably at. The
+     fixed [Npx] sizes scattered through the components are stepped up with
+     the `text-*` scale below rather than one by one. */
+  font-size: 16px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* Both faces ship every weight the store asks for, so a synthesised bold would
+     only ever be the browser smearing a real one — turn it off and any weight
+     that renders is a weight that genuinely exists in the file. */
+  font-synthesis-weight: none;
 }
 
+/* Kept so the Seller Centre and admin shells keep resolving; both now sit on the
+   same UI face as the rest of the store. */
+.font-tabular {
+  font-family: var(--font-tabular);
+}
+
+/* Tailwind's default type scale, stepped up one notch so the whole store
+   reads larger without touching every className. */
+@theme {
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.9375rem; /* 15px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.1875rem; /* 19px */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.625rem; /* 26px */
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+/* Headings run heavy with the tracking pulled in a fraction — bold type sits too
+   loose at its default spacing, and the tightening is what makes a title read as
+   a solid block rather than a row of letters.
+ *
+ * This rule sits outside Tailwind's layers, so it wins over any `font-*` utility
+ * on the same element: a heading is one weight everywhere in the store, not
+ * whatever each component happened to type. Anything that genuinely wants to be
+ * lighter says so with `.font-normal-heading` below. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6,
-button,
 .font-heading {
-  font-family: var(--font-jost), "Century Gothic", Arial, sans-serif;
+  font-family: var(--font-display);
+  /* Poppins Black. The 900 cut is loaded explicitly in layout.tsx — without it
+     this would silently render at 800, because `font-synthesis-weight` is off
+     and the browser will not fake a weight the file does not contain. */
+  font-weight: 600;
+  /* Tracking pulled in harder than at 700: at Black the letterforms are already
+     touching, and the default spacing makes a heading look loose against its
+     own weight. */
+  letter-spacing: -0.03em;
 }
 
-/* Brands For Less sets headings in sentence case with normal tracking. */
-h1,
-h2,
-h3 {
+/* Prices are display type wherever they appear — that is the number the whole
+   page is built around, and it should never be set in the body face. */
+.price {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The escape hatch: a product name set as an <h1> on the product page is a name,
+   not a headline, and reads better at the interface weight. */
+/* The product-name weight.
+ *
+ * A product name is set as an <h1> on the product page and an <h3> on a card,
+ * which means the heading rule above would otherwise render it in Poppins Black
+ * — a supplier's 90-character title at 900 is a wall. Names take the UI face at
+ * 500: they are read, not announced, and 500 is where a two-line title stays
+ * legible against the price shouting beside it.
+ *
+ * Unlayered, like the heading rule it overrides, so it wins wherever it lands. */
+.font-normal-heading {
+  font-family: var(--font-ui);
+  font-weight: 400;
   letter-spacing: 0;
 }
 
+/* ---------- Section titles ----------
+ * Bold and tight, but sentence case and not shouted — the marketplace idiom
+ * rather than the fashion-poster one. On a page that is mostly product
+ * photography, a heavy uppercase rail title competes with the products; this
+ * one labels them and gets out of the way. Applied as one class instead of
+ * four utilities repeated at every call site.
+ */
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Poppins Black, for the two section headings that anchor the homepage.
+ *
+ * The 900 cut is loaded explicitly in layout.tsx — without it this would
+ * silently render at 800, because `font-synthesis-weight` is off and the browser
+ * will not fake a weight the file does not contain.
+ *
+ * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
+ * Tracking is pulled in harder than at 600: at Black the letterforms already
+ * crowd, and default spacing makes the word look loose against its own weight. */
+.heading-black {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+/* Large buttons and promotional labels — display face, tighter than body. */
+.btn-shop,
+.btn-shop-outline {
+  font-family: var(--font-display);
+}
+
+/* ---------- Corners ----------
+ * Softly rounded, the way the big marketplaces draw their tiles: enough radius
+ * that a product photo reads as a card, not so much that the grid turns into a
+ * field of lozenges. Tailwind's radius scale is redefined here rather than
+ * edited at each of the several hundred call sites.
+ */
+@theme {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+}
+
 ::selection {
-  background: #f9d100;
-  color: #000;
+  background: var(--color-shop-flame);
+  color: #fff;
 }
 
 /* ---------- Component primitives ---------- */
@@ -159,7 +320,9 @@ h3 {
  * hairlines rather than heavy borders or dark fills.
  */
 
-/* Primary action — warm orange, never a black fill. */
+/* Primary action — an 8px rounded rectangle, sentence case. Buttons are the one
+   place the brand orange has to carry small white text, so they take the
+   darkened `primary` step rather than the bright `flame` one. */
 .btn-shop {
   display: inline-flex;
   align-items: center;
@@ -167,9 +330,9 @@ h3 {
   gap: 0.5rem;
   background: var(--color-shop-primary);
   color: #fff;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  border-radius: 8px;
   transition:
     background-color 0.18s ease,
     transform 0.18s ease;
@@ -194,10 +357,10 @@ h3 {
   justify-content: center;
   gap: 0.5rem;
   background: #fff;
-  color: var(--color-shop-body);
-  font-weight: 600;
-  border: 1px solid var(--color-shop-line);
-  border-radius: 10px;
+  color: var(--color-shop-ink);
+  font-weight: 700;
+  border: 1px solid var(--color-shop-ink);
+  border-radius: 8px;
   transition:
     border-color 0.18s ease,
     color 0.18s ease;
@@ -211,7 +374,7 @@ h3 {
 .card-shop {
   background: #fff;
   border: 1px solid var(--color-shop-line);
-  border-radius: 14px;
+  border-radius: 6px;
 }
 
 /* Text inputs and selects on the checkout form. */
@@ -219,7 +382,7 @@ h3 {
   width: 100%;
   background: #fff;
   border: 1px solid var(--color-shop-line);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 0.75rem 0.875rem;
   font-size: 14px;
   color: var(--color-shop-ink);
@@ -286,6 +449,83 @@ summary::-webkit-details-marker {
   --delta-good: #006300;
 }
 
+/* ---------- Merchandising animations ----------
+ * Three effects, used on flags and banners only. Each is slow and low contrast
+ * on purpose: a grid where every tile flashes reads as a scam, and the point of
+ * a moving flag is that it is the *one* thing moving. All of them are switched
+ * off under prefers-reduced-motion at the foot of this block.
+ */
+
+/* A light sweep travelling across a coloured flag, once every few seconds. */
+@keyframes flag-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  60%,
+  100% {
+    transform: translateX(220%);
+  }
+}
+.flag-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.flag-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: flag-shine 3.4s ease-in-out infinite;
+}
+
+/* A gradient that drifts along its own axis — for banners, never for text. */
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.gradient-pan {
+  background-size: 200% 200%;
+  animation: gradient-pan 9s ease infinite;
+}
+
+/* The urgency dot beside "Only N left". Opacity only: a scaling dot next to
+   text drags the eye off the words it is meant to be qualifying. */
+@keyframes live-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+.live-dot {
+  animation: live-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flag-shine::after,
+  .gradient-pan,
+  .live-dot {
+    animation: none;
+  }
+  .flag-shine::after {
+    display: none;
+  }
+}
+
 /* ---------- Animations ---------- */
 
 @keyframes toast-in {
@@ -314,6 +554,155 @@ summary::-webkit-details-marker {
 }
 .banner-up {
   animation: banner-up 0.35s ease-out;
+}
+
+/* Rotating promo line in the masthead. Keyed on the message index, so each
+   new message replays the animation as it mounts. */
+@keyframes ticker-line {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ticker-line {
+  animation: ticker-line 0.45s ease-out;
+}
+
+/* Range slider on the seller earnings calculator. Styled explicitly because
+   the two engines take completely different pseudo-elements. */
+.calc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-shop-hairline);
+  outline: none;
+}
+.calc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-shop-primary);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.28);
+  cursor: grab;
+}
+.calc-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+.calc-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-shop-primary);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.28);
+  cursor: grab;
+}
+.calc-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-shop-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Seller onboarding ----------
+   Each step slides in from the right as it mounts, so moving forward reads as
+   forward motion rather than a flicker. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.step-in {
+  animation: step-in 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes step-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.step-in-back {
+  animation: step-in-back 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Fields cascade in behind the step, a beat apart. */
+@keyframes field-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.field-in {
+  animation: field-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* The tick on the final confirmation, drawn rather than popped. */
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes check-ring {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.check-ring {
+  animation: check-ring 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.check-draw {
+  stroke-dasharray: 32;
+  animation: check-draw 0.5s 0.2s ease-out backwards;
+}
+
+/* Motion is decoration here: with reduced motion the copy still changes, it
+   just appears instead of sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-line,
+  .banner-up,
+  .toast-in,
+  .step-in,
+  .step-in-back,
+  .field-in,
+  .check-ring,
+  .check-draw {
+    animation: none;
+  }
+  /* `backwards` fill would otherwise leave these invisible with no animation
+     to run: state them explicitly. */
+  .field-in,
+  .check-draw {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
 }
 
 .shimmer {

@@ -1,0 +1,688 @@
+<?php
+/**
+ * Plugin Name: Kandi Storefront Settings
+ * Description: Edit the Kandi storefront's logo, brand name and promotional wording from wp-admin — no code changes, no redeploy.
+ * Version: 1.0.0
+ * Author: Kandi UG
+ *
+ * HOW TO INSTALL (choose ONE):
+ *  A) Plugin: upload this file to
+ *     wp-content/plugins/kandi-storefront-settings/kandi-storefront-settings.php
+ *     and activate "Kandi Storefront Settings" in wp-admin > Plugins.
+ *  B) Code Snippets plugin: paste everything below this comment block into a
+ *     new snippet and activate it.
+ *
+ * THEN edit everything under wp-admin > Kandi Storefront.
+ *
+ * The storefront reads these values from GET /wp-json/kandi/v1/settings and
+ * caches them for a minute, so a change is live within about 60 seconds.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+const KANDI_SETTINGS_OPTION = 'kandi_storefront_settings';
+
+/**
+ * Everything the storefront can be told, with the values it falls back to when
+ * the field is left blank. These defaults are the current wording, so an empty
+ * install looks exactly like the shipped site.
+ */
+function kandi_settings_defaults() {
+	return array(
+		'logo_url'            => '',
+		'logo_id'             => 0,
+		'brand_name'          => 'Kandi',
+		'brand_suffix'        => 'For Less',
+		'tagline'             => 'Fashion for less, delivered across Uganda',
+
+		// The thin strip above the masthead.
+		'promo_line_1'        => 'FREE delivery on orders over UGX 50,000',
+		'promo_line_2'        => 'Pay on delivery',
+		'promo_line_3'        => '14-day free returns',
+		'promo_cta_label'     => 'Up to 80% off',
+		'promo_cta_url'       => '/sale',
+
+		// The rotating animated line. One message per line in the textarea.
+		'ticker_messages'     => "FREE delivery on orders over UGX 50,000\nPay on delivery — cash, MTN MoMo or Airtel Money\n14-day free returns, no questions asked\n100% authentic brands, checked before dispatch",
+
+		// The one full-width banner on the homepage.
+		'banner_eyebrow'      => 'Super Price Store',
+		'banner_headline'     => 'Up to 80% off RRP',
+		'banner_cta_label'    => 'Shop now',
+		'banner_cta_url'      => '/sale',
+
+		// Contact details, shown on /contact and in the footer.
+		'support_phone'       => '0200 804 020',
+		'support_email'       => 'support@kandiug.com',
+		'support_hours'       => 'Monday to Saturday, 9am – 6pm',
+		'support_address'     => 'Kampala, Uganda',
+		'whatsapp'            => '',
+
+		// Mobile apps. Until `app_available` is switched on, the storefront
+		// shows the store badges greyed out with a "Coming soon" label rather
+		// than linking to a listing that does not exist yet.
+		'app_available'       => '',
+		'app_store_url'       => '',
+		'play_store_url'      => '',
+
+		// Social profiles. Blank ones are hidden rather than linking nowhere.
+		'facebook_url'        => '',
+		'instagram_url'       => '',
+		'tiktok_url'          => '',
+		'x_url'               => '',
+
+		// Commercial terms quoted across the store. Numbers, so the storefront
+		// can format them as currency in the shopper's own locale.
+		'free_delivery_from'  => 50000,
+		'returns_days'        => 14,
+
+		// Seller terms. Quoted on the "Sell with us" landing page, in the
+		// earnings calculator and throughout onboarding, so they only ever
+		// need changing here.
+		'seller_fee'          => 50000,
+		'seller_commission'   => 10,
+		'seller_payout_days'  => 7,
+		'seller_pay_number'   => '',
+		'seller_pay_name'     => '',
+	);
+}
+
+/** The saved settings merged over the defaults. */
+function kandi_settings_all() {
+	$saved = get_option( KANDI_SETTINGS_OPTION, array() );
+	if ( ! is_array( $saved ) ) {
+		$saved = array();
+	}
+
+	$settings = kandi_settings_defaults();
+	foreach ( $settings as $key => $default ) {
+		// An empty string means "use the default"; 0 and "0" are real values.
+		if ( isset( $saved[ $key ] ) && '' !== $saved[ $key ] ) {
+			$settings[ $key ] = $saved[ $key ];
+		}
+	}
+
+	return $settings;
+}
+
+/* -------------------------------------------------------------------------
+ * Storefront connection
+ *
+ * The three values that make the Next.js storefront work, kept in their own
+ * options rather than in the settings array above — that array is served
+ * publicly at /wp-json/kandi/v1/settings, and secrets must never be one field's
+ * mistake away from being published.
+ * ---------------------------------------------------------------------- */
+
+const KANDI_SECRET_OPTION    = 'kandi_api_secret';
+const KANDI_PASSCODE_OPTION  = 'kandi_owner_passcode';
+const KANDI_STOREFRONT_URL   = 'kandi_storefront_url';
+
+/** The storefront's public base URL, without a trailing slash. */
+function kandi_storefront_url() {
+	return untrailingslashit( (string) get_option( KANDI_STOREFRONT_URL, '' ) );
+}
+
+/**
+ * Learns the storefront's URL by itself, so nobody has to type it in.
+ *
+ * The Next.js shop sends `X-Kandi-Storefront: https://…` on every product read
+ * it makes. The first such request teaches WordPress where the shop lives, and
+ * from then on cache purges have somewhere to go. Redeploy the shop to a new
+ * domain and it re-registers on the next page view.
+ *
+ * Only http(s) URLs are accepted, and the value is stored with esc_url_raw, so
+ * a forged header cannot turn this into a request to anywhere interesting — the
+ * worst it can do is point purges at a site that ignores them.
+ */
+add_action( 'rest_api_init', function () {
+	if ( empty( $_SERVER['HTTP_X_KANDI_STOREFRONT'] ) ) {
+		return;
+	}
+
+	$sent = esc_url_raw( untrailingslashit( wp_unslash( $_SERVER['HTTP_X_KANDI_STOREFRONT'] ) ) );
+	if ( '' === $sent || ! preg_match( '#^https?://#i', $sent ) ) {
+		return;
+	}
+
+	// Written only when it actually changes: this runs on every REST request,
+	// and an update_option on each one would be a write per page view.
+	if ( $sent !== kandi_storefront_url() ) {
+		update_option( KANDI_STOREFRONT_URL, $sent );
+	}
+} );
+
+/**
+ * Tells the storefront to drop its cached catalogue.
+ *
+ * The storefront caches product reads for a minute, which is what makes it
+ * fast — and what used to leave a product you deleted in wp-admin sitting on
+ * the shop until that minute expired. This fires the moment a product changes,
+ * so the shop is correct on the next page load instead.
+ *
+ * Non-blocking: the response is never read, because saving a product must not
+ * wait on an HTTP round trip to another host, and a storefront that is down
+ * should not make wp-admin feel broken.
+ */
+function kandi_purge_storefront_cache() {
+	static $already_sent = false;
+
+	// WooCommerce fires several of these hooks for a single save; once per
+	// request is enough.
+	if ( $already_sent ) {
+		return;
+	}
+
+	$base = kandi_storefront_url();
+	if ( '' === $base ) {
+		return;
+	}
+
+	$already_sent = true;
+
+	$secret = function_exists( 'kandi_shared_secret' )
+		? kandi_shared_secret()
+		: (string) get_option( KANDI_SECRET_OPTION, '' );
+
+	wp_remote_post( $base . '/api/revalidate', array(
+		'timeout'  => 0.01,
+		'blocking' => false,
+		'headers'  => array( 'X-Kandi-Secret' => $secret ),
+	) );
+}
+
+/** Only products matter here — a page or a post cannot change the catalogue. */
+function kandi_purge_on_product_change( $post_id ) {
+	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		return;
+	}
+	if ( 'product' !== get_post_type( $post_id ) && 'product_variation' !== get_post_type( $post_id ) ) {
+		return;
+	}
+	kandi_purge_storefront_cache();
+}
+
+// `before_delete_post` rather than `deleted_post`: by the time the latter runs
+// the row is gone, so the post-type check below could no longer tell whether it
+// was a product.
+foreach ( array( 'save_post', 'trashed_post', 'untrashed_post', 'before_delete_post' ) as $kandi_hook ) {
+	add_action( $kandi_hook, 'kandi_purge_on_product_change', 10, 1 );
+}
+
+// WooCommerce writes products through its own data store as well as through the
+// post API, and the CRUD hooks are the only ones a stock change fires.
+foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'woocommerce_delete_product', 'woocommerce_trash_product' ) as $kandi_hook ) {
+	add_action( $kandi_hook, 'kandi_purge_storefront_cache', 10, 0 );
+}
+
+/* -------------------------------------------------------------------------
+ * REST — GET /wp-json/kandi/v1/settings
+ *
+ * Public and read-only: it is branding, not private data, and the storefront
+ * renders it on every page.
+ * ---------------------------------------------------------------------- */
+
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'kandi/v1', '/settings', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => '__return_true',
+		'callback'            => function () {
+			$settings = kandi_settings_all();
+
+			// The textarea is one message per line; the storefront wants a list.
+			$ticker = array_values( array_filter( array_map(
+				'trim',
+				preg_split( '/\r\n|\r|\n/', (string) $settings['ticker_messages'] )
+			) ) );
+
+			return rest_ensure_response( array(
+				'brand'    => array(
+					'name'     => $settings['brand_name'],
+					'suffix'   => $settings['brand_suffix'],
+					'tagline'  => $settings['tagline'],
+					'logo_url' => $settings['logo_url'],
+				),
+				'promo'    => array(
+					'lines'     => array_values( array_filter( array(
+						$settings['promo_line_1'],
+						$settings['promo_line_2'],
+						$settings['promo_line_3'],
+					) ) ),
+					'cta_label' => $settings['promo_cta_label'],
+					'cta_url'   => $settings['promo_cta_url'],
+				),
+				'ticker'   => $ticker,
+				'banner'   => array(
+					'eyebrow'   => $settings['banner_eyebrow'],
+					'headline'  => $settings['banner_headline'],
+					'cta_label' => $settings['banner_cta_label'],
+					'cta_url'   => $settings['banner_cta_url'],
+				),
+				'support'  => array(
+					'phone'    => $settings['support_phone'],
+					'email'    => $settings['support_email'],
+					'hours'    => $settings['support_hours'],
+					'address'  => $settings['support_address'],
+					'whatsapp' => $settings['whatsapp'],
+				),
+				'app'      => array(
+					// Only "available" when the toggle is on AND there is at
+					// least one real listing URL to send people to.
+					'available'   => ( '1' === (string) $settings['app_available'] )
+						&& ( $settings['app_store_url'] || $settings['play_store_url'] ),
+					'ios_url'     => $settings['app_store_url'],
+					'android_url' => $settings['play_store_url'],
+				),
+				'social'   => array_filter( array(
+					'facebook'  => $settings['facebook_url'],
+					'instagram' => $settings['instagram_url'],
+					'tiktok'    => $settings['tiktok_url'],
+					'x'         => $settings['x_url'],
+				) ),
+				'commerce' => array(
+					'free_delivery_from' => (float) $settings['free_delivery_from'],
+					'returns_days'       => (int) $settings['returns_days'],
+				),
+				'seller'   => array(
+					'registration_fee' => (float) $settings['seller_fee'],
+					'commission_rate'  => (float) $settings['seller_commission'],
+					'payout_days'      => (int) $settings['seller_payout_days'],
+					'pay_number'       => $settings['seller_pay_number'],
+					'pay_name'         => $settings['seller_pay_name'],
+				),
+			) );
+		},
+	) );
+} );
+
+/* -------------------------------------------------------------------------
+ * wp-admin screen
+ * ---------------------------------------------------------------------- */
+
+add_action( 'admin_menu', function () {
+	add_menu_page(
+		'Kandi Storefront',
+		'Kandi Storefront',
+		'manage_options',
+		'kandi-storefront',
+		'kandi_settings_render_page',
+		'dashicons-store',
+		56
+	);
+} );
+
+/** Loads the media library picker used by the logo field. */
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+	if ( 'toplevel_page_kandi-storefront' === $hook ) {
+		wp_enqueue_media();
+	}
+} );
+
+/** Text fields are sanitised per type; URLs and emails get their own filters. */
+function kandi_settings_sanitise( $key, $value ) {
+	$url_fields   = array( 'logo_url', 'promo_cta_url', 'banner_cta_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
+	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'seller_fee', 'seller_commission', 'seller_payout_days' );
+
+	if ( 'ticker_messages' === $key ) {
+		return sanitize_textarea_field( $value );
+	}
+	if ( 'app_available' === $key ) {
+		// An unchecked checkbox is not posted at all, which the save loop
+		// below turns into "leave as-is" — so the form posts a hidden 0 first.
+		return '1' === (string) $value ? '1' : '0';
+	}
+	if ( 'support_email' === $key ) {
+		return sanitize_email( $value );
+	}
+	if ( in_array( $key, $number_field, true ) ) {
+		return (float) $value;
+	}
+	if ( in_array( $key, $url_fields, true ) ) {
+		// Relative paths like /sale are legitimate here, and esc_url_raw would
+		// keep them, but it strips a leading slash from nothing else — so only
+		// absolute URLs go through it.
+		$value = trim( (string) $value );
+		return preg_match( '#^https?://#i', $value ) ? esc_url_raw( $value ) : sanitize_text_field( $value );
+	}
+
+	return sanitize_text_field( $value );
+}
+
+function kandi_settings_render_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'You do not have permission to edit the storefront.' );
+	}
+
+	$saved_notice = false;
+
+	if ( isset( $_POST['kandi_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kandi_settings_nonce'] ) ), 'kandi_save_settings' ) ) {
+		$incoming = array();
+		foreach ( array_keys( kandi_settings_defaults() ) as $key ) {
+			if ( isset( $_POST[ $key ] ) ) {
+				$incoming[ $key ] = kandi_settings_sanitise( $key, wp_unslash( $_POST[ $key ] ) );
+			}
+		}
+		update_option( KANDI_SETTINGS_OPTION, $incoming );
+
+		// The connection values live in their own options, outside the array
+		// that gets served publicly. A blank secret field means "leave it as it
+		// is" rather than "erase it" — the field renders empty on every load,
+		// so treating blank as a value would wipe the secret on any save.
+		if ( isset( $_POST['kandi_storefront_url'] ) ) {
+			update_option(
+				KANDI_STOREFRONT_URL,
+				untrailingslashit( esc_url_raw( trim( (string) wp_unslash( $_POST['kandi_storefront_url'] ) ) ) )
+			);
+		}
+		foreach ( array( 'kandi_api_secret' => KANDI_SECRET_OPTION, 'kandi_owner_passcode' => KANDI_PASSCODE_OPTION ) as $field => $option ) {
+			if ( ! isset( $_POST[ $field ] ) ) {
+				continue;
+			}
+			$value = trim( (string) wp_unslash( $_POST[ $field ] ) );
+			if ( '' !== $value ) {
+				update_option( $option, sanitize_text_field( $value ) );
+			}
+		}
+
+		$saved_notice = true;
+	}
+
+	$s = kandi_settings_all();
+	?>
+	<div class="wrap">
+		<h1>Kandi Storefront</h1>
+		<p>Everything here shows on the Next.js storefront within about a minute of saving. Leave a field blank to fall back to the built-in wording.</p>
+
+		<?php if ( $saved_notice ) : ?>
+			<div class="notice notice-success is-dismissible"><p>Saved. The storefront will pick this up within a minute.</p></div>
+		<?php endif; ?>
+
+		<form method="post">
+			<?php wp_nonce_field( 'kandi_save_settings', 'kandi_settings_nonce' ); ?>
+
+			<h2 class="title">Storefront connection</h2>
+			<p class="description">
+				The three values that make the Next.js shop work. Everything else on this page is
+				wording; these are what let the two halves talk to each other.
+			</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="kandi_storefront_url">Storefront URL</label></th>
+					<td>
+						<input type="text" id="kandi_storefront_url" name="kandi_storefront_url" value="<?php echo esc_attr( kandi_storefront_url() ); ?>" class="large-text" placeholder="https://shop.kandiug.com">
+						<p class="description">
+							Where the Next.js shop is published, with no trailing slash.
+							<strong>Fill this in and deleted or edited products disappear from the shop
+							immediately</strong> — WordPress pings the storefront to drop its cached
+							catalogue on every product change. Leave it blank and the shop keeps showing
+							the old catalogue for up to a minute after each edit.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="kandi_api_secret">Storefront API secret</label></th>
+					<td>
+						<input type="password" id="kandi_api_secret" name="kandi_api_secret" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo get_option( KANDI_SECRET_OPTION ) ? '•••••••• (saved — type to replace)' : 'Paste a long random string'; ?>">
+						<p class="description">
+							Must match <code>KANDI_API_SECRET</code> in the storefront's <code>.env.local</code>.
+							Every order, seller and owner request carries it, so only your shop can reach
+							these endpoints.
+							<?php if ( defined( 'KANDI_API_SECRET' ) && KANDI_API_SECRET ) : ?>
+								<br><strong>A <code>KANDI_API_SECRET</code> constant is defined in wp-config.php, and it wins over this field.</strong>
+							<?php endif; ?>
+							Leave blank to keep the value you already saved.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="kandi_owner_passcode">Owner passcode</label></th>
+					<td>
+						<input type="password" id="kandi_owner_passcode" name="kandi_owner_passcode" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo get_option( KANDI_PASSCODE_OPTION ) ? '•••••••• (saved — type to replace)' : 'Not set — owner access is off'; ?>">
+						<p class="description">
+							Unlocks <code><?php echo esc_html( kandi_storefront_url() ?: 'https://your-shop' ); ?>/admin</code>,
+							where you can add, edit and delete <em>any</em> product without a seller account.
+							Until this is set, that screen refuses every request. Make it long and random —
+							it is the only thing standing between the internet and your catalogue.
+							Leave blank to keep the value you already saved.
+						</p>
+					</td>
+				</tr>
+			</table>
+
+			<h2 class="title">Logo and brand</h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="logo_url">Logo image</label></th>
+					<td>
+						<div id="kandi-logo-preview" style="margin-bottom:8px;">
+							<?php if ( $s['logo_url'] ) : ?>
+								<img src="<?php echo esc_url( $s['logo_url'] ); ?>" alt="" style="max-height:60px;background:#f6f6f6;padding:6px;border-radius:6px;">
+							<?php else : ?>
+								<em>No logo set — the storefront shows the built-in wordmark.</em>
+							<?php endif; ?>
+						</div>
+						<input type="text" id="logo_url" name="logo_url" value="<?php echo esc_attr( $s['logo_url'] ); ?>" class="regular-text" placeholder="https://…">
+						<input type="hidden" id="logo_id" name="logo_id" value="<?php echo esc_attr( $s['logo_id'] ); ?>">
+						<button type="button" class="button" id="kandi-pick-logo">Choose from media library</button>
+						<button type="button" class="button" id="kandi-clear-logo">Remove</button>
+						<p class="description">A wide (landscape) PNG or SVG with a transparent background works best. It is displayed about 40px tall.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="brand_name">Brand name</label></th>
+					<td>
+						<input type="text" id="brand_name" name="brand_name" value="<?php echo esc_attr( $s['brand_name'] ); ?>" class="regular-text">
+						<input type="text" id="brand_suffix" name="brand_suffix" value="<?php echo esc_attr( $s['brand_suffix'] ); ?>" class="regular-text">
+						<p class="description">Shown as two words side by side when no logo image is set — e.g. <strong>Kandi</strong> For Less.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="tagline">Tagline</label></th>
+					<td><input type="text" id="tagline" name="tagline" value="<?php echo esc_attr( $s['tagline'] ); ?>" class="large-text"></td>
+				</tr>
+			</table>
+
+			<h2 class="title">Promotional wording</h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">Top strip</th>
+					<td>
+						<input type="text" name="promo_line_1" value="<?php echo esc_attr( $s['promo_line_1'] ); ?>" class="large-text" placeholder="Main promise"><br><br>
+						<input type="text" name="promo_line_2" value="<?php echo esc_attr( $s['promo_line_2'] ); ?>" class="regular-text" placeholder="Second point">
+						<input type="text" name="promo_line_3" value="<?php echo esc_attr( $s['promo_line_3'] ); ?>" class="regular-text" placeholder="Third point">
+						<p class="description">The thin strip above the search bar.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Top strip link</th>
+					<td>
+						<input type="text" name="promo_cta_label" value="<?php echo esc_attr( $s['promo_cta_label'] ); ?>" class="regular-text" placeholder="Up to 80% off">
+						<input type="text" name="promo_cta_url" value="<?php echo esc_attr( $s['promo_cta_url'] ); ?>" class="regular-text" placeholder="/sale">
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="ticker_messages">Animated rotating line</label></th>
+					<td>
+						<textarea id="ticker_messages" name="ticker_messages" rows="5" class="large-text"><?php echo esc_textarea( $s['ticker_messages'] ); ?></textarea>
+						<p class="description">
+							One message per line. They rotate in the masthead, one every few seconds.
+							Keep them to promises you actually keep — invented stock counts and fake
+							countdowns break consumer-protection rules and lose repeat customers.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">Homepage banner</th>
+					<td>
+						<input type="text" name="banner_eyebrow" value="<?php echo esc_attr( $s['banner_eyebrow'] ); ?>" class="regular-text" placeholder="Small line above"><br><br>
+						<input type="text" name="banner_headline" value="<?php echo esc_attr( $s['banner_headline'] ); ?>" class="large-text" placeholder="Big headline"><br><br>
+						<input type="text" name="banner_cta_label" value="<?php echo esc_attr( $s['banner_cta_label'] ); ?>" class="regular-text" placeholder="Shop now">
+						<input type="text" name="banner_cta_url" value="<?php echo esc_attr( $s['banner_cta_url'] ); ?>" class="regular-text" placeholder="/sale">
+					</td>
+				</tr>
+			</table>
+
+			<h2 class="title">Contact details</h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="support_phone">Phone</label></th>
+					<td><input type="text" id="support_phone" name="support_phone" value="<?php echo esc_attr( $s['support_phone'] ); ?>" class="regular-text"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="support_email">Email</label></th>
+					<td><input type="email" id="support_email" name="support_email" value="<?php echo esc_attr( $s['support_email'] ); ?>" class="regular-text"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="whatsapp">WhatsApp number</label></th>
+					<td>
+						<input type="text" id="whatsapp" name="whatsapp" value="<?php echo esc_attr( $s['whatsapp'] ); ?>" class="regular-text" placeholder="256700000000">
+						<p class="description">International format, no + or spaces. Leave blank to hide the WhatsApp button.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="support_hours">Opening hours</label></th>
+					<td><input type="text" id="support_hours" name="support_hours" value="<?php echo esc_attr( $s['support_hours'] ); ?>" class="large-text"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="support_address">Address</label></th>
+					<td><input type="text" id="support_address" name="support_address" value="<?php echo esc_attr( $s['support_address'] ); ?>" class="large-text"></td>
+				</tr>
+			</table>
+
+			<h2 class="title">Mobile apps</h2>
+			<p class="description">
+				The App Store and Google Play badges show in the footer either way. Until you
+				tick the box below they are greyed out and labelled <strong>Coming soon</strong>,
+				so nobody clicks through to a listing that is not live yet.
+			</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">App is live</th>
+					<td>
+						<!-- Posted first so an unticked box still saves as "off". -->
+						<input type="hidden" name="app_available" value="0">
+						<label>
+							<input type="checkbox" name="app_available" value="1" <?php checked( '1', (string) $s['app_available'] ); ?>>
+							The app is published — turn the badges into working links
+						</label>
+						<p class="description">
+							This only takes effect once at least one store URL below is filled in.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="app_store_url">Apple App Store URL</label></th>
+					<td>
+						<input type="text" id="app_store_url" name="app_store_url" value="<?php echo esc_attr( $s['app_store_url'] ); ?>" class="large-text" placeholder="https://apps.apple.com/ug/app/…">
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="play_store_url">Google Play URL</label></th>
+					<td>
+						<input type="text" id="play_store_url" name="play_store_url" value="<?php echo esc_attr( $s['play_store_url'] ); ?>" class="large-text" placeholder="https://play.google.com/store/apps/details?id=…">
+					</td>
+				</tr>
+			</table>
+
+			<h2 class="title">Social links</h2>
+			<p class="description">Blank links are hidden on the storefront rather than pointing nowhere.</p>
+			<table class="form-table" role="presentation">
+				<tr><th scope="row">Facebook</th><td><input type="text" name="facebook_url" value="<?php echo esc_attr( $s['facebook_url'] ); ?>" class="large-text"></td></tr>
+				<tr><th scope="row">Instagram</th><td><input type="text" name="instagram_url" value="<?php echo esc_attr( $s['instagram_url'] ); ?>" class="large-text"></td></tr>
+				<tr><th scope="row">TikTok</th><td><input type="text" name="tiktok_url" value="<?php echo esc_attr( $s['tiktok_url'] ); ?>" class="large-text"></td></tr>
+				<tr><th scope="row">X / Twitter</th><td><input type="text" name="x_url" value="<?php echo esc_attr( $s['x_url'] ); ?>" class="large-text"></td></tr>
+			</table>
+
+			<h2 class="title">Commercial terms</h2>
+			<p class="description">These numbers are quoted all over the storefront — the delivery banner, the cart progress bar, the product page, the policy pages. Changing them here changes them everywhere.</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="free_delivery_from">Free delivery from (UGX)</label></th>
+					<td><input type="number" id="free_delivery_from" name="free_delivery_from" value="<?php echo esc_attr( $s['free_delivery_from'] ); ?>" class="small-text" step="1000" min="0"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="returns_days">Returns window (days)</label></th>
+					<td><input type="number" id="returns_days" name="returns_days" value="<?php echo esc_attr( $s['returns_days'] ); ?>" class="small-text" min="0"></td>
+				</tr>
+			</table>
+
+			<h2 class="title">Seller terms</h2>
+			<p class="description">Quoted on the &ldquo;Sell with us&rdquo; landing page, in its earnings calculator, and throughout seller onboarding.</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="seller_fee">One-off registration fee (UGX)</label></th>
+					<td>
+						<input type="number" id="seller_fee" name="seller_fee" value="<?php echo esc_attr( $s['seller_fee'] ); ?>" class="small-text" step="1000" min="0">
+						<p class="description">Set to 0 to make registration free — the whole payment step then disappears from onboarding.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="seller_commission">Default commission (%)</label></th>
+					<td>
+						<input type="number" id="seller_commission" name="seller_commission" value="<?php echo esc_attr( $s['seller_commission'] ); ?>" class="small-text" step="0.5" min="0" max="100">
+						<p class="description">The rate quoted publicly. Per-seller rates are set in <em>Kandi Sellers</em> and override this.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="seller_payout_days">Payout frequency (days)</label></th>
+					<td><input type="number" id="seller_payout_days" name="seller_payout_days" value="<?php echo esc_attr( $s['seller_payout_days'] ); ?>" class="small-text" min="1"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="seller_pay_number">Fee payment number</label></th>
+					<td>
+						<input type="text" id="seller_pay_number" name="seller_pay_number" value="<?php echo esc_attr( $s['seller_pay_number'] ); ?>" class="regular-text" placeholder="0700 000 000">
+						<input type="text" name="seller_pay_name" value="<?php echo esc_attr( $s['seller_pay_name'] ); ?>" class="regular-text" placeholder="Registered name on the account">
+						<p class="description">The mobile money number new sellers send the registration fee to, and the name it is registered under so they can check before sending. Leave blank and onboarding tells them to call you instead.</p>
+					</td>
+				</tr>
+			</table>
+
+			<?php submit_button( 'Save storefront settings' ); ?>
+		</form>
+	</div>
+
+	<script>
+	jQuery(function ($) {
+		var frame;
+
+		$('#kandi-pick-logo').on('click', function (event) {
+			event.preventDefault();
+
+			if (frame) {
+				frame.open();
+				return;
+			}
+
+			frame = wp.media({
+				title: 'Choose the storefront logo',
+				button: { text: 'Use this logo' },
+				library: { type: 'image' },
+				multiple: false
+			});
+
+			frame.on('select', function () {
+				var image = frame.state().get('selection').first().toJSON();
+				$('#logo_url').val(image.url);
+				$('#logo_id').val(image.id);
+				$('#kandi-logo-preview').html(
+					$('<img>', { src: image.url, alt: '' }).css({
+						maxHeight: '60px', background: '#f6f6f6', padding: '6px', borderRadius: '6px'
+					})
+				);
+			});
+
+			frame.open();
+		});
+
+		$('#kandi-clear-logo').on('click', function (event) {
+			event.preventDefault();
+			$('#logo_url').val('');
+			$('#logo_id').val(0);
+			$('#kandi-logo-preview').html('<em>No logo set — the storefront shows the built-in wordmark.</em>');
+		});
+	});
+	</script>
+	<?php
+}

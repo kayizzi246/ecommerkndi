@@ -34,7 +34,9 @@ const NAV_ITEMS = [
   },
   {
     label: "Account",
-    href: "https://shop.kandiug.com/my-account/",
+    // The storefront now has its own dashboard, so this no longer bounces the
+    // shopper out to the WordPress my-account page.
+    href: "/account",
     icon: (active: boolean) => (
       <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -62,14 +64,14 @@ export default function MobileBottomNav() {
               href={item.href}
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className={`relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${
-                isActive ? "font-bold text-black" : "text-bfl-grey hover:text-black"
+              className={`relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+                isActive ? "font-semibold text-black" : "text-bfl-grey hover:text-black"
               }`}
             >
               <span className="relative">
                 {item.icon(isActive)}
                 {item.label === "Cart" && count > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bfl-yellow px-1 text-[9px] font-bold text-black">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bfl-yellow px-1 text-[9px] font-semibold text-black">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}

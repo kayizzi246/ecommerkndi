@@ -1,108 +1,213 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
-import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
+import type { SiteSettings } from "@/lib/site-settings";
 import SearchBar from "@/components/SearchBar";
-import MegaMenu from "@/components/MegaMenu";
+import CuratedNav from "@/components/CuratedNav";
+import CategoriesMenu from "@/components/CategoriesMenu";
 import AccountMenu from "@/components/AccountMenu";
-
-const FREE_DELIVERY_THRESHOLD = 50000;
+import SalesTicker from "@/components/SalesTicker";
 
 /**
- * Storefront masthead: a promo bar, then a white utility row (logo, centred
- * search, market switcher) above the black department bar which ends in the
- * red promo tab and the account cluster.
+ * Storefront masthead, in the large-marketplace layout: a hairline promo strip
+ * carrying the rotating promise line, then a white row given over almost
+ * entirely to the search field, then the department bar led by the Categories
+ * mega-menu.
+ *
+ * White throughout, deliberately. A masthead in a dark or saturated slab is the
+ * heaviest thing on a page whose entire job is showing product photography, and
+ * every marketplace at this scale has converged on getting out of the way.
+ *
+ * The logo, the promo wording and the free-delivery threshold all come from
+ * `settings`, which is edited in wp-admin — nothing here is hard-coded.
  */
-export default function Header({ departments = [] }: { departments?: CategoryNode[] }) {
+export default function Header({
+  departments = [],
+  settings,
+  hideNavRow = false,
+}: {
+  departments?: CategoryNode[];
+  settings: SiteSettings;
+  /** The homepage renders the nav row itself, beside its category sidebar. */
+  hideNavRow?: boolean;
+}) {
   const { count, subtotal, openDrawer } = useCart();
-  const { count: wishlistCount } = useWishlist();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const awayFromFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
+  const threshold = settings.commerce.free_delivery_from;
+  const awayFromFreeDelivery = Math.max(0, threshold - subtotal);
 
   return (
     <header className="sticky top-0 z-40 bg-white">
-      {/* ---- Promo bar ----
-           Site-wide reassurance, and once there is something in the cart the
-           first slot turns into live free-delivery progress. Every figure here
-           is real: the threshold, the shopper's own subtotal, the payment
-           methods actually accepted at checkout. */}
-      <div className="bg-shop-nav text-white">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
+      {/* ---- Promo strip ----
+           One hairline row, light rather than a black slab: the masthead below
+           it is white, and a dark bar on top would be the heaviest thing on a
+           page whose job is to show product photography.
+
+           Once there is something in the cart the rotating line gives way to
+           live free-delivery progress, which is the more useful message. Every
+           figure is real: the threshold from settings, the shopper's own
+           subtotal, the payment methods actually accepted at checkout. */}
+      <div className="border-b border-shop-line bg-white text-shop-body">
+        <div className="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-4 py-2 text-[12.5px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
               onClick={openDrawer}
-              className="truncate font-semibold text-pop-orange-on-dark transition-opacity hover:opacity-85"
+              className="truncate font-semibold transition-opacity hover:opacity-85"
             >
               Add {formatPrice(awayFromFreeDelivery)} more for FREE delivery ›
             </button>
           ) : count > 0 ? (
-            <span className="truncate font-semibold text-pop-green-on-dark">
+            <span className="truncate font-semibold">
               Your order qualifies for FREE delivery 🎉
             </span>
           ) : (
-            <span className="truncate">
-              <span className="font-bold text-pop-green-on-dark">FREE delivery</span> on orders over{" "}
-              {formatPrice(FREE_DELIVERY_THRESHOLD)}
-            </span>
+            <SalesTicker messages={settings.ticker} className="min-w-0 font-semibold" />
           )}
 
-          <div className="hidden items-center gap-5 text-white/75 sm:flex">
-            <span>Pay on delivery</span>
-            <span className="hidden md:inline">14-day free returns</span>
-            <Link href="/sale" className="font-bold text-pop-orange-on-dark hover:opacity-85">
-              Up to 80% off ›
+          <div className="hidden shrink-0 items-center gap-5 text-shop-muted sm:flex">
+            {settings.promo.lines.slice(1, 3).map((line, index) => (
+              <span key={line} className={index === 1 ? "hidden md:inline" : undefined}>
+                {line}
+              </span>
+            ))}
+            <Link
+              href={settings.promo.cta_url}
+              className="font-semibold text-shop-sale hover:underline"
+            >
+              {settings.promo.cta_label} ›
             </Link>
           </div>
         </div>
       </div>
-      {/* ---- Utility row ----
-           A three-column grid from md up, so the search sits on the exact
-           centre of the row regardless of how wide the logo or the utility
-           cluster get. Below md it wraps to its own full-width line. */}
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:px-8 md:py-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2 md:justify-self-start">
-          <span className="flex h-8 w-8 items-center justify-center rounded-[3px] bg-bfl-yellow">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />
-              <path strokeLinecap="round" d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
-            </svg>
-          </span>
-          <span className="font-heading text-lg font-bold leading-none tracking-tight text-shop-primary md:text-xl">
-            Kandi<span className="text-shop-ink"> For Less</span>
-          </span>
+      {/* ---- Main row ----
+           White, roomy, and dominated by the search field — the marketplace
+           masthead. Search is the primary way into a catalogue this size, so it
+           takes the whole middle of the row and grows with the window instead
+           of sitting at a fixed width. Below md it wraps to its own line. */}
+      <div className="bg-white">
+      <div className="mx-auto flex max-w-[1450px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3.5 md:flex-nowrap md:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          {settings.brand.logo_url ? (
+            // An uploaded logo replaces the wordmark entirely. `unoptimized`
+            // because the file lives on the WordPress media library, which is
+            // not necessarily in `next.config` remotePatterns.
+            <Image
+              src={settings.brand.logo_url}
+              alt={`${settings.brand.name} ${settings.brand.suffix}`.trim()}
+              width={190}
+              height={44}
+              unoptimized
+              priority
+              className="h-10 w-auto max-w-[190px] object-contain"
+            />
+          ) : (
+            <>
+              {/* The KandiUg mark: a shopping bag carrying a white K, with two
+                  motion lines behind it for the "fast delivery" half of the
+                  brand. Drawn inline as SVG rather than shipped as an image so
+                  it stays crisp at any size and costs no extra request. */}
+              <span className="flex items-center gap-1">
+                <svg
+                  className="h-9 w-9"
+                  viewBox="0 0 40 40"
+                  role="img"
+                  aria-label={`${settings.brand.name}${settings.brand.suffix}`}
+                >
+                  <defs>
+                    <linearGradient id="kandi-bag" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#ff6a00" />
+                      <stop offset="100%" stopColor="#e85d00" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M2 13h6M0 19h5M3 25h5"
+                    stroke="#ff6a00"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    opacity=".55"
+                  />
+                  <path
+                    d="M13 11h18a2 2 0 0 1 2 2.2l-1.8 20A3 3 0 0 1 28.2 36H15.8a3 3 0 0 1-3-2.8L11 13.2A2 2 0 0 1 13 11Z"
+                    fill="url(#kandi-bag)"
+                  />
+                  <path
+                    d="M17.5 12V9a4.5 4.5 0 0 1 9 0v3"
+                    fill="none"
+                    stroke="#e85d00"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M19 18v11M27 18l-6 5.5 6 5.5"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <span className="font-heading text-[23px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[26px]">
+                {settings.brand.name}
+                <span className="text-shop-ink">{settings.brand.suffix}</span>
+              </span>
+            </>
+          )}
         </Link>
 
-        <div className="order-last w-full md:order-none md:w-[520px] md:justify-self-center">
+        {/* The search takes every pixel the row can spare — it is how anyone
+            actually finds anything in a catalogue of this size. Help, currency,
+            Orders and Favorites used to sit to its right; they were four small
+            targets competing with the one large one, and all four live in the
+            account menu and the footer already. */}
+        <div className="order-last w-full min-w-0 flex-1 md:order-none">
           <SearchBar />
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-5 md:ml-0 md:justify-self-end md:gap-6">
-          <a
-            href="#kandi-app"
-            className="hidden items-center gap-2 text-[13px] text-shop-body hover:text-shop-primary lg:flex"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24">
-              <rect x="7" y="2.5" width="10" height="19" rx="2" />
-              <path strokeLinecap="round" d="M10.5 18.5h3" />
-            </svg>
-            Download our mobile app
-          </a>
+        <div className="ml-auto flex shrink-0 items-center gap-5 md:ml-0">
+          <div className="hidden lg:block">
+            <AccountMenu />
+          </div>
 
+          {/* Cart carries its running total, so the basket value stays in sight
+              rather than only inside the drawer. */}
           <button
             type="button"
-            className="hidden items-center gap-1.5 text-[13px] text-shop-body hover:text-shop-primary md:flex"
+            onClick={openDrawer}
+            aria-label="Open cart"
+            className="flex items-center gap-2 text-shop-ink hover:text-shop-flame"
           >
-            <span className="text-base leading-none">🇺🇬</span>
-            <span>UG | UGX</span>
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-            </svg>
+            <span className="relative">
+              <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
+                <circle cx="9" cy="20" r="1.2" />
+                <circle cx="17.5" cy="20" r="1.2" />
+              </svg>
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-ember px-1 text-[11px] font-semibold text-white">
+                {count > 9 ? "9+" : count}
+              </span>
+            </span>
+            {/* The running total only once there is one. An empty basket
+                reading "UGX 0" is a figure that tells the shopper nothing and
+                puts a zero in the masthead of every first visit. */}
+            <span className="hidden whitespace-nowrap text-left text-[13px] leading-tight lg:block">
+              Cart
+              {count > 0 && (
+                <>
+                  <br />
+                  <span className="price text-[13px] text-shop-flame">
+                    {formatPrice(subtotal)}
+                  </span>
+                </>
+              )}
+            </span>
           </button>
 
           <button
@@ -118,150 +223,119 @@ export default function Header({ departments = [] }: { departments?: CategoryNod
           </button>
         </div>
       </div>
+      </div>
 
       {/* ---- Department bar ----
-           A warm light band rather than a black slab: only the thin promo
-           strip above stays dark, which is the one place the page needs it. */}
-      <nav className="border-b border-shop-line bg-shop-surface text-shop-body">
-        <div className="mx-auto flex max-w-[1440px] items-stretch px-4 md:px-8">
-          <Link
-            href="/"
-            className="mr-1 flex shrink-0 items-center gap-2 whitespace-nowrap py-3 text-[13px] font-bold text-shop-primary"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" d="M4 7h16M4 12h12M4 17h16" />
-            </svg>
-            New Arrivals
-          </Link>
+           The Categories mega-menu anchors the row, then the curated links run
+           on from it. Nothing here is a coloured slab: the row is a list of
+           links, and the only colour is the one deal link that earns it. */}
+      {!hideNavRow && (
+        <nav className="border-b border-shop-line bg-white text-shop-body">
+          <div className="mx-auto flex max-w-[1450px] items-center gap-2 px-4 md:px-8">
+            {/* The mega-menu is a hover surface, which needs a pointer; below lg
+                the button beside it opens the same tree as a stacked panel. */}
+            <div className="hidden lg:block">
+              <CategoriesMenu departments={departments} />
+            </div>
 
-          <div className="min-w-0 flex-1">
-            <MegaMenu departments={departments} />
-          </div>
-
-          <Link
-            href="/sale"
-            className="nav-slant ml-2 flex shrink-0 items-center whitespace-nowrap bg-shop-sale px-6 py-3 text-[13px] font-bold text-white"
-          >
-            Super Price Store
-          </Link>
-
-          <div className="flex shrink-0 items-center gap-5 pl-6">
-            <Link
-              href="/sellers"
-              className="hidden items-center gap-2 text-[13px] text-shop-body hover:text-shop-primary xl:flex"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h6v6H4V5Zm10 0h6v6h-6V5ZM4 13h6v6H4v-6Zm10 0h6v6h-6v-6Z" />
-              </svg>
-              Shop by store
-            </Link>
-
-            <AccountMenu />
-
-            <Link
-              href="/#wishlist"
-              aria-label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount} saved)` : ""}`}
-              className="relative hidden text-shop-body hover:text-shop-primary sm:block"
-            >
-              <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-              </svg>
-              {wishlistCount > 0 && (
-                <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pop-pink px-1 text-[10px] font-bold text-white">
-                  {wishlistCount > 9 ? "9+" : wishlistCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Cart carries its running total, so the basket value stays in
-                sight rather than only inside the drawer. */}
             <button
               type="button"
-              onClick={openDrawer}
-              aria-label="Open cart"
-              className="flex items-center gap-2 text-shop-body hover:text-shop-primary"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              className="my-2 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-2 text-[14px] font-semibold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
             >
-              <span className="relative">
-                <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
-                  <circle cx="9" cy="20" r="1.2" />
-                  <circle cx="17.5" cy="20" r="1.2" />
-                </svg>
-                {count > 0 && (
-                  <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-bfl-red px-1 text-[10px] font-bold text-white">
-                    {count > 9 ? "9+" : count}
-                  </span>
-                )}
-              </span>
-              {count > 0 && (
-                <span className="hidden whitespace-nowrap text-[13px] font-bold lg:inline">
-                  {formatPrice(subtotal)}
-                </span>
-              )}
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+              Categories
             </button>
-          </div>
-        </div>
-      </nav>
 
-      {/* ---- Mobile drawer ---- */}
+            <CuratedNav departments={departments} className="flex-1" />
+
+            <Link
+              href="/sellers"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-3 text-[14px] text-shop-body hover:text-shop-flame xl:block"
+            >
+              Shop by store →
+            </Link>
+          </div>
+        </nav>
+      )}
+
+      {/* ---- All Categories panel ----
+           The full WooCommerce department tree, and now the only place to browse
+           it — the homepage sidebar that used to duplicate this is gone.
+
+           Laid out in columns rather than as a stack of collapsibles: every
+           department and its children are visible at once, so finding a
+           sub-category is one glance and one click instead of expanding rows
+           until you find it. It closes on any navigation and on Escape. */}
       {menuOpen && (
-        <div className="max-h-[70vh] overflow-y-auto border-b border-bfl-line bg-white lg:hidden">
-          <ul className="mx-auto max-w-[1440px] px-4 py-2">
-            {departments.map((department) => (
-              <li key={department.id} className="border-b border-bfl-line">
-                {department.children.length > 0 ? (
-                  <details>
-                    <summary className="flex cursor-pointer items-center justify-between py-3 text-[14px] font-bold text-black">
-                      {department.name}
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-                      </svg>
-                    </summary>
-                    <ul className="pb-2 pl-3">
-                      <li>
-                        <Link
-                          href={`/category/${department.slug}`}
-                          onClick={() => setMenuOpen(false)}
-                          className="block py-2 text-[13px] font-bold text-bfl-red"
-                        >
-                          All {department.name}
-                        </Link>
-                      </li>
-                      {department.children.map((child) => (
-                        <li key={child.id}>
-                          <Link
-                            href={`/category/${child.slug}`}
-                            onClick={() => setMenuOpen(false)}
-                            className="block py-2 text-[13px] text-[#333]"
-                          >
-                            {child.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : (
-                  <Link
-                    href={`/category/${department.slug}`}
-                    onClick={() => setMenuOpen(false)}
-                    className="block py-3 text-[14px] font-bold text-black"
-                  >
-                    {department.name}
-                  </Link>
-                )}
-              </li>
-            ))}
-            <li>
-              <Link
-                href="/seller"
-                onClick={() => setMenuOpen(false)}
-                className="block py-3 text-[14px] font-bold text-bfl-ink"
-              >
-                Seller Centre
-              </Link>
-            </li>
-          </ul>
-        </div>
+        <>
+          <button
+            type="button"
+            aria-label="Close categories"
+            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-10 cursor-default bg-black/20"
+          />
+          <div className="absolute inset-x-0 z-20 max-h-[75vh] overflow-y-auto border-b border-shop-line bg-white">
+            <div className="mx-auto max-w-[1450px] px-4 py-6 md:px-8">
+              {departments.length === 0 ? (
+                <p className="py-4 text-[14px] text-shop-muted">
+                  No departments yet — add product categories in WordPress and
+                  they appear here.
+                </p>
+              ) : (
+                <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                  {departments.map((department) => (
+                    <div key={department.id} className="min-w-0">
+                      <Link
+                        href={`/category/${department.slug}`}
+                        onClick={() => setMenuOpen(false)}
+                        className="block truncate text-[14px] font-bold text-shop-ink hover:text-shop-flame"
+                      >
+                        {department.name}
+                      </Link>
+
+                      {department.children.length > 0 && (
+                        <ul className="mt-2 space-y-1.5">
+                          {department.children.slice(0, 8).map((child) => (
+                            <li key={child.id}>
+                              <Link
+                                href={`/category/${child.slug}`}
+                                onClick={() => setMenuOpen(false)}
+                                className="block truncate text-[13.5px] text-shop-body hover:text-shop-flame"
+                              >
+                                {child.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-shop-line pt-4 text-[13.5px]">
+                <Link
+                  href="/sellers"
+                  onClick={() => setMenuOpen(false)}
+                  className="font-semibold text-shop-body hover:text-shop-flame"
+                >
+                  Shop by store
+                </Link>
+                <Link
+                  href="/sell"
+                  onClick={() => setMenuOpen(false)}
+                  className="font-semibold text-shop-body hover:text-shop-flame"
+                >
+                  Sell on KandiUg
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </header>
   );

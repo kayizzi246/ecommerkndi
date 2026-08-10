@@ -63,8 +63,8 @@ export default function SellerCommissionsPage() {
 
   return (
     <div className="mx-auto max-w-[1200px]">
-      <h1 className="text-[24px] font-bold text-black">Commissions &amp; payouts</h1>
-      <p className="mt-1 text-[13px] text-bfl-grey">
+      <h1 className="text-[26px] font-extrabold text-black">Commissions &amp; payouts</h1>
+      <p className="mt-1 text-[14px] text-bfl-grey">
         Kandi deducts {seller?.commission_rate ?? 0}% of each completed order. Everything else is yours.
       </p>
 
@@ -73,18 +73,18 @@ export default function SellerCommissionsPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
           {error}
         </p>
       )}
       {notice && (
-        <p className="mb-4 border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[13px] text-[#0a7a2f]">
+        <p className="mb-4 border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[14px] text-[#0a7a2f]">
           {notice}
         </p>
       )}
 
       {!summary ? (
-        <p className="py-16 text-center text-[13px] text-bfl-grey">Loading your statement…</p>
+        <p className="py-16 text-center text-[14px] text-bfl-grey">Loading your statement…</p>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -105,8 +105,8 @@ export default function SellerCommissionsPage() {
           {/* Payout request */}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded border border-bfl-line bg-white p-5">
             <div>
-              <h2 className="text-[15px] font-bold text-black">Request a payout</h2>
-              <p className="mt-1 text-[13px] text-bfl-grey">
+              <h2 className="text-[16px] font-extrabold text-black">Request a payout</h2>
+              <p className="mt-1 text-[14px] text-bfl-grey">
                 {summary.payable > 0
                   ? `${formatPrice(summary.payable)} is cleared and ready to send to ${
                       seller?.payout_method || "your registered account"
@@ -118,7 +118,7 @@ export default function SellerCommissionsPage() {
               type="button"
               onClick={requestPayout}
               disabled={requesting || summary.payable <= 0}
-              className="btn-bfl px-6 py-2.5 text-[13px]"
+              className="btn-bfl px-6 py-2.5 text-[14px]"
             >
               {requesting ? "Requesting…" : "Request payout"}
             </button>
@@ -126,24 +126,24 @@ export default function SellerCommissionsPage() {
 
           {/* Ledger */}
           <div className="mt-5 overflow-x-auto rounded border border-bfl-line bg-white">
-            <table className="w-full min-w-[720px] text-[13px]">
-              <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[12px] text-bfl-grey">
+            <table className="w-full min-w-[720px] text-[14px]">
+              <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[13px] text-bfl-grey">
                 <tr>
-                  <th className="px-4 py-3 font-bold">Date</th>
-                  <th className="px-4 py-3 font-bold">Order</th>
-                  <th className="px-4 py-3 text-right font-bold">Gross</th>
-                  <th className="px-4 py-3 text-right font-bold">Rate</th>
-                  <th className="px-4 py-3 text-right font-bold">Commission</th>
-                  <th className="px-4 py-3 text-right font-bold">Net</th>
-                  <th className="px-4 py-3 font-bold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Order</th>
+                  <th className="px-4 py-3 text-right font-semibold">Gross</th>
+                  <th className="px-4 py-3 text-right font-semibold">Rate</th>
+                  <th className="px-4 py-3 text-right font-semibold">Commission</th>
+                  <th className="px-4 py-3 text-right font-semibold">Net</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
                 {summary.entries.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-14 text-center">
-                      <p className="text-[14px] font-bold text-black">No commission entries yet</p>
-                      <p className="mt-1 text-[13px] text-bfl-grey">
+                      <p className="text-[15px] font-semibold text-black">No commission entries yet</p>
+                      <p className="mt-1 text-[14px] text-bfl-grey">
                         Each completed order adds a line here.
                       </p>
                     </td>
@@ -159,18 +159,18 @@ export default function SellerCommissionsPage() {
                         year: "numeric",
                       })}
                     </td>
-                    <td className="px-4 py-3 font-bold text-bfl-ink">#{entry.order_id}</td>
+                    <td className="px-4 py-3 font-semibold text-bfl-ink">#{entry.order_id}</td>
                     <td className="px-4 py-3 text-right text-[#333]">{formatPrice(entry.gross)}</td>
                     <td className="px-4 py-3 text-right text-bfl-grey">{entry.rate}%</td>
                     <td className="px-4 py-3 text-right text-bfl-grey">
                       − {formatPrice(entry.commission)}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-black">
+                    <td className="px-4 py-3 text-right font-semibold text-black">
                       {formatPrice(entry.net)}
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-block rounded px-2 py-1 text-[11px] font-bold capitalize ${
+                        className={`inline-block rounded px-2 py-1 text-[12px] font-semibold capitalize ${
                           ENTRY_BADGE[entry.status] ?? ENTRY_BADGE.pending
                         }`}
                       >

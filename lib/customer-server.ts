@@ -3,12 +3,12 @@ import { cookies } from "next/headers";
 /** httpOnly cookie holding the shopper's WordPress session token. */
 export const CUSTOMER_COOKIE = "kandi_customer_token";
 
-function customerApiBase(): string {
+function apiBase(): string {
   const url = process.env.WP_API_URL;
   if (!url) {
     throw new Error("WP_API_URL is not set. Add it to .env.local.");
   }
-  return `${url.replace(/\/$/, "")}/customers`;
+  return url.replace(/\/$/, "");
 }
 
 type CallOptions = {
@@ -19,6 +19,18 @@ type CallOptions = {
 
 /** Calls a `kandi/v1/customers/*` endpoint with the shared secret attached. */
 export async function callCustomerApi(
+  path: string,
+  options: CallOptions = {}
+): Promise<{ status: number; data: unknown }> {
+  return callKandiApi(`/customers${path}`, options);
+}
+
+/**
+ * Calls any `kandi/v1/*` endpoint, attaching the shared secret and — unless
+ * `authenticated` is switched off — the shopper's bearer token. Reviews are
+ * written through here, so WordPress can attribute them to a real account.
+ */
+export async function callKandiApi(
   path: string,
   { method = "GET", body, authenticated = true }: CallOptions = {}
 ): Promise<{ status: number; data: unknown }> {
@@ -37,7 +49,7 @@ export async function callCustomerApi(
 
   let response: Response;
   try {
-    response = await fetch(`${customerApiBase()}${path}`, {
+    response = await fetch(`${apiBase()}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),

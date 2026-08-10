@@ -32,29 +32,29 @@ export default function Pagination({
       {page > 1 ? (
         <Link
           href={hrefFor(page - 1)}
-          className="border border-bfl-line px-5 py-2.5 text-[13px] font-bold text-[#333] transition-colors hover:border-black"
+          className="border border-bfl-line px-5 py-2.5 text-[14px] font-semibold text-[#333] transition-colors hover:border-black"
         >
           ← Previous
         </Link>
       ) : (
-        <span className="border border-bfl-line px-5 py-2.5 text-[13px] font-bold text-[#c4c4c4]">
+        <span className="border border-bfl-line px-5 py-2.5 text-[14px] font-semibold text-[#c4c4c4]">
           ← Previous
         </span>
       )}
 
-      <span className="text-[13px] text-bfl-grey">
+      <span className="text-[14px] text-bfl-grey">
         Page {page} of {totalPages}
       </span>
 
       {page < totalPages ? (
         <Link
           href={hrefFor(page + 1)}
-          className="border border-bfl-line px-5 py-2.5 text-[13px] font-bold text-[#333] transition-colors hover:border-black"
+          className="border border-bfl-line px-5 py-2.5 text-[14px] font-semibold text-[#333] transition-colors hover:border-black"
         >
           Next →
         </Link>
       ) : (
-        <span className="border border-bfl-line px-5 py-2.5 text-[13px] font-bold text-[#c4c4c4]">
+        <span className="border border-bfl-line px-5 py-2.5 text-[14px] font-semibold text-[#c4c4c4]">
           Next →
         </span>
       )}

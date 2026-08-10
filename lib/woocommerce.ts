@@ -82,6 +82,11 @@ export type Product = {
   variations?: ProductVariation[];
   description?: string;
   seller?: ProductSeller;
+  /** WooCommerce's own review average, 0 when nobody has reviewed yet. */
+  average_rating: number;
+  rating_count: number;
+  /** Lifetime units sold, from WooCommerce — the "N sold" line on a tile. */
+  total_sales: number;
 };
 
 export type ProductListResponse = {
@@ -97,9 +102,58 @@ export type ProductQuery = {
   search?: string;
   on_sale?: boolean;
   featured?: boolean;
+  /** Marketplace store slug, for the per-store listing pages. */
+  seller?: string;
 };
 
-const REVALIDATE_SECONDS = 60;
+/** A marketplace store, as shown in the public directory. */
+export type Store = {
+  id: number;
+  store_name: string;
+  store_slug: string;
+  logo: string;
+  product_count: number;
+  since: string;
+};
+
+/**
+ * How long a product read is reused before the shop asks WordPress again.
+ *
+ * Short on purpose. A minute was long enough that a product deleted in wp-admin
+ * kept appearing on the shop, which is confusing in a way that being a few
+ * hundred milliseconds slower is not. WordPress also pushes a purge on every
+ * product change (see kandi-storefront-settings.php), so this window is only
+ * the fallback for when that push cannot get through.
+ */
+const REVALIDATE_SECONDS = 15;
+
+/**
+ * The storefront's own public URL, sent to WordPress on every request so the
+ * plugin can learn where to push cache purges without anybody typing it in.
+ *
+ * Vercel sets these automatically, so a normal deployment configures itself.
+ */
+function storefrontOrigin(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
+
+  return "";
+}
+
+/**
+ * Cache tag on every WordPress read.
+ *
+ * The minute-long window above is what makes the shop fast, but it is also why
+ * a product added or deleted in the admin used to keep showing its old self for
+ * up to a minute. Tagging the reads lets a write clear them the moment it
+ * happens (see app/api/owner/[...path]/route.ts) instead of waiting the window
+ * out. Kept in step with PRODUCTS_TAG in lib/owner-server.ts.
+ */
+const PRODUCTS_TAG = "kandi-products";
 
 function baseUrl(): string {
   const url = process.env.WP_API_URL;
@@ -118,12 +172,37 @@ function storeApiBaseUrl(): string {
 }
 
 function getCandidateUrls(path: string, fallbackPath?: string): string[] {
-  const customUrl = `${baseUrl()}${path}`;
+  const bust = (url: string) =>
+    `${url}${url.includes("?") ? "&" : "?"}_cb=${cacheBuster()}`;
+
+  const customUrl = bust(`${baseUrl()}${path}`);
   if (!fallbackPath) {
     return [customUrl];
   }
 
-  return [customUrl, `${storeApiBaseUrl()}${fallbackPath}`];
+  return [customUrl, bust(`${storeApiBaseUrl()}${fallbackPath}`)];
+}
+
+/**
+ * A value that changes once per cache window, appended to every product URL.
+ *
+ * This exists because of a real incident: a page cache on the WordPress host was
+ * storing `/wp-json/kandi/v1/products?per_page=18` and replaying it for hours,
+ * so products deleted in wp-admin stayed on the shop no matter what this app
+ * did. The tell was that the identical endpoint answered correctly on a query
+ * string nobody had requested before.
+ *
+ * Rotating a parameter means the origin cache can never hold a response for
+ * longer than our own window. It costs nothing here: the Next.js cache entry
+ * expires after exactly the same interval, so the key was going to change
+ * anyway.
+ *
+ * The proper fix is the `no-store` headers in kandi-store-api.php. This is the
+ * belt to that pair of braces, and it works even on a host whose cache ignores
+ * them.
+ */
+function cacheBuster(): number {
+  return Math.floor(Date.now() / (REVALIDATE_SECONDS * 1000));
 }
 
 async function wpFetchRaw(path: string, fallbackPath?: string): Promise<unknown | null> {
@@ -131,8 +210,13 @@ async function wpFetchRaw(path: string, fallbackPath?: string): Promise<unknown 
   let lastStatus = 0;
 
   for (const url of urls) {
+    const origin = storefrontOrigin();
+
     const res = await fetch(url, {
-      next: { revalidate: REVALIDATE_SECONDS },
+      // The plugin reads this header and remembers it, which is how the shop
+      // registers itself for cache purges with no setup step.
+      headers: origin ? { "X-Kandi-Storefront": origin } : undefined,
+      next: { revalidate: REVALIDATE_SECONDS, tags: [PRODUCTS_TAG] },
     });
 
     if (res.ok) {
@@ -234,6 +318,11 @@ function toProduct(raw: any): Product {
           is_in_stock: Boolean(variation?.is_in_stock ?? variation?.in_stock),
         }))
       : undefined,
+    // The Store API fallback nests the average under `average_rating` too, but
+    // sends it as a string; both shapes coerce cleanly.
+    average_rating: Number(product.average_rating ?? 0) || 0,
+    rating_count: Number(product.rating_count ?? product.review_count ?? 0) || 0,
+    total_sales: Number(product.total_sales ?? 0) || 0,
     description: product.description ?? undefined,
     seller: product.seller
       ? {
@@ -268,6 +357,7 @@ export async function getProducts(
     if (query.search) params.set("search", query.search);
     if (query.on_sale) params.set("on_sale", "1");
     if (query.featured) params.set("featured", "1");
+    if (query.seller) params.set("seller", query.seller);
 
     const qs = params.toString();
     const path = `/products${qs ? `?${qs}` : ""}`;
@@ -304,9 +394,26 @@ export async function getProductsSafe(
   }
 }
 
-export async function getProduct(id: number): Promise<Product | null> {
+/**
+ * One product, by numeric id or by slug.
+ *
+ * Product URLs read `/products/blue-running-shoes` rather than `/products/190`
+ * — a link somebody can read before clicking, and the form search engines index
+ * on. Numeric ids still resolve, so every order, bookmark and shared link made
+ * before the change keeps working.
+ *
+ * The Store API fallback only understands ids, so a slug lookup that has to fall
+ * through skips it rather than requesting a URL that cannot answer.
+ */
+export async function getProduct(idOrSlug: string | number): Promise<Product | null> {
+  const key = String(idOrSlug);
+  const numeric = /^\d+$/.test(key);
+
   try {
-    const raw = await wpFetchRaw(`/products/${id}`, `/products/${id}`);
+    const raw = await wpFetchRaw(
+      `/products/${encodeURIComponent(key)}`,
+      numeric ? `/products/${key}` : undefined
+    );
     if (!raw) {
       return null;
     }
@@ -314,6 +421,139 @@ export async function getProduct(id: number): Promise<Product | null> {
   } catch {
     return null;
   }
+}
+
+/* ---------------------------------------------------------------- reviews */
+
+export type ProductReview = {
+  id: number;
+  author: string;
+  avatar: string;
+  rating: number;
+  /** ISO date string. */
+  date: string;
+  text: string;
+  verified: boolean;
+};
+
+export type ProductReviews = {
+  reviews: ProductReview[];
+  average_rating: number;
+  rating_count: number;
+  /** Approved reviews per star, keyed "1".."5". */
+  breakdown: Record<string, number>;
+};
+
+const EMPTY_REVIEWS: ProductReviews = {
+  reviews: [],
+  average_rating: 0,
+  rating_count: 0,
+  breakdown: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+};
+
+function toReview(raw: unknown): ProductReview {
+  const review = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: Number(review.id ?? 0),
+    author: String(review.author ?? "Shopper"),
+    avatar: String(review.avatar ?? ""),
+    rating: Number(review.rating ?? 0) || 0,
+    date: String(review.date ?? ""),
+    text: String(review.text ?? ""),
+    verified: Boolean(review.verified),
+  };
+}
+
+export function normaliseReviews(raw: unknown): ProductReviews {
+  const payload = (raw ?? {}) as Record<string, unknown>;
+  const list = Array.isArray(payload.reviews) ? payload.reviews : [];
+  const breakdown = { ...EMPTY_REVIEWS.breakdown };
+
+  for (const [star, count] of Object.entries(
+    (payload.breakdown as Record<string, unknown>) ?? {}
+  )) {
+    if (star in breakdown) breakdown[star] = Number(count) || 0;
+  }
+
+  return {
+    reviews: list.map(toReview),
+    average_rating: Number(payload.average_rating ?? 0) || 0,
+    rating_count: Number(payload.rating_count ?? list.length) || 0,
+    breakdown,
+  };
+}
+
+/**
+ * Reviews for one product, straight from WordPress. Never throws: a product
+ * page with an unreachable backend shows an empty review section rather than a
+ * 500.
+ */
+export async function getProductReviews(productId: number): Promise<ProductReviews> {
+  try {
+    const raw = await wpFetchRaw(`/products/${productId}/reviews`);
+    return raw ? normaliseReviews(raw) : EMPTY_REVIEWS;
+  } catch (error) {
+    console.error("[kandi-store] getProductReviews failed:", error);
+    return EMPTY_REVIEWS;
+  }
+}
+
+/** The public marketplace store directory. Empty when the plugin is older. */
+export async function getStores(): Promise<Store[]> {
+  try {
+    const raw = await wpFetchRaw(`/stores`);
+    const payload = (raw ?? {}) as { stores?: unknown };
+    if (!Array.isArray(payload.stores)) return [];
+
+    return payload.stores.map((entry) => {
+      const store = (entry ?? {}) as Record<string, unknown>;
+      return {
+        id: Number(store.id ?? 0),
+        store_name: String(store.store_name ?? ""),
+        store_slug: String(store.store_slug ?? ""),
+        logo: String(store.logo ?? ""),
+        product_count: Number(store.product_count ?? 0) || 0,
+        since: String(store.since ?? ""),
+      };
+    });
+  } catch (error) {
+    console.error("[kandi-store] getStores failed:", error);
+    return [];
+  }
+}
+
+/**
+ * Collapses categories that share a name.
+ *
+ * WooCommerce happily holds several terms with the same label — "Hoodies",
+ * "Hoodies-2", "Hoodies-3" — and this shop has a lot of them, mostly created by
+ * imports and by the seller form that used to invent a term whenever a seller
+ * typed a name that did not match. The shopper should never see the same
+ * department three times, and a seller should never have to guess which of the
+ * three is the real one.
+ *
+ * The survivor is the term holding the most products; ties go to the shortest
+ * slug, which is the original rather than the `-2` WordPress appends to a
+ * duplicate. Nothing is deleted in WordPress — this only decides what the
+ * storefront shows.
+ */
+function dedupeByName(categories: ProductCategory[]): ProductCategory[] {
+  const best = new Map<string, ProductCategory>();
+
+  for (const category of categories) {
+    const key = category.name.trim().toLowerCase();
+    const held = best.get(key);
+
+    if (
+      !held ||
+      (category.count ?? 0) > (held.count ?? 0) ||
+      ((category.count ?? 0) === (held.count ?? 0) && category.slug.length < held.slug.length)
+    ) {
+      best.set(key, category);
+    }
+  }
+
+  return [...best.values()];
 }
 
 export async function getCategories(): Promise<ProductCategory[]> {
@@ -332,7 +572,7 @@ export async function getCategories(): Promise<ProductCategory[]> {
           ? payload.products
           : [];
 
-    return items.map(toCategory);
+    return dedupeByName(items.map(toCategory));
   } catch (error) {
     console.error("[kandi-store] getCategories failed:", error);
     return [];

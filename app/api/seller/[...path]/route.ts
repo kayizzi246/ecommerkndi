@@ -1,4 +1,6 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { callSellerApi } from "@/lib/seller-server";
+import { PRODUCTS_TAG } from "@/lib/owner-server";
 
 /**
  * Authenticated passthrough for every remaining Seller Centre endpoint
@@ -39,6 +41,14 @@ async function proxy(request: Request, context: Context, method: string) {
     body,
     search,
   });
+
+  // A seller editing a listing changes what shoppers see, so the storefront's
+  // cached product reads have to go with it — otherwise a price change sits
+  // invisible behind the cache for up to a minute.
+  if (method !== "GET" && path[0] === "products" && status >= 200 && status < 300) {
+    revalidateTag(PRODUCTS_TAG, { expire: 0 });
+    revalidatePath("/", "layout");
+  }
 
   return Response.json(data, { status });
 }

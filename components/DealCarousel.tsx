@@ -2,10 +2,19 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
-import DealTile, { type DealTone } from "@/components/DealTile";
+import ProductCard from "@/components/ProductCard";
+
+/** Kept in the signature so existing call sites compile unchanged. */
+export type DealTone = "orange" | "red" | "green" | "blue" | "violet";
 
 /**
  * Horizontal product rail with snap scrolling and edge arrows.
+ *
+ * Renders the same {@link ProductCard} as every grid on the site. It used to
+ * render a bare-bones tile of its own, which meant the identical product looked
+ * like two different things depending on whether it landed in a rail or a grid
+ * — and the rail version quietly dropped the rating, the units sold and the
+ * add-to-cart button, which are the three things that sell it.
  *
  * Arrows only appear once there is somewhere to scroll, and each disables at
  * its end of the track, so the control never lies about what it will do. The
@@ -14,13 +23,13 @@ import DealTile, { type DealTone } from "@/components/DealTile";
  */
 export default function DealCarousel({
   products,
-  tone = "orange",
   /** Tailwind width classes for one item — controls how many are visible. */
   itemWidth = "w-[46%] sm:w-[30%] md:w-[23%] lg:w-[18%] xl:w-[15.5%]",
   /** Background the edge fades into; match the rail's own surface. */
   fadeFrom = "from-white",
 }: {
   products: Product[];
+  /** Accepted and ignored — kept so existing call sites compile unchanged. */
   tone?: DealTone;
   itemWidth?: string;
   fadeFrom?: string;
@@ -70,7 +79,7 @@ export default function DealCarousel({
       >
         {products.map((product) => (
           <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>
-            <DealTile product={product} tone={tone} />
+            <ProductCard product={product} />
           </div>
         ))}
       </div>

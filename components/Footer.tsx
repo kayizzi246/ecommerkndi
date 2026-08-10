@@ -1,11 +1,14 @@
 import Link from "next/link";
+import type { SiteSettings } from "@/lib/site-settings";
+import { formatPrice } from "@/lib/currency";
+import AppStoreBadges from "@/components/AppStoreBadges";
 
 const COLUMNS = [
   {
     title: "Customer Service",
     items: [
       { name: "Help centre", href: "/help" },
-      { name: "Delivery & returns info", href: "/shipping" },
+      { name: "Delivery information", href: "/shipping" },
       { name: "Returns & refunds", href: "/returns" },
       { name: "Track your order", href: "/track-order" },
       { name: "Contact us", href: "/contact" },
@@ -16,7 +19,7 @@ const COLUMNS = [
     items: [
       { name: "Our story", href: "/about" },
       { name: "Careers", href: "/careers" },
-      { name: "Store locator", href: "/stores" },
+      { name: "Shop by store", href: "/sellers" },
       { name: "Terms & conditions", href: "/terms" },
       { name: "Privacy policy", href: "/privacy" },
     ],
@@ -24,47 +27,58 @@ const COLUMNS = [
   {
     title: "Sell With Us",
     items: [
-      { name: "Become a seller", href: "/seller/register" },
+      { name: "Become a seller", href: "/sell" },
       { name: "Seller centre", href: "/seller" },
-      { name: "Commission & fees", href: "/seller/commissions" },
       { name: "Seller policies", href: "/seller-policies" },
     ],
   },
 ];
 
-const SERVICE_STRIP = [
-  { title: "Free delivery", copy: "On orders over UGX 50,000" },
-  { title: "Easy returns", copy: "14 days to change your mind" },
-  { title: "Secure payments", copy: "Cash, MTN MoMo, Airtel Money, Visa" },
-  { title: "Need help?", copy: "Call 0200 804 020" },
-];
+/** Only the networks the shop has actually filled in are rendered. */
+const SOCIAL_LABELS: Record<string, string> = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  x: "X",
+};
 
-export default function Footer() {
+export default function Footer({ settings }: { settings: SiteSettings }) {
+  const { support, social, commerce, brand, app } = settings;
+
+  const serviceStrip = [
+    { title: "Free delivery", copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`, tone: "text-pop-green" },
+    { title: "Easy returns", copy: `${commerce.returns_days} days to change your mind`, tone: "text-pop-blue" },
+    { title: "Secure payments", copy: "Cash, MTN MoMo, Airtel Money, Visa", tone: "text-pop-violet" },
+    { title: "Need help?", copy: `Call ${support.phone}`, tone: "text-pop-orange" },
+  ];
+
+  const socialLinks = Object.entries(social).filter(([, url]) => Boolean(url));
+
   return (
-    <footer className="mt-14 border-t border-bfl-line bg-white">
+    <footer className="mt-14 border-t border-shop-line bg-white">
       {/* Service promises */}
-      <div className="border-b border-bfl-line bg-bfl-surface">
-        <div className="mx-auto grid max-w-[1440px] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
-          {SERVICE_STRIP.map((item) => (
+      <div className="border-b border-shop-line">
+        <div className="mx-auto grid max-w-[1450px] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+          {serviceStrip.map((item) => (
             <div key={item.title}>
-              <p className="text-[13px] font-bold text-bfl-ink">{item.title}</p>
-              <p className="mt-1 text-xs text-bfl-grey">{item.copy}</p>
+              <p className={`text-[15px] font-semibold ${item.tone}`}>{item.title}</p>
+              <p className="mt-1 text-[13px] text-shop-muted">{item.copy}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Link columns */}
-      <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+      <div className="mx-auto grid max-w-[1450px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-black">
+            <h2 className="mb-4 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
               {column.title}
             </h2>
-            <ul className="space-y-2.5 text-[13px] text-bfl-grey">
+            <ul className="space-y-2.5 text-[14px] text-shop-body">
               {column.items.map((item) => (
                 <li key={item.name}>
-                  <Link className="hover:text-black hover:underline" href={item.href}>
+                  <Link className="hover:text-shop-primary hover:underline" href={item.href}>
                     {item.name}
                   </Link>
                 </li>
@@ -74,36 +88,76 @@ export default function Footer() {
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-black">
-            Download our app
+          <h2 className="mb-4 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+            Talk to us
           </h2>
-          <p className="text-[13px] leading-6 text-bfl-grey">
-            Shop faster, unlock app-only prices and track every order.
-          </p>
-          <div className="mt-4 flex gap-2">
-            <span className="rounded bg-shop-nav px-3 py-2 text-[11px] font-bold text-white">App Store</span>
-            <span className="rounded bg-shop-nav px-3 py-2 text-[11px] font-bold text-white">Google Play</span>
-          </div>
+          <ul className="space-y-2.5 text-[14px] text-shop-body">
+            <li>
+              <a className="hover:text-shop-primary hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
+                {support.phone}
+              </a>
+            </li>
+            <li>
+              <a className="hover:text-shop-primary hover:underline" href={`mailto:${support.email}`}>
+                {support.email}
+              </a>
+            </li>
+            {support.whatsapp && (
+              <li>
+                <a
+                  className="font-semibold text-pop-green hover:underline"
+                  href={`https://wa.me/${support.whatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Chat on WhatsApp
+                </a>
+              </li>
+            )}
+            <li className="text-shop-muted">{support.hours}</li>
+            <li className="text-shop-muted">{support.address}</li>
+          </ul>
 
-          <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-black">Follow us</h2>
-          <div className="flex gap-2">
-            {["f", "in", "X", "ig"].map((label) => (
-              <span
-                key={label}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-shop-nav text-[11px] font-bold text-white"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
+          <h2 className="mb-3 mt-7 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+            {app.available ? "Get the app" : "App coming soon"}
+          </h2>
+          <p className="mb-3 text-[14px] leading-6 text-shop-muted">
+            {app.available
+              ? "Shop faster and track every order from your phone."
+              : "We are building it. Everything works in your phone's browser in the meantime."}
+          </p>
+          <AppStoreBadges app={app} />
+
+          {socialLinks.length > 0 && (
+            <>
+              <h2 className="mb-3 mt-7 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+                Follow us
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {socialLinks.map(([network, url]) => (
+                  <a
+                    key={network}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-shop-line px-3 py-1.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+                  >
+                    {SOCIAL_LABELS[network] ?? network}
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Legal bar */}
-      <div className="border-t border-shop-line bg-shop-nav">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-5 text-xs text-white/60 md:flex-row md:items-center md:justify-between md:px-8">
-          <span>© {new Date().getFullYear()} Kandi Uganda. All rights reserved.</span>
-          <span className="text-white/45">
+      <div className="border-t border-shop-line bg-shop-ink">
+        <div className="mx-auto flex max-w-[1450px] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
+          <span>
+            © {new Date().getFullYear()} {brand.name} Uganda. All rights reserved.
+          </span>
+          <span className="text-white/55">
             Cash on delivery · MTN MoMo · Airtel Money · Visa · Mastercard
           </span>
         </div>

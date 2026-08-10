@@ -6,20 +6,10 @@ import { useState } from "react";
 import { sellerApi } from "@/lib/seller";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import { useSellerSession } from "@/lib/seller-session";
-
-const CATEGORIES = [
-  "Men",
-  "Women",
-  "Kids",
-  "Sportswear",
-  "Shoes",
-  "Bags & accessories",
-  "Home & Living",
-  "Beauty",
-];
+import { useCategories, categoryOptions } from "@/lib/use-categories";
 
 const INPUT =
-  "w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none";
+  "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -27,7 +17,11 @@ export default function NewProductPage() {
 
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  // The shop's real WooCommerce departments, so a seller can only file a
+  // product where a shopper can actually browse to it.
+  const { categories, loading: categoriesLoading } = useCategories();
+  const options = categoryOptions(categories);
+  const [category, setCategory] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
   const [regularPrice, setRegularPrice] = useState("");
@@ -90,7 +84,7 @@ export default function NewProductPage() {
 
   return (
     <div className="mx-auto max-w-[1000px]">
-      <nav className="mb-4 flex items-center gap-2 text-[13px] text-bfl-grey">
+      <nav className="mb-4 flex items-center gap-2 text-[14px] text-bfl-grey">
         <Link href="/seller/products" className="hover:text-black hover:underline">
           Products
         </Link>
@@ -98,8 +92,8 @@ export default function NewProductPage() {
         <span className="text-black">New listing</span>
       </nav>
 
-      <h1 className="text-[24px] font-bold text-black">Add a product</h1>
-      <p className="mt-1 text-[13px] text-bfl-grey">
+      <h1 className="text-[26px] font-extrabold text-black">Add a product</h1>
+      <p className="mt-1 text-[14px] text-bfl-grey">
         New listings are submitted for approval and appear on the storefront once our team clears them.
       </p>
 
@@ -121,10 +115,27 @@ export default function NewProductPage() {
               <Field label="SKU / style code">
                 <input value={sku} onChange={(e) => setSku(e.target.value)} className={INPUT} />
               </Field>
-              <Field label="Category">
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className={INPUT}>
-                  {CATEGORIES.map((item) => (
-                    <option key={item}>{item}</option>
+              <Field
+                label="Category"
+                hint="Shoppers browse these exact departments."
+              >
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={categoriesLoading}
+                  className={INPUT}
+                >
+                  <option value="">
+                    {categoriesLoading
+                      ? "Loading departments…"
+                      : options.length === 0
+                        ? "No departments set up yet"
+                        : "Choose a department"}
+                  </option>
+                  {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </Field>
@@ -211,7 +222,7 @@ export default function NewProductPage() {
           </Section>
 
           {error && (
-            <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+            <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
               {error}
             </p>
           )}
@@ -220,9 +231,9 @@ export default function NewProductPage() {
         {/* Sticky summary */}
         <aside className="h-fit lg:sticky lg:top-20">
           <div className="border border-bfl-line bg-white p-5">
-            <h2 className="text-[15px] font-bold text-black">Listing summary</h2>
+            <h2 className="text-[16px] font-extrabold text-black">Listing summary</h2>
 
-            <dl className="mt-4 space-y-2.5 text-[13px]">
+            <dl className="mt-4 space-y-2.5 text-[14px]">
               <Row label="Selling price" value={effectivePrice > 0 ? formatPrice(effectivePrice) : "—"} bold />
               {discount > 0 && (
                 <Row
@@ -240,13 +251,13 @@ export default function NewProductPage() {
               </div>
             </dl>
 
-            <button type="submit" disabled={submitting} className="btn-bfl mt-5 w-full py-3 text-[14px]">
+            <button type="submit" disabled={submitting} className="btn-bfl mt-5 w-full py-3 text-[15px]">
               {submitting ? "Submitting…" : "Submit for approval"}
             </button>
 
             <Link
               href="/seller/products"
-              className="mt-2 block w-full border border-bfl-line py-2.5 text-center text-[13px] font-bold text-[#333] hover:border-black"
+              className="mt-2 block w-full border border-bfl-line py-2.5 text-center text-[14px] font-semibold text-[#333] hover:border-black"
             >
               Cancel
             </Link>
@@ -260,7 +271,7 @@ export default function NewProductPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border border-bfl-line bg-white p-5">
-      <h2 className="mb-4 text-[15px] font-bold text-black">{title}</h2>
+      <h2 className="mb-4 text-[16px] font-extrabold text-black">{title}</h2>
       <div className="space-y-4">{children}</div>
     </section>
   );
@@ -277,9 +288,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-bold text-[#333]">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[11px] text-bfl-grey">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12px] text-bfl-grey">{hint}</span>}
     </label>
   );
 }
@@ -288,7 +299,7 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="text-bfl-grey">{label}</dt>
-      <dd className={bold ? "font-bold text-black" : "text-[#333]"}>{value}</dd>
+      <dd className={bold ? "font-semibold text-black" : "text-[#333]"}>{value}</dd>
     </div>
   );
 }

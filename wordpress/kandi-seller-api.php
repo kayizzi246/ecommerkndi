@@ -155,7 +155,26 @@ function kandi_format_seller( $user_id ) {
 		'payout_account'  => (string) get_user_meta( $user->ID, '_kandi_payout_account', true ),
 		'registered_at'   => mysql2date( 'c', $user->user_registered ),
 		'logo'            => (string) get_user_meta( $user->ID, '_kandi_logo', true ),
+		// One-off registration fee. 'waived' when the shop has set the fee to
+		// zero, so the seller never sees a payment step that does not apply.
+		'fee_status'      => (string) ( get_user_meta( $user->ID, '_kandi_fee_status', true ) ?: 'unpaid' ),
+		'fee_amount'      => (float) get_user_meta( $user->ID, '_kandi_fee_amount', true ),
+		'fee_reference'   => kandi_seller_fee_reference( $user->ID ),
 	);
+}
+
+/** The payment reference a seller quotes when sending the registration fee. */
+function kandi_seller_fee_reference( $user_id ) {
+	return 'KND-' . str_pad( (string) (int) $user_id, 4, '0', STR_PAD_LEFT );
+}
+
+/** The registration fee currently configured in Kandi Storefront settings. */
+function kandi_seller_registration_fee() {
+	$settings = get_option( 'kandi_storefront_settings', array() );
+	if ( is_array( $settings ) && isset( $settings['seller_fee'] ) && '' !== $settings['seller_fee'] ) {
+		return (float) $settings['seller_fee'];
+	}
+	return 50000.0;
 }
 
 function kandi_seller_commission_rate( $seller_id ) {
@@ -168,8 +187,14 @@ function kandi_seller_commission_rate( $seller_id ) {
  * ---------------------------------------------------------------------- */
 
 function kandi_seller_secret() {
-	if ( defined( 'KANDI_API_SECRET' ) ) {
-		return KANDI_API_SECRET;
+	// kandi-store-api.php owns the resolution order (wp-config constant, then
+	// the settings screen, then the legacy fallback). Only installs without
+	// that plugin fall through to the two sources below.
+	if ( function_exists( 'kandi_shared_secret' ) ) {
+		return kandi_shared_secret();
+	}
+	if ( defined( 'KANDI_API_SECRET' ) && KANDI_API_SECRET ) {
+		return (string) KANDI_API_SECRET;
 	}
 	return (string) get_option( 'kandi_api_secret', '' );
 }
@@ -545,6 +570,12 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_status', 'pending' );
 			update_user_meta( $user_id, '_kandi_commission_rate', kandi_default_commission_rate() );
 
+			// Registration fee. Recorded at the amount in force on the day they
+			// applied, so a later price change never moves someone's goalposts.
+			$fee = kandi_seller_registration_fee();
+			update_user_meta( $user_id, '_kandi_fee_amount', $fee );
+			update_user_meta( $user_id, '_kandi_fee_status', $fee > 0 ? 'unpaid' : 'waived' );
+
 			// Tell the marketplace team a store is waiting.
 			wp_mail(
 				get_option( 'admin_email' ),
@@ -736,13 +767,20 @@ add_action( 'rest_api_init', function () {
 
 				update_post_meta( $product_id, '_kandi_seller_id', $seller_id );
 
+				// Sellers file into existing departments only — they never create
+				// new ones. This used to fall through to wp_insert_term, so a
+				// seller typing "Sportswear" or "Mens Shoes" minted a category
+				// of its own beside the real one, and the shopper's department
+				// tree filled with near-duplicates holding one product each.
+				// The storefront now offers sellers the real list, and this is
+				// the guard behind it.
 				$category = sanitize_text_field( $body['category'] ?? '' );
 				if ( '' !== $category ) {
 					$term = term_exists( $category, 'product_cat' );
 					if ( ! $term ) {
-						$term = wp_insert_term( $category, 'product_cat' );
+						$term = term_exists( sanitize_title( $category ), 'product_cat' );
 					}
-					if ( ! is_wp_error( $term ) ) {
+					if ( $term && ! is_wp_error( $term ) ) {
 						wp_set_object_terms( $product_id, (int) $term['term_id'], 'product_cat' );
 					}
 				}
@@ -835,6 +873,53 @@ add_action( 'rest_api_init', function () {
 	) );
 
 	/* ---- GET /seller/stats ---- */
+	/* ---- POST /seller/fee-paid ----
+	 *
+	 * Called by the storefront once Pesapal confirms the one-off registration
+	 * fee. Gated on the shared secret rather than the seller's own token: the
+	 * IPN that fires when a seller closes the tab mid-payment comes from
+	 * Pesapal's servers and carries no session, and that is precisely the case
+	 * this has to cover.
+	 *
+	 * Idempotent — the callback and the IPN both arrive for the same payment.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/fee-paid', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body      = (array) $request->get_json_params();
+			$seller_id = (int) ( $body['seller_id'] ?? 0 );
+			$reference = sanitize_text_field( $body['transaction_id'] ?? '' );
+			$method    = sanitize_text_field( $body['payment_method'] ?? 'Pesapal' );
+
+			if ( ! $seller_id || ! kandi_is_seller( $seller_id ) ) {
+				return new WP_Error( 'kandi_not_found', 'Seller not found.', array( 'status' => 404 ) );
+			}
+
+			$already = 'paid' === get_user_meta( $seller_id, '_kandi_fee_status', true );
+
+			if ( ! $already ) {
+				update_user_meta( $seller_id, '_kandi_fee_status', 'paid' );
+				update_user_meta( $seller_id, '_kandi_fee_reference', $reference );
+				update_user_meta( $seller_id, '_kandi_fee_method', $method );
+
+				// Paying the fee is what a seller can do for themselves; whether
+				// the store then goes live is still the shop's call, so approval
+				// is left to the Sellers screen in wp-admin.
+				if ( 'pending' === ( get_user_meta( $seller_id, '_kandi_status', true ) ?: 'pending' )
+					&& get_option( 'kandi_seller_auto_approve_sellers' ) ) {
+					update_user_meta( $seller_id, '_kandi_status', 'approved' );
+				}
+			}
+
+			return rest_ensure_response( array(
+				'ok'      => true,
+				'already' => $already,
+				'seller'  => kandi_format_seller( $seller_id ),
+			) );
+		},
+	) );
+
 	register_rest_route( 'kandi/v1', '/seller/stats', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'permission_callback' => 'kandi_seller_permission',
@@ -1314,6 +1399,30 @@ function kandi_admin_sellers_page() {
 			update_user_meta( $seller_id, '_kandi_commission_rate', $rate );
 			echo '<div class="notice notice-success is-dismissible"><p>Commission rate updated.</p></div>';
 		}
+
+		// Registration fee. Marked by hand once the mobile money payment lands,
+		// because there is no payment gateway wired into onboarding — the money
+		// arrives out of band and a human confirms it.
+		if ( 'fee_paid' === $action || 'fee_unpaid' === $action ) {
+			update_user_meta( $seller_id, '_kandi_fee_status', 'fee_paid' === $action ? 'paid' : 'unpaid' );
+
+			if ( 'fee_paid' === $action ) {
+				$user = get_userdata( $seller_id );
+				if ( $user ) {
+					wp_mail(
+						$user->user_email,
+						'Kandi: we have received your registration fee',
+						sprintf(
+							"Thanks — your registration fee has been received.\n\n%s is now with our team for approval, and we will email you the moment it is live.\n\nSign in: %s",
+							get_user_meta( $seller_id, '_kandi_store_name', true ),
+							home_url( '/seller/login' )
+						)
+					);
+				}
+			}
+
+			echo '<div class="notice notice-success is-dismissible"><p>Registration fee updated.</p></div>';
+		}
 	}
 
 	$sellers = get_users( array( 'role' => KANDI_SELLER_ROLE, 'orderby' => 'registered', 'order' => 'DESC' ) );
@@ -1321,13 +1430,13 @@ function kandi_admin_sellers_page() {
 
 	echo '<div class="wrap"><h1>Kandi Sellers</h1>';
 	echo '<p>Approve applications, set commission rates and monitor each store.</p>';
-	echo '<table class="wp-list-table widefat fixed striped"><thead><tr>
-			<th>Store</th><th>Contact</th><th>Status</th><th>Commission</th>
+	echo '<table class="wp-list-table widefat striped"><thead><tr>
+			<th>Store</th><th>Contact</th><th>Status</th><th>Reg. fee</th><th>Commission</th>
 			<th>Products</th><th>Gross sales</th><th>Owed to Kandi</th><th>Actions</th>
 		  </tr></thead><tbody>';
 
 	if ( empty( $sellers ) ) {
-		echo '<tr><td colspan="8">No sellers have registered yet.</td></tr>';
+		echo '<tr><td colspan="9">No sellers have registered yet.</td></tr>';
 	}
 
 	foreach ( $sellers as $seller ) {
@@ -1362,6 +1471,35 @@ function kandi_admin_sellers_page() {
 			esc_html( get_user_meta( $seller->ID, '_kandi_phone', true ) )
 		);
 		printf( '<td><span class="kandi-status kandi-status-%1$s">%1$s</span></td>', esc_html( $status ) );
+
+		// Registration fee, with the reference the seller was told to quote.
+		$fee_status = get_user_meta( $seller->ID, '_kandi_fee_status', true ) ?: 'unpaid';
+		$fee_amount = (float) get_user_meta( $seller->ID, '_kandi_fee_amount', true );
+		echo '<td>';
+		if ( 'waived' === $fee_status ) {
+			echo '<span class="description">Waived</span>';
+		} else {
+			printf(
+				'<span class="kandi-status kandi-status-%s">%s</span><br><code>%s</code><br><span class="description">%s</span>',
+				'paid' === $fee_status ? 'approved' : 'pending',
+				'paid' === $fee_status ? 'paid' : 'unpaid',
+				esc_html( kandi_seller_fee_reference( $seller->ID ) ),
+				wp_kses_post( wc_price( $fee_amount ) )
+			);
+			echo '<form method="post" style="margin-top:4px">';
+			wp_nonce_field( 'kandi_seller_action' );
+			printf( '<input type="hidden" name="seller_id" value="%d">', (int) $seller->ID );
+			printf(
+				'<input type="hidden" name="kandi_seller_action" value="%s">',
+				'paid' === $fee_status ? 'fee_unpaid' : 'fee_paid'
+			);
+			printf(
+				'<button class="button button-small">%s</button>',
+				'paid' === $fee_status ? 'Mark unpaid' : 'Mark paid'
+			);
+			echo '</form>';
+		}
+		echo '</td>';
 
 		// Inline commission-rate editor.
 		echo '<td><form method="post" style="display:flex;gap:4px;align-items:center">';
@@ -1708,4 +1846,55 @@ add_action( 'admin_init', function () {
 
 add_filter( 'show_admin_bar', function ( $show ) {
 	return kandi_is_seller( get_current_user_id() ) ? false : $show;
+} );
+
+/* -------------------------------------------------------------------------
+ * Public store directory
+ *
+ * Powers the storefront's "Shop by store" page. Approved sellers only, and
+ * only the fields a shopper should see — no email, phone, commission rate or
+ * payout details.
+ * ---------------------------------------------------------------------- */
+
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'kandi/v1', '/stores', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => '__return_true',
+		'callback'            => function () {
+			$sellers = get_users( array(
+				'role'       => KANDI_SELLER_ROLE,
+				'meta_key'   => '_kandi_status',
+				'meta_value' => 'approved',
+				'orderby'    => 'registered',
+				'order'      => 'ASC',
+			) );
+
+			$stores = array();
+			foreach ( $sellers as $seller ) {
+				$product_ids = get_posts( array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'author'         => $seller->ID,
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+				) );
+
+				$store_name = (string) get_user_meta( $seller->ID, '_kandi_store_name', true );
+				if ( '' === $store_name ) {
+					continue;
+				}
+
+				$stores[] = array(
+					'id'            => (int) $seller->ID,
+					'store_name'    => $store_name,
+					'store_slug'    => (string) get_user_meta( $seller->ID, '_kandi_store_slug', true ),
+					'logo'          => (string) get_user_meta( $seller->ID, '_kandi_logo', true ),
+					'product_count' => count( $product_ids ),
+					'since'         => mysql2date( 'c', $seller->user_registered ),
+				);
+			}
+
+			return rest_ensure_response( array( 'stores' => $stores ) );
+		},
+	) );
 } );

@@ -11,6 +11,14 @@ import RevenueChart from "@/components/seller/RevenueChart";
 import TopProductsChart from "@/components/seller/TopProductsChart";
 import CategorySplit from "@/components/seller/CategorySplit";
 
+/**
+ * Dashboard home.
+ *
+ * Ordered by what the seller has to *do*, not by what is easiest to plot: the
+ * jobs list comes first, then the quick actions, then the figures. A seller
+ * opening this page at 7am wants to know what is out of stock, not admire a
+ * chart.
+ */
 export default function SellerOverviewPage() {
   const { seller } = useSellerSession();
   const [range, setRange] = useState<RangeValue>("30d");
@@ -45,32 +53,165 @@ export default function SellerOverviewPage() {
   const rangeLabel =
     range === "mtd" ? "vs last month" : range === "ytd" ? "vs last year" : "vs previous period";
 
+  // Everything waiting on the seller, most urgent first. Only real conditions
+  // appear — an empty list means there is genuinely nothing to do.
+  const jobs: {
+    tone: "critical" | "warning" | "good";
+    title: string;
+    copy: string;
+    href: string;
+    action: string;
+  }[] = [];
+
+  if (stats) {
+    if (stats.products_out_of_stock > 0) {
+      jobs.push({
+        tone: "critical",
+        title: `${stats.products_out_of_stock} ${stats.products_out_of_stock === 1 ? "product is" : "products are"} out of stock`,
+        copy: "Out-of-stock listings still show, but nobody can buy them. Restocking takes a few seconds.",
+        href: "/seller/products?filter=outofstock",
+        action: "Restock now",
+      });
+    }
+    if (stats.products_pending > 0) {
+      jobs.push({
+        tone: "warning",
+        title: `${stats.products_pending} ${stats.products_pending === 1 ? "listing is" : "listings are"} awaiting approval`,
+        copy: "Our team is reviewing them. Nothing for you to do unless we come back with a question.",
+        href: "/seller/products?filter=pending",
+        action: "View them",
+      });
+    }
+    if (stats.payout_due > 0) {
+      jobs.push({
+        tone: "good",
+        title: `${formatPrice(stats.payout_due)} is ready to pay out`,
+        copy: "Cleared earnings from completed orders. Request it whenever you want it.",
+        href: "/seller/commissions",
+        action: "Request payout",
+      });
+    }
+    if (stats.products_live === 0) {
+      jobs.push({
+        tone: "warning",
+        title: "You have no live listings",
+        copy: "Nothing can sell until there is something to sell. Adding your first product takes about two minutes.",
+        href: "/seller/products/new",
+        action: "Add a product",
+      });
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[1200px]">
       {/* Page head */}
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[24px] font-bold text-black">
-            {seller ? `Hello, ${seller.owner_name.split(" ")[0]}` : "Overview"}
+          <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">
+            {seller ? `Hello, ${seller.owner_name.split(" ")[0] || seller.store_name}` : "Overview"}
           </h1>
-          <p className="mt-1 text-[13px] text-bfl-grey">
-            How {seller?.store_name ?? "your store"} is performing on Kandi.
+          <p className="mt-1 text-[15px] text-shop-muted">
+            How {seller?.store_name ?? "your store"} is doing on Kandi.
           </p>
         </div>
-        <Link href="/seller/products/new" className="btn-bfl px-5 py-2.5 text-[13px]">
+        <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[15px]">
           Add a product
         </Link>
       </div>
 
       {seller?.status === "pending" && (
-        <div className="mb-5 border-l-4 border-bfl-yellow bg-[#fffbea] px-4 py-3 text-[13px] text-[#6b5200]">
-          <span className="font-bold">Your store is awaiting approval.</span> You can prepare
+        <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft px-5 py-4 text-[15px] leading-relaxed text-pop-orange">
+          <span className="font-semibold">Your store is awaiting approval.</span> You can prepare
           listings now — they go live the moment our team approves your account.
         </div>
       )}
 
-      {/* Filter row scopes everything below it */}
-      <div className="mb-5">
+      {/* ---- What needs you ---- */}
+      {jobs.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-[18px] font-extrabold text-shop-ink">What needs you</h2>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {jobs.map((job) => (
+              <li key={job.title}>
+                <Link
+                  href={job.href}
+                  className={`flex h-full items-start gap-3.5 rounded-2xl border-l-4 bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+                    job.tone === "critical"
+                      ? "border-l-pop-red"
+                      : job.tone === "warning"
+                        ? "border-l-shop-flame"
+                        : "border-l-pop-green"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-white ${
+                      job.tone === "critical"
+                        ? "bg-pop-red"
+                        : job.tone === "warning"
+                          ? "bg-shop-flame"
+                          : "bg-pop-green"
+                    }`}
+                  >
+                    {job.tone === "critical" ? "!" : job.tone === "warning" ? "•" : "✓"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[16px] font-semibold text-shop-ink">{job.title}</span>
+                    <span className="mt-1 block text-[14px] leading-relaxed text-shop-muted">
+                      {job.copy}
+                    </span>
+                    <span className="mt-2 inline-block text-[14px] font-semibold text-shop-primary">
+                      {job.action} ›
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ---- Quick actions ---- */}
+      <section className="mb-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickAction
+            href="/seller/products/new"
+            label="Add a product"
+            copy="List something new"
+            icon="M12 5v14M5 12h14"
+            tone="text-pop-green"
+            bg="bg-pop-green-soft"
+          />
+          <QuickAction
+            href="/seller/products"
+            label="Edit & restock"
+            copy="Prices and stock levels"
+            icon="M4 7l8-3.5L20 7v10l-8 3.5L4 17V7Z"
+            tone="text-pop-blue"
+            bg="bg-pop-blue-soft"
+          />
+          <QuickAction
+            href="/seller/orders"
+            label="Orders to send"
+            copy="What to pack today"
+            icon="M3 6h2.2l2 10.5h11.1L20 9H6.2"
+            tone="text-pop-violet"
+            bg="bg-pop-violet-soft"
+          />
+          <QuickAction
+            href="/seller/commissions"
+            label="Get paid"
+            copy="Earnings and payouts"
+            icon="M12 3v18M8 7h6.5a2.5 2.5 0 0 1 0 5H9.5a2.5 2.5 0 0 0 0 5H16"
+            tone="text-pop-orange"
+            bg="bg-pop-orange-soft"
+          />
+        </div>
+      </section>
+
+      {/* ---- Figures ---- */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[18px] font-extrabold text-shop-ink">Your numbers</h2>
         <RangeFilter
           value={range}
           onChange={(next) => {
@@ -81,17 +222,23 @@ export default function SellerOverviewPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-5 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[13px] text-[#a51f1f]">
+        <p
+          role="alert"
+          className="mb-5 rounded-xl bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red"
+        >
           {error}
         </p>
       )}
 
       {!stats ? (
-        <p className="py-16 text-center text-[13px] text-bfl-grey">Loading your figures…</p>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="h-32 animate-skeleton rounded-2xl bg-shop-hairline" />
+          ))}
+        </div>
       ) : (
         // While refetching, the frame is held at reduced opacity — no skeleton, no jump.
         <div className={refreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
-          {/* KPI row */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               label="Revenue"
@@ -113,26 +260,24 @@ export default function SellerOverviewPage() {
               hint={`Across ${stats.products_live} live ${stats.products_live === 1 ? "listing" : "listings"}`}
             />
             <StatTile
-              label="Payout due"
+              label="Ready to pay out"
               value={formatPrice(stats.payout_due)}
               hint={`${formatPrice(stats.commission_owed)} commission outstanding`}
             />
           </div>
 
-          {/* Revenue trend */}
           <div className="mt-5">
             <RevenueChart data={stats.revenue_series} formatValue={formatPrice} />
           </div>
 
-          {/* Split + best sellers */}
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <CategorySplit data={stats.category_split} formatValue={formatPrice} />
             <TopProductsChart products={stats.top_products} formatValue={formatPrice} />
           </div>
 
           {/* Catalogue health */}
-          <div className="mt-5 rounded border border-bfl-line bg-white p-4">
-            <h2 className="text-[15px] font-bold text-black">Catalogue health</h2>
+          <div className="mt-5 rounded-2xl border border-shop-line bg-white p-5">
+            <h2 className="text-[17px] font-extrabold text-shop-ink">Catalogue health</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <HealthRow
                 label="Live listings"
@@ -144,13 +289,13 @@ export default function SellerOverviewPage() {
                 label="Awaiting approval"
                 value={stats.products_pending}
                 tone={stats.products_pending > 0 ? "warning" : "neutral"}
-                action={{ href: "/seller/products", label: "Review" }}
+                action={{ href: "/seller/products?filter=pending", label: "Review" }}
               />
               <HealthRow
                 label="Out of stock"
                 value={stats.products_out_of_stock}
                 tone={stats.products_out_of_stock > 0 ? "critical" : "neutral"}
-                action={{ href: "/seller/products", label: "Restock" }}
+                action={{ href: "/seller/products?filter=outofstock", label: "Restock" }}
               />
             </div>
           </div>
@@ -160,11 +305,44 @@ export default function SellerOverviewPage() {
   );
 }
 
+function QuickAction({
+  href,
+  label,
+  copy,
+  icon,
+  tone,
+  bg,
+}: {
+  href: string;
+  label: string;
+  copy: string;
+  icon: string;
+  tone: string;
+  bg: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3.5 rounded-2xl border border-shop-line bg-white p-4 transition-colors hover:border-shop-primary"
+    >
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg} ${tone}`}>
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+        </svg>
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[15px] font-semibold text-shop-ink">{label}</span>
+        <span className="block text-[13px] text-shop-muted">{copy}</span>
+      </span>
+    </Link>
+  );
+}
+
 const TONE_ICON = {
-  good: { symbol: "✓", color: "var(--status-good)" },
-  warning: { symbol: "!", color: "var(--status-warning)" },
-  critical: { symbol: "×", color: "var(--status-critical)" },
-  neutral: { symbol: "–", color: "var(--text-muted)" },
+  good: { symbol: "✓", className: "bg-pop-green" },
+  warning: { symbol: "!", className: "bg-shop-flame" },
+  critical: { symbol: "×", className: "bg-pop-red" },
+  neutral: { symbol: "–", className: "bg-shop-muted" },
 } as const;
 
 function HealthRow({
@@ -180,22 +358,24 @@ function HealthRow({
 }) {
   const icon = TONE_ICON[tone];
   return (
-    <div className="viz-root flex items-center justify-between gap-3 rounded border border-bfl-line px-3 py-3">
-      <div className="flex items-center gap-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-shop-line px-4 py-3.5">
+      <div className="flex items-center gap-3">
         {/* Status ships as icon + label, never colour alone. */}
         <span
           aria-hidden
-          className="flex h-6 w-6 items-center justify-center rounded-full text-[13px] font-bold text-white"
-          style={{ background: icon.color }}
+          className={`flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-semibold text-white ${icon.className}`}
         >
           {icon.symbol}
         </span>
         <div>
-          <p className="text-[18px] font-semibold leading-none text-black">{value}</p>
-          <p className="mt-1 text-[12px] text-bfl-grey">{label}</p>
+          <p className="text-[21px] font-semibold leading-none text-shop-ink">{value}</p>
+          <p className="mt-1 text-[13px] text-shop-muted">{label}</p>
         </div>
       </div>
-      <Link href={action.href} className="link-bfl shrink-0 text-[12px] font-bold">
+      <Link
+        href={action.href}
+        className="shrink-0 text-[14px] font-semibold text-shop-primary hover:underline"
+      >
         {action.label}
       </Link>
     </div>

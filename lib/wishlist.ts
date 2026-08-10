@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "kandi-wishlist-v1";
 
@@ -52,20 +52,31 @@ if (typeof window !== "undefined") {
   loadFromStorage();
 }
 
+function subscribe(listener: () => void): () => void {
+  globalListeners.push(listener);
+  return () => {
+    globalListeners = globalListeners.filter((fn) => fn !== listener);
+  };
+}
+
+const getSnapshot = () => globalItems;
+
+/** The server has no localStorage, so it always renders an empty wishlist. */
+const EMPTY: WishlistItem[] = [];
+const getServerSnapshot = () => EMPTY;
+
 export function useWishlist(): WishlistContextValue {
-  const [, setTick] = useState(0);
+  // Saved items are read from localStorage as soon as this module loads, so
+  // the first client render would otherwise already know about them while the
+  // server rendered an empty wishlist. `useSyncExternalStore` uses the server
+  // snapshot during hydration and the real one immediately after, which is
+  // what keeps the heart icons and the header badge from mismatching.
+  const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const handler = () => setTick((t) => t + 1);
-    globalListeners.push(handler);
-    return () => {
-      globalListeners = globalListeners.filter((fn) => fn !== handler);
-    };
-  }, []);
-
-  const isWishlisted = useCallback((productId: number) => {
-    return globalItems.some((i) => i.productId === productId);
-  }, []);
+  const isWishlisted = useCallback(
+    (productId: number) => items.some((i) => i.productId === productId),
+    [items]
+  );
 
   const add = useCallback((item: WishlistItem) => {
     if (!globalItems.some((i) => i.productId === item.productId)) {
@@ -92,18 +103,16 @@ export function useWishlist(): WishlistContextValue {
     [add, remove]
   );
 
-  const value = useMemo<WishlistContextValue>(
+  return useMemo<WishlistContextValue>(
     () => ({
-      items: globalItems,
+      items,
       isWishlisted,
       toggle,
       add,
       remove,
-      count: globalItems.length,
+      count: items.length,
     }),
-    [isWishlisted, toggle, add, remove, globalItems.length]
+    [items, isWishlisted, toggle, add, remove]
   );
-
-  return value;
 }
 
