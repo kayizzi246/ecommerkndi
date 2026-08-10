@@ -27,7 +27,7 @@ export default function WideBanner({
         {eyebrow && (
           <p className="text-[12px] uppercase tracking-[0.14em] text-white/80">{eyebrow}</p>
         )}
-        <p className="font-heading mt-1 text-[20px] leading-tight md:text-[26px]">{headline}</p>
+        <p className="font-heading mt-1 text-[17px] leading-tight md:text-[21px]">{headline}</p>
       </div>
 
       <span className="flex items-center gap-2 rounded-lg bg-white px-6 py-2.5 text-[14px] font-semibold text-shop-ink transition-transform group-hover:translate-x-0.5">

@@ -25,12 +25,12 @@ export default function SectionHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets
               600, and these two anchor the page. */}
-          <h2 className="heading-black text-[22px] text-shop-ink md:text-[26px]">
+          <h2 className="heading-black text-[18px] text-shop-ink md:text-[20px]">
             {title}
           </h2>
           {subtitle && <p className="mt-0.5 text-[13.5px] text-shop-muted">{subtitle}</p>}

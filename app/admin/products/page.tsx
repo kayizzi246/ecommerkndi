@@ -175,7 +175,7 @@ export default function AdminProductsPage() {
     <div className="mx-auto max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[30px] leading-tight text-shop-ink">Products</h1>
+          <h1 className="text-[22px] leading-tight text-shop-ink">Products</h1>
           <p className="mt-1 text-[15px] text-shop-muted">
             Every product in the shop — yours and your sellers&rsquo;. Changes go
             live on the storefront straight away.

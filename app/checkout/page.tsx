@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
+import DeliveryPicker, { type DeliveryResult } from "@/components/DeliveryPicker";
+import { saveAddress } from "@/lib/saved-addresses";
 
 const labelClass = "mb-1.5 block text-[13px] font-medium text-shop-body";
 
@@ -49,6 +51,30 @@ export default function CheckoutPage() {
   /** The WooCommerce order awaiting payment, so we can route on success. */
   const [pendingOrder, setPendingOrder] = useState<{ id: number; total: number } | null>(null);
   const [pesapalReady, setPesapalReady] = useState(true);
+  /** Priced by the server from the shopper's location; null until they pick one. */
+  const [delivery, setDelivery] = useState<DeliveryResult | null>(null);
+
+  /**
+   * The four fields the location picker can fill in.
+   *
+   * Controlled, unlike the rest of the form, because sharing a location has to
+   * be able to write into them — an uncontrolled input cannot be typed into
+   * from outside. They stay fully editable: a reverse-geocoded street is a
+   * guess, and the shopper knows their own gate.
+   */
+  const [addressFields, setAddressFields] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+    address_1: "",
+    city: "",
+  });
+
+  const setField = (name: keyof typeof addressFields) => (value: string) =>
+    setAddressFields((current) => ({ ...current, [name]: value }));
+
+  const deliveryFee = delivery?.deliverable ? delivery.fee : 0;
+  const total = subtotal + deliveryFee;
 
   // Whether the shop can take card / mobile money at all. Asked once, so the
   // unavailable options are visibly disabled rather than failing on submit.
@@ -73,7 +99,7 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="mb-3 text-[28px] font-extrabold text-shop-ink">Nothing to check out</h1>
+        <h1 className="mb-3 text-[21px] font-extrabold text-shop-ink">Nothing to check out</h1>
         <p className="mb-8 text-[15px] text-shop-muted">Your cart is empty.</p>
         <Link href="/" className="btn-shop px-10 py-3.5 text-[15px]">
           Continue shopping
@@ -99,6 +125,17 @@ export default function CheckoutPage() {
       country: "UG",
     };
 
+    if (!delivery) {
+      setError("Add your delivery location so we can work out the cost.");
+      setSubmitting(false);
+      return;
+    }
+    if (!delivery.deliverable) {
+      setError("We do not deliver that far yet. Try an address closer to Kampala.");
+      setSubmitting(false);
+      return;
+    }
+
     const viaPesapal = method !== "cod";
 
     try {
@@ -119,6 +156,10 @@ export default function CheckoutPage() {
           })),
           payment_method: method,
           awaiting_payment: viaPesapal,
+          // The point, not the price: the server re-quotes from it, so a
+          // tampered fee cannot reach the order.
+          delivery_point: delivery.point,
+          delivery_place: delivery.place ?? delivery.label,
         }),
       });
 
@@ -128,6 +169,20 @@ export default function CheckoutPage() {
         setError(data?.error ?? "Something went wrong. Please try again.");
         return;
       }
+
+      // Remembered only now the store has accepted the order — an address that
+      // failed validation is not one worth offering back next time. Saved
+      // before the payment step, deliberately: an abandoned payment still tells
+      // us where this shopper lives.
+      saveAddress({
+        label: delivery.place ?? delivery.label,
+        street: customer.address_1,
+        city: customer.city,
+        point: delivery.point,
+        first_name: customer.first_name,
+        last_name: customer.last_name,
+        phone: customer.phone,
+      });
 
       if (!viaPesapal) {
         clearCart();
@@ -209,8 +264,18 @@ export default function CheckoutPage() {
           <dd className="font-medium text-shop-ink">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex items-baseline justify-between">
-          <dt className="text-shop-body">Shipping</dt>
-          <dd className="text-[14px] text-shop-muted">Calculated at delivery</dd>
+          <dt className="text-shop-body">Delivery</dt>
+          <dd className="text-[14px]">
+            {!delivery ? (
+              <span className="text-shop-muted">Add your location</span>
+            ) : !delivery.deliverable ? (
+              <span className="text-shop-sale">Outside our area</span>
+            ) : delivery.free ? (
+              <span className="font-semibold text-shop-success">Free</span>
+            ) : (
+              <span className="font-medium text-shop-ink">{formatPrice(deliveryFee)}</span>
+            )}
+          </dd>
         </div>
       </dl>
 
@@ -218,7 +283,7 @@ export default function CheckoutPage() {
         <span className="text-[16px] font-medium text-shop-ink">Total</span>
         <span className="flex items-baseline gap-2">
           <span className="text-[13px] uppercase text-shop-muted">UGX</span>
-          <span className="text-[26px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
+          <span className="text-[20px] font-semibold text-shop-ink">{formatPrice(total)}</span>
         </span>
       </div>
       <p className="mt-1 text-right text-[13px] text-shop-muted">Including taxes</p>
@@ -266,6 +331,8 @@ export default function CheckoutPage() {
                   name="phone"
                   type="tel"
                   required
+                  value={addressFields.phone}
+                  onChange={(event) => setField("phone")(event.target.value)}
                   placeholder="07xx xxx xxx"
                   className="field-shop"
                 />
@@ -291,18 +358,55 @@ export default function CheckoutPage() {
 
           <section className="mt-10">
             <h2 className="mb-4 text-[18px] font-extrabold text-shop-ink">Delivery</h2>
+
+            {/* Priced before the shopper pays, not after. "Calculated at
+                delivery" is the line that loses carts. */}
+            <div className="mb-5">
+              <DeliveryPicker
+                subtotal={subtotal}
+                value={delivery}
+                onChange={setDelivery}
+                onAutofill={(parts) =>
+                  setAddressFields((current) => ({
+                    ...current,
+                    // Blank parts are skipped rather than written: reverse
+                    // geocoding often knows the suburb and not the road, and
+                    // clearing a street the shopper typed would be a step back.
+                    address_1: parts.street || current.address_1,
+                    city: parts.city || current.city,
+                    first_name: parts.first_name || current.first_name,
+                    last_name: parts.last_name || current.last_name,
+                    phone: parts.phone || current.phone,
+                  }))
+                }
+              />
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="first_name">
                   First name *
                 </label>
-                <input id="first_name" name="first_name" required className="field-shop" />
+                <input
+                  id="first_name"
+                  name="first_name"
+                  required
+                  value={addressFields.first_name}
+                  onChange={(event) => setField("first_name")(event.target.value)}
+                  className="field-shop"
+                />
               </div>
               <div>
                 <label className={labelClass} htmlFor="last_name">
                   Last name
                 </label>
-                <input id="last_name" name="last_name" className="field-shop" />
+                <input
+                  id="last_name"
+                  name="last_name"
+                  value={addressFields.last_name}
+                  onChange={(event) => setField("last_name")(event.target.value)}
+                  className="field-shop"
+                />
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="address_1">
@@ -312,6 +416,8 @@ export default function CheckoutPage() {
                   id="address_1"
                   name="address_1"
                   required
+                  value={addressFields.address_1}
+                  onChange={(event) => setField("address_1")(event.target.value)}
                   placeholder="Street, building, landmark…"
                   className="field-shop"
                 />
@@ -320,7 +426,15 @@ export default function CheckoutPage() {
                 <label className={labelClass} htmlFor="city">
                   City / Town *
                 </label>
-                <input id="city" name="city" required placeholder="Kampala" className="field-shop" />
+                <input
+                  id="city"
+                  name="city"
+                  required
+                  value={addressFields.city}
+                  onChange={(event) => setField("city")(event.target.value)}
+                  placeholder="Kampala"
+                  className="field-shop"
+                />
               </div>
               <div>
                 <label className={labelClass} htmlFor="country">

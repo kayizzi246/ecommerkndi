@@ -169,15 +169,19 @@ body {
   font-family: var(--font-tabular);
 }
 
-/* Tailwind's default type scale, stepped up one notch so the whole store
-   reads larger without touching every className. */
+/* The standard product type scale — 12 / 14 / 16 / 18 / 20 / 24.
+ *
+ * The store used to run this a notch larger (13 / 15 / 16 / 19 / 22 / 26),
+ * which on a dense marketplace page pushed a row of products taller than it
+ * needed to be for no gain in legibility. These are the sizes almost every
+ * modern product interface converges on, and 14px is the workhorse. */
 @theme {
-  --text-xs: 0.8125rem; /* 13px */
-  --text-sm: 0.9375rem; /* 15px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
   --text-base: 1rem; /* 16px */
-  --text-lg: 1.1875rem; /* 19px */
-  --text-xl: 1.375rem; /* 22px */
-  --text-2xl: 1.625rem; /* 26px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
 }
 
 button,
@@ -266,6 +270,15 @@ h6,
   font-family: var(--font-display);
   font-weight: 900;
   letter-spacing: -0.04em;
+}
+
+/* The product page title. Heavier than a card's product name — here the name is
+   the page, not one of forty — but a step under the homepage section headings,
+   which are signage rather than content. */
+.heading-800 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* Large buttons and promotional labels — display face, tighter than body. */

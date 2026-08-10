@@ -46,23 +46,23 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
   const { support, social, commerce, brand, app } = settings;
 
   const serviceStrip = [
-    { title: "Free delivery", copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`, tone: "text-pop-green" },
-    { title: "Easy returns", copy: `${commerce.returns_days} days to change your mind`, tone: "text-pop-blue" },
-    { title: "Secure payments", copy: "Cash, MTN MoMo, Airtel Money, Visa", tone: "text-pop-violet" },
-    { title: "Need help?", copy: `Call ${support.phone}`, tone: "text-pop-orange" },
+    { title: "Free delivery", copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`, tone: "text-pop-green-on-dark" },
+    { title: "Easy returns", copy: `${commerce.returns_days} days to change your mind`, tone: "text-pop-blue-on-dark" },
+    { title: "Secure payments", copy: "Cash, MTN MoMo, Airtel Money, Visa", tone: "text-pop-violet-on-dark" },
+    { title: "Need help?", copy: `Call ${support.phone}`, tone: "text-pop-orange-on-dark" },
   ];
 
   const socialLinks = Object.entries(social).filter(([, url]) => Boolean(url));
 
   return (
-    <footer className="mt-14 border-t border-shop-line bg-white">
+    <footer className="mt-14 bg-shop-nav text-white/70">
       {/* Service promises */}
-      <div className="border-b border-shop-line">
+      <div className="border-b border-white/10">
         <div className="mx-auto grid max-w-[1450px] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
           {serviceStrip.map((item) => (
             <div key={item.title}>
               <p className={`text-[15px] font-semibold ${item.tone}`}>{item.title}</p>
-              <p className="mt-1 text-[13px] text-shop-muted">{item.copy}</p>
+              <p className="mt-1 text-[12px] text-white/55">{item.copy}</p>
             </div>
           ))}
         </div>
@@ -72,13 +72,13 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
       <div className="mx-auto grid max-w-[1450px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-4 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+            <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
               {column.title}
             </h2>
-            <ul className="space-y-2.5 text-[14px] text-shop-body">
+            <ul className="space-y-2.5 text-[13px] text-white/70">
               {column.items.map((item) => (
                 <li key={item.name}>
-                  <Link className="hover:text-shop-primary hover:underline" href={item.href}>
+                  <Link className="hover:text-white hover:underline" href={item.href}>
                     {item.name}
                   </Link>
                 </li>
@@ -88,24 +88,24 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-4 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+          <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
             Talk to us
           </h2>
-          <ul className="space-y-2.5 text-[14px] text-shop-body">
+          <ul className="space-y-2.5 text-[13px] text-white/70">
             <li>
-              <a className="hover:text-shop-primary hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
+              <a className="hover:text-white hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
                 {support.phone}
               </a>
             </li>
             <li>
-              <a className="hover:text-shop-primary hover:underline" href={`mailto:${support.email}`}>
+              <a className="hover:text-white hover:underline" href={`mailto:${support.email}`}>
                 {support.email}
               </a>
             </li>
             {support.whatsapp && (
               <li>
                 <a
-                  className="font-semibold text-pop-green hover:underline"
+                  className="font-semibold text-pop-green-on-dark hover:underline"
                   href={`https://wa.me/${support.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -114,14 +114,14 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                 </a>
               </li>
             )}
-            <li className="text-shop-muted">{support.hours}</li>
-            <li className="text-shop-muted">{support.address}</li>
+            <li className="text-white/55">{support.hours}</li>
+            <li className="text-white/55">{support.address}</li>
           </ul>
 
-          <h2 className="mb-3 mt-7 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+          <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-white">
             {app.available ? "Get the app" : "App coming soon"}
           </h2>
-          <p className="mb-3 text-[14px] leading-6 text-shop-muted">
+          <p className="mb-3 text-[14px] leading-6 text-white/55">
             {app.available
               ? "Shop faster and track every order from your phone."
               : "We are building it. Everything works in your phone's browser in the meantime."}
@@ -130,7 +130,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
 
           {socialLinks.length > 0 && (
             <>
-              <h2 className="mb-3 mt-7 text-[14px] font-extrabold uppercase tracking-wide text-shop-ink">
+              <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-white">
                 Follow us
               </h2>
               <div className="flex flex-wrap gap-2">
@@ -140,7 +140,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full border border-shop-line px-3 py-1.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+                    className="rounded-full border border-white/10 px-3 py-1.5 text-[13px] font-semibold text-white/70 transition-colors hover:border-white hover:text-white"
                   >
                     {SOCIAL_LABELS[network] ?? network}
                   </a>
@@ -152,7 +152,7 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
       </div>
 
       {/* Legal bar */}
-      <div className="border-t border-shop-line bg-shop-ink">
+      <div className="border-t border-white/10 bg-shop-ink">
         <div className="mx-auto flex max-w-[1450px] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
           <span>
             © {new Date().getFullYear()} {brand.name} Uganda. All rights reserved.

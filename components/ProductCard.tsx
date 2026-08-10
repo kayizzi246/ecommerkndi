@@ -87,7 +87,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const category = product.categories[0];
 
   return (
-    <article className="group relative flex h-full flex-col">
+    <article className="group relative flex h-full flex-col rounded-lg border border-transparent p-1 transition-colors hover:border-shop-line">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -116,17 +116,25 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         </Link>
 
-        {soldOut && (
+        {soldOut ? (
           <span className="absolute left-2 top-2 rounded bg-shop-ink px-2 py-0.5 text-[11px] font-semibold text-white">
             Sold out
           </span>
-        )}
+        ) : discount > 0 ? (
+          /* A round medallion rather than a corner flag: it reads as a stamp
+             on the photograph, and the percentage is the one number worth
+             shouting on a discounted product. */
+          <span className="absolute right-1 top-1 flex h-14 w-14 flex-col items-center justify-center rounded-full border-2 border-white bg-shop-primary text-center leading-none text-white">
+            <span className="text-[14px] font-bold">{discount}%</span>
+            <span className="text-[10px]">OFF</span>
+          </span>
+        ) : null}
 
         {/* The reference card carries no heart, so it appears on hover — and on
             focus, so it stays reachable from the keyboard. Wishlisting is real
             functionality here; hiding it entirely would remove a feature to
             match a screenshot. */}
-        <div className="absolute right-2 top-2 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
+        <div className="absolute left-2 top-2 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
           <WishlistButton
             productId={product.id}
             name={product.name}
@@ -142,12 +150,7 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="mt-2 flex flex-1 flex-col gap-[5px]">
         {/* Chips run inline with the name, so a tag costs no vertical space. */}
         <Link href={href} className="block">
-          <h3 className="font-normal-heading truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary">
-            {discount > 0 && (
-              <span className="mr-1 inline-block rounded-[3px] bg-shop-sale px-1 align-[1px] text-[10px] font-bold text-white">
-                Sale
-              </span>
-            )}
+          <h3 className="font-normal-heading line-clamp-2 text-[13px] leading-[17px] text-shop-title transition-colors hover:text-shop-primary">
             <span className="mr-1 inline-block rounded-[3px] border border-shop-success/50 px-1 align-[1px] text-[10px] font-semibold text-shop-success">
               Local
             </span>
@@ -159,9 +162,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="flex items-center justify-between gap-2">
           <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
             <span
-              className={`price text-[16px] leading-none ${
-                discount > 0 ? "text-shop-sale" : "text-shop-ink"
-              }`}
+              className="price text-[16px] leading-none text-shop-ink"
             >
               {formatPrice(product.price)}
             </span>
@@ -195,7 +196,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.rating_count > 0 && (
           <div className="flex items-center gap-1.5">
             <Stars rating={product.average_rating} />
-            <span className="text-[12px] text-shop-ink">{product.rating_count}</span>
+            <span className="text-[12px] text-pop-blue">{product.average_rating.toFixed(1)}</span>
           </div>
         )}
 

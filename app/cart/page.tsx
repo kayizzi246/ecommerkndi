@@ -6,30 +6,7 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
-
-const DELIVERY_METHODS = [
-  {
-    id: "express",
-    name: "Express",
-    fee: 12000,
-    eta: "Tomorrow by 10:00 PM",
-    note: "Order before 12 AM",
-  },
-  {
-    id: "standard",
-    name: "Standard",
-    fee: 8000,
-    eta: "2–3 business days",
-    note: "Kampala and major towns",
-  },
-  {
-    id: "collect",
-    name: "Collect in store",
-    fee: 0,
-    eta: "Ready in 24 hours",
-    note: "Pick up from our Kampala branch",
-  },
-];
+import CartRecommendations from "@/components/cart/CartRecommendations";
 
 const FREE_DELIVERY_THRESHOLD = 50000;
 
@@ -39,7 +16,6 @@ export default function CartPage() {
 
   // Shoppers tick the lines they want to check out.
   const [deselected, setDeselected] = useState<string[]>([]);
-  const [method, setMethod] = useState(DELIVERY_METHODS[1].id);
 
   const selectedItems = useMemo(
     () => items.filter((item) => !deselected.includes(item.key)),
@@ -52,10 +28,13 @@ export default function CartPage() {
   );
   const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const chosenMethod = DELIVERY_METHODS.find((option) => option.id === method)!;
   const qualifiesFree = selectedSubtotal >= FREE_DELIVERY_THRESHOLD;
-  const shipping = qualifiesFree ? 0 : chosenMethod.fee;
-  const total = selectedSubtotal + shipping;
+
+  // No delivery figure here on purpose. The real fee is charged per kilometre
+  // from the shop, and it cannot be known until the shopper shares their
+  // location at checkout — so the cart shows goods only rather than quoting a
+  // number the next page would contradict.
+  const total = selectedSubtotal;
 
   // Progress toward the free-delivery threshold, capped so the bar never overruns.
   const freeProgress = Math.min(100, (selectedSubtotal / FREE_DELIVERY_THRESHOLD) * 100);
@@ -69,7 +48,7 @@ export default function CartPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
           </svg>
         </div>
-        <h1 className="mb-3 section-title text-[26px] text-shop-ink">Your cart is empty</h1>
+        <h1 className="mb-3 section-title text-[20px] text-shop-ink">Your cart is empty</h1>
         <p className="mb-8 text-[15px] text-shop-muted">
           Discover this week&apos;s arrivals and find something you love.
         </p>
@@ -85,7 +64,7 @@ export default function CartPage() {
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 pb-28 md:px-8 lg:pb-16">
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="section-title text-[28px] text-shop-ink md:text-[32px]">Your cart</h1>
+        <h1 className="section-title text-[21px] text-shop-ink md:text-[19px]">Your cart</h1>
         <Link
           href="/"
           className="text-[14px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
@@ -238,45 +217,7 @@ export default function CartPage() {
             })}
           </ul>
 
-          {/* Delivery methods */}
-          <section className="mt-8">
-            <h2 className="mb-3 text-[16px] font-extrabold text-shop-ink">Delivery method</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {DELIVERY_METHODS.map((option) => {
-                const active = method === option.id;
-                return (
-                  <label
-                    key={option.id}
-                    className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-                      active
-                        ? "border-shop-primary bg-shop-primary-soft"
-                        : "border-shop-line hover:border-[#c2c2c2]"
-                    }`}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="delivery-method"
-                          checked={active}
-                          onChange={() => setMethod(option.id)}
-                          className="accent-shop-primary"
-                        />
-                        <span className="text-[14px] font-semibold text-shop-ink">
-                          {option.name}
-                        </span>
-                      </span>
-                      <span className="text-[14px] text-shop-body">
-                        {option.fee === 0 ? "Free" : formatPrice(option.fee)}
-                      </span>
-                    </span>
-                    <span className="mt-2 block text-[13px] text-shop-body">{option.eta}</span>
-                    <span className="mt-0.5 block text-[12px] text-shop-muted">{option.note}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </section>
+          <CartRecommendations excludeIds={items.map((item) => item.productId)} />
         </div>
 
         {/* Order summary */}
@@ -291,9 +232,15 @@ export default function CartPage() {
               <dd className="font-medium text-shop-ink">{formatPrice(selectedSubtotal)}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-shop-muted">{chosenMethod.name} delivery</dt>
-              <dd className={shipping === 0 ? "font-medium text-shop-success" : "font-medium text-shop-ink"}>
-                {shipping === 0 ? "Free" : formatPrice(shipping)}
+              <dt className="text-shop-muted">Delivery</dt>
+              <dd
+                className={
+                  qualifiesFree
+                    ? "font-medium text-shop-success"
+                    : "text-right text-[13px] text-shop-muted"
+                }
+              >
+                {qualifiesFree ? "Free" : "Calculated at checkout"}
               </dd>
             </div>
           </dl>
@@ -310,7 +257,7 @@ export default function CartPage() {
 
           {qualifiesFree && (
             <p className="mt-4 rounded-lg bg-shop-successbg px-3 py-2.5 text-[13px] text-shop-success">
-              You&apos;re saving {formatPrice(chosenMethod.fee)} on delivery.
+              This order qualifies for free delivery.
             </p>
           )}
 

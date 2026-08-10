@@ -461,6 +461,35 @@ add_action( 'rest_api_init', function () {
 				$order->set_customer_note( sanitize_textarea_field( $customer['notes'] ) );
 			}
 
+			// Delivery, as a real WooCommerce shipping line rather than a note.
+			// That way it appears on the invoice, in the emails, in the reports
+			// and in the order total, instead of being a figure only the
+			// storefront knew about.
+			//
+			// The amount is priced on the storefront's server from the
+			// customer's coordinates; it never comes from the browser.
+			$shipping = isset( $body['shipping'] ) && is_array( $body['shipping'] ) ? $body['shipping'] : null;
+
+			if ( $shipping && class_exists( 'WC_Order_Item_Shipping' ) ) {
+				$rate = new WC_Order_Item_Shipping();
+				$rate->set_method_title( sanitize_text_field( $shipping['label'] ?? 'Delivery' ) );
+				$rate->set_method_id( 'kandi_delivery' );
+				$rate->set_total( (float) max( 0, (float) ( $shipping['total'] ?? 0 ) ) );
+				$order->add_item( $rate );
+			}
+
+			// The customer's exact drop point, so the rider has something better
+			// to work from than a typed address.
+			if ( ! empty( $body['delivery_point']['lat'] ) && ! empty( $body['delivery_point']['lng'] ) ) {
+				$lat = (float) $body['delivery_point']['lat'];
+				$lng = (float) $body['delivery_point']['lng'];
+				$order->add_meta_data( '_kandi_delivery_lat', $lat, true );
+				$order->add_meta_data( '_kandi_delivery_lng', $lng, true );
+				$order->add_order_note(
+					sprintf( 'Delivery pin: https://maps.google.com/?q=%F,%F', $lat, $lng )
+				);
+			}
+
 			$order->set_created_via( 'kandi-storefront' );
 			$order->calculate_totals();
 

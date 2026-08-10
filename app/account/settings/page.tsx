@@ -46,7 +46,7 @@ export default function AccountSettings() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">Settings</h1>
+      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">Settings</h1>
       <p className="mt-1 text-[15px] text-shop-muted">
         Your details and where we deliver.
       </p>
@@ -64,7 +64,7 @@ export default function AccountSettings() {
               className="h-16 w-16 rounded-full"
             />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-shop-primary-soft text-[24px] font-semibold text-shop-primary">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-shop-primary-soft text-[19px] font-semibold text-shop-primary">
               {customer.name.charAt(0).toUpperCase()}
             </span>
           )}

@@ -68,7 +68,7 @@ export default async function SearchPage({
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-4">
             <div>
-              <h1 className="section-title text-[26px] text-shop-ink md:text-[32px]">
+              <h1 className="section-title text-[20px] text-shop-ink md:text-[19px]">
                 {query ? `“${query}”` : "Search"}
               </h1>
               <p className="mt-1 text-[14px] text-shop-muted">
@@ -102,7 +102,7 @@ export default async function SearchPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

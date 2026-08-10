@@ -19,7 +19,7 @@ export default async function OrderReceivedPage({
           </svg>
         </span>
 
-        <h1 className="mt-5 text-[28px] font-extrabold text-black">Order received</h1>
+        <h1 className="mt-5 text-[21px] font-extrabold text-black">Order received</h1>
         <p className="mt-2 text-[14px] text-bfl-grey">Thank you for shopping with Kandi.</p>
 
         {id && (

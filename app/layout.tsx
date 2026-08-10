@@ -40,35 +40,61 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  // `metadataBase` makes every relative Open Graph image resolve to an absolute
-  // URL. Without it, a product link pasted into WhatsApp — how most shoppers
-  // here share — shows no picture at all.
-  metadataBase: new URL(siteUrl()),
-  title: {
-    default: "KandiUg | Online Shopping in Uganda — Fast Delivery, Pay on Delivery",
-    template: "%s | KandiUg",
-  },
-  description:
-    "Shop shoes, fashion, electronics and more at low prices on KandiUg. Fast delivery across Uganda, pay on delivery, 14-day returns.",
-  applicationName: "KandiUg",
-  // Every page is canonical to itself unless it says otherwise; product pages
-  // override this, which is what stops slug and id URLs competing.
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    siteName: "KandiUg",
-    locale: "en_UG",
-  },
-  twitter: { card: "summary_large_image" },
-  robots: {
-    index: true,
-    follow: true,
-    // Lets Google show a full text snippet and a large image thumbnail instead
-    // of clipping both to its conservative defaults.
-    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
-  },
-};
+/**
+ * Site-wide metadata, read from wp-admin.
+ *
+ * A function rather than a constant because the brand name, tagline and favicon
+ * all live in *Kandi Storefront* — a shop that renames itself should not need a
+ * redeploy to change what the browser tab says.
+ *
+ * `getSiteSettings` is called here and again in the layout body. Next dedupes
+ * identical fetches within a render, so it is one request, not two.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const brand = `${settings.brand.name}${settings.brand.suffix}`.trim();
+
+  return {
+    // `metadataBase` makes every relative Open Graph image resolve to an
+    // absolute URL. Without it, a product link pasted into WhatsApp — how most
+    // shoppers here share — shows no picture at all.
+    metadataBase: new URL(siteUrl()),
+    title: {
+      default: `${brand} | Online Shopping in Uganda — Fast Delivery, Pay on Delivery`,
+      template: `%s | ${brand}`,
+    },
+    description: settings.brand.tagline
+      ? `${settings.brand.tagline} Pay on delivery, ${settings.commerce.returns_days}-day returns.`
+      : "Shop shoes, fashion, electronics and more at low prices. Fast delivery across Uganda.",
+    applicationName: brand,
+    // The uploaded favicon, or the file shipped with the app when none is set —
+    // so the tab is never blank. `apple` is the same image: iOS uses it when
+    // somebody saves the shop to their home screen.
+    icons: settings.brand.favicon_url
+      ? {
+          icon: settings.brand.favicon_url,
+          shortcut: settings.brand.favicon_url,
+          apple: settings.brand.favicon_url,
+        }
+      : undefined,
+    // Every page is canonical to itself unless it says otherwise; product pages
+    // override this, which is what stops slug and id URLs competing.
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      siteName: brand,
+      locale: "en_UG",
+    },
+    twitter: { card: "summary_large_image" },
+    robots: {
+      index: true,
+      follow: true,
+      // Lets Google show a full text snippet and a large image thumbnail
+      // instead of clipping both to its conservative defaults.
+      googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

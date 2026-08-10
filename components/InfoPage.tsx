@@ -34,7 +34,7 @@ export default function InfoPage({
             {eyebrow}
           </p>
         )}
-        <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink md:text-[34px]">
+        <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink md:text-[19px]">
           {title}
         </h1>
         {intro && (

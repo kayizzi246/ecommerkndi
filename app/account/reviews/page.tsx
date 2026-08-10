@@ -43,7 +43,7 @@ export default function AccountReviews() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">My reviews</h1>
+      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">My reviews</h1>
       <p className="mt-1 text-[15px] text-shop-muted">
         Your ratings are saved to your account and shown on the product pages.
       </p>

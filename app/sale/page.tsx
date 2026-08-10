@@ -41,7 +41,7 @@ export default async function SalePage({
           <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-white/80">
             Limited time
           </p>
-          <h1 className="mt-1 section-title text-[34px] md:text-[44px]">
+          <h1 className="mt-1 section-title text-[19px] md:text-[44px]">
             Super Price Store
           </h1>
           <p className="mt-2 text-[15px] text-white/85">
@@ -71,7 +71,7 @@ export default async function SalePage({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

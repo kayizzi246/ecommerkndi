@@ -178,7 +178,7 @@ export default function SellerProductsPage() {
     <div className="mx-auto max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">Products</h1>
+          <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">Products</h1>
           <p className="mt-1 text-[15px] text-shop-muted">
             Edit prices, restock and manage what shoppers can see.
           </p>

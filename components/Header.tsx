@@ -44,17 +44,18 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-40 bg-white">
-      {/* ---- Promo strip ----
-           One hairline row, light rather than a black slab: the masthead below
-           it is white, and a dark bar on top would be the heaviest thing on a
-           page whose job is to show product photography.
+      {/* ---- Announcement strip ----
+           A near-black rule across the top. It was white on white, which meant
+           the shop's three strongest promises — pay on delivery, free returns,
+           the sale — sat in the palest text on the page and were read by nobody.
+           Dark, they read first and cost 32px.
 
            Once there is something in the cart the rotating line gives way to
            live free-delivery progress, which is the more useful message. Every
            figure is real: the threshold from settings, the shopper's own
            subtotal, the payment methods actually accepted at checkout. */}
-      <div className="border-b border-shop-line bg-white text-shop-body">
-        <div className="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-4 py-2 text-[12.5px] md:px-8">
+      <div className="bg-shop-nav text-white/80">
+        <div className="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
@@ -71,7 +72,7 @@ export default function Header({
             <SalesTicker messages={settings.ticker} className="min-w-0 font-semibold" />
           )}
 
-          <div className="hidden shrink-0 items-center gap-5 text-shop-muted sm:flex">
+          <div className="hidden shrink-0 items-center gap-5 sm:flex">
             {settings.promo.lines.slice(1, 3).map((line, index) => (
               <span key={line} className={index === 1 ? "hidden md:inline" : undefined}>
                 {line}
@@ -79,7 +80,7 @@ export default function Header({
             ))}
             <Link
               href={settings.promo.cta_url}
-              className="font-semibold text-shop-sale hover:underline"
+              className="font-semibold text-bfl-yellow hover:underline"
             >
               {settings.promo.cta_label} ›
             </Link>

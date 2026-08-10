@@ -250,7 +250,7 @@ export default function OnboardingFlow({
             <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
               Step {step + 1} of {STEPS.length}
             </p>
-            <h1 className="mt-2 text-[28px] font-extrabold leading-tight text-shop-ink md:text-[34px]">
+            <h1 className="mt-2 text-[21px] font-extrabold leading-tight text-shop-ink md:text-[19px]">
               {STEPS[step].key === "store" && "Let's name your store"}
               {STEPS[step].key === "you" && "Now, a bit about you"}
               {STEPS[step].key === "password" && "Secure your account"}
@@ -647,7 +647,7 @@ function FeePayment({
       <p className="text-[14px] font-semibold uppercase tracking-wide text-shop-primary">
         Next: pay the joining fee
       </p>
-      <p className="price mt-1 text-[30px] leading-none text-shop-flame">{formatPrice(amount)}</p>
+      <p className="price mt-1 text-[22px] leading-none text-shop-flame">{formatPrice(amount)}</p>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button
@@ -741,7 +741,7 @@ function Done({
           </svg>
         </span>
 
-        <h1 className="mt-5 text-[28px] font-extrabold leading-tight text-shop-ink">
+        <h1 className="mt-5 text-[21px] font-extrabold leading-tight text-shop-ink">
           {seller.store_name} is created
         </h1>
         <p className="mx-auto mt-2 max-w-[42ch] text-[16px] leading-relaxed text-shop-body">

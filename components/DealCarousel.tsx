@@ -75,7 +75,7 @@ export default function DealCarousel({
       <div
         ref={attach}
         onScroll={sync}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 no-scrollbar"
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-1 no-scrollbar"
       >
         {products.map((product) => (
           <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>

@@ -48,7 +48,7 @@ export default function AccountOrders() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">My orders</h1>
+      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">My orders</h1>
       <p className="mt-1 text-[15px] text-shop-muted">
         Every order placed with this account, wherever you placed it.
       </p>

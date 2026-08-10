@@ -1,6 +1,7 @@
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
 import DealCarousel from "@/components/DealCarousel";
 import CategoryChips from "@/components/home/CategoryChips";
+import PromoTiles from "@/components/home/PromoTiles";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import WideBanner from "@/components/home/WideBanner";
@@ -30,8 +31,13 @@ export default async function Home() {
       {/* The hero banner and the category card grid used to open the page. Both
           are gone: a fashion storefront opens on merchandise, and the chips
           below carry the departments in one line instead of a screen. */}
-      <div className="mx-auto flex max-w-[1450px] flex-col gap-14 px-4 py-6 md:px-8">
+      {/* Section spacing steps up with the window rather than sitting at one
+          value: 28px is comfortable on a phone, where the same gap that reads
+          as generous on a desktop reads as a hole. */}
+      <div className="mx-auto flex max-w-[1450px] flex-col gap-7 px-4 py-5 md:gap-9 md:px-8">
         <CategoryChips categories={categories} />
+
+        <PromoTiles />
 
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">

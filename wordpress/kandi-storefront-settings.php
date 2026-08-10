@@ -33,6 +33,10 @@ function kandi_settings_defaults() {
 	return array(
 		'logo_url'            => '',
 		'logo_id'             => 0,
+		// The browser-tab icon. Blank falls back to the file shipped with the
+		// storefront, so the shop always has one.
+		'favicon_url'         => '',
+		'favicon_id'          => 0,
 		'brand_name'          => 'Kandi',
 		'brand_suffix'        => 'For Less',
 		'tagline'             => 'Fashion for less, delivered across Uganda',
@@ -77,6 +81,15 @@ function kandi_settings_defaults() {
 		// can format them as currency in the shopper's own locale.
 		'free_delivery_from'  => 50000,
 		'returns_days'        => 14,
+
+		// Delivery pricing. Per kilometre from the shop, editable below.
+		'delivery_lat'        => 0.3476,
+		'delivery_lng'        => 32.5825,
+		'delivery_base'       => 3000,
+		'delivery_per_km'     => 700,
+		'delivery_free_km'    => 3,
+		'delivery_max_fee'    => 30000,
+		'delivery_max_km'     => 120,
 
 		// Seller terms. Quoted on the "Sell with us" landing page, in the
 		// earnings calculator and throughout onboarding, so they only ever
@@ -239,10 +252,11 @@ add_action( 'rest_api_init', function () {
 
 			return rest_ensure_response( array(
 				'brand'    => array(
-					'name'     => $settings['brand_name'],
-					'suffix'   => $settings['brand_suffix'],
-					'tagline'  => $settings['tagline'],
-					'logo_url' => $settings['logo_url'],
+					'name'        => $settings['brand_name'],
+					'suffix'      => $settings['brand_suffix'],
+					'tagline'     => $settings['tagline'],
+					'logo_url'    => $settings['logo_url'],
+					'favicon_url' => $settings['favicon_url'],
 				),
 				'promo'    => array(
 					'lines'     => array_values( array_filter( array(
@@ -281,6 +295,17 @@ add_action( 'rest_api_init', function () {
 					'tiktok'    => $settings['tiktok_url'],
 					'x'         => $settings['x_url'],
 				) ),
+				'delivery' => array(
+					'origin'        => array(
+						'lat' => (float) $settings['delivery_lat'],
+						'lng' => (float) $settings['delivery_lng'],
+					),
+					'baseFee'       => (float) $settings['delivery_base'],
+					'perKm'         => (float) $settings['delivery_per_km'],
+					'freeRadiusKm'  => (float) $settings['delivery_free_km'],
+					'maxFee'        => (float) $settings['delivery_max_fee'],
+					'maxDistanceKm' => (float) $settings['delivery_max_km'],
+				),
 				'commerce' => array(
 					'free_delivery_from' => (float) $settings['free_delivery_from'],
 					'returns_days'       => (int) $settings['returns_days'],
@@ -322,8 +347,8 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 
 /** Text fields are sanitised per type; URLs and emails get their own filters. */
 function kandi_settings_sanitise( $key, $value ) {
-	$url_fields   = array( 'logo_url', 'promo_cta_url', 'banner_cta_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
-	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'seller_fee', 'seller_commission', 'seller_payout_days' );
+	$url_fields   = array( 'logo_url', 'favicon_url', 'promo_cta_url', 'banner_cta_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
+	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'favicon_id', 'seller_fee', 'seller_commission', 'seller_payout_days', 'delivery_lat', 'delivery_lng', 'delivery_base', 'delivery_per_km', 'delivery_free_km', 'delivery_max_fee', 'delivery_max_km' );
 
 	if ( 'ticker_messages' === $key ) {
 		return sanitize_textarea_field( $value );
@@ -471,6 +496,31 @@ function kandi_settings_render_page() {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="favicon_url">Favicon</label></th>
+					<td>
+						<div id="kandi-favicon-preview" style="margin-bottom:8px;">
+							<?php if ( $s['favicon_url'] ) : ?>
+								<img src="<?php echo esc_url( $s['favicon_url'] ); ?>" alt="" style="width:32px;height:32px;object-fit:contain;background:#f6f6f6;padding:4px;border-radius:6px;">
+							<?php else : ?>
+								<em>No favicon set — the storefront uses its built-in icon.</em>
+							<?php endif; ?>
+						</div>
+						<input type="text" id="favicon_url" name="favicon_url" value="<?php echo esc_attr( $s['favicon_url'] ); ?>" class="regular-text" placeholder="https://…">
+						<input type="hidden" id="favicon_id" name="favicon_id" value="<?php echo esc_attr( $s['favicon_id'] ); ?>">
+						<button type="button" class="button" id="kandi-pick-favicon">Choose from media library</button>
+						<button type="button" class="button" id="kandi-clear-favicon">Remove</button>
+						<p class="description">
+							The little icon in the browser tab. A <strong>square</strong> PNG at
+							512&times;512 works everywhere — browsers scale it down, and the same file
+							is used when someone saves the shop to their phone's home screen.
+							Avoid SVG: Safari still will not render one as a tab icon.
+							<br>
+							Browsers cache favicons hard, so give yours a few minutes — or a hard
+							refresh — before deciding it has not worked.
+						</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="brand_name">Brand name</label></th>
 					<td>
 						<input type="text" id="brand_name" name="brand_name" value="<?php echo esc_attr( $s['brand_name'] ); ?>" class="regular-text">
@@ -608,6 +658,81 @@ function kandi_settings_render_page() {
 				</tr>
 			</table>
 
+			<h2 class="title">Delivery pricing</h2>
+			<p class="description">
+				Delivery is charged per kilometre from your shop, straight-line. The shopper
+				shares their location (or types their area) at checkout and sees the exact
+				cost <strong>before</strong> they pay, and the same figures price the order on
+				the server — so the fee cannot be edited in the browser.
+				<br>
+				<strong>The defaults are plausible Kampala figures, not researched ones.</strong>
+				Replace them with what your riders actually cost you.
+			</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">Shop location</th>
+					<td>
+						<label>Latitude
+							<input type="number" name="delivery_lat" value="<?php echo esc_attr( $s['delivery_lat'] ); ?>" class="small-text" step="0.0001">
+						</label>
+						<label style="margin-left:12px;">Longitude
+							<input type="number" name="delivery_lng" value="<?php echo esc_attr( $s['delivery_lng'] ); ?>" class="small-text" step="0.0001">
+						</label>
+						<p class="description">
+							Where your riders set off from. Find it by right-clicking your shop in
+							Google Maps and choosing the coordinates it offers. The default is
+							central Kampala.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="delivery_base">Base fee (UGX)</label></th>
+					<td>
+						<input type="number" id="delivery_base" name="delivery_base" value="<?php echo esc_attr( $s['delivery_base'] ); ?>" class="small-text" step="500" min="0">
+						<p class="description">Charged on every delivery, before distance.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="delivery_per_km">Per kilometre (UGX)</label></th>
+					<td>
+						<input type="number" id="delivery_per_km" name="delivery_per_km" value="<?php echo esc_attr( $s['delivery_per_km'] ); ?>" class="small-text" step="100" min="0">
+						<p class="description">
+							Charged for each kilometre beyond the free radius below. Note this is
+							straight-line distance, which runs shorter than the road route — set
+							the rate a little above your true per-km cost to absorb that.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="delivery_free_km">Free radius (km)</label></th>
+					<td>
+						<input type="number" id="delivery_free_km" name="delivery_free_km" value="<?php echo esc_attr( $s['delivery_free_km'] ); ?>" class="small-text" step="1" min="0">
+						<p class="description">Distance included in the base fee.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="delivery_max_fee">Maximum fee (UGX)</label></th>
+					<td>
+						<input type="number" id="delivery_max_fee" name="delivery_max_fee" value="<?php echo esc_attr( $s['delivery_max_fee'] ); ?>" class="small-text" step="1000" min="0">
+						<p class="description">The fee never exceeds this, however far the address is.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="delivery_max_km">Delivery radius (km)</label></th>
+					<td>
+						<input type="number" id="delivery_max_km" name="delivery_max_km" value="<?php echo esc_attr( $s['delivery_max_km'] ); ?>" class="small-text" step="10" min="0">
+						<p class="description">
+							Beyond this the checkout tells the shopper you do not deliver there and
+							will not take the order. Set to 0 to deliver anywhere.
+						</p>
+					</td>
+				</tr>
+			</table>
+			<p class="description">
+				Orders at or above the <em>Free delivery from</em> figure in Commercial terms
+				above pay nothing, whatever the distance.
+			</p>
+
 			<h2 class="title">Seller terms</h2>
 			<p class="description">Quoted on the &ldquo;Sell with us&rdquo; landing page, in its earnings calculator, and throughout seller onboarding.</p>
 			<table class="form-table" role="presentation">
@@ -681,6 +806,47 @@ function kandi_settings_render_page() {
 			$('#logo_url').val('');
 			$('#logo_id').val(0);
 			$('#kandi-logo-preview').html('<em>No logo set — the storefront shows the built-in wordmark.</em>');
+		});
+
+		// The favicon picker. Its own frame instance, because sharing one with
+		// the logo would carry the logo's current selection across.
+		var faviconFrame;
+
+		$('#kandi-pick-favicon').on('click', function (event) {
+			event.preventDefault();
+
+			if (faviconFrame) {
+				faviconFrame.open();
+				return;
+			}
+
+			faviconFrame = wp.media({
+				title: 'Choose the browser tab icon',
+				button: { text: 'Use this favicon' },
+				library: { type: 'image' },
+				multiple: false
+			});
+
+			faviconFrame.on('select', function () {
+				var image = faviconFrame.state().get('selection').first().toJSON();
+				$('#favicon_url').val(image.url);
+				$('#favicon_id').val(image.id);
+				$('#kandi-favicon-preview').html(
+					$('<img>', { src: image.url, alt: '' }).css({
+						width: '32px', height: '32px', objectFit: 'contain',
+						background: '#f6f6f6', padding: '4px', borderRadius: '6px'
+					})
+				);
+			});
+
+			faviconFrame.open();
+		});
+
+		$('#kandi-clear-favicon').on('click', function (event) {
+			event.preventDefault();
+			$('#favicon_url').val('');
+			$('#favicon_id').val(0);
+			$('#kandi-favicon-preview').html('<em>No favicon set — the storefront uses its built-in icon.</em>');
 		});
 	});
 	</script>

@@ -37,7 +37,7 @@ export default function OwnerLoginPage() {
 
   return (
     <div className="mx-auto max-w-[420px] py-10">
-      <h1 className="text-[30px] leading-tight text-shop-ink">Shop admin</h1>
+      <h1 className="text-[22px] leading-tight text-shop-ink">Shop admin</h1>
       <p className="mt-2 text-[15px] text-shop-muted">
         Enter the owner passcode to add, edit and remove products. This is not a
         seller account — it reaches every product in the shop.

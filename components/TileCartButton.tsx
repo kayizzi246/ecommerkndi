@@ -44,7 +44,7 @@ export default function TileCartButton({
         // An outlined square beside the price. Quiet at rest so it does not
         // compete with forty others in a grid, orange on hover, and it presses
         // in on tap so the action is felt on a phone as well as seen.
-        : "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-150 active:scale-95";
+        : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-150 active:scale-95";
 
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
@@ -70,7 +70,7 @@ export default function TileCartButton({
   const filled =
     variant === "bar"
       ? `${base} bg-shop-ink text-white hover:bg-shop-primary`
-      : variant === "icon" ? `${base} border-shop-line bg-white text-shop-ink hover:border-shop-primary hover:text-shop-primary` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
+      : variant === "icon" ? `${base} border-shop-ink bg-white text-shop-ink hover:bg-shop-hairline` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
 
   if (needsOptions) {
     return (

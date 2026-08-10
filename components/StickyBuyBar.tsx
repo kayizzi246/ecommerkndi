@@ -64,7 +64,7 @@ export default function StickyBuyBar({
       // popping, and so screen readers are not handed a element that appears
       // and disappears from the tree as the page scrolls.
       aria-hidden={!visible}
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white transition-transform duration-200 lg:bottom-0 ${
+      className={`fixed inset-x-0 bottom-0 z-[60] border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] transition-transform duration-200 ${
         visible ? "translate-y-0" : "pointer-events-none translate-y-full"
       }`}
     >

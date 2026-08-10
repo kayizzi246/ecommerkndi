@@ -1,3 +1,4 @@
+import { DEFAULT_RATES, type DeliveryRates } from "@/lib/delivery";
 /**
  * Branding and promotional copy, editable in wp-admin under "Kandi Storefront"
  * (the `kandi-storefront-settings.php` plugin).
@@ -8,7 +9,7 @@
  */
 
 export type SiteSettings = {
-  brand: { name: string; suffix: string; tagline: string; logo_url: string };
+  brand: { name: string; suffix: string; tagline: string; logo_url: string; favicon_url: string };
   promo: { lines: string[]; cta_label: string; cta_url: string };
   ticker: string[];
   banner: { eyebrow: string; headline: string; cta_label: string; cta_url: string };
@@ -39,6 +40,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     suffix: "For Less",
     tagline: "Fashion for less, delivered across Uganda",
     logo_url: "",
+    favicon_url: "",
   },
   promo: {
     lines: [
@@ -120,6 +122,7 @@ function merge(raw: unknown): SiteSettings {
       tagline: str(brand.tagline, d.brand.tagline),
       // No fallback: an empty logo means "use the wordmark".
       logo_url: typeof brand.logo_url === "string" ? brand.logo_url.trim() : "",
+      favicon_url: typeof brand.favicon_url === "string" ? brand.favicon_url.trim() : "",
     },
     promo: {
       lines: list(promo.lines, d.promo.lines),
@@ -181,4 +184,39 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     // is never worth failing a page render over.
     return DEFAULT_SETTINGS;
   }
+}
+
+/* ------------------------------------------------------------------ delivery */
+
+/**
+ * The shop's delivery rates, from wp-admin.
+ *
+ * Kept out of `SiteSettings` deliberately. That object is fetched by the layout
+ * on every page and is fine to expose; these are pricing inputs and are only
+ * ever read on the server, inside the quote route and when an order is priced.
+ *
+ * Any field the shop has not set falls back to `DEFAULT_RATES`, so a fresh
+ * install quotes sensible Kampala figures rather than zero.
+ */
+export async function getDeliveryRates(): Promise<DeliveryRates> {
+  const settings = await getSiteSettings();
+  const raw = (settings as unknown as { delivery?: Partial<DeliveryRates> }).delivery ?? {};
+
+  const pick = (value: unknown, fallback: number) =>
+    Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : fallback;
+
+  return {
+    origin: {
+      lat: pick(raw.origin?.lat, DEFAULT_RATES.origin.lat),
+      lng: pick(raw.origin?.lng, DEFAULT_RATES.origin.lng),
+    },
+    baseFee: pick(raw.baseFee, DEFAULT_RATES.baseFee),
+    perKm: pick(raw.perKm, DEFAULT_RATES.perKm),
+    freeRadiusKm: pick(raw.freeRadiusKm, DEFAULT_RATES.freeRadiusKm),
+    maxFee: pick(raw.maxFee, DEFAULT_RATES.maxFee),
+    maxDistanceKm: pick(raw.maxDistanceKm, DEFAULT_RATES.maxDistanceKm),
+    // The free-delivery threshold is already a published commerce term, so it
+    // comes from there rather than being configured twice and drifting.
+    freeDeliveryFrom: settings.commerce.free_delivery_from,
+  };
 }

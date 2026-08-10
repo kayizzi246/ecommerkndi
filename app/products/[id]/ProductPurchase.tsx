@@ -68,7 +68,7 @@ export default function ProductPurchase({
 
   return (
     <>
-      <div className="flex flex-col gap-8 rounded-lg bg-white p-0 md:p-2 lg:flex-row lg:gap-12">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-6 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
         {/* Gallery, capped at 460px. It was running to 680px on a 58% column,
             which pushed the price, the variant pickers and Add to cart below
             the fold on a laptop — the photograph was winning the page from the
@@ -100,7 +100,7 @@ export default function ProductPurchase({
 
           {/* A product name, not a headline: the heading rule in globals.css
               would otherwise set it at 800 alongside the section titles. */}
-          <h1 className="font-normal-heading mt-2.5 text-[22px] leading-[1.3] text-shop-ink md:text-[25px]">
+          <h1 className="heading-800 mt-2.5 text-[19px] leading-[1.35] text-shop-ink md:text-[21px]">
             {product.name}
           </h1>
 

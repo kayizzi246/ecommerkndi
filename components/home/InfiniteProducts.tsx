@@ -88,7 +88,7 @@ export default function InfiniteProducts({
           images shrink faster than the row gains anything, and on a fashion
           storefront the photograph is the product. Gaps are tight on purpose —
           a dense grid reads as a catalogue with depth to it. */}
-      <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

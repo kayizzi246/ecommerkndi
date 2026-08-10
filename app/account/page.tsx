@@ -78,7 +78,7 @@ export default function AccountOverview() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">
+        <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">
           Hi {customer?.name.split(" ")[0]} 👋
         </h1>
         <p className="mt-1 text-[15px] text-shop-muted">
@@ -184,7 +184,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
       <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-muted">
         {label}
       </p>
-      <p className={`mt-1.5 text-[24px] font-semibold leading-none ${tone}`}>{value}</p>
+      <p className={`mt-1.5 text-[19px] font-semibold leading-none ${tone}`}>{value}</p>
     </div>
   );
 }
