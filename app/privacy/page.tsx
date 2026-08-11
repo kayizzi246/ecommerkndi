@@ -4,6 +4,7 @@ import InfoPage, { InfoSection } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy policy",
   description: "What Kandi UG collects, why, and what you can ask us to delete.",
 };
@@ -44,6 +45,34 @@ export default async function PrivacyPage() {
           <li>We do not store card numbers. Card payments are handled by the payment provider.</li>
           <li>We do not email you marketing you did not ask for.</li>
         </ul>
+      </InfoSection>
+
+      <InfoSection title="Cookies and what your browser stores" id="cookies">
+        <p>
+          We use the minimum a shop can work with, and nothing else. There are{" "}
+          <strong>no advertising cookies and no third-party trackers</strong> on this site — no
+          Google Analytics, no Facebook pixel, nothing that follows you to another website.
+        </p>
+        <ul>
+          <li>
+            <strong>Sign-in cookie</strong> — set when you sign in, so you stay signed in. It is
+            readable only by our server, never by scripts in your browser, and it expires by
+            itself.
+          </li>
+          <li>
+            <strong>Your basket, wishlist and recently viewed</strong> — kept in your own browser,
+            not on our servers, so your cart survives closing the tab.
+          </li>
+          <li>
+            <strong>Preferences</strong> — the departments you picked when you first arrived, and
+            whether you have dismissed a notice like the cookie one.
+          </li>
+        </ul>
+        <p>
+          All of it is strictly necessary or set by you, which is why there is no consent form to
+          fill in. Clearing your browser&apos;s site data removes every one of them, and the shop
+          still works — you will just be signed out with an empty basket.
+        </p>
       </InfoSection>
 
       <InfoSection title="Who else sees your data">

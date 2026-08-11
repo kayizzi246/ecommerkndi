@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/currency";
 import EarningsCalculator from "./EarningsCalculator";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/sell" },
   title: "Sell on Kandi",
   description:
     "Open a store on Kandi and reach shoppers across Uganda. No listing fees, one flat commission, and payouts you request yourself.",

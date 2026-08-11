@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
-import { absolute } from "@/lib/seo";
+import { absolute, breadcrumbJsonLd } from "@/lib/seo";
 import { sortProducts, filterProducts, brandFacets } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
@@ -87,6 +87,22 @@ export default async function CategoryPage({
 
   return (
     <main className="w-full px-4 pb-24 pt-4 md:px-8 lg:pb-12">
+      {/* The same trail as the visible breadcrumbs below, in the form Google
+          reads. It is what turns "kandiug.com › category › men" in a result
+          into "Home › Men", and it tells a crawler where this page sits in the
+          shop rather than leaving it to guess from the URL. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: title, path: `/category/${slug}` },
+            ])
+          ),
+        }}
+      />
+
       {/* Breadcrumbs */}
       <nav className="mb-5 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
@@ -150,7 +166,7 @@ export default async function CategoryPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

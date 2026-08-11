@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import TrackOrderPanel from "./TrackOrderPanel";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Track your order",
   description: "See where your Kandi UG order has got to.",
 };

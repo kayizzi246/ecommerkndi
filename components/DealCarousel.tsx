@@ -24,7 +24,7 @@ export type DealTone = "orange" | "red" | "green" | "blue" | "violet";
 export default function DealCarousel({
   products,
   /** Tailwind width classes for one item — controls how many are visible. */
-  itemWidth = "w-[46%] sm:w-[30%] md:w-[23%] lg:w-[18%] xl:w-[15.5%]",
+  itemWidth = "w-[47.5%] sm:w-[30%] md:w-[23%] lg:w-[18%] xl:w-[15.5%]",
   /** Background the edge fades into; match the rail's own surface. */
   fadeFrom = "from-white",
 }: {
@@ -75,7 +75,7 @@ export default function DealCarousel({
       <div
         ref={attach}
         onScroll={sync}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-1 no-scrollbar"
+        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-2"
       >
         {products.map((product) => (
           <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>

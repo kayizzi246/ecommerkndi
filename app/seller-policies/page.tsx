@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/seller-policies" },
   title: "Seller policies",
   description: "The rules for selling on the Kandi UG marketplace.",
 };

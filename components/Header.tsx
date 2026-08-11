@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
@@ -39,11 +39,48 @@ export default function Header({
   const { count, subtotal, openDrawer } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  /**
+   * True once the page has been scrolled past the masthead's own height.
+   *
+   * On a phone the full masthead — promo strip, logo row, search, department
+   * bar — is close to 200px, and all of it is sticky, so a shopper scrolling a
+   * product grid was reading it through a letterbox. Past that first scroll the
+   * strip and the department bar fold away and the logo steps aside, leaving a
+   * single slim row: the search field at full width, the cart, the menu. Search
+   * is the thing worth keeping pinned in a catalogue this size.
+   *
+   * Desktop is untouched — there is room for the whole masthead there.
+   */
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    // Reading scrollY in the handler and acting in a frame keeps this off the
+    // scroll thread; the listener is passive so it can never block one.
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        // Hysteresis: collapsing and expanding at the same pixel makes the row
+        // flicker for anyone resting at the boundary.
+        setScrolled((current) => (current ? window.scrollY > 60 : window.scrollY > 120));
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
   const threshold = settings.commerce.free_delivery_from;
   const awayFromFreeDelivery = Math.max(0, threshold - subtotal);
 
   return (
-    <header className="sticky top-0 z-40 bg-white">
+    // Once the department bar folds away there is no rule between the masthead
+    // and the grid scrolling under it, so a shadow takes over that job.
+    <header className={`sticky top-0 z-40 bg-white ${scrolled ? "shadow-sm md:shadow-none" : ""}`}>
       {/* ---- Announcement strip ----
            A near-black rule across the top. It was white on white, which meant
            the shop's three strongest promises — pay on delivery, free returns,
@@ -54,8 +91,8 @@ export default function Header({
            live free-delivery progress, which is the more useful message. Every
            figure is real: the threshold from settings, the shopper's own
            subtotal, the payment methods actually accepted at checkout. */}
-      <div className="bg-shop-nav text-white/80">
-        <div className="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
+      <div className={`bg-shop-nav text-white/80 ${scrolled ? "hidden md:block" : ""}`}>
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
@@ -93,8 +130,15 @@ export default function Header({
            takes the whole middle of the row and grows with the window instead
            of sitting at a fixed width. Below md it wraps to its own line. */}
       <div className="bg-white">
-      <div className="mx-auto flex max-w-[1450px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3.5 md:flex-nowrap md:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
+      <div
+        className={`mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 md:flex-nowrap md:px-8 md:py-3.5 ${
+          scrolled ? "py-2" : "py-3.5"
+        }`}
+      >
+        <Link
+          href="/"
+          className={`shrink-0 items-center gap-2 md:flex ${scrolled ? "hidden" : "flex"}`}
+        >
           {settings.brand.logo_url ? (
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
@@ -168,11 +212,17 @@ export default function Header({
             Orders and Favorites used to sit to its right; they were four small
             targets competing with the one large one, and all four live in the
             account menu and the footer already. */}
-        <div className="order-last w-full min-w-0 flex-1 md:order-none">
+        {/* Full width on a phone either way — on its own line at rest, and
+            beside the cart once the logo has stepped aside. */}
+        <div
+          className={`w-full min-w-0 flex-1 md:order-none ${scrolled ? "order-none" : "order-last"}`}
+        >
           <SearchBar />
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-5 md:ml-0">
+        <div
+          className={`flex shrink-0 items-center gap-5 md:ml-0 ${scrolled ? "" : "ml-auto"}`}
+        >
           <div className="hidden lg:block">
             <AccountMenu />
           </div>
@@ -231,8 +281,12 @@ export default function Header({
            on from it. Nothing here is a coloured slab: the row is a list of
            links, and the only colour is the one deal link that earns it. */}
       {!hideNavRow && (
-        <nav className="border-b border-shop-line bg-white text-shop-body">
-          <div className="mx-auto flex max-w-[1450px] items-center gap-2 px-4 md:px-8">
+        <nav
+          className={`border-b border-shop-line bg-white text-shop-body ${
+            scrolled ? "hidden md:block" : ""
+          }`}
+        >
+          <div className="mx-auto flex max-w-[1600px] items-center gap-2 px-4 md:px-8">
             {/* The mega-menu is a hover surface, which needs a pointer; below lg
                 the button beside it opens the same tree as a stacked panel. */}
             <div className="hidden lg:block">
@@ -252,6 +306,17 @@ export default function Header({
             </button>
 
             <CuratedNav departments={departments} className="flex-1" />
+
+            {/* The only permanent seller entry point on the shopper-facing
+                chrome. It earns its place: a marketplace with no visible way in
+                grows only as fast as somebody remembers to recruit, and this
+                costs one link at the end of a row that has room for it. */}
+            <Link
+              href="/sell"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-3 text-[14px] font-semibold text-shop-primary hover:text-shop-primary-dark lg:block"
+            >
+              Sell on Kandi
+            </Link>
 
             <Link
               href="/sellers"
@@ -280,7 +345,7 @@ export default function Header({
             className="fixed inset-0 z-10 cursor-default bg-black/20"
           />
           <div className="absolute inset-x-0 z-20 max-h-[75vh] overflow-y-auto border-b border-shop-line bg-white">
-            <div className="mx-auto max-w-[1450px] px-4 py-6 md:px-8">
+            <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-8">
               {departments.length === 0 ? (
                 <p className="py-4 text-[14px] text-shop-muted">
                   No departments yet — add product categories in WordPress and

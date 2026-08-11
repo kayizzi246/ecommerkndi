@@ -15,8 +15,13 @@ export default function DeliveryPromise({ className = "" }: { className?: string
   const [day, setDay] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
+  // Both values are client-only — one comes from localStorage, the other from
+  // the viewer's clock — so they are read after mount rather than during render,
+  // which is what keeps the server and client markup identical. That makes the
+  // single update on mount deliberate, hence the waiver.
   useEffect(() => {
     const saved = readShopperPreferences();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved?.city && CITIES.includes(saved.city)) setCity(saved.city);
 
     const tomorrow = new Date();

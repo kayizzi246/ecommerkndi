@@ -61,7 +61,8 @@ export default function AccountSettings() {
               alt=""
               width={64}
               height={64}
-              className="h-16 w-16 rounded-full"
+              unoptimized
+              className="h-16 w-16 rounded-full object-cover"
             />
           ) : (
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-shop-primary-soft text-[19px] font-semibold text-shop-primary">

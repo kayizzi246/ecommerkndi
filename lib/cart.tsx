@@ -56,9 +56,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // The saved basket is read once, after mount, and deliberately not during
+  // render: the server has no localStorage, so a cart restored during render
+  // would make the server and client markup disagree and React would throw the
+  // whole tree away. One update on mount is the cost of that, and it is why the
+  // set-state-in-effect rule is waived here rather than worked around.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setItems(JSON.parse(raw));
     } catch {
       // ignore corrupted storage

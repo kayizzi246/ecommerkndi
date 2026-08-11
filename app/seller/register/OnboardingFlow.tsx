@@ -5,6 +5,7 @@ import { useState } from "react";
 import { sellerApi, type Seller } from "@/lib/seller";
 import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
+import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
 
 const CATEGORIES = [
   "Shoes & footwear",
@@ -83,6 +84,12 @@ export default function OnboardingFlow({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<Seller | null>(null);
+  /**
+   * The account exists but its email address is still unproven, so the code
+   * screen stands between here and the confirmation. Registration already sent
+   * the code; nothing else about the account works until it comes back.
+   */
+  const [verifying, setVerifying] = useState(false);
 
   const set = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -148,12 +155,29 @@ export default function OnboardingFlow({
         category: form.category,
       });
       setCreated(seller);
+      setVerifying(!seller.email_verified);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Registration failed.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (created && verifying) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[440px]">
+          <VerifyEmailCard
+            email={form.email.trim()}
+            onVerified={() => setVerifying(false)}
+          />
+          <p className="mt-4 text-center text-[13px] text-shop-muted">
+            Your store is saved — this only confirms we can reach you.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (created) {
     return (

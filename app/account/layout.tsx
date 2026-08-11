@@ -92,7 +92,8 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                 alt=""
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-full"
+                unoptimized
+                className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-shop-primary-soft text-[19px] font-semibold text-shop-primary">

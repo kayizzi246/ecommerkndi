@@ -7,6 +7,7 @@ import { sellerApi } from "@/lib/seller";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import { useSellerSession } from "@/lib/seller-session";
 import { useCategories, categoryOptions } from "@/lib/use-categories";
+import ImageUploader from "../ImageUploader";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -29,7 +30,10 @@ export default function NewProductPage() {
   const [stock, setStock] = useState("1");
   const [sizes, setSizes] = useState("");
   const [colors, setColors] = useState("");
-  const [imageUrls, setImageUrls] = useState("");
+  // Photos are uploaded as they are picked, so this holds media-library URLs,
+  // not files — the form only ever submits what has already landed.
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +63,14 @@ export default function NewProductPage() {
       setError("The sale price must be lower than the regular price.");
       return;
     }
+    if (uploading) {
+      setError("Wait for the photos to finish uploading.");
+      return;
+    }
+    if (imageUrls.length === 0) {
+      setError("Add at least one photo — listings without a picture do not sell.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -73,7 +85,7 @@ export default function NewProductPage() {
         stock_quantity: Number(stock) || 0,
         sizes: splitList(sizes),
         colors: splitList(colors),
-        image_urls: splitList(imageUrls),
+        image_urls: imageUrls,
       });
       router.push("/seller/products");
     } catch (caught) {
@@ -206,19 +218,8 @@ export default function NewProductPage() {
           </Section>
 
           {/* Images */}
-          <Section title="Images">
-            <Field
-              label="Image URLs"
-              hint="One per line. The first becomes the main image; the rest fill the gallery."
-            >
-              <textarea
-                rows={4}
-                value={imageUrls}
-                onChange={(e) => setImageUrls(e.target.value)}
-                placeholder={"https://…/front.jpg\nhttps://…/back.jpg"}
-                className={INPUT}
-              />
-            </Field>
+          <Section title="Photos">
+            <ImageUploader onChange={setImageUrls} onBusyChange={setUploading} />
           </Section>
 
           {error && (
@@ -251,8 +252,12 @@ export default function NewProductPage() {
               </div>
             </dl>
 
-            <button type="submit" disabled={submitting} className="btn-bfl mt-5 w-full py-3 text-[15px]">
-              {submitting ? "Submitting…" : "Submit for approval"}
+            <button
+              type="submit"
+              disabled={submitting || uploading}
+              className="btn-bfl mt-5 w-full py-3 text-[15px]"
+            >
+              {submitting ? "Submitting…" : uploading ? "Uploading photos…" : "Submit for approval"}
             </button>
 
             <Link

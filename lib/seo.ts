@@ -14,7 +14,14 @@ import type { Product, ProductCategory } from "@/lib/woocommerce";
  * is a manual-action risk with Google, not a shortcut.
  */
 
-/** The shop's public origin, for canonical and absolute URLs. */
+/**
+ * The shop's public origin, for canonical and absolute URLs.
+ *
+ * Every canonical tag, sitemap entry and Open Graph image on the site is built
+ * from this. If it is wrong, the live shop tells Google its pages live at an
+ * address nobody can reach — so a production build with no origin configured
+ * complains loudly in the log rather than shipping localhost in silence.
+ */
 export function siteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/$/, "");
@@ -22,8 +29,20 @@ export function siteUrl(): string {
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
   if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
 
+  if (process.env.NODE_ENV === "production" && !warnedAboutOrigin) {
+    warnedAboutOrigin = true;
+    console.warn(
+      "[kandi-store] NEXT_PUBLIC_SITE_URL is not set, so canonical URLs and " +
+        "sitemap.xml will point at localhost and the site will not be indexed. " +
+        "Set it to the shop's public URL, e.g. https://kandiug.com"
+    );
+  }
+
   return "http://localhost:3000";
 }
+
+/** Warn once per process, not once per rendered page. */
+let warnedAboutOrigin = false;
 
 export function absolute(path: string): string {
   return `${siteUrl()}${path.startsWith("/") ? path : `/${path}`}`;

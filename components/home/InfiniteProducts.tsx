@@ -84,11 +84,14 @@ export default function InfiniteProducts({
 
   return (
     <>
-      {/* Five across at most, even on a very wide screen. Beyond five the
-          images shrink faster than the row gains anything, and on a fashion
-          storefront the photograph is the product. Gaps are tight on purpose —
-          a dense grid reads as a catalogue with depth to it. */}
-      <ul className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-5">
+      {/* Six across on a desktop, stepping down to two on a phone. At the
+          1600px shell six columns leave each photograph around 255px, which is
+          comfortably above the size a fashion tile stops reading at, and the
+          extra column puts a third more stock on the first screen. Gaps are
+          tight on purpose, and tighter still on a phone: a dense grid reads as
+          a catalogue with depth, and 6px between two columns is all it takes to
+          tell them apart on a 390px screen. */}
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

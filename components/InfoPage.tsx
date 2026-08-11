@@ -51,12 +51,17 @@ export default function InfoPage({
 export function InfoSection({
   title,
   children,
+  /** Anchor target, for sections other pages link straight to. */
+  id,
 }: {
   title: string;
   children: React.ReactNode;
+  id?: string;
 }) {
   return (
-    <section>
+    // `scroll-mt` clears the sticky masthead — without it an anchored section
+    // lands underneath the header and reads as the wrong section entirely.
+    <section id={id} className={id ? "scroll-mt-32" : undefined}>
       <h2 className="text-[20px] font-extrabold text-shop-ink">{title}</h2>
       <div className="mt-2.5 max-w-[70ch] space-y-3 text-[16px] leading-relaxed text-shop-body [&_a]:font-semibold [&_a]:text-shop-primary [&_a:hover]:underline [&_li]:my-1 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
         {children}

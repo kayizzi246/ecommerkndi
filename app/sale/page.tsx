@@ -6,7 +6,15 @@ import SortDropdown from "@/components/SortDropdown";
 import Pagination from "@/components/Pagination";
 import FlashSaleCountdown from "@/components/FlashSaleCountdown";
 
-export const metadata = { title: "Super Price Store" };
+export const metadata = {
+  title: "Super Price Store",
+  description:
+    "Everything currently reduced on Kandi — the biggest discounts in the shop, updated as prices change. Pay on delivery across Uganda.",
+  // Page 2 and beyond of the same list, and every sort order of it, are the
+  // same products in a different arrangement. They all point back here so the
+  // ranking lands on one URL instead of being split across a dozen.
+  alternates: { canonical: "/sale" },
+};
 
 export default async function SalePage({
   searchParams,
@@ -71,7 +79,7 @@ export default async function SalePage({
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

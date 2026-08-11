@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/terms" },
   title: "Terms & conditions",
   description: "The terms you agree to when you shop with Kandi UG.",
 };

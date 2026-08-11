@@ -27,6 +27,8 @@ export type Seller = {
   fee_amount: number;
   /** The reference the seller quotes when paying. */
   fee_reference: string;
+  /** False until the six-digit code emailed at sign-up has been entered. */
+  email_verified: boolean;
 };
 
 export type SellerStats = {
@@ -60,7 +62,10 @@ export type SellerProduct = {
   sale_price: number | null;
   stock_status: "instock" | "outofstock" | "onbackorder";
   stock_quantity: number | null;
+  /** Main photo, thumbnail size — what the product list renders. */
   image: string;
+  /** Every photo at full size, main first. What the editor loads and sends back. */
+  images: string[];
   categories: string[];
   units_sold: number;
   created_at: string;
@@ -78,6 +83,8 @@ export type SellerOrder = {
   id: number;
   number: string;
   status: string;
+  /** Whether this seller has confirmed they are packing their part. */
+  accepted: boolean;
   customer: string;
   city: string;
   date: string;
@@ -126,10 +133,18 @@ export type NewProductInput = {
 
 export class SellerApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /**
+   * WordPress's own error slug — `kandi_unverified`, `kandi_rate_limited` and
+   * so on. The UI branches on this rather than on the wording, so rephrasing a
+   * message in the plugin cannot quietly break a screen over here.
+   */
+  code: string;
+
+  constructor(message: string, status: number, code = "") {
     super(message);
     this.name = "SellerApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -149,13 +164,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       (payload as { message?: string; error?: string }).message ??
       (payload as { error?: string }).error ??
       `Request failed (${response.status})`;
-    throw new SellerApiError(message, response.status);
+    throw new SellerApiError(
+      message,
+      response.status,
+      (payload as { code?: string }).code ?? ""
+    );
   }
 
   return payload as T;
 }
 
+/**
+ * Uploads one product photo and returns its media-library URL, which is then
+ * passed to createProduct/updateProduct as an entry in `image_urls`.
+ *
+ * Deliberately outside `request`: that helper forces a JSON content type, and
+ * a multipart body must carry the boundary fetch generates for it.
+ */
+async function uploadImage(file: File): Promise<{ id: number; url: string }> {
+  const body = new FormData();
+  body.append("file", file);
+
+  const response = await fetch("/api/seller/media", { method: "POST", body });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      (payload as { message?: string }).message ?? `Upload failed (${response.status})`;
+    throw new SellerApiError(message, response.status, (payload as { code?: string }).code ?? "");
+  }
+
+  return payload as { id: number; url: string };
+}
+
 export const sellerApi = {
+  uploadImage,
+
   login: (email: string, password: string) =>
     request<{ seller: Seller }>("/login", {
       method: "POST",
@@ -176,6 +220,19 @@ export const sellerApi = {
     request<{ seller: Seller; message: string }>("/register", {
       method: "POST",
       body: JSON.stringify(input),
+    }),
+
+  /** Exchanges the emailed code for a session — this signs the seller in. */
+  verify: (email: string, code: string) =>
+    request<{ seller: Seller }>("/verify", {
+      method: "POST",
+      body: JSON.stringify({ email, code }),
+    }),
+
+  resendCode: (email: string) =>
+    request<{ ok: true; message: string }>("/verify/resend", {
+      method: "POST",
+      body: JSON.stringify({ email }),
     }),
 
   me: () => request<{ seller: Seller }>("/me"),
@@ -201,6 +258,13 @@ export const sellerApi = {
 
   orders: (status = "any") =>
     request<{ orders: SellerOrder[] }>(`/orders?status=${encodeURIComponent(status)}`),
+
+  /** Confirms the seller has the stock and is packing their part of an order. */
+  acceptOrder: (id: number) =>
+    request<{ ok: true; accepted: boolean; status: string }>(`/orders/${id}/accept`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
 
   commissions: (range: string) =>
     request<CommissionSummary>(`/commissions?range=${encodeURIComponent(range)}`),

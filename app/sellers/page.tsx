@@ -5,6 +5,7 @@ import { getStores } from "@/lib/woocommerce";
 import InfoPage, { InfoFooterCta } from "@/components/InfoPage";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/sellers" },
   title: "Shop by store",
   description: "Browse the independent Ugandan stores selling on Kandi.",
 };

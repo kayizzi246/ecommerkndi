@@ -186,6 +186,63 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   }
 }
 
+/* ------------------------------------------------------------------- favicon */
+
+/** Beyond this ratio an image is a wordmark, not an icon. */
+const MAX_ICON_RATIO = 1.6;
+
+/** Reads width and height out of a PNG's IHDR, which is always the first chunk. */
+function pngSize(bytes: Uint8Array): { width: number; height: number } | null {
+  const isPng =
+    bytes.length >= 24 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47;
+  if (!isPng) return null;
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { width: view.getUint32(16), height: view.getUint32(20) };
+}
+
+/**
+ * The favicon to advertise, or null to fall back to the icons shipped in `app/`.
+ *
+ * A browser paints the tab icon into a 16px square. Given a wide image it either
+ * squashes it or, in several browsers, gives up and shows nothing — which is
+ * exactly what happened here: the shop had uploaded its 1584×512 wordmark to the
+ * favicon field, and the tab came up blank while the file itself was perfectly
+ * valid. So a non-square upload is declined in favour of the built-in mark
+ * rather than passed on to be mangled.
+ *
+ * Only PNGs are measured. `.ico` and `.svg` are formats made for this slot and
+ * are trusted; anything else is trusted too, on the grounds that guessing wrong
+ * about a shop's own branding is worse than an odd-looking tab.
+ *
+ * The response is cached for an hour, so this costs one request per hour rather
+ * than one per render, and a failure just falls back — a favicon is never worth
+ * failing a page over.
+ */
+export async function getFaviconUrl(): Promise<string | null> {
+  const { favicon_url: url } = (await getSiteSettings()).brand;
+  if (!url) return null;
+
+  if (!/\.png(\?|$)/i.test(url)) return url;
+
+  try {
+    const response = await fetch(url, { next: { revalidate: 3600 } });
+    if (!response.ok) return null;
+
+    const size = pngSize(new Uint8Array(await response.arrayBuffer()));
+    if (!size || size.width === 0 || size.height === 0) return url;
+
+    const ratio = Math.max(size.width / size.height, size.height / size.width);
+    return ratio > MAX_ICON_RATIO ? null : url;
+  } catch {
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ delivery */
 
 /**

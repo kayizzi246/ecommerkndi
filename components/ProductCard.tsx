@@ -55,21 +55,23 @@ function Stars({ rating }: { rating: number }) {
  * The one product card the whole store uses — every grid, rail and carousel.
  *
  * Chrome-free: no border, no shadow, no card background. The photograph sits on
- * the page and the detail beneath it is small and tight, so a grid of forty
- * reads as a catalogue rather than forty floating panels. Whitespace separates.
+ * white and the detail beneath it is tight, so a grid of forty reads as a
+ * catalogue rather than forty floating panels. Whitespace separates.
  *
- * The order is the dense-marketplace one:
+ * The order is the one every large marketplace has converged on, and it is an
+ * order of decreasing importance rather than a description of the product:
  *
- *   image → tag chips inline with a one-line name → price, sold count, cart →
- *   why-this-product → stars and review count → the delivery promise.
+ *   image → name → price, was-price and discount on one line →
+ *   rating and units sold → the delivery promise.
  *
- * The name is deliberately one line. Supplier titles run to ninety characters of
- * keyword soup; two lines of it pushes the price down and tells a shopper
- * nothing the first six words did not.
+ * The price leads the text because it is what a shopper scans a grid for. It is
+ * set large and bold, with the struck-through original and the saving beside it
+ * rather than on a line of their own — the three numbers only mean anything
+ * read together, and splitting them costs a line of vertical space in a tile
+ * that has none to spare.
  *
  * Colour is rationed: the resting price is near-black and only a discounted one
- * turns red, so red still means something; orange marks the one promotional
- * line; green is delivery and nothing else.
+ * turns red, so red still means something; green is delivery and nothing else.
  *
  * Every figure comes from WooCommerce, and each line disappears when there is no
  * number behind it rather than printing a zero.
@@ -87,17 +89,21 @@ export default function ProductCard({ product }: { product: Product }) {
   const category = product.categories[0];
 
   return (
-    <article className="group relative flex h-full flex-col rounded-lg border border-transparent p-1 transition-colors hover:border-shop-line">
+    <article className="group relative flex h-full flex-col rounded-lg border border-transparent p-0.5 transition-colors hover:border-shop-line sm:p-1">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
+          {/* 4:5 rather than square. Clothes and shoes are photographed
+              standing up, and a square crop of a portrait shot spends its
+              height on floor and ceiling — the extra 25% goes to the garment,
+              which on a phone is most of what the shopper can see at all. */}
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <Image
                 src={product.image}
                 alt={product.name}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
                 loading="lazy"
                 className={`object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
                   soldOut ? "opacity-50" : ""
@@ -116,19 +122,16 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         </Link>
 
-        {soldOut ? (
+        {soldOut && (
           <span className="absolute left-2 top-2 rounded bg-shop-ink px-2 py-0.5 text-[11px] font-semibold text-white">
             Sold out
           </span>
-        ) : discount > 0 ? (
-          /* A round medallion rather than a corner flag: it reads as a stamp
-             on the photograph, and the percentage is the one number worth
-             shouting on a discounted product. */
-          <span className="absolute right-1 top-1 flex h-14 w-14 flex-col items-center justify-center rounded-full border-2 border-white bg-shop-primary text-center leading-none text-white">
-            <span className="text-[14px] font-bold">{discount}%</span>
-            <span className="text-[10px]">OFF</span>
-          </span>
-        ) : null}
+        )}
+        {/* The discount used to be stamped across the photograph as a 56px
+            orange medallion. It now lives beside the price instead: the saving
+            is a number to read next to the two other numbers it relates to, and
+            forty medallions across a grid covered forty products with the same
+            piece of orange. The photographs are the point of the page. */}
 
         {/* The reference card carries no heart, so it appears on hover — and on
             focus, so it stays reachable from the keyboard. Wishlisting is real
@@ -144,13 +147,22 @@ export default function ProductCard({ product }: { product: Product }) {
             iconClassName="w-[16px] h-[16px]"
           />
         </div>
+
+        {/* Add-to-bag rides the corner of the photograph rather than sitting in
+            the text below it. It buys back a whole line of the tile, and it is
+            where a thumb already is after tapping the picture. */}
+        <div className="absolute bottom-2 right-2 rounded-full bg-white/95 shadow-sm backdrop-blur-sm">
+          <TileCartButton product={product} />
+        </div>
       </div>
 
-      {/* ---- Detail ---- */}
-      <div className="mt-2 flex flex-1 flex-col gap-[5px]">
+      {/* ---- Detail ----
+           Tight on purpose: every pixel between these five short lines is a
+           pixel of photograph the next row does not get. */}
+      <div className="mt-1.5 flex flex-1 flex-col gap-1">
         {/* Chips run inline with the name, so a tag costs no vertical space. */}
         <Link href={href} className="block">
-          <h3 className="font-normal-heading line-clamp-2 text-[13px] leading-[17px] text-shop-title transition-colors hover:text-shop-primary">
+          <h3 className="font-normal-heading line-clamp-2 text-[14px] leading-[19px] text-shop-ink transition-colors hover:text-shop-primary">
             <span className="mr-1 inline-block rounded-[3px] border border-shop-success/50 px-1 align-[1px] text-[10px] font-semibold text-shop-success">
               Local
             </span>
@@ -158,57 +170,72 @@ export default function ProductCard({ product }: { product: Product }) {
           </h3>
         </Link>
 
-        {/* Price, units sold and the action on one line. */}
-        <div className="flex items-center justify-between gap-2">
-          <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
-            <span
-              className="price text-[16px] leading-none text-shop-ink"
-            >
-              {formatPrice(product.price)}
-            </span>
+        {/* The money, all on one line: what it costs, what it cost, what that
+            saves. A discounted price turns red — the one place red is allowed —
+            because at a glance the colour is the discount. */}
+        <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+          <span
+            className={`price text-[19px] leading-none ${
+              discount > 0 ? "text-shop-sale" : "text-shop-ink"
+            }`}
+          >
+            {formatPrice(product.price)}
+          </span>
+          {discount > 0 && (
+            <>
+              <span className="text-[12.5px] leading-none text-shop-faint line-through">
+                {formatPrice(product.regular_price)}
+              </span>
+              <span className="text-[12.5px] font-bold leading-none text-shop-sale">
+                −{discount}%
+              </span>
+            </>
+          )}
+        </p>
+
+        {/* Rating and units sold on one line — the two numbers a shopper uses to
+            decide whether anyone else has taken the risk first. */}
+        {(product.rating_count > 0 || product.total_sales > 0) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {product.rating_count > 0 && (
+              <span className="flex items-center gap-1">
+                <Stars rating={product.average_rating} />
+                <span className="text-[12.5px] font-semibold text-shop-body">
+                  {product.average_rating.toFixed(1)}
+                </span>
+              </span>
+            )}
             {product.total_sales > 0 && (
-              <span className="text-[12px] leading-none text-shop-muted">
+              <span className="text-[12.5px] font-medium text-shop-muted">
                 {compactSold(product.total_sales)} sold
               </span>
             )}
-          </p>
-          <TileCartButton product={product} />
-        </div>
-
-        {discount > 0 && (
-          <p className="text-[12px] leading-tight text-shop-muted">
-            Was: <span className="line-through">{formatPrice(product.regular_price)}</span>
-          </p>
+          </div>
         )}
 
         {/* One promotional line, earned from real figures rather than pasted on
             every card. Orange is reserved for this. */}
         {!soldOut && product.total_sales >= 50 && category ? (
-          <p className="truncate text-[12px] text-shop-primary">
-            Best Seller <span className="text-shop-body">in {category.name}</span>
+          <p className="truncate text-[12.5px] font-medium text-shop-primary">
+            Best Seller <span className="font-normal text-shop-body">in {category.name}</span>
           </p>
         ) : !soldOut && isNew(product) && category ? (
-          <p className="truncate text-[12px] text-shop-primary">
-            New Arrival <span className="text-shop-body">in {category.name}</span>
+          <p className="truncate text-[12.5px] font-medium text-shop-primary">
+            New Arrival <span className="font-normal text-shop-body">in {category.name}</span>
           </p>
         ) : null}
 
-        {product.rating_count > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Stars rating={product.average_rating} />
-            <span className="text-[12px] text-pop-blue">{product.average_rating.toFixed(1)}</span>
-          </div>
-        )}
-
-        <p className="mt-auto pt-0.5 text-[12px] text-shop-success">
+        <p className="mt-auto pt-0.5 text-[12.5px] font-medium text-shop-success">
           {soldOut ? (
             "Back in stock soon"
           ) : lowStock ? (
-            <span className="flex items-center gap-1.5 font-medium text-shop-sale">
+            <span className="flex items-center gap-1.5 text-shop-sale">
               <span className="live-dot h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
               Only {product.stock_quantity} left
             </span>
           ) : (
+            /* Not "free delivery" — that depends on the basket total, and a tile
+               cannot know it. Promising it here would be a lie on most orders. */
             "Fastest delivery: 1 business day"
           )}
         </p>

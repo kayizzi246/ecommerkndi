@@ -15,6 +15,7 @@ import Link from "next/link";
  * to be reachable by keyboard and readable by a screen reader.
  */
 const TILES: {
+  /** The reason to click, in as few words as fit on one line. */
   title: string;
   copy: string;
   href: string;
@@ -22,35 +23,40 @@ const TILES: {
   /** Which breakpoint this tile survives down to. */
   visibility?: string;
 }[] = [
+  // Every tile leads on the number or the promise, not on the department name:
+  // "Up to 80% OFF" is a reason to click, "Super Deals" is a label for one. The
+  // second line carries the thing that removes the risk — a deadline, a price
+  // floor, pay on delivery — because in this market hesitation, not interest,
+  // is what loses the sale.
   {
-    title: "Super Deals",
-    copy: "Up to 80% off",
+    title: "Up to 80% OFF",
+    copy: "Super Deals — lowest prices",
     href: "/sale",
-    className: "bg-shop-primary text-white",
+    className: "bg-gradient-to-br from-shop-primary to-shop-ember text-white",
   },
   {
-    title: "Flash Deals",
-    copy: "Ending tonight",
+    title: "Flash Sale",
+    copy: "Ends tonight at midnight",
     href: "/sale",
     className: "bg-shop-sale text-white",
   },
   {
-    title: "New Arrivals",
-    copy: "Fresh this week",
+    title: "Just Landed",
+    copy: "New styles every week",
     href: "/search?sort=newest",
     className: "bg-shop-ink text-white",
   },
   {
     title: "Best Sellers",
-    copy: "What everyone buys",
+    copy: "What Uganda is buying",
     href: "/search?sort=popular",
     className: "bg-shop-success text-white",
     visibility: "hidden md:flex",
   },
   {
-    title: "Shop by store",
-    copy: "Trusted sellers",
-    href: "/sellers",
+    title: "Pay on Delivery",
+    copy: "Check it, then pay",
+    href: "/help",
     className: "border border-shop-line bg-white text-shop-ink",
     visibility: "hidden lg:flex",
   },
@@ -64,9 +70,9 @@ export default function PromoTiles() {
           <li key={tile.title} className={tile.visibility}>
             <Link
               href={tile.href}
-              className={`flex h-full flex-col items-center justify-center rounded-lg px-3 py-4 text-center transition-opacity hover:opacity-90 ${tile.className}`}
+              className={`flex h-full flex-col items-center justify-center rounded-lg px-3 py-4 text-center transition-transform duration-150 hover:-translate-y-0.5 hover:opacity-95 ${tile.className}`}
             >
-              <span className="font-heading text-[14px] font-bold leading-tight">
+              <span className="font-heading text-[15px] font-bold leading-tight md:text-[16px]">
                 {tile.title}
               </span>
               <span className="mt-0.5 text-[12px] opacity-90">{tile.copy}</span>

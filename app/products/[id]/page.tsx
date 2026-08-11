@@ -148,7 +148,7 @@ export default async function ProductPage({
   ];
 
   return (
-    <main className="mx-auto max-w-[1450px] px-4 pb-24 pt-5 md:px-8 lg:pb-16">
+    <main className="mx-auto max-w-[1600px] px-4 pb-24 pt-5 md:px-8 lg:pb-16">
       <script
         type="application/ld+json"
         // The payload is built from our own typed data, never from user input,

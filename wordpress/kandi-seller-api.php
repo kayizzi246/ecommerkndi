@@ -27,6 +27,157 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'KANDI_SELLER_DB_VERSION', '1.0.0' );
 define( 'KANDI_SELLER_ROLE', 'kandi_seller' );
 define( 'KANDI_SELLER_TOKEN_TTL', 14 * DAY_IN_SECONDS );
+/** Ceiling for one product photo, in bytes. Phone cameras routinely exceed 5 MB. */
+define( 'KANDI_SELLER_MAX_UPLOAD', 8 * 1024 * 1024 );
+
+/** Image types a seller may upload. */
+function kandi_seller_image_mimes() {
+	return array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
+}
+
+/** How long an emailed verification code stays valid. */
+define( 'KANDI_SELLER_CODE_TTL', 30 * MINUTE_IN_SECONDS );
+
+/* -------------------------------------------------------------------------
+ * 0. Email and abuse control
+ *
+ * Both live at the top because everything below leans on them: no endpoint
+ * that costs money, sends mail or checks a password should be reachable
+ * without a limit in front of it.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Sends a branded email through the Kandi Notifications plugin, falling back to
+ * plain-text wp_mail when it is not installed.
+ *
+ * The fallback matters: a verification code that never arrives because a
+ * companion plugin is missing would lock every new seller out of their own
+ * account.
+ */
+function kandi_seller_mail( $to, $subject, $heading, $body_html, $cta = null ) {
+	if ( function_exists( 'kandi_send_mail' ) ) {
+		return kandi_send_mail( $to, $subject, $heading, $body_html, $cta );
+	}
+
+	$text = trim( wp_strip_all_tags( str_replace( array( '<br>', '</p>' ), "\n", $body_html ) ) );
+	if ( is_array( $cta ) && ! empty( $cta['url'] ) ) {
+		$text .= "\n\n" . $cta['url'];
+	}
+
+	return wp_mail( $to, $subject, $heading . "\n\n" . $text );
+}
+
+/**
+ * The caller's IP, as well as it can be known behind a proxy.
+ *
+ * Cloudflare and most Ugandan hosts terminate TLS in front of PHP, so
+ * REMOTE_ADDR is the proxy rather than the visitor. The forwarded headers are
+ * trivially forged, which is fine for what this is used for — spreading a rate
+ * limit across attackers, not authenticating anyone — but it is why nothing
+ * security-critical is ever decided from this value.
+ */
+function kandi_seller_client_ip() {
+	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $header ) {
+		if ( empty( $_SERVER[ $header ] ) ) {
+			continue;
+		}
+		$value = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
+		// X-Forwarded-For is a chain; the client is the first entry.
+		$value = trim( explode( ',', $value )[0] );
+		if ( filter_var( $value, FILTER_VALIDATE_IP ) ) {
+			return $value;
+		}
+	}
+	return '0.0.0.0';
+}
+
+/**
+ * A fixed-window rate limit, counted in transients.
+ *
+ * Returns a WP_Error once the caller has spent its allowance, so a handler can
+ * simply `return` it. Deliberately coarse: this exists to make password
+ * guessing and sign-up floods pointlessly slow, not to meter traffic. Every
+ * bucket is namespaced by action *and* by whatever identity the endpoint knows
+ * (an email, usually), because limiting by IP alone punishes everyone behind
+ * one mobile carrier NAT — which in Uganda is most of the country.
+ */
+function kandi_seller_rate_limit( $action, $identity, $limit, $window ) {
+	$key   = 'kandi_rl_' . md5( $action . '|' . strtolower( (string) $identity ) );
+	$count = (int) get_transient( $key );
+
+	if ( $count >= $limit ) {
+		return new WP_Error(
+			'kandi_rate_limited',
+			'Too many attempts. Please wait a few minutes and try again.',
+			array( 'status' => 429 )
+		);
+	}
+
+	// Re-setting the transient each hit would slide the window forward forever
+	// and never let the caller out; the expiry is only set on the first hit.
+	set_transient( $key, $count + 1, 0 === $count ? $window : max( 60, $window ) );
+
+	return true;
+}
+
+/** Clears a bucket after a success, so one good login forgives the typos before it. */
+function kandi_seller_rate_clear( $action, $identity ) {
+	delete_transient( 'kandi_rl_' . md5( $action . '|' . strtolower( (string) $identity ) ) );
+}
+
+/** A six-digit verification code. Random_int, not rand — this guards an account. */
+function kandi_seller_new_code() {
+	return str_pad( (string) random_int( 0, 999999 ), 6, '0', STR_PAD_LEFT );
+}
+
+/**
+ * Stores a fresh code against a seller and emails it.
+ *
+ * The code is hashed before storage. It is short-lived and only six digits, but
+ * a database dump should still not hand over a working key to every unverified
+ * account in it.
+ */
+function kandi_seller_send_code( $user_id ) {
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	$code = kandi_seller_new_code();
+	update_user_meta( $user_id, '_kandi_verify_hash', wp_hash_password( $code ) );
+	update_user_meta( $user_id, '_kandi_verify_expires', time() + KANDI_SELLER_CODE_TTL );
+	update_user_meta( $user_id, '_kandi_verify_attempts', 0 );
+
+	return kandi_seller_mail(
+		$user->user_email,
+		'Your Kandi verification code: ' . $code,
+		'Verify your seller account',
+		sprintf(
+			'<p style="margin:0 0 18px">Enter this code in the Seller Centre to finish setting up <strong>%s</strong>:</p>
+			 <p style="margin:0 0 18px;font:700 34px/1 Helvetica,Arial,sans-serif;letter-spacing:6px;color:#171717">%s</p>
+			 <p style="margin:0 0 10px">The code works for %d minutes.</p>
+			 <p style="margin:0;color:#71717a;font-size:13px">If you did not apply to sell on Kandi, ignore this email — nothing happens without the code.</p>',
+			esc_html( get_user_meta( $user_id, '_kandi_store_name', true ) ),
+			esc_html( $code ),
+			(int) ( KANDI_SELLER_CODE_TTL / 60 )
+		)
+	);
+}
+
+/**
+ * True once the seller has entered the code that was emailed to them.
+ *
+ * An account with no flag at all registered before verification existed, and is
+ * treated as verified. The alternative — everyone unverified until proven
+ * otherwise — would have locked every existing seller out of their own store on
+ * the day this plugin was updated, including any test account whose address
+ * nobody can actually read email at. Only registration writes the '0', so the
+ * distinction is exact: absent means legacy, '0' means new and waiting.
+ */
+function kandi_seller_is_verified( $user_id ) {
+	$flag = get_user_meta( $user_id, '_kandi_email_verified', true );
+	return '' === $flag || '1' === (string) $flag;
+}
 
 /* -------------------------------------------------------------------------
  * 1. Install — roles and ledger tables
@@ -160,6 +311,9 @@ function kandi_format_seller( $user_id ) {
 		'fee_status'      => (string) ( get_user_meta( $user->ID, '_kandi_fee_status', true ) ?: 'unpaid' ),
 		'fee_amount'      => (float) get_user_meta( $user->ID, '_kandi_fee_amount', true ),
 		'fee_reference'   => kandi_seller_fee_reference( $user->ID ),
+		// Whether the emailed code has been entered. The Seller Centre uses this
+		// to decide between the dashboard and the verification screen.
+		'email_verified'  => kandi_seller_is_verified( $user->ID ),
 	);
 }
 
@@ -416,12 +570,136 @@ add_action(
 	function ( $order_id, $from_status, $to_status ) {
 		if ( in_array( $to_status, array( 'processing', 'on-hold', 'completed' ), true ) ) {
 			kandi_record_order_commissions( $order_id );
+			kandi_notify_sellers_of_order( $order_id );
 		}
 		kandi_sync_commission_status( $order_id, $to_status );
 	},
 	10,
 	3
 );
+
+/* -------------------------------------------------------------------------
+ * 5b. Seller notifications
+ * ---------------------------------------------------------------------- */
+
+/** The lines on an order that belong to one seller, with that seller's totals. */
+function kandi_seller_order_lines( $order, $seller_id ) {
+	$lines = array();
+	$total = 0.0;
+
+	foreach ( $order->get_items() as $item ) {
+		if ( (int) get_post_meta( $item->get_product_id(), '_kandi_seller_id', true ) !== (int) $seller_id ) {
+			continue;
+		}
+		$line_total = (float) $item->get_total();
+		$total     += $line_total;
+		$lines[]    = array(
+			'name'     => $item->get_name(),
+			'quantity' => $item->get_quantity(),
+			'total'    => wc_price( $line_total, array( 'currency' => $order->get_currency() ) ),
+		);
+	}
+
+	return array( 'lines' => $lines, 'total' => $total );
+}
+
+/** Renders order lines as an HTML table, with or without the Notifications plugin. */
+function kandi_seller_lines_html( $lines, $total_label = '', $total = null ) {
+	if ( function_exists( 'kandi_mail_items_table' ) ) {
+		return kandi_mail_items_table( $lines, $total_label, $total );
+	}
+
+	$html = '<ul>';
+	foreach ( $lines as $line ) {
+		$html .= sprintf( '<li>%s × %d — %s</li>', esc_html( $line['name'] ), (int) $line['quantity'], wp_kses_post( $line['total'] ) );
+	}
+	$html .= '</ul>';
+
+	return null === $total ? $html : $html . sprintf( '<p><strong>%s %s</strong></p>', esc_html( $total_label ), wp_kses_post( $total ) );
+}
+
+/** The Seller Centre's orders screen, for the link in the alert. */
+function kandi_seller_centre_url( $path = '/seller/orders' ) {
+	$base = function_exists( 'kandi_storefront_url' ) && kandi_storefront_url()
+		? kandi_storefront_url()
+		: home_url();
+	return $base . $path;
+}
+
+/**
+ * Emails every seller with something in a new order.
+ *
+ * One email per seller per order, holding only their own lines — a seller must
+ * never see what another store sold to the same shopper, or the buyer's full
+ * basket. The delivery address is included because they are the one packing it.
+ *
+ * Stamped on the order so a later status change does not send it twice: an
+ * order that moves on-hold → processing → completed passes through this hook
+ * three times.
+ */
+function kandi_notify_sellers_of_order( $order_id ) {
+	$order = wc_get_order( $order_id );
+	if ( ! $order ) {
+		return;
+	}
+
+	$already = (array) $order->get_meta( '_kandi_seller_alerted' );
+
+	foreach ( $order->get_items() as $item ) {
+		$seller_id = (int) get_post_meta( $item->get_product_id(), '_kandi_seller_id', true );
+
+		if ( ! $seller_id || in_array( $seller_id, $already, true ) || ! kandi_is_seller( $seller_id ) ) {
+			continue;
+		}
+
+		$user = get_userdata( $seller_id );
+		if ( ! $user ) {
+			continue;
+		}
+
+		$part = kandi_seller_order_lines( $order, $seller_id );
+		if ( empty( $part['lines'] ) ) {
+			continue;
+		}
+
+		$rate       = kandi_seller_commission_rate( $seller_id );
+		$commission = round( $part['total'] * ( $rate / 100 ), 2 );
+
+		kandi_seller_mail(
+			$user->user_email,
+			sprintf( 'New order #%s — %d item(s) to pack', $order->get_order_number(), count( $part['lines'] ) ),
+			'You have a new order',
+			sprintf(
+				'<p style="margin:0 0 14px">Order <strong>#%s</strong> came in for <strong>%s</strong>. Here is your part of it:</p>
+				 %s
+				 <p style="margin:14px 0 4px">Commission at %s%%: %s</p>
+				 <p style="margin:0 0 14px"><strong>You receive: %s</strong></p>
+				 <p style="margin:0 0 4px"><strong>Deliver to</strong></p>
+				 <p style="margin:0 0 14px;color:#3f3f46">%s<br>%s<br>%s</p>
+				 <p style="margin:0">Accept it in the Seller Centre so we can tell the buyer it is being packed.</p>',
+				esc_html( $order->get_order_number() ),
+				esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) ),
+				kandi_seller_lines_html(
+					$part['lines'],
+					'Your total',
+					wc_price( $part['total'], array( 'currency' => $order->get_currency() ) )
+				),
+				esc_html( (string) $rate ),
+				wp_kses_post( wc_price( $commission, array( 'currency' => $order->get_currency() ) ) ),
+				wp_kses_post( wc_price( $part['total'] - $commission, array( 'currency' => $order->get_currency() ) ) ),
+				esc_html( trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) ),
+				esc_html( trim( $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2() ) ),
+				esc_html( $order->get_shipping_city() . ' · ' . $order->get_billing_phone() )
+			),
+			array( 'label' => 'Open the order', 'url' => kandi_seller_centre_url() )
+		);
+
+		$already[] = $seller_id;
+	}
+
+	$order->update_meta_data( '_kandi_seller_alerted', array_values( array_unique( $already ) ) );
+	$order->save();
+}
 
 /* -------------------------------------------------------------------------
  * 6. Product formatting for the Seller Centre
@@ -441,6 +719,20 @@ function kandi_format_seller_product( $product ) {
 	$regular = (float) $product->get_regular_price();
 	$sale    = '' !== $product->get_sale_price() ? (float) $product->get_sale_price() : null;
 
+	// Main image first, then the gallery, at full size: the Seller Centre editor
+	// sends this list straight back when photos are added or reordered, and a
+	// "medium" URL round-tripped that way would permanently shrink the listing.
+	$images = array();
+	if ( $image_id ) {
+		$images[] = wp_get_attachment_url( $image_id );
+	}
+	foreach ( $product->get_gallery_image_ids() as $gallery_id ) {
+		$gallery_url = wp_get_attachment_url( $gallery_id );
+		if ( $gallery_url ) {
+			$images[] = $gallery_url;
+		}
+	}
+
 	return array(
 		'id'             => $product->get_id(),
 		'name'           => $product->get_name(),
@@ -452,6 +744,7 @@ function kandi_format_seller_product( $product ) {
 		'stock_status'   => $product->get_stock_status(),
 		'stock_quantity' => $product->get_stock_quantity(),
 		'image'          => $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : '',
+		'images'         => array_values( array_filter( $images ) ),
 		'categories'     => $categories,
 		'units_sold'     => (int) get_post_meta( $product->get_id(), 'total_sales', true ),
 		'created_at'     => $product->get_date_created() ? $product->get_date_created()->date( 'c' ) : null,
@@ -480,10 +773,22 @@ function kandi_apply_product_attributes( $product, $sizes, $colors ) {
 	$product->set_attributes( $attributes );
 }
 
-/** Sideloads remote image URLs into the media library and attaches them. */
-function kandi_attach_product_images( $product_id, $urls ) {
+/**
+ * Attaches image URLs to a product. The first becomes the main image, the rest
+ * the gallery.
+ *
+ * A URL that already points at this site's media library — everything the
+ * seller uploaded through /seller/media — is resolved to its existing
+ * attachment rather than downloaded again, otherwise every save would leave
+ * another identical copy behind in wp-content/uploads. Anything genuinely
+ * remote is still sideloaded, so pasted URLs keep working.
+ *
+ * With $replace true and an empty list the product's photos are cleared, which
+ * is what lets a seller delete the last picture from the editor.
+ */
+function kandi_attach_product_images( $product_id, $urls, $replace = false ) {
 	$urls = array_values( array_filter( array_map( 'esc_url_raw', (array) $urls ) ) );
-	if ( empty( $urls ) ) {
+	if ( empty( $urls ) && ! $replace ) {
 		return;
 	}
 
@@ -493,6 +798,12 @@ function kandi_attach_product_images( $product_id, $urls ) {
 
 	$attachment_ids = array();
 	foreach ( array_slice( $urls, 0, 8 ) as $url ) {
+		$existing = attachment_url_to_postid( $url );
+		if ( $existing ) {
+			$attachment_ids[] = (int) $existing;
+			continue;
+		}
+
 		$attachment_id = media_sideload_image( $url, $product_id, null, 'id' );
 		if ( ! is_wp_error( $attachment_id ) ) {
 			$attachment_ids[] = (int) $attachment_id;
@@ -500,12 +811,18 @@ function kandi_attach_product_images( $product_id, $urls ) {
 	}
 
 	if ( empty( $attachment_ids ) ) {
+		if ( $replace ) {
+			delete_post_thumbnail( $product_id );
+			delete_post_meta( $product_id, '_product_image_gallery' );
+		}
 		return;
 	}
 
 	set_post_thumbnail( $product_id, array_shift( $attachment_ids ) );
 	if ( ! empty( $attachment_ids ) ) {
 		update_post_meta( $product_id, '_product_image_gallery', implode( ',', $attachment_ids ) );
+	} elseif ( $replace ) {
+		delete_post_meta( $product_id, '_product_image_gallery' );
 	}
 }
 
@@ -522,6 +839,15 @@ add_action( 'rest_api_init', function () {
 		'callback'            => function ( WP_REST_Request $request ) {
 			$body  = (array) $request->get_json_params();
 			$email = sanitize_email( $body['email'] ?? '' );
+
+			// Sign-up is the cheapest thing on the site to automate and the most
+			// expensive to clean up: every attempt creates a user, a store name
+			// and an email. Ten a quarter-hour from one address is generous for
+			// a human and useless for a script.
+			$limited = kandi_seller_rate_limit( 'register', kandi_seller_client_ip(), 10, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
 
 			if ( ! is_email( $email ) ) {
 				return new WP_Error( 'kandi_bad_email', 'Enter a valid email address.', array( 'status' => 400 ) );
@@ -576,6 +902,13 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_fee_amount', $fee );
 			update_user_meta( $user_id, '_kandi_fee_status', $fee > 0 ? 'unpaid' : 'waived' );
 
+			// The account starts unverified and is sent a code straight away.
+			// Nothing else about it works until that code comes back, which is
+			// what stops a bot registering a hundred stores against addresses
+			// it does not own.
+			update_user_meta( $user_id, '_kandi_email_verified', '0' );
+			kandi_seller_send_code( $user_id );
+
 			// Tell the marketplace team a store is waiting.
 			wp_mail(
 				get_option( 'admin_email' ),
@@ -590,7 +923,7 @@ add_action( 'rest_api_init', function () {
 
 			return rest_ensure_response( array(
 				'seller'  => kandi_format_seller( $user_id ),
-				'message' => 'Your application has been received and is awaiting approval.',
+				'message' => 'Check your email for the six-digit code, then enter it to finish signing up.',
 			) );
 		},
 	) );
@@ -604,8 +937,24 @@ add_action( 'rest_api_init', function () {
 			$email    = sanitize_email( $body['email'] ?? '' );
 			$password = (string) ( $body['password'] ?? '' );
 
+			// Two buckets, because either one alone can be walked around: an
+			// attacker with a botnet spreads across IPs to hammer one account,
+			// and an attacker with one IP sprays one password across thousands
+			// of accounts. Guessing has to be slow from both directions.
+			foreach ( array(
+				array( 'login_ip', kandi_seller_client_ip(), 30 ),
+				array( 'login_email', $email, 8 ),
+			) as $bucket ) {
+				$limited = kandi_seller_rate_limit( $bucket[0], $bucket[1], $bucket[2], 15 * MINUTE_IN_SECONDS );
+				if ( is_wp_error( $limited ) ) {
+					return $limited;
+				}
+			}
+
 			$user = get_user_by( 'email', $email );
 			if ( ! $user || ! wp_check_password( $password, $user->user_pass, $user->ID ) ) {
+				// One message for both cases on purpose: saying "no such account"
+				// turns this endpoint into a way to find out who sells here.
 				return new WP_Error( 'kandi_bad_credentials', 'That email and password combination is not recognised.', array( 'status' => 401 ) );
 			}
 			if ( ! kandi_is_seller( $user->ID ) ) {
@@ -619,6 +968,187 @@ add_action( 'rest_api_init', function () {
 			if ( 'suspended' === $status ) {
 				return new WP_Error( 'kandi_suspended', 'This seller account is suspended. Contact Kandi support.', array( 'status' => 403 ) );
 			}
+
+			// Right password, unconfirmed address: send a fresh code and tell
+			// the storefront to show the code screen rather than the dashboard.
+			// The error data carries the seller id so that screen knows who it
+			// is verifying without a session existing yet.
+			if ( ! kandi_seller_is_verified( $user->ID ) ) {
+				kandi_seller_send_code( $user->ID );
+				return new WP_Error(
+					'kandi_unverified',
+					'Your email address is not confirmed yet. We have sent you a new six-digit code.',
+					array( 'status' => 403, 'seller_id' => (int) $user->ID, 'email' => $user->user_email )
+				);
+			}
+
+			kandi_seller_rate_clear( 'login_email', $email );
+
+			return rest_ensure_response( array(
+				'token'      => kandi_seller_issue_token( $user->ID ),
+				'expires_in' => KANDI_SELLER_TOKEN_TTL,
+				'seller'     => kandi_format_seller( $user->ID ),
+			) );
+		},
+	) );
+
+	/* ---- POST /seller/verify ----
+	 *
+	 * Exchanges the emailed six-digit code for a session, so a seller who has
+	 * just signed up lands in their dashboard instead of being asked to type
+	 * the password they set ninety seconds ago.
+	 *
+	 * Identified by email rather than by a session, because there is no session
+	 * yet — which is exactly why it is rate limited on both the address and the
+	 * caller, and why the code itself is only good for five attempts.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/verify', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body  = (array) $request->get_json_params();
+			$email = sanitize_email( $body['email'] ?? '' );
+			$code  = preg_replace( '/\D/', '', (string) ( $body['code'] ?? '' ) );
+
+			$limited = kandi_seller_rate_limit( 'verify_ip', kandi_seller_client_ip(), 30, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			$user = get_user_by( 'email', $email );
+			if ( ! $user || ! kandi_is_seller( $user->ID ) ) {
+				return new WP_Error( 'kandi_bad_code', 'That code is not valid. Please check and try again.', array( 'status' => 400 ) );
+			}
+
+			if ( kandi_seller_is_verified( $user->ID ) ) {
+				// Already done — hand back a session rather than an error, so a
+				// double-submitted form does not look like a failure.
+				return rest_ensure_response( array(
+					'token'      => kandi_seller_issue_token( $user->ID ),
+					'expires_in' => KANDI_SELLER_TOKEN_TTL,
+					'seller'     => kandi_format_seller( $user->ID ),
+				) );
+			}
+
+			$hash    = (string) get_user_meta( $user->ID, '_kandi_verify_hash', true );
+			$expires = (int) get_user_meta( $user->ID, '_kandi_verify_expires', true );
+			$tries   = (int) get_user_meta( $user->ID, '_kandi_verify_attempts', true );
+
+			if ( '' === $hash || $expires < time() ) {
+				return new WP_Error(
+					'kandi_code_expired',
+					'That code has expired. Ask for a new one.',
+					array( 'status' => 410 )
+				);
+			}
+
+			// Five guesses per code. A six-digit code is a million combinations,
+			// but without a ceiling a script gets to try all of them.
+			if ( $tries >= 5 ) {
+				delete_user_meta( $user->ID, '_kandi_verify_hash' );
+				return new WP_Error(
+					'kandi_code_expired',
+					'Too many wrong codes. Ask for a new one.',
+					array( 'status' => 410 )
+				);
+			}
+
+			if ( '' === $code || ! wp_check_password( $code, $hash ) ) {
+				update_user_meta( $user->ID, '_kandi_verify_attempts', $tries + 1 );
+				return new WP_Error( 'kandi_bad_code', 'That code is not valid. Please check and try again.', array( 'status' => 400 ) );
+			}
+
+			update_user_meta( $user->ID, '_kandi_email_verified', '1' );
+			delete_user_meta( $user->ID, '_kandi_verify_hash' );
+			delete_user_meta( $user->ID, '_kandi_verify_expires' );
+			delete_user_meta( $user->ID, '_kandi_verify_attempts' );
+
+			return rest_ensure_response( array(
+				'token'      => kandi_seller_issue_token( $user->ID ),
+				'expires_in' => KANDI_SELLER_TOKEN_TTL,
+				'seller'     => kandi_format_seller( $user->ID ),
+			) );
+		},
+	) );
+
+	/* ---- POST /seller/verify/resend ---- */
+	register_rest_route( 'kandi/v1', '/seller/verify/resend', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body  = (array) $request->get_json_params();
+			$email = sanitize_email( $body['email'] ?? '' );
+
+			// Three a quarter-hour: enough for a code that went to spam, not
+			// enough to use this shop as a way to post email at someone.
+			$limited = kandi_seller_rate_limit( 'resend', $email ?: kandi_seller_client_ip(), 3, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			$user = get_user_by( 'email', $email );
+			if ( $user && kandi_is_seller( $user->ID ) && ! kandi_seller_is_verified( $user->ID ) ) {
+				kandi_seller_send_code( $user->ID );
+			}
+
+			// Always the same answer, whether or not that address is a seller:
+			// a different reply here would be a way to test which addresses
+			// have accounts.
+			return rest_ensure_response( array(
+				'ok'      => true,
+				'message' => 'If that address has an unverified seller account, a new code is on its way.',
+			) );
+		},
+	) );
+
+	/* ---- POST /seller/google ----
+	 *
+	 * Google sign-in for existing sellers. It never creates an account: stores
+	 * are reviewed before they can trade, so "sign in with Google" on an email
+	 * nobody has registered has to fail rather than quietly open a store.
+	 *
+	 * Google has already proved the address by the time this runs — the
+	 * storefront verifies the ID token with Google's own keys before calling —
+	 * so a seller arriving this way is treated as verified.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/google', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body      = (array) $request->get_json_params();
+			$email     = sanitize_email( $body['email'] ?? '' );
+			$google_id = sanitize_text_field( $body['google_id'] ?? '' );
+
+			$limited = kandi_seller_rate_limit( 'google', kandi_seller_client_ip(), 30, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			if ( ! is_email( $email ) || '' === $google_id ) {
+				return new WP_Error( 'kandi_bad_request', 'Google did not return a usable account.', array( 'status' => 400 ) );
+			}
+
+			$user = get_user_by( 'email', $email );
+			if ( ! $user || ! kandi_is_seller( $user->ID ) ) {
+				return new WP_Error(
+					'kandi_not_seller',
+					'No seller account uses that Google address. Open a seller account first.',
+					array( 'status' => 404 )
+				);
+			}
+
+			$status = get_user_meta( $user->ID, '_kandi_status', true );
+			if ( 'rejected' === $status ) {
+				return new WP_Error( 'kandi_rejected', 'This seller application was not approved. Contact Kandi support.', array( 'status' => 403 ) );
+			}
+			if ( 'suspended' === $status ) {
+				return new WP_Error( 'kandi_suspended', 'This seller account is suspended. Contact Kandi support.', array( 'status' => 403 ) );
+			}
+
+			// Signing in with Google proves the address, so the code step is
+			// skipped for good — there is nothing left for it to establish.
+			update_user_meta( $user->ID, '_kandi_email_verified', '1' );
+			update_user_meta( $user->ID, '_kandi_google_id', $google_id );
 
 			return rest_ensure_response( array(
 				'token'      => kandi_seller_issue_token( $user->ID ),
@@ -848,6 +1378,13 @@ add_action( 'rest_api_init', function () {
 
 				$product->save();
 
+				// Photos are replaced wholesale, and only when the key is present:
+				// an editor that never touched the gallery sends nothing, so a
+				// price change cannot silently wipe a listing's pictures.
+				if ( array_key_exists( 'image_urls', $body ) ) {
+					kandi_attach_product_images( $product_id, $body['image_urls'] ?? array(), true );
+				}
+
 				return rest_ensure_response( array(
 					'product' => kandi_format_seller_product( wc_get_product( $product_id ) ),
 				) );
@@ -870,6 +1407,112 @@ add_action( 'rest_api_init', function () {
 				return rest_ensure_response( array( 'ok' => true ) );
 			},
 		),
+	) );
+
+	/* ---- POST /seller/media ----
+	 *
+	 * Takes one photograph off a seller's phone or laptop and puts it in the
+	 * media library, returning the URL the product endpoints then attach.
+	 *
+	 * Uploading is separated from saving the listing on purpose: a seller on a
+	 * Ugandan mobile connection can lose a 4 MB photo halfway through, and
+	 * retrying one picture is a different thing from retyping the whole form.
+	 * The attachment is stamped with the seller's id so wp-admin can see who
+	 * put what in the library.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/media', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$seller_id = kandi_seller_current_id( $request );
+
+			if ( 'approved' !== get_user_meta( $seller_id, '_kandi_status', true ) ) {
+				return new WP_Error(
+					'kandi_not_approved',
+					'Your store is still awaiting approval, so photos cannot be uploaded yet.',
+					array( 'status' => 403 )
+				);
+			}
+
+			$files = $request->get_file_params();
+			$file  = isset( $files['file'] ) ? $files['file'] : null;
+
+			if ( ! $file || ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
+				return new WP_Error( 'kandi_no_file', 'No photo was received.', array( 'status' => 400 ) );
+			}
+
+			if ( isset( $file['size'] ) && (int) $file['size'] > KANDI_SELLER_MAX_UPLOAD ) {
+				return new WP_Error(
+					'kandi_file_too_big',
+					sprintf( 'That photo is larger than %d MB. Please use a smaller one.', KANDI_SELLER_MAX_UPLOAD / 1048576 ),
+					array( 'status' => 413 )
+				);
+			}
+
+			// Trust the bytes, not the filename: wp_check_filetype_and_ext reads
+			// the file itself, so a script renamed to .jpg is turned away here
+			// rather than landing in a publicly served uploads folder.
+			$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'] ?? '' );
+			$type  = $check['type'] ? $check['type'] : '';
+			if ( ! in_array( $type, kandi_seller_image_mimes(), true ) ) {
+				return new WP_Error(
+					'kandi_bad_file_type',
+					'Photos must be JPEG, PNG, WebP or GIF.',
+					array( 'status' => 415 )
+				);
+			}
+
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+
+			$moved = wp_handle_upload(
+				$file,
+				array(
+					// The upload arrives over REST, not from a wp-admin form, so
+					// there is no form token for WordPress to look for.
+					'test_form' => false,
+					'mimes'     => array(
+						'jpg|jpeg|jpe' => 'image/jpeg',
+						'png'          => 'image/png',
+						'gif'          => 'image/gif',
+						'webp'         => 'image/webp',
+					),
+				)
+			);
+
+			if ( ! is_array( $moved ) || isset( $moved['error'] ) ) {
+				return new WP_Error(
+					'kandi_upload_failed',
+					is_array( $moved ) ? $moved['error'] : 'The photo could not be saved.',
+					array( 'status' => 500 )
+				);
+			}
+
+			$attachment_id = wp_insert_attachment(
+				array(
+					'post_mime_type' => $moved['type'],
+					'post_title'     => sanitize_text_field( pathinfo( $moved['file'], PATHINFO_FILENAME ) ),
+					'post_content'   => '',
+					'post_status'    => 'inherit',
+				),
+				$moved['file']
+			);
+
+			if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+				return new WP_Error( 'kandi_upload_failed', 'The photo could not be saved.', array( 'status' => 500 ) );
+			}
+
+			wp_update_attachment_metadata(
+				$attachment_id,
+				wp_generate_attachment_metadata( $attachment_id, $moved['file'] )
+			);
+			update_post_meta( $attachment_id, '_kandi_seller_id', $seller_id );
+
+			return rest_ensure_response( array(
+				'id'  => (int) $attachment_id,
+				'url' => wp_get_attachment_url( $attachment_id ),
+			) );
+		},
 	) );
 
 	/* ---- GET /seller/stats ---- */
@@ -1155,6 +1798,9 @@ add_action( 'rest_api_init', function () {
 					'id'           => $order->get_id(),
 					'number'       => $order->get_order_number(),
 					'status'       => $order->get_status(),
+					// Whether *this* seller has accepted their part, which is
+					// what the Accept button in the Seller Centre keys off.
+					'accepted'     => in_array( $seller_id, (array) $order->get_meta( '_kandi_accepted_by' ), true ),
 					'customer'     => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
 					'city'         => $order->get_billing_city(),
 					'date'         => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : null,
@@ -1166,6 +1812,106 @@ add_action( 'rest_api_init', function () {
 			}
 
 			return rest_ensure_response( array( 'orders' => $orders ) );
+		},
+	) );
+
+	/* ---- POST /seller/orders/{id}/accept ----
+	 *
+	 * A seller confirming they have the stock and are packing it.
+	 *
+	 * Acceptance is recorded per seller, not per order, because one order can
+	 * hold three stores' goods and the first to accept cannot speak for the
+	 * others. The buyer is told as soon as the *first* seller accepts — from
+	 * their side the order is being prepared, and they do not know or care that
+	 * it is split — and the order only moves to processing once every seller in
+	 * it has accepted.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/orders/(?P<id>\d+)/accept', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$seller_id = kandi_seller_current_id( $request );
+			$order     = wc_get_order( (int) $request['id'] );
+
+			if ( ! $order ) {
+				return new WP_Error( 'kandi_not_found', 'Order not found.', array( 'status' => 404 ) );
+			}
+
+			$part = kandi_seller_order_lines( $order, $seller_id );
+			if ( empty( $part['lines'] ) ) {
+				return new WP_Error( 'kandi_not_yours', 'Nothing in that order belongs to your store.', array( 'status' => 403 ) );
+			}
+
+			$accepted = (array) $order->get_meta( '_kandi_accepted_by' );
+			$first    = empty( $accepted );
+
+			if ( ! in_array( $seller_id, $accepted, true ) ) {
+				$accepted[] = $seller_id;
+				$order->update_meta_data( '_kandi_accepted_by', array_values( array_unique( $accepted ) ) );
+				$order->add_order_note( sprintf(
+					'%s accepted their part of this order.',
+					get_user_meta( $seller_id, '_kandi_store_name', true )
+				) );
+				$order->save();
+
+				// The seller's own copy — the confirmation that the shop heard
+				// them, and the packing list they work from.
+				$user = get_userdata( $seller_id );
+				if ( $user ) {
+					kandi_seller_mail(
+						$user->user_email,
+						sprintf( 'You accepted order #%s', $order->get_order_number() ),
+						'Order accepted',
+						sprintf(
+							'<p style="margin:0 0 14px">You have accepted order <strong>#%s</strong>. The buyer has been told it is being packed.</p>
+							 %s
+							 <p style="margin:14px 0 0">Have it ready for collection today. Deliver to %s, %s.</p>',
+							esc_html( $order->get_order_number() ),
+							kandi_seller_lines_html( $part['lines'] ),
+							esc_html( trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) ),
+							esc_html( $order->get_shipping_city() )
+						),
+						array( 'label' => 'View your orders', 'url' => kandi_seller_centre_url() )
+					);
+				}
+			}
+
+			// Tell the buyer once, on the first acceptance.
+			$buyer = $order->get_billing_email();
+			if ( $first && is_email( $buyer ) ) {
+				kandi_seller_mail(
+					$buyer,
+					sprintf( 'Order #%s is being packed', $order->get_order_number() ),
+					'Good news — your order is confirmed',
+					sprintf(
+						'<p style="margin:0 0 14px">Hi %s, the seller has confirmed order <strong>#%s</strong> and is packing it now.</p>
+						 <p style="margin:0">We will be in touch the moment it is on its way to %s.</p>',
+						esc_html( $order->get_billing_first_name() ?: 'there' ),
+						esc_html( $order->get_order_number() ),
+						esc_html( $order->get_shipping_city() ?: 'you' )
+					)
+				);
+			}
+
+			// Every seller in, so the order itself can move on.
+			$sellers_in_order = array();
+			foreach ( $order->get_items() as $item ) {
+				$owner = (int) get_post_meta( $item->get_product_id(), '_kandi_seller_id', true );
+				if ( $owner ) {
+					$sellers_in_order[ $owner ] = true;
+				}
+			}
+
+			$outstanding = array_diff( array_keys( $sellers_in_order ), $accepted );
+			if ( empty( $outstanding ) && in_array( $order->get_status(), array( 'pending', 'on-hold' ), true ) ) {
+				$order->update_status( 'processing', 'All sellers accepted their part of the order.' );
+			}
+
+			return rest_ensure_response( array(
+				'ok'       => true,
+				'accepted' => true,
+				'status'   => $order->get_status(),
+			) );
 		},
 	) );
 
@@ -1297,6 +2043,32 @@ add_action( 'rest_api_init', function () {
 					admin_url( 'admin.php?page=kandi-seller-payouts' )
 				)
 			);
+
+			// The seller's receipt. Money leaving the platform should always be
+			// something they were told about in writing, at the address on the
+			// account — that record is what settles a dispute later.
+			$user = get_userdata( $seller_id );
+			if ( $user ) {
+				$method  = (string) get_user_meta( $seller_id, '_kandi_payout_method', true );
+				$account = (string) get_user_meta( $seller_id, '_kandi_payout_account', true );
+
+				kandi_seller_mail(
+					$user->user_email,
+					sprintf( 'Payout requested: %s', wp_strip_all_tags( wc_price( $payable ) ) ),
+					'We have your payout request',
+					sprintf(
+						'<p style="margin:0 0 14px">You asked us to pay out <strong>%s</strong> from %s.</p>
+						 <p style="margin:0 0 14px">Sending to: <strong>%s</strong>%s</p>
+						 <p style="margin:0 0 14px">Our finance team settles requests every Friday, and you will get another email the moment the money goes out.</p>
+						 <p style="margin:0;color:#71717a;font-size:13px">Did not request this? Reply to this email straight away and change your password.</p>',
+						wp_kses_post( wc_price( $payable ) ),
+						esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) ),
+						esc_html( $account ?: 'the account on file' ),
+						$method ? ' (' . esc_html( $method ) . ')' : ''
+					),
+					array( 'label' => 'View your earnings', 'url' => kandi_seller_centre_url( '/seller/commissions' ) )
+				);
+			}
 
 			return rest_ensure_response( array(
 				'ok'      => true,
@@ -1716,7 +2488,26 @@ function kandi_admin_payouts_page() {
 				array( '%s', '%s' ),
 				array( '%d' )
 			);
-			echo '<div class="notice notice-success is-dismissible"><p>Payout marked as paid.</p></div>';
+
+			// The seller was promised an email when the money went out.
+			$seller = get_userdata( (int) $payout->seller_id );
+			if ( $seller ) {
+				kandi_seller_mail(
+					$seller->user_email,
+					sprintf( 'Payout sent: %s', wp_strip_all_tags( wc_price( (float) $payout->amount ) ) ),
+					'Your payout is on its way',
+					sprintf(
+						'<p style="margin:0 0 14px">We have sent <strong>%s</strong> to %s.</p>
+						 <p style="margin:0 0 14px">Mobile money usually lands within minutes; a bank transfer can take a working day.</p>
+						 <p style="margin:0">Your earnings statement in the Seller Centre now shows this period as settled.</p>',
+						wp_kses_post( wc_price( (float) $payout->amount ) ),
+						esc_html( $payout->account ?: 'the account on file' )
+					),
+					array( 'label' => 'View your earnings', 'url' => kandi_seller_centre_url( '/seller/commissions' ) )
+				);
+			}
+
+			echo '<div class="notice notice-success is-dismissible"><p>Payout marked as paid. The seller has been emailed.</p></div>';
 		} elseif ( $payout && 'cancel' === $action ) {
 			$wpdb->update( $payouts_table, array( 'status' => 'cancelled' ), array( 'id' => $payout_id ), array( '%s' ), array( '%d' ) );
 			echo '<div class="notice notice-warning is-dismissible"><p>Payout request cancelled.</p></div>';

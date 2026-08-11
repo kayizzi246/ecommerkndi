@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { sellerApi, type SellerProduct } from "@/lib/seller";
 import { formatPrice, discountPercent } from "@/lib/currency";
+import ImageUploader from "./ImageUploader";
 
 type Props = {
   product: SellerProduct;
@@ -13,12 +14,15 @@ type Props = {
 /**
  * Slide-over editor for one listing.
  *
- * Only the fields a seller changes day to day — name, prices, stock, SKU. The
- * long-form description and photographs stay on the full listing form, because
- * editing those is a different, slower job.
+ * The fields a seller changes day to day — name, prices, stock, SKU — plus the
+ * photographs, because a bad or missing photo is the single most common reason
+ * a listing does not sell and it should not take the full form to fix one. The
+ * long-form description still lives there.
  *
  * Nothing is sent until Save, and the payload carries only what actually
- * changed, so a stray keystroke in one field cannot quietly rewrite another.
+ * changed, so a stray keystroke in one field cannot quietly rewrite another —
+ * `image_urls` in particular is omitted unless the gallery was touched, since
+ * sending it replaces every photo on the product.
  */
 export default function ProductEditor({ product, onSaved, onClose }: Props) {
   const [name, setName] = useState(product.name);
@@ -28,6 +32,14 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
   const [stock, setStock] = useState(String(product.stock_quantity ?? 0));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Older payloads only carried the main photo, so fall back to it rather than
+  // opening the editor on an empty gallery for a product that plainly has one.
+  const originalPhotos =
+    product.images?.length ? product.images : product.image ? [product.image] : [];
+  const [photos, setPhotos] = useState<string[]>(originalPhotos);
+  const [uploading, setUploading] = useState(false);
+  const photosChanged = photos.join("\n") !== originalPhotos.join("\n");
 
   // Escape closes, and the page behind stops scrolling while it is open.
   useEffect(() => {
@@ -66,6 +78,14 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
       setError("The sale price has to be below the normal price.");
       return;
     }
+    if (uploading) {
+      setError("Wait for the photos to finish uploading.");
+      return;
+    }
+    if (photos.length === 0) {
+      setError("Keep at least one photo — a listing without a picture does not sell.");
+      return;
+    }
 
     setBusy(true);
     try {
@@ -75,6 +95,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
         regular_price: regularNumber,
         sale_price: saleNumber,
         stock_quantity: Math.max(0, Number(stock) || 0),
+        ...(photosChanged ? { image_urls: photos } : {}),
       });
       onSaved(saved);
     } catch (caught) {
@@ -112,6 +133,16 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
         </header>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+          <div>
+            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Photos</span>
+            <ImageUploader
+              initialUrls={originalPhotos}
+              onChange={setPhotos}
+              onBusyChange={setUploading}
+              shape="soft"
+            />
+          </div>
+
           <label className="block">
             <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Product name</span>
             <input
@@ -235,10 +266,10 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
           <button
             type="button"
             onClick={save}
-            disabled={busy}
+            disabled={busy || uploading}
             className="btn-shop flex-1 py-3 text-[15px]"
           >
-            {busy ? "Saving…" : "Save changes"}
+            {busy ? "Saving…" : uploading ? "Uploading photos…" : "Save changes"}
           </button>
         </footer>
       </div>

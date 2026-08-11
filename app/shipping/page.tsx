@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/shipping" },
   title: "Delivery information",
   description: "Delivery times, costs and coverage across Uganda.",
 };

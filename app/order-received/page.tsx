@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/currency";
 
-export const metadata = { title: "Order received" };
+export const metadata = {
+  title: "Order received",
+  // One shopper's confirmation, keyed to their order id. Nothing here belongs
+  // in a search result, and a crawler following an order URL out of a shared
+  // link should not keep it either.
+  robots: { index: false, follow: false },
+};
 
 export default async function OrderReceivedPage({
   searchParams,

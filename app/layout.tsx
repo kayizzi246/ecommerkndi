@@ -6,7 +6,7 @@ import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
 import { CustomerSessionProvider } from "@/lib/customer-session";
 import StoreChrome from "@/components/StoreChrome";
-import { getSiteSettings } from "@/lib/site-settings";
+import { getSiteSettings, getFaviconUrl } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl } from "@/lib/seo";
 
 /**
@@ -51,7 +51,7 @@ const inter = Inter({
  * identical fetches within a render, so it is one request, not two.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+  const [settings, favicon] = await Promise.all([getSiteSettings(), getFaviconUrl()]);
   const brand = `${settings.brand.name}${settings.brand.suffix}`.trim();
 
   return {
@@ -67,19 +67,25 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `${settings.brand.tagline} Pay on delivery, ${settings.commerce.returns_days}-day returns.`
       : "Shop shoes, fashion, electronics and more at low prices. Fast delivery across Uganda.",
     applicationName: brand,
-    // The uploaded favicon, or the file shipped with the app when none is set —
-    // so the tab is never blank. `apple` is the same image: iOS uses it when
-    // somebody saves the shop to their home screen.
-    icons: settings.brand.favicon_url
-      ? {
-          icon: settings.brand.favicon_url,
-          shortcut: settings.brand.favicon_url,
-          apple: settings.brand.favicon_url,
-        }
+    // The uploaded favicon, when there is one worth using — see getFaviconUrl.
+    // Otherwise nothing is declared here and the icons that ship in `app/`
+    // (favicon.ico, icon.png, apple-icon.png) carry the tab on their own, so it
+    // is never blank. `apple` is the same image: iOS uses it when somebody saves
+    // the shop to their home screen.
+    icons: favicon
+      ? { icon: favicon, shortcut: favicon, apple: favicon }
       : undefined,
-    // Every page is canonical to itself unless it says otherwise; product pages
-    // override this, which is what stops slug and id URLs competing.
-    alternates: { canonical: "/" },
+    // No canonical here, deliberately.
+    //
+    // Metadata set in a layout is *inherited* by every page under it that does
+    // not override it. This used to say `canonical: "/"`, which meant /sale,
+    // /sellers, /sell and every policy page shipped a tag telling Google they
+    // were duplicates of the homepage — an instruction not to index them. Only
+    // products and categories set their own, so only they were indexable.
+    //
+    // Canonicals now live on the pages themselves, where the URL is known. A
+    // page that declares none is self-canonical to Google, which is the right
+    // default; a page that must not be indexed says so with `robots` instead.
     openGraph: {
       type: "website",
       siteName: brand,

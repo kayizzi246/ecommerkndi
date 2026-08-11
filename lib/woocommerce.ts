@@ -238,39 +238,69 @@ async function wpFetchRaw(path: string, fallbackPath?: string): Promise<unknown 
   return null;
 }
 
-function toProduct(raw: any): Product {
-  const product = raw ?? {};
-  const prices = product.prices ?? {};
-  const price = Number(prices.price ?? product.price ?? 0);
-  const regularPrice = Number(prices.regular_price ?? prices.price ?? product.regular_price ?? price);
-  const salePrice = prices.sale_price != null ? Number(prices.sale_price) : product.sale_price != null ? Number(product.sale_price) : null;
+/* --------------------------------------------------------------- JSON readers
+ *
+ * Two different WordPress endpoints feed the mappers below — the kandi/v1
+ * plugin and, when it is not installed, the WooCommerce Store API — and the two
+ * disagree about names, nesting and whether a number arrives as a number or a
+ * string. None of it is typed at the boundary, so these four readers do the
+ * narrowing in one place: anything unexpected becomes the fallback rather than
+ * an `undefined` that surfaces three components later as a blank price.
+ */
+
+/** A JSON object from WordPress, before anything has been proven about it. */
+type RawJson = Record<string, unknown>;
+
+function obj(value: unknown): RawJson {
+  return typeof value === "object" && value !== null ? (value as RawJson) : {};
+}
+
+function str(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+/** Coerces to a finite number — WooCommerce sends prices as strings. */
+function num(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function arr(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function toProduct(raw: unknown): Product {
+  const product = obj(raw);
+  const prices = obj(product.prices);
+  const price = num(prices.price ?? product.price);
+  const regularPrice = num(prices.regular_price ?? prices.price ?? product.regular_price, price);
+  const rawSale = prices.sale_price ?? product.sale_price;
+  const salePrice = rawSale == null ? null : num(rawSale);
   const onSale = salePrice != null && regularPrice > 0 && salePrice < regularPrice;
 
-  const categories = Array.isArray(product.categories)
-    ? product.categories.map((category: any) => ({
-        id: Number(category.id ?? 0),
-        name: category.name ?? "",
-        slug: category.slug ?? "",
-        count: category.count ?? undefined,
-      }))
-    : Array.isArray(product.categories)
-      ? []
-      : [];
+  const categories = arr(product.categories).map((entry) => {
+    const category = obj(entry);
+    return {
+      id: num(category.id),
+      name: str(category.name),
+      slug: str(category.slug),
+      count: category.count == null ? undefined : num(category.count),
+    };
+  });
 
   // Two payload shapes reach this mapper and they name their images
   // differently, so both are normalised here:
   //   • the kandi/v1 endpoint sends `image` (string) + `gallery` (string[])
   //   • the WooCommerce Store API fallback sends `images` ({ src }[])
   // Reading only one shape is why gallery thumbnails never appeared.
-  const toSrc = (entry: any): string =>
-    typeof entry === "string" ? entry : (entry?.src ?? entry?.url ?? "");
+  const toSrc = (entry: unknown): string => {
+    if (typeof entry === "string") return entry;
+    const image = obj(entry);
+    return str(image.src) || str(image.url);
+  };
 
-  const storeApiImages = (Array.isArray(product.images) ? product.images : [])
-    .map(toSrc)
-    .filter(Boolean);
-  const customGallery = (Array.isArray(product.gallery) ? product.gallery : [])
-    .map(toSrc)
-    .filter(Boolean);
+  const storeApiImages = arr(product.images).map(toSrc).filter(Boolean);
+  const customGallery = arr(product.gallery).map(toSrc).filter(Boolean);
 
   const mainImage: string = toSrc(product.image) || storeApiImages[0] || customGallery[0] || "";
 
@@ -280,69 +310,77 @@ function toProduct(raw: any): Product {
     (src, index, all) => src !== mainImage && all.indexOf(src) === index
   );
 
+  const seller = obj(product.seller);
+
   return {
-    id: Number(product.id ?? 0),
-    name: product.name ?? "",
-    slug: product.slug ?? "",
+    id: num(product.id),
+    name: str(product.name),
+    slug: str(product.slug),
     price,
     regular_price: regularPrice,
     sale_price: salePrice,
     on_sale: Boolean(product.on_sale ?? onSale),
     featured: Boolean(product.featured),
-    stock_status: (product.stock_status as Product["stock_status"]) ?? "outofstock",
-    stock_quantity: product.stock_quantity ?? null,
+    stock_status: str(product.stock_status, "outofstock") as Product["stock_status"],
+    stock_quantity: product.stock_quantity == null ? null : num(product.stock_quantity),
     image: mainImage,
     gallery,
-    date_created: product.date_created ?? null,
-    short_description: product.short_description ?? product.shortDescription ?? "",
+    date_created: str(product.date_created) || null,
+    short_description: str(product.short_description ?? product.shortDescription),
     categories,
-    attributes: Array.isArray(product.attributes)
-      ? product.attributes.map((attribute: any) => ({
-          name: String(attribute?.name ?? ""),
-          options: Array.isArray(attribute?.options)
-            ? attribute.options.map((option: any) =>
-                typeof option === "string"
-                  ? { name: option }
-                  : {
-                      name: String(option?.name ?? option?.label ?? ""),
-                      value: option?.value ?? undefined,
-                      image: option?.image ?? option?.image_url ?? undefined,
-                    }
-              )
-            : [],
-        }))
-      : [],
+    attributes: arr(product.attributes).map((entry) => {
+      const attribute = obj(entry);
+      return {
+        name: str(attribute.name),
+        options: arr(attribute.options).map((raw_option) => {
+          if (typeof raw_option === "string") return { name: raw_option };
+          const option = obj(raw_option);
+          return {
+            name: str(option.name) || str(option.label),
+            value: option.value == null ? undefined : str(option.value),
+            image: str(option.image) || str(option.image_url) || undefined,
+          };
+        }),
+      };
+    }),
     variations: Array.isArray(product.variations)
-      ? product.variations.map((variation: any) => ({
-          attributes: variation?.attributes ?? {},
-          is_in_stock: Boolean(variation?.is_in_stock ?? variation?.in_stock),
-        }))
+      ? product.variations.map((entry) => {
+          const variation = obj(entry);
+          return {
+            attributes: obj(variation.attributes) as Record<string, string>,
+            is_in_stock: Boolean(variation.is_in_stock ?? variation.in_stock),
+          };
+        })
       : undefined,
     // The Store API fallback nests the average under `average_rating` too, but
     // sends it as a string; both shapes coerce cleanly.
-    average_rating: Number(product.average_rating ?? 0) || 0,
-    rating_count: Number(product.rating_count ?? product.review_count ?? 0) || 0,
-    total_sales: Number(product.total_sales ?? 0) || 0,
-    description: product.description ?? undefined,
+    average_rating: num(product.average_rating),
+    rating_count: num(product.rating_count ?? product.review_count),
+    total_sales: num(product.total_sales),
+    description: product.description == null ? undefined : str(product.description),
     seller: product.seller
       ? {
-          id: Number(product.seller.id ?? 0),
-          store_name: String(product.seller.store_name ?? ""),
-          store_slug: String(product.seller.store_slug ?? ""),
-          logo: product.seller.logo || undefined,
+          id: num(seller.id),
+          store_name: str(seller.store_name),
+          store_slug: str(seller.store_slug),
+          logo: str(seller.logo) || undefined,
         }
       : undefined,
   };
 }
 
-function toCategory(raw: any): ProductCategory {
+function toCategory(raw: unknown): ProductCategory {
+  const category = obj(raw);
   return {
-    id: Number(raw?.id ?? 0),
-    name: raw?.name ?? "",
-    slug: raw?.slug ?? "",
-    count: raw?.count != null ? Number(raw.count) : undefined,
-    parent: raw?.parent != null ? Number(raw.parent) : 0,
-    image: raw?.image ?? raw?.image?.src ?? null,
+    id: num(category.id),
+    name: str(category.name),
+    slug: str(category.slug),
+    count: category.count == null ? undefined : num(category.count),
+    parent: category.parent == null ? 0 : num(category.parent),
+    // A category image arrives either as a URL or as WooCommerce's `{ src }`
+    // object; the old reader only ever produced the first, because `??` stopped
+    // at the object and handed it on as a category image React could not render.
+    image: typeof category.image === "string" ? category.image : str(obj(category.image).src) || null,
   };
 }
 

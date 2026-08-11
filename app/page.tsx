@@ -1,24 +1,46 @@
-import { getCategories, getProductsSafe } from "@/lib/woocommerce";
+import { getCategories, getProductsSafe, getStores } from "@/lib/woocommerce";
 import DealCarousel from "@/components/DealCarousel";
 import CategoryChips from "@/components/home/CategoryChips";
 import PromoTiles from "@/components/home/PromoTiles";
 import SuperDeals from "@/components/home/SuperDeals";
+import DailyDeals from "@/components/home/DailyDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import WideBanner from "@/components/home/WideBanner";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import TrustBar from "@/components/home/TrustBar";
+import SellWithUs from "@/components/home/SellWithUs";
 import { getSiteSettings } from "@/lib/site-settings";
+import { formatPrice } from "@/lib/currency";
+import type { Metadata } from "next";
+
+/**
+ * The homepage is canonical to itself, and says so explicitly.
+ *
+ * Not inherited from the layout any more: metadata set there applies to every
+ * page under it, which is how every policy page ended up claiming to be this
+ * one. The title and description still come from the layout, where they are
+ * built from the shop's wp-admin branding.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
-  const [settings, categories, onSale, featured, latest] = await Promise.all([
+  const [settings, categories, onSale, featured, latest, stores] = await Promise.all([
     getSiteSettings(),
     getCategories(),
-    getProductsSafe({ on_sale: true, per_page: 12 }),
+    // Enough on-sale stock for both discount sections: Super Deals takes the
+    // first five, Daily Deals carries the rest.
+    getProductsSafe({ on_sale: true, per_page: 24 }),
     getProductsSafe({ featured: true, per_page: 12 }),
     getProductsSafe({ per_page: 24 }),
+    // Only for the seller band's store count. Returns [] on an older plugin, so
+    // the band simply drops the figure rather than the page failing.
+    getStores(),
   ]);
 
-  const deals = onSale.products.slice(0, 5);
+  const deals = onSale.products.slice(0, 6);
+  const dailyDeals = onSale.products.slice(6, 22);
 
   // Trending is the shop's own picks where any are flagged, newest otherwise.
   // "Picked for you" below is the whole catalogue, so overlap there is expected
@@ -32,9 +54,11 @@ export default async function Home() {
           are gone: a fashion storefront opens on merchandise, and the chips
           below carry the departments in one line instead of a screen. */}
       {/* Section spacing steps up with the window rather than sitting at one
-          value: 28px is comfortable on a phone, where the same gap that reads
-          as generous on a desktop reads as a hole. */}
-      <div className="mx-auto flex max-w-[1450px] flex-col gap-7 px-4 py-5 md:gap-9 md:px-8">
+          value: on a phone 20px is enough to separate two sections, and the gap
+          that reads as generous on a desktop reads as a hole there. The side
+          padding goes the same way — 12px on a phone is the difference between
+          a grid and a grid with a margin around it. */}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-3 py-4 md:gap-9 md:px-8 md:py-5">
         <CategoryChips categories={categories} />
 
         <PromoTiles />
@@ -46,13 +70,27 @@ export default async function Home() {
           </section>
         )}
 
+        {/* Deals sit directly under Trending: the rail above is what is popular,
+            this is what is cheap today, and those are the two reasons a shopper
+            keeps scrolling a homepage. */}
+        <DailyDeals products={dailyDeals} fallback={latest.products} />
+
         <SuperDeals products={deals} />
 
+        {/* The offer wording is the shop's own, from wp-admin. The three lines
+            under it are not copywriting — they are the shop's real terms, read
+            straight out of settings, so the banner cannot promise a threshold
+            or a returns window the checkout does not honour. */}
         <WideBanner
           eyebrow={settings.banner.eyebrow}
           headline={settings.banner.headline}
           href={settings.banner.cta_url}
           cta={settings.banner.cta_label}
+          reasons={[
+            `FREE delivery over ${formatPrice(settings.commerce.free_delivery_from)}`,
+            "Pay on delivery",
+            `${settings.commerce.returns_days}-day free returns`,
+          ]}
         />
 
         <section>
@@ -64,6 +102,11 @@ export default async function Home() {
         </section>
 
         <TrustBar />
+
+        {/* Recruiting sellers at the foot of the page, after a shopper has seen
+            what the shop looks like — the trader worth having is the one who
+            liked the catalogue first. */}
+        <SellWithUs settings={settings} storeCount={stores.length} />
       </div>
     </main>
   );

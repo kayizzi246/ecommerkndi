@@ -515,6 +515,11 @@ function kandi_settings_render_page() {
 							is used when someone saves the shop to their phone's home screen.
 							Avoid SVG: Safari still will not render one as a tab icon.
 							<br>
+							A wide logo will <strong>not</strong> work here — a tab icon is a 16px
+							square. The storefront now declines anything much wider than it is tall
+							and shows its built-in mark instead, rather than hand the browser a
+							wordmark to squash into nothing. Crop your logo square first.
+							<br>
 							Browsers cache favicons hard, so give yours a few minutes — or a hard
 							refresh — before deciding it has not worked.
 						</p>

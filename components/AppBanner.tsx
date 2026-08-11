@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
+import { COOKIE_NOTICE_EVENT, cookieNoticeAcknowledged } from "@/components/CookieNotice";
 
 const DISMISS_KEY = "kandi-signin-banner-dismissed";
 
@@ -21,8 +22,25 @@ export default function AppBanner() {
     // Show once per visitor until dismissed; a small delay so it does not
     // compete with the page load.
     if (localStorage.getItem(DISMISS_KEY)) return;
-    const timer = setTimeout(() => setVisible(true), 2500);
-    return () => clearTimeout(timer);
+
+    // One prompt at a time. Two bars stacked along the foot of a phone screen
+    // is how a first visit ends in the back button, so this waits its turn
+    // behind the cookie notice rather than queueing beneath it.
+    let timer: ReturnType<typeof setTimeout>;
+    const start = () => {
+      timer = setTimeout(() => setVisible(true), 2500);
+    };
+
+    if (cookieNoticeAcknowledged()) {
+      start();
+      return () => clearTimeout(timer);
+    }
+
+    window.addEventListener(COOKIE_NOTICE_EVENT, start, { once: true });
+    return () => {
+      window.removeEventListener(COOKIE_NOTICE_EVENT, start);
+      clearTimeout(timer);
+    };
   }, []);
 
   const dismiss = () => {
@@ -35,7 +53,7 @@ export default function AppBanner() {
 
   return (
     <div className="banner-up fixed inset-x-0 bottom-0 z-50 bg-shop-nav text-white">
-      <div className="mx-auto flex max-w-[1450px] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-xl">
           🛍️
         </span>

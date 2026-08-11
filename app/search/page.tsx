@@ -1,5 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getProductsSafe } from "@/lib/woocommerce";
+
+/**
+ * Search results are not content, and Google should not hold any.
+ *
+ * Every query, sort order and filter combination is another URL showing the
+ * same products in a different order. Left indexable they crowd out the pages
+ * that should rank — the category and product pages the results are drawn from
+ * — and burn the crawl budget a young domain barely has.
+ *
+ * `follow` stays on, so a crawler that lands here still walks through to the
+ * products themselves. This is the difference between "do not keep this page"
+ * and "do not read it".
+ */
+export const metadata: Metadata = {
+  title: "Search",
+  robots: { index: false, follow: true },
+};
 import { sortProducts, filterProducts, brandFacets } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
@@ -102,7 +120,7 @@ export default async function SearchPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

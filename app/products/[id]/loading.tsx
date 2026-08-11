@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-[1450px] px-4 py-5 md:px-8">
+    <main className="mx-auto max-w-[1600px] px-4 py-5 md:px-8">
       <div className="shimmer mb-5 h-3 w-72 rounded" />
 
       <div className="flex flex-col gap-8 rounded-lg border border-shop-line bg-white p-5 md:p-8 lg:flex-row lg:gap-12">

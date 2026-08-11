@@ -221,7 +221,11 @@ h6,
    page is built around, and it should never be set in the body face. */
 .price {
   font-family: var(--font-display);
-  font-weight: 600;
+  /* Bold, not semibold. The price is the number a shopper scans a grid for, and
+     at 600 it sat at the same weight as the product name beside it; 700 makes
+     it the first thing read in the tile. Poppins ships the cut, so nothing is
+     synthesised. */
+  font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }

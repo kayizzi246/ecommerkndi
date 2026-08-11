@@ -16,6 +16,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description: store
       ? `Shop ${store.product_count} products from ${store.store_name} on Kandi.`
       : undefined,
+    // A store page is a real landing page — someone searching a shop by name
+    // should find it — so it is canonical to itself rather than inheriting.
+    alternates: { canonical: `/sellers/${slug}` },
   };
 }
 
@@ -29,7 +32,7 @@ export default async function StorePage({ params }: Params) {
   const { products } = await getProductsSafe({ seller: slug, per_page: 48 });
 
   return (
-    <main className="mx-auto max-w-[1450px] px-4 pb-24 pt-6 md:px-8 lg:pb-16">
+    <main className="mx-auto max-w-[1600px] px-4 pb-24 pt-6 md:px-8 lg:pb-16">
       <nav className="mb-6 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-primary">
           Home

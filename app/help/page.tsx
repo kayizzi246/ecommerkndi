@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/help" },
   title: "Help centre",
   description: "Answers to the questions Kandi UG shoppers ask most.",
 };

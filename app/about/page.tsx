@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about" },
   title: "About us",
   description:
     "Kandi UG is a modern Ugandan e-commerce brand focused on making fashion shopping simple, convenient and accessible.",

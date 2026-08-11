@@ -4,6 +4,7 @@ import InfoPage, { InfoSection, InfoFooterCta } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/returns" },
   title: "Returns & refunds",
   description: "How to return an item to Kandi UG and how refunds are paid.",
 };

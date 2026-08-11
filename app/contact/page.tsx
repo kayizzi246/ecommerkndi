@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import ContactForm from "./ContactForm";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/contact" },
   title: "Contact us",
   description: "Call, email or message Kandi UG — and where to go for order questions.",
 };

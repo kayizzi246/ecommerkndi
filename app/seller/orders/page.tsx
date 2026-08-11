@@ -12,6 +12,9 @@ const STATUS_FILTERS = [
   { value: "refunded", label: "Refunded" },
 ];
 
+/** Orders past the point where accepting them would mean anything. */
+const CLOSED_STATUSES = ["completed", "cancelled", "refunded", "failed"];
+
 const STATUS_BADGE: Record<string, string> = {
   processing: "bg-[#fff6dd] text-[#8a6100]",
   completed: "bg-[#e7f7ea] text-[#0a7a2f]",
@@ -26,6 +29,34 @@ export default function SellerOrdersPage() {
   const [orders, setOrders] = useState<SellerOrder[] | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState<number | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  /**
+   * Confirms this store is packing its part of an order.
+   *
+   * The buyer is emailed the moment the first seller accepts, so this is a
+   * promise, not a bookkeeping click — which is why the row updates from the
+   * server's answer rather than optimistically.
+   */
+  const accept = async (order: SellerOrder) => {
+    setAccepting(order.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const { status: newStatus } = await sellerApi.acceptOrder(order.id);
+      setOrders((current) =>
+        (current ?? []).map((entry) =>
+          entry.id === order.id ? { ...entry, accepted: true, status: newStatus } : entry
+        )
+      );
+      setNotice(`Order #${order.number} accepted — the buyer has been told it is being packed.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not accept that order.");
+    } finally {
+      setAccepting(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +119,12 @@ export default function SellerOrdersPage() {
         </p>
       )}
 
+      {notice && (
+        <p className="mb-4 border-l-2 border-[#0a7a2f] bg-[#e7f7ea] px-3 py-2 text-[14px] text-[#0a7a2f]">
+          {notice}
+        </p>
+      )}
+
       {/* Totals for the current slice */}
       {orders !== null && orders.length > 0 && (
         <div className="mb-4 grid gap-4 sm:grid-cols-3">
@@ -117,12 +154,13 @@ export default function SellerOrdersPage() {
               <th className="px-4 py-3 text-right font-semibold">Your total</th>
               <th className="px-4 py-3 text-right font-semibold">Commission</th>
               <th className="px-4 py-3 text-right font-semibold">Net</th>
+              <th className="px-4 py-3 text-right font-semibold">Action</th>
             </tr>
           </thead>
           <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
             {orders === null && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-bfl-grey">
+                <td colSpan={8} className="px-4 py-12 text-center text-bfl-grey">
                   Loading…
                 </td>
               </tr>
@@ -130,7 +168,7 @@ export default function SellerOrdersPage() {
 
             {orders !== null && orders.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-14 text-center">
+                <td colSpan={8} className="px-4 py-14 text-center">
                   <p className="text-[15px] font-semibold text-black">No orders in this view</p>
                   <p className="mt-1 text-[14px] text-bfl-grey">
                     Orders appear here as soon as a shopper buys one of your products.
@@ -175,11 +213,32 @@ export default function SellerOrdersPage() {
                   <td className="px-4 py-3 text-right font-semibold text-black">
                     {formatPrice(order.net_payout)}
                   </td>
+                  {/* The click must not also expand the row — accepting emails
+                      the buyer, so it should never happen as a side effect of
+                      looking at the line items. */}
+                  <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                    {CLOSED_STATUSES.includes(order.status) ? (
+                      <span className="text-[13px] text-bfl-grey">—</span>
+                    ) : order.accepted ? (
+                      <span className="whitespace-nowrap text-[13px] font-semibold text-[#0a7a2f]">
+                        ✓ Accepted
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => accept(order)}
+                        disabled={accepting === order.id}
+                        className="whitespace-nowrap rounded border border-black bg-black px-3 py-1.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+                      >
+                        {accepting === order.id ? "Accepting…" : "Accept order"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
 
                 {expanded === order.id && (
                   <tr className="border-b border-bfl-line bg-bfl-surface">
-                    <td colSpan={7} className="px-4 py-3">
+                    <td colSpan={8} className="px-4 py-3">
                       <p className="mb-2 text-[13px] font-semibold text-black">Your items in this order</p>
                       <ul className="space-y-1.5">
                         {order.items.map((item) => (

@@ -10,6 +10,7 @@ import AppBanner from "@/components/AppBanner";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import ShopperOnboarding from "@/components/ShopperOnboarding";
 import CartDrawer from "@/components/CartDrawer";
+import CookieNotice from "@/components/CookieNotice";
 
 /**
  * The Seller Centre and the owner's product manager are separate application
@@ -44,7 +45,7 @@ export default function StoreChrome({
     return (
       <>
         <header className="border-b border-shop-line bg-white">
-          <div className="mx-auto flex max-w-[1450px] items-center gap-4 px-4 py-4 md:px-8">
+          <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-4 md:px-8">
             <Link
               href="/cart"
               className="flex items-center gap-1.5 text-[14px] text-shop-body transition-colors hover:text-shop-ink"
@@ -70,6 +71,7 @@ export default function StoreChrome({
       <div className="flex-1">{children}</div>
       <CartDrawer />
       <Footer settings={settings} />
+      <CookieNotice />
       <AppBanner />
       <MobileBottomNav />
       <ShopperOnboarding departments={departments} />

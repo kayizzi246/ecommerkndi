@@ -1,13 +1,14 @@
 # Kandi WordPress backend
 
-Four plugins power the Next.js storefront. Install them in this order.
+Five plugins power the Next.js storefront. Install them in this order.
 
 | File | Purpose |
 |---|---|
 | `kandi-store-api.php` | Storefront read API — products, categories, reviews, shopper accounts, order creation (`kandi/v1/*`) |
-| `kandi-seller-api.php` | Seller Centre — registration, approvals, seller products, commission ledger, payouts (`kandi/v1/seller/*`), the public store directory, plus the wp-admin control panel |
+| `kandi-seller-api.php` | Seller Centre — registration, email verification, approvals, seller products and photo uploads, order acceptance, commission ledger, payouts (`kandi/v1/seller/*`), the public store directory, plus the wp-admin control panel |
 | `kandi-owner-api.php` | **Owner product manager** — add, edit and delete *any* product from the storefront's `/admin` screen, no seller account involved (`kandi/v1/owner/*`) |
 | `kandi-storefront-settings.php` | **Logo, brand name and all promotional wording**, edited in *wp-admin → Kandi Storefront* (`kandi/v1/settings`) |
+| `kandi-notifications.php` | **Branded transactional email** — shopper order receipts, and the shared template the Seller Centre sends verification codes and order alerts through. Optional but recommended; without it the other plugins fall back to plain-text `wp_mail` |
 
 All but the settings plugin require WooCommerce. `kandi-owner-api.php` is optional and
 independent — the storefront works without it, you just lose the `/admin` screen.
@@ -162,7 +163,90 @@ DELETE /seller/products/{id}
 GET    /seller/orders?status=any|processing|completed|…
 GET    /seller/commissions?range=…
 POST   /seller/payouts
+POST   /seller/media                 ← multipart/form-data, field name "file"
+POST   /seller/orders/{id}/accept
 ```
+
+Public (secret only), added with email verification:
+
+```
+POST /seller/verify            { email, code }  → returns a session
+POST /seller/verify/resend     { email }
+POST /seller/google            { email, google_id }
+```
+
+## Email
+
+Every message below goes through `wp_mail`, so whatever SMTP plugin the site
+already uses carries them. **If WordPress cannot send mail, none of this works** —
+test with any SMTP plugin's "send test email" button before blaming the code.
+
+| Trigger | Who gets it |
+|---|---|
+| Seller registers | Seller — six-digit code, valid 30 minutes. Marketplace team — a store is waiting |
+| Order reaches processing / on-hold | Shopper — receipt with items, total and how to pay. Each seller — only their own lines, plus the delivery address |
+| Seller accepts their part | Shopper — "being packed". Seller — their packing list |
+| Order completed | Shopper — delivered, with the returns window |
+| Order cancelled | Shopper — cancelled, not charged |
+| Seller requests a payout | Seller — confirmation. Marketplace team — a request to settle |
+| Payout marked paid in wp-admin | Seller — the money is on its way |
+
+Shopper messages check whether the matching **WooCommerce** email is enabled
+first and stay quiet if it is, so nobody is told twice. Turn a WooCommerce email
+off under *WooCommerce → Settings → Emails* and Kandi's version takes over.
+
+Mail is sent from `no-reply@<your-domain>` — not from a Gmail support address,
+which the big providers treat as forgery and bin. Filter `kandi_mail_from_address`
+to change it.
+
+## Email verification
+
+New seller accounts are created unverified and cannot sign in until the emailed
+code is entered; the storefront shows the code screen automatically, on both
+sign-up and sign-in. Signing in with Google verifies the address outright, since
+Google has already proved it.
+
+Accounts that existed before this was added are treated as verified, so updating
+the plugin does not lock out sellers who are already trading.
+
+## Abuse control
+
+Fixed-window limits, counted in transients, on everything reachable without a
+session:
+
+| Endpoint | Limit |
+|---|---|
+| `POST /seller/login` | 8 per email and 30 per IP, per 15 minutes |
+| `POST /seller/register` | 10 per IP, per 15 minutes |
+| `POST /seller/verify` | 30 per IP, per 15 minutes, and 5 guesses per code |
+| `POST /seller/verify/resend` | 3 per address, per 15 minutes |
+| `POST /seller/google` | 30 per IP, per 15 minutes |
+
+Login answers the same way for a wrong password and an unknown address, and
+resend answers the same way whether or not the address has an account — both
+would otherwise be ways to find out who sells here. A successful sign-in clears
+that address's bucket.
+
+The storefront sends `X-Frame-Options`, `X-Content-Type-Options`,
+`Referrer-Policy`, `Permissions-Policy` and `Strict-Transport-Security` on every
+response, and hides its framework version.
+
+### Photo uploads (`POST /seller/media`)
+
+Sellers upload product photographs straight from a phone or laptop; the file lands in the
+WordPress media library and the URL that comes back is submitted with the listing as an
+entry in `image_urls`. JPEG, PNG, WebP and GIF, 8 MB a file, eight photos a listing. The
+type is checked by reading the file's bytes, not its name, and each attachment is stamped
+with `_kandi_seller_id` so you can see in wp-admin who uploaded what.
+
+**This endpoint arrived after the first release.** If the Seller Centre shows
+*"Photo uploads are not switched on yet"*, or the WordPress log records `rest_no_route`,
+the copy of `kandi-seller-api.php` on the server predates it — re-upload the current file
+to `wp-content/plugins/kandi-seller-api/` (or paste it over the Code Snippets snippet) and
+the endpoint appears immediately. No re-activation, no database change.
+
+To check which version is live, open `https://your-site.com/wp-json/kandi/v1` and look for
+`/kandi/v1/seller/media` in the route list.
 
 Tokens last 14 days and are stored as WordPress transients. The browser never sees one —
 the Next.js route handlers under `app/api/seller/` keep it in an httpOnly cookie and attach

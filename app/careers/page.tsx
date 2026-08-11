@@ -3,6 +3,7 @@ import InfoPage, { InfoSection, InfoFooterCta } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/careers" },
   title: "Careers",
   description: "Work with Kandi UG — what we look for and how to apply.",
 };

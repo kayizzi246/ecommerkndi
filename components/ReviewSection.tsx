@@ -112,12 +112,18 @@ export default function ReviewSection({ productId, initial }: Props) {
               >
                 <div className="mb-2 flex items-center gap-3">
                   {review.avatar ? (
+                    // `unoptimized`: a reviewer's photo is hosted by whichever
+                    // identity provider they signed in with, and an avatar the
+                    // optimiser refuses to fetch throws — which took down the
+                    // whole product page rather than dropping one picture. At
+                    // 36px there is nothing for the optimiser to save anyway.
                     <Image
                       src={review.avatar}
                       alt=""
                       width={36}
                       height={36}
-                      className="h-9 w-9 shrink-0 rounded-full"
+                      unoptimized
+                      className="h-9 w-9 shrink-0 rounded-full object-cover"
                     />
                   ) : (
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[14px] font-semibold text-shop-ink">

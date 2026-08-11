@@ -95,7 +95,8 @@ export default function AccountMenu() {
                     alt=""
                     width={40}
                     height={40}
-                    className="h-10 w-10 rounded-full"
+                    unoptimized
+                    className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bfl-surface text-[16px] font-semibold text-bfl-ink">
@@ -168,7 +169,13 @@ export default function AccountMenu() {
   );
 }
 
-/** The shopper's Google photo, or their initial when there isn't one. */
+/**
+ * The shopper's Google photo, or their initial when there isn't one.
+ *
+ * `unoptimized` throughout: this sits in the masthead of every page, so an
+ * avatar host the image optimiser has not been told about does not fail one
+ * picture — it throws, and takes the entire site down for that shopper.
+ */
 function Avatar({ customer }: { customer: { name: string; avatar: string } }) {
   if (customer.avatar) {
     return (
@@ -177,7 +184,8 @@ function Avatar({ customer }: { customer: { name: string; avatar: string } }) {
         alt=""
         width={26}
         height={26}
-        className="h-[26px] w-[26px] rounded-full"
+        unoptimized
+        className="h-[26px] w-[26px] rounded-full object-cover"
       />
     );
   }
