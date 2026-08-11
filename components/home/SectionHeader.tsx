@@ -24,8 +24,11 @@ export default function SectionHeader({
   /** Anything that belongs beside the title — a countdown, a badge. */
   children?: React.ReactNode;
 }) {
+  // The rails below run to the edge of a phone screen; text must not. This
+  // padding is the header's own, so a section heading keeps a thumb's width of
+  // margin while the products beside it use the full width.
   return (
-    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 md:px-0">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets

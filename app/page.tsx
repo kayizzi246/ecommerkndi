@@ -99,11 +99,23 @@ export default async function Home() {
 
           Spacing is tight and even: 16px on a phone, 28px from md up. The old
           36px desktop gap left the page feeling like separate pages stacked. */}
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 py-4 md:gap-7 md:px-8 md:py-5">
+      {/* Edge to edge on a phone, padded from md up.
+
+          The side gutter used to be 12px, which bought nothing: it cost a
+          product card most of its width on a 390px screen while the rails
+          bled past it anyway with a 16px negative margin — 4px wider than the
+          screen on each side, which is what made the whole page drift
+          sideways. Removing the gutter fixes the drift and gives the width
+          back to the products. Headings and copy carry their own `px-3` so
+          words never touch the glass. */}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-0 py-4 md:gap-7 md:px-8 md:py-5">
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
-            <DealCarousel products={trending} />
+            {/* The first rail on the page, and so the one carrying the largest
+                paint. Its leading tiles load eagerly; every rail below stays
+                lazy. */}
+            <DealCarousel products={trending} priority />
           </section>
         )}
 

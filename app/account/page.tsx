@@ -188,11 +188,22 @@ export default function AccountOverview() {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="rounded-2xl border border-shop-line bg-white p-4">
-      <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-muted">
+    /* `min-w-0` is what stops this card widening the page.
+
+       A grid track is sized to its content by default, so "UGX 1,250,000" on a
+       narrow phone pushed the column past its share and the whole dashboard
+       drifted sideways — which is why the right-hand cards were sliced off the
+       screen. `min-w-0` lets the track shrink and the text wrap instead.
+
+       The figure steps down a size on a phone for the same reason: a total in
+       the millions is a realistic amount here, and it has to fit. */
+    <div className="min-w-0 rounded-2xl border border-shop-line bg-white p-3.5 sm:p-4">
+      <p className="truncate text-[12px] font-semibold uppercase tracking-wide text-shop-muted sm:text-[13px]">
         {label}
       </p>
-      <p className={`mt-1.5 text-[19px] font-semibold leading-none ${tone}`}>{value}</p>
+      <p className={`mt-1.5 break-words text-[17px] font-semibold leading-tight sm:text-[19px] ${tone}`}>
+        {value}
+      </p>
     </div>
   );
 }

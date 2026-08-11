@@ -87,7 +87,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           pushed the content below the fold on every small screen. */}
       <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar */}
-        <aside>
+        <aside className="min-w-0">
           <div className="flex items-center gap-3 rounded-2xl border border-shop-line bg-white p-4">
             {customer.avatar ? (
               <Image
@@ -143,7 +143,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           </button>
         </aside>
 
-        <div>{children}</div>
+        {/* A grid track sizes itself to its widest child unless told otherwise,
+            so one long order reference or email address inside here was enough
+            to stretch the column and push the dashboard off the side of a
+            phone. This keeps the overflow inside the child that caused it. */}
+        <div className="min-w-0">{children}</div>
       </div>
     </main>
   );

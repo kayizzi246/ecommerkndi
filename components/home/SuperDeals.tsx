@@ -32,9 +32,13 @@ export default function SuperDeals({ products }: { products: Product[] }) {
       {/* Six across on a wide desktop, matching the grids either side of it —
           a row of five beside a row of six is the kind of half-alignment that
           reads as a mistake rather than a decision. */}
-      <ul className="-mx-4 flex snap-x gap-1.5 overflow-x-auto px-4 pb-1 no-scrollbar sm:gap-2 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 xl:grid-cols-6">
+      {/* No negative margin any more. It existed to bleed past the container's
+          side padding, and that padding is gone on a phone — but the two never
+          matched (16px against 12px), so the rail hung 4px off each edge and
+          dragged the whole page sideways. */}
+      <ul className="flex snap-x gap-px overflow-x-auto pb-1 no-scrollbar lg:grid lg:grid-cols-5 lg:gap-x-px lg:overflow-visible xl:grid-cols-6">
         {products.slice(0, 6).map((product) => (
-          <li key={product.id} className="w-[47.5%] shrink-0 snap-start sm:w-[31%] lg:w-auto">
+          <li key={product.id} className="w-[48.5%] shrink-0 snap-start sm:w-[31.5%] lg:w-auto">
             <ProductCard product={product} />
           </li>
         ))}

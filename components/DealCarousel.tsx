@@ -24,15 +24,22 @@ export type DealTone = "orange" | "red" | "green" | "blue" | "violet";
 export default function DealCarousel({
   products,
   /** Tailwind width classes for one item — controls how many are visible. */
-  itemWidth = "w-[47.5%] sm:w-[30%] md:w-[23%] lg:w-[18%] xl:w-[15.5%]",
+  itemWidth = "w-[48.5%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   /** Background the edge fades into; match the rail's own surface. */
   fadeFrom = "from-white",
+  priority = false,
 }: {
   products: Product[];
   /** Accepted and ignored — kept so existing call sites compile unchanged. */
   tone?: DealTone;
   itemWidth?: string;
   fadeFrom?: string;
+  /**
+   * Set on the one rail that is above the fold when the page opens — nothing
+   * below it benefits, and marking more rails eager would slow the first paint
+   * rather than speed it up.
+   */
+  priority?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
@@ -75,11 +82,14 @@ export default function DealCarousel({
       <div
         ref={attach}
         onScroll={sync}
-        className="flex snap-x snap-mandatory gap-1.5 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-2"
+        className="flex snap-x snap-mandatory gap-px overflow-x-auto scroll-smooth pb-1 no-scrollbar"
       >
-        {products.map((product) => (
+        {products.map((product, index) => (
           <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>
-            <ProductCard product={product} />
+            {/* Only the two tiles a phone can actually see are eager. Beyond
+                that they would compete with each other for bandwidth and the
+                first paint would arrive later, not sooner. */}
+            <ProductCard product={product} priority={priority && index < 2} />
           </div>
         ))}
       </div>

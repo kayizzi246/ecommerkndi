@@ -91,7 +91,11 @@ export default function InfiniteProducts({
           tight on purpose, and tighter still on a phone: a dense grid reads as
           a catalogue with depth, and 6px between two columns is all it takes to
           tell them apart on a 390px screen. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+      {/* 1px in both directions on a phone. Cards carry their own white
+          background, so the hairline reads as a grid line rather than a gap,
+          and every pixel saved goes into the photograph — which is the thing
+          that actually sells. Vertical breathing room returns at sm. */}
+      <ul className="grid grid-cols-2 gap-px sm:gap-y-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

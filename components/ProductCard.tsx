@@ -76,7 +76,23 @@ function Stars({ rating }: { rating: number }) {
  * Every figure comes from WooCommerce, and each line disappears when there is no
  * number behind it rather than printing a zero.
  */
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  priority = false,
+}: {
+  product: Product;
+  /**
+   * Load this card's photo immediately rather than lazily.
+   *
+   * Set only on the handful of cards that are already on screen when the page
+   * opens. A lazy image is not requested until the browser has finished laying
+   * the page out, which on a phone puts the shop's largest paint — the first
+   * product photo — several hundred milliseconds behind where it could be. Off
+   * by default: making every card eager would have them all compete for
+   * bandwidth and would be slower than doing nothing.
+   */
+  priority?: boolean;
+}) {
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
@@ -87,6 +103,23 @@ export default function ProductCard({ product }: { product: Product }) {
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
   const category = product.categories[0];
+
+  /** The back view, when the seller uploaded one. */
+  const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
+
+  /** Money off in shillings, which lands harder than a percentage. */
+  const saving = discount > 0 ? product.regular_price - product.price : 0;
+
+  /**
+   * The sizes or colours this product comes in.
+   *
+   * A shopper's second question, after "what does the back look like", is
+   * "will it fit me" — and a tile that answers it saves a click for the people
+   * it fits and saves a wasted one for the people it does not.
+   */
+  const options = product.attributes[0]?.options ?? [];
+  const swatches = options.slice(0, 4);
+  const moreOptions = Math.max(0, options.length - swatches.length);
 
   return (
     <article className="group relative flex h-full flex-col rounded-lg border border-transparent p-0.5 transition-colors hover:border-shop-line sm:p-1">
@@ -99,16 +132,36 @@ export default function ProductCard({ product }: { product: Product }) {
               which on a phone is most of what the shopper can see at all. */}
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
-                loading="lazy"
-                className={`object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
-                  soldOut ? "opacity-50" : ""
-                }`}
-              />
+              <>
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
+                  {...(priority ? { priority: true } : { loading: "lazy" as const })}
+                  className={`object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
+                    soldOut ? "opacity-50" : ""
+                  } ${secondPhoto ? "group-hover:opacity-0" : ""}`}
+                />
+
+                {/* The second photograph, revealed on hover.
+                    A shopper's first question about a garment is what the other
+                    side looks like, and answering it without a page load is the
+                    single most effective thing a tile can do. Only rendered when
+                    the product genuinely has a second shot — a "hover" that
+                    shows the same picture again reads as a glitch. */}
+                {secondPhoto && (
+                  <Image
+                    src={secondPhoto}
+                    alt=""
+                    aria-hidden
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
+                    loading="lazy"
+                    className="object-cover opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
+                  />
+                )}
+              </>
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-shop-muted">
                 <svg className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
@@ -196,6 +249,14 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
         </p>
 
+        {/* What the discount is worth in money. "−17%" is arithmetic a shopper
+            has to do; "Save UGX 5,000" is the answer. */}
+        {saving > 0 && (
+          <p className="text-[12.5px] font-semibold leading-none text-shop-success">
+            Save {formatPrice(saving)}
+          </p>
+        )}
+
         {/* Rating and units sold on one line — the two numbers a shopper uses to
             decide whether anyone else has taken the risk first. */}
         {(product.rating_count > 0 || product.total_sales > 0) && (
@@ -212,6 +273,35 @@ export default function ProductCard({ product }: { product: Product }) {
               <span className="text-[12.5px] font-medium text-shop-muted">
                 {compactSold(product.total_sales)} sold
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Sizes or colours, straight from the product's own attributes.
+            Colour options that carry a hex value are drawn as dots; everything
+            else is set as text, because "38 · 39 · 40" tells a shopper more
+            than four identical grey circles would. */}
+        {swatches.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1">
+            {swatches.map((option) =>
+              option.value && option.value.startsWith("#") ? (
+                <span
+                  key={option.name}
+                  title={option.name}
+                  className="h-3.5 w-3.5 rounded-full border border-shop-line"
+                  style={{ backgroundColor: option.value }}
+                />
+              ) : (
+                <span
+                  key={option.name}
+                  className="rounded border border-shop-line px-1 py-px text-[11px] leading-none text-shop-body"
+                >
+                  {option.name}
+                </span>
+              )
+            )}
+            {moreOptions > 0 && (
+              <span className="text-[11px] leading-none text-shop-muted">+{moreOptions}</span>
             )}
           </div>
         )}

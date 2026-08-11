@@ -54,8 +54,8 @@ export default async function SearchPage({
   const filtered = visible.length !== products.length;
 
   return (
-    <main className="w-full px-4 pb-24 pt-4 md:px-8 lg:pb-12">
-      <nav className="mb-5 flex items-center gap-2 text-[13px] text-shop-muted">
+    <main className="w-full px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+      <nav className="mb-5 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -65,7 +65,7 @@ export default async function SearchPage({
 
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Filter rail */}
-        <div className="order-first w-full flex-none md:w-56 lg:w-64">
+        <div className="order-first w-full flex-none px-3 md:w-56 md:px-0 lg:w-64">
           <div className="hidden md:sticky md:top-32 md:block">
             <FilterSidebar brands={brands} />
           </div>
@@ -84,7 +84,7 @@ export default async function SearchPage({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-4">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line px-3 pb-4 md:px-0">
             <div>
               <h1 className="section-title text-[20px] text-shop-ink md:text-[19px]">
                 {query ? `“${query}”` : "Search"}
@@ -120,7 +120,7 @@ export default async function SearchPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:gap-x-2 sm:gap-y-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              <div className="grid grid-cols-2 gap-x-px gap-y-2 sm:gap-y-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

@@ -33,8 +33,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const KANDI_PESAPAL_SANDBOX = 'https://cybqa.pesapal.com/pesapalv3';
-const KANDI_PESAPAL_LIVE    = 'https://pay.pesapal.com/v3';
+/**
+ * Loads once, however this file arrives.
+ *
+ * It can be installed as a plugin or pasted into Code Snippets, and on this
+ * shop it has been both at once. PHP will not declare the same function twice,
+ * so the second copy is not a duplicate — it is a fatal error that takes down
+ * wp-admin along with the shop. Bailing here costs nothing and makes the mistake
+ * survivable.
+ */
+if ( defined( 'KANDI_PESAPAL_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_PESAPAL_LOADED', true );
+
+// `define` rather than `const`: Code Snippets runs a snippet through eval(),
+// where a top-level `const` is not always legal. `define` behaves identically
+// and works in every context this file gets loaded from.
+define( 'KANDI_PESAPAL_SANDBOX', 'https://cybqa.pesapal.com/pesapalv3' );
+define( 'KANDI_PESAPAL_LIVE', 'https://pay.pesapal.com/v3' );
 
 /* -------------------------------------------------------------------------
  * 1. Configuration
@@ -120,7 +137,106 @@ function kandi_pesapal_guard( callable $work ) {
 }
 
 /* -------------------------------------------------------------------------
- * 2. The Pesapal API
+ * 2. Getting a request out of this server
+ * ---------------------------------------------------------------------- */
+
+/**
+ * An outbound request, tried over PHP streams and then over cURL.
+ *
+ * WordPress can speak HTTP two ways, and on shared hosting exactly one of them
+ * is often broken: cURL compiled without the right CA bundle, or an outbound
+ * firewall that drops libcurl's traffic while leaving stream wrappers alone, or
+ * the reverse. The usual symptom is precisely what this shop saw — every
+ * payment failing at the first call to the gateway while nothing else on the
+ * site looked wrong.
+ *
+ * So a failure on the first transport is not the end of it: the same request is
+ * retried on the other one, and whichever answers is remembered for the hour so
+ * the next payment does not pay the cost of discovering it again.
+ */
+function kandi_pesapal_http( $url, $args ) {
+	$settings = get_option( 'kandi_pesapal_settings', array() );
+	$mode     = is_array( $settings ) ? ( $settings['transport'] ?? 'auto' ) : 'auto';
+
+	/**
+	 * "Streams only" exists for the failure that cannot be caught.
+	 *
+	 * A broken libcurl does not raise an error a `catch` can see — it takes the
+	 * whole PHP worker down, the web server has nothing to return, and the CDN
+	 * in front prints a bare `502`. No log line, no exception, no clue. That is
+	 * exactly what this shop was seeing, and no amount of error handling inside
+	 * PHP can help: the process is gone before any of it runs.
+	 *
+	 * The only defence is not to call libcurl at all. Setting this to streams
+	 * routes every Pesapal request through PHP's own HTTPS instead, which is a
+	 * completely separate code path — slower by a few milliseconds and entirely
+	 * unaffected by whatever is wrong with cURL on this host.
+	 */
+	if ( 'streams' === $mode ) {
+		add_filter( 'use_curl_transport', '__return_false' );
+		$only = wp_remote_request( $url, $args );
+		remove_filter( 'use_curl_transport', '__return_false' );
+		return $only;
+	}
+
+	if ( 'curl' === $mode ) {
+		return wp_remote_request( $url, $args );
+	}
+
+	/**
+	 * Automatic: streams first, cURL only as a fallback.
+	 *
+	 * This order is the opposite of the obvious one, and it is deliberate.
+	 *
+	 * cURL is normally the better transport, so trying it first is what every
+	 * WordPress install does. But on this host cURL is the prime suspect for
+	 * killing the PHP process outright during a Pesapal call, and that failure
+	 * has a property no ordering can recover from: it never returns. There is
+	 * no error to inspect and no chance to retry, because the worker is gone.
+	 * A fallback that runs after cURL therefore protects against every cURL
+	 * failure except the one actually happening here.
+	 *
+	 * Streams first inverts that. If PHP's own HTTPS can reach Pesapal — and on
+	 * this server it can — the crashing path is never entered at all, and the
+	 * shop works without anyone having to find a settings page first. cURL
+	 * remains as the fallback for hosts with `allow_url_fopen` switched off,
+	 * where streams cannot work.
+	 *
+	 * The cost is a few milliseconds per call. The alternative is a shop that
+	 * takes no money.
+	 */
+	add_filter( 'use_curl_transport', '__return_false' );
+	$response = wp_remote_request( $url, $args );
+	remove_filter( 'use_curl_transport', '__return_false' );
+
+	if ( ! is_wp_error( $response ) ) {
+		return $response;
+	}
+
+	$first = $response->get_error_message();
+	kandi_pesapal_log( 'streams transport failed, retrying over cURL', $first );
+
+	$retry = wp_remote_request( $url, $args );
+
+	if ( ! is_wp_error( $retry ) ) {
+		return $retry;
+	}
+
+	// Both failed. Report both reasons — they are usually different, and the
+	// pair is what tells a host which of their rules is in the way.
+	return new WP_Error(
+		'kandi_pesapal_unreachable',
+		sprintf(
+			'Could not reach Pesapal. PHP streams said: %s. cURL said: %s.',
+			$first,
+			$retry->get_error_message()
+		),
+		array( 'status' => 502 )
+	);
+}
+
+/* -------------------------------------------------------------------------
+ * 3. The Pesapal API
  * ---------------------------------------------------------------------- */
 
 /**
@@ -135,7 +251,8 @@ function kandi_pesapal_token( $config ) {
 		return $cached;
 	}
 
-	$response = wp_remote_post( $config['base'] . '/api/Auth/RequestToken', array(
+	$response = kandi_pesapal_http( $config['base'] . '/api/Auth/RequestToken', array(
+		'method'  => 'POST',
 		'timeout' => 20,
 		'headers' => array( 'Content-Type' => 'application/json', 'Accept' => 'application/json' ),
 		'body'    => wp_json_encode( array(
@@ -146,7 +263,7 @@ function kandi_pesapal_token( $config ) {
 
 	if ( is_wp_error( $response ) ) {
 		kandi_pesapal_log( 'token request failed', $response->get_error_message() );
-		return new WP_Error( 'kandi_pesapal_unreachable', 'Could not reach Pesapal. Please try again.', array( 'status' => 502 ) );
+		return $response;
 	}
 
 	$body = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -183,11 +300,11 @@ function kandi_pesapal_call( $config, $path, $method = 'GET', $payload = null ) 
 		$args['body'] = wp_json_encode( $payload );
 	}
 
-	$response = wp_remote_request( $config['base'] . $path, $args );
+	$response = kandi_pesapal_http( $config['base'] . $path, $args );
 
 	if ( is_wp_error( $response ) ) {
 		kandi_pesapal_log( 'call failed ' . $path, $response->get_error_message() );
-		return new WP_Error( 'kandi_pesapal_unreachable', 'Could not reach Pesapal. Please try again.', array( 'status' => 502 ) );
+		return $response;
 	}
 
 	$raw  = wp_remote_retrieve_body( $response );
@@ -270,6 +387,86 @@ function kandi_pesapal_parse_reference( $reference ) {
 	return array(
 		'kind' => 'ORD' === $match[1] ? 'order' : 'seller-fee',
 		'id'   => (int) $match[2],
+	);
+}
+
+/* -------------------------------------------------------------------------
+ * 3b. What is being paid, and how much
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Reads the real price and payer for an order or a seller fee.
+ *
+ * Split out of the payment route so it can also be served on its own, without
+ * this server having to talk to Pesapal at all. That matters here: outbound
+ * HTTPS from this host kills the PHP process, while reading a WooCommerce order
+ * is perfectly reliable. Separating the two lets the storefront take over only
+ * the part that is broken, and still get the amount from a source a shopper
+ * cannot edit.
+ *
+ * Returns a WP_Error the REST layer can hand straight back.
+ */
+function kandi_pesapal_quote( $kind, $id ) {
+	$id = (int) $id;
+
+	if ( ! in_array( $kind, array( 'order', 'seller-fee' ), true ) || $id <= 0 ) {
+		return new WP_Error( 'kandi_pesapal_no_purpose', 'Nothing to pay for.', array( 'status' => 400 ) );
+	}
+
+	if ( 'order' === $kind ) {
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $id ) : null;
+		if ( ! $order ) {
+			return new WP_Error( 'kandi_not_found', 'Order not found.', array( 'status' => 404 ) );
+		}
+		if ( $order->is_paid() ) {
+			return new WP_Error( 'kandi_already_paid', 'That order is already paid.', array( 'status' => 409 ) );
+		}
+
+		$amount      = (float) $order->get_total();
+		$description = sprintf( 'Order #%s', $order->get_order_number() );
+		$billing     = array(
+			'email_address' => $order->get_billing_email(),
+			'phone_number'  => $order->get_billing_phone(),
+			'first_name'    => $order->get_billing_first_name(),
+			'last_name'     => $order->get_billing_last_name(),
+			'line_1'        => $order->get_billing_address_1(),
+			'city'          => $order->get_billing_city(),
+			'country_code'  => $order->get_billing_country() ?: 'UG',
+		);
+	} else {
+		$user = get_userdata( $id );
+		if ( ! $user ) {
+			return new WP_Error( 'kandi_not_found', 'Seller not found.', array( 'status' => 404 ) );
+		}
+
+		$amount      = (float) get_user_meta( $id, '_kandi_fee_amount', true );
+		$description = 'Kandi seller registration fee';
+		$billing     = array(
+			'email_address' => $user->user_email,
+			'phone_number'  => (string) get_user_meta( $id, '_kandi_phone', true ),
+			'first_name'    => (string) get_user_meta( $id, '_kandi_owner_name', true ),
+			'country_code'  => 'UG',
+		);
+	}
+
+	if ( $amount <= 0 ) {
+		return new WP_Error( 'kandi_bad_amount', 'There is nothing to pay.', array( 'status' => 400 ) );
+	}
+
+	$storefront = function_exists( 'kandi_storefront_url' ) && kandi_storefront_url()
+		? kandi_storefront_url()
+		: home_url();
+
+	return array(
+		'reference'   => kandi_pesapal_reference( $kind, $id ),
+		'amount'      => round( $amount, 2 ),
+		'currency'    => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UGX',
+		'description' => function_exists( 'mb_substr' )
+			? mb_substr( $description, 0, 100 )
+			: substr( $description, 0, 100 ),
+		'billing'     => array_filter( $billing ),
+		'storefront'  => $storefront,
+		'ipn_url'     => rest_url( 'kandi/v1/payments/ipn' ),
 	);
 }
 
@@ -381,47 +578,10 @@ add_action( 'rest_api_init', function () {
 			$kind = sanitize_text_field( $body['kind'] ?? '' );
 			$id   = (int) ( $body['id'] ?? 0 );
 
-			if ( ! in_array( $kind, array( 'order', 'seller-fee' ), true ) || $id <= 0 ) {
-				return new WP_Error( 'kandi_pesapal_no_purpose', 'Nothing to pay for.', array( 'status' => 400 ) );
-			}
-
-			// The price, from our own records.
-			if ( 'order' === $kind ) {
-				$order = function_exists( 'wc_get_order' ) ? wc_get_order( $id ) : null;
-				if ( ! $order ) {
-					return new WP_Error( 'kandi_not_found', 'Order not found.', array( 'status' => 404 ) );
-				}
-				if ( $order->is_paid() ) {
-					return new WP_Error( 'kandi_already_paid', 'That order is already paid.', array( 'status' => 409 ) );
-				}
-				$amount      = (float) $order->get_total();
-				$description = sprintf( 'Order #%s', $order->get_order_number() );
-				$billing     = array(
-					'email_address' => $order->get_billing_email(),
-					'phone_number'  => $order->get_billing_phone(),
-					'first_name'    => $order->get_billing_first_name(),
-					'last_name'     => $order->get_billing_last_name(),
-					'line_1'        => $order->get_billing_address_1(),
-					'city'          => $order->get_billing_city(),
-					'country_code'  => $order->get_billing_country() ?: 'UG',
-				);
-			} else {
-				$user = get_userdata( $id );
-				if ( ! $user ) {
-					return new WP_Error( 'kandi_not_found', 'Seller not found.', array( 'status' => 404 ) );
-				}
-				$amount      = (float) get_user_meta( $id, '_kandi_fee_amount', true );
-				$description = 'Kandi seller registration fee';
-				$billing     = array(
-					'email_address' => $user->user_email,
-					'phone_number'  => (string) get_user_meta( $id, '_kandi_phone', true ),
-					'first_name'    => (string) get_user_meta( $id, '_kandi_owner_name', true ),
-					'country_code'  => 'UG',
-				);
-			}
-
-			if ( $amount <= 0 ) {
-				return new WP_Error( 'kandi_bad_amount', 'There is nothing to pay.', array( 'status' => 400 ) );
+			// The price, from our own records — never from the request.
+			$quote = kandi_pesapal_quote( $kind, $id );
+			if ( is_wp_error( $quote ) ) {
+				return $quote;
 			}
 
 			$ipn_id = kandi_pesapal_guard( function () use ( $config ) {
@@ -431,23 +591,17 @@ add_action( 'rest_api_init', function () {
 				return $ipn_id;
 			}
 
-			$storefront = function_exists( 'kandi_storefront_url' ) && kandi_storefront_url()
-				? kandi_storefront_url()
-				: home_url();
-
-			$reference = kandi_pesapal_reference( $kind, $id );
+			$reference = $quote['reference'];
 
 			$submission = array(
 				'id'              => $reference,
-				'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UGX',
-				'amount'          => round( $amount, 2 ),
-				'description'     => function_exists( 'mb_substr' )
-					? mb_substr( $description, 0, 100 )
-					: substr( $description, 0, 100 ),
-				'callback_url'    => $storefront . '/payment/callback',
-				'cancellation_url' => $storefront . '/payment/callback?cancelled=1',
+				'currency'        => $quote['currency'],
+				'amount'          => $quote['amount'],
+				'description'     => $quote['description'],
+				'callback_url'    => $quote['storefront'] . '/payment/callback',
+				'cancellation_url' => $quote['storefront'] . '/payment/callback?cancelled=1',
 				'notification_id' => $ipn_id,
-				'billing_address' => array_filter( $billing ),
+				'billing_address' => $quote['billing'],
 			);
 
 			$result = kandi_pesapal_guard( function () use ( $config, $submission ) {
@@ -470,6 +624,34 @@ add_action( 'rest_api_init', function () {
 				'order_tracking_id' => $result['order_tracking_id'],
 				'merchant_reference' => $reference,
 			) );
+		},
+	) );
+
+	/* ---- POST /payments/quote ----
+	 *
+	 * What is owed, and by whom — without contacting Pesapal.
+	 *
+	 * This is the escape hatch for a server that cannot make outbound HTTPS
+	 * calls. On this host the PHP process dies the moment it opens a connection
+	 * to Pesapal, which takes `/payments/start` down with it; reading a
+	 * WooCommerce order, by contrast, has never once failed. So the storefront
+	 * can ask for the figures here and place the Pesapal call from its own
+	 * server instead.
+	 *
+	 * The point of doing it this way, rather than letting the checkout name a
+	 * price, is that the amount still comes from WooCommerce. A shopper editing
+	 * the request gets the real total or an error — never a discount.
+	 */
+	register_rest_route( 'kandi/v1', '/payments/quote', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_customer_check_secret',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body = (array) $request->get_json_params();
+
+			return kandi_pesapal_quote(
+				sanitize_text_field( $body['kind'] ?? '' ),
+				(int) ( $body['id'] ?? 0 )
+			);
 		},
 	) );
 
@@ -593,7 +775,220 @@ add_action( 'rest_api_init', function () {
 } );
 
 /* -------------------------------------------------------------------------
- * 6. Settings screen — wp-admin > Kandi Storefront > Pesapal
+ * 6. Diagnosis
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Walks the same chain a payment walks and reports where it stops.
+ *
+ * Written because the failure that prompted it was invisible: a payment died
+ * somewhere between this server and Pesapal, and every layer in between — the
+ * CDN, the host, PHP — answered with the same content-free `502`. Guessing
+ * cost days. Each step below is one link in that chain, checked in order, and
+ * the first FAIL is the answer.
+ *
+ * Nothing here charges anything or creates a payment.
+ */
+function kandi_pesapal_diagnose() {
+	/**
+	 * Prints one row and pushes it to the browser immediately.
+	 *
+	 * Deliberately not collected into an array and returned at the end: if a
+	 * step kills the PHP process — which is the very failure being hunted — a
+	 * returned array would never be printed and the screen would go blank. Row
+	 * by row, the last line shown is the one that killed it.
+	 */
+	$add = function ( $name, $ok, $detail ) {
+		printf(
+			'<tr><td style="width:210px"><strong>%s</strong></td><td style="width:90px">%s</td><td>%s</td></tr>',
+			esc_html( $name ),
+			$ok ? '<span style="color:#0a7a2f;font-weight:600">PASS</span>' : '<span style="color:#a51f1f;font-weight:600">FAIL</span>',
+			wp_kses_post( $detail )
+		);
+		// Out of PHP and down the wire now, not at the end of the request.
+		if ( function_exists( 'ob_get_level' ) ) {
+			while ( ob_get_level() > 0 ) {
+				ob_end_flush();
+			}
+		}
+		flush();
+	};
+
+	/* ---- The server itself ---- */
+
+	$add(
+		'PHP version',
+		version_compare( PHP_VERSION, '7.2', '>=' ),
+		esc_html( PHP_VERSION ) . ( version_compare( PHP_VERSION, '7.2', '>=' ) ? '' : ' — too old for this plugin; ask your host for PHP 7.4 or newer.' )
+	);
+
+	$curl = function_exists( 'curl_version' );
+	$add(
+		'cURL extension',
+		$curl,
+		$curl
+			? esc_html( curl_version()['version'] ?? 'present' )
+			: 'Missing. WordPress will fall back to PHP streams, which this plugin supports — but ask your host to enable <code>php-curl</code>.'
+	);
+
+	$ssl = extension_loaded( 'openssl' );
+	$add(
+		'OpenSSL',
+		$ssl,
+		$ssl ? 'present' : '<strong>Missing — no HTTPS is possible at all.</strong> Ask your host to enable <code>php-openssl</code>.'
+	);
+
+	$streams = (bool) ini_get( 'allow_url_fopen' );
+	$add(
+		'allow_url_fopen',
+		$streams || $curl,
+		$streams ? 'on' : 'off — fine as long as cURL works, since that is the other way out.'
+	);
+
+	/* ---- Can this server reach the internet at all? ---- */
+
+	$blocked = defined( 'WP_HTTP_BLOCK_EXTERNAL' ) && WP_HTTP_BLOCK_EXTERNAL;
+	$add(
+		'External requests',
+		! $blocked,
+		$blocked
+			? '<strong>Blocked by <code>WP_HTTP_BLOCK_EXTERNAL</code> in wp-config.php.</strong> Remove it, or add <code>pesapal.com</code> to <code>WP_ACCESSIBLE_HOSTS</code>.'
+			: 'allowed'
+	);
+
+	$config = kandi_pesapal_config();
+	$host   = $config ? $config['base'] : KANDI_PESAPAL_SANDBOX;
+
+	// DNS first: a name that will not resolve is a different problem from a
+	// connection that is refused, and the fixes are not the same.
+	$hostname = wp_parse_url( $host, PHP_URL_HOST );
+	$ip       = $hostname ? gethostbyname( $hostname ) : '';
+	$resolved = $ip && $ip !== $hostname;
+	$add(
+		'DNS for ' . esc_html( (string) $hostname ),
+		$resolved,
+		$resolved ? esc_html( $ip ) : 'Could not resolve. The server has no working DNS, or outbound lookups are blocked.'
+	);
+
+	/* ---- The two ways out, tried separately ----
+	 *
+	 * Streams goes first, and cURL last, on purpose. A broken libcurl does not
+	 * return an error — it takes the process with it — so if this page stops
+	 * printing at the cURL row, that silence *is* the diagnosis, and everything
+	 * above it has already reached the screen.
+	 */
+
+	$probe = array( 'timeout' => 15, 'method' => 'GET' );
+
+	add_filter( 'use_curl_transport', '__return_false' );
+	$via_streams = kandi_pesapal_guard( function () use ( $host, $probe ) {
+		return wp_remote_request( $host, $probe );
+	} );
+	remove_filter( 'use_curl_transport', '__return_false' );
+
+	$streams_ok = ! is_wp_error( $via_streams );
+	$add(
+		'HTTPS over PHP streams',
+		$streams_ok,
+		$streams_ok
+			? 'HTTP ' . wp_remote_retrieve_response_code( $via_streams ) . ' — this route out works.'
+			: esc_html( $via_streams->get_error_message() )
+	);
+
+	if ( $streams_ok ) {
+		$add(
+			'Recommended setting',
+			true,
+			'PHP streams can reach Pesapal. If payments have been failing with a blank error, set '
+			. '<strong>Connection method → PHP streams only</strong> above and they should start working.'
+		);
+	}
+
+	$curl_ok = false;
+	if ( $curl ) {
+		$add(
+			'About to test cURL',
+			true,
+			'If this page stops here and shows nothing further, <strong>cURL on this server is what '
+			. 'crashes payments</strong> — set <strong>Connection method → PHP streams only</strong> above.'
+		);
+
+		$via_curl = kandi_pesapal_guard( function () use ( $host, $probe ) {
+			return wp_remote_request( $host, $probe );
+		} );
+		$curl_ok = ! is_wp_error( $via_curl );
+
+		$add(
+			'HTTPS over cURL',
+			$curl_ok,
+			$curl_ok
+				? 'HTTP ' . wp_remote_retrieve_response_code( $via_curl )
+				: esc_html( $via_curl->get_error_message() )
+		);
+	}
+
+	if ( ! $streams_ok && ! $curl_ok ) {
+		$add(
+			'What this means',
+			false,
+			'<strong>This server cannot reach Pesapal by any route.</strong> That is a hosting matter, not a '
+			. 'setting in WordPress. Send your host this line: <em>"Please allow outbound HTTPS (port 443) from '
+			. 'PHP to pay.pesapal.com and cybqa.pesapal.com — our payment gateway is being blocked."</em>'
+		);
+		return;
+	}
+
+	/* ---- Pesapal's own answer ---- */
+
+	if ( ! $config ) {
+		$add( 'Pesapal credentials', false, 'No consumer key and secret saved yet.' );
+		return;
+	}
+
+	$add(
+		'Environment',
+		true,
+		$config['live']
+			? '<strong>LIVE</strong> — these must be your live keys.'
+			: 'Sandbox — these must be your sandbox keys. Live keys will be rejected here.'
+	);
+
+	delete_transient( 'kandi_pesapal_token' );
+	$token = kandi_pesapal_guard( function () use ( $config ) {
+		return kandi_pesapal_token( $config );
+	} );
+
+	$add(
+		'Pesapal sign-in',
+		! is_wp_error( $token ),
+		is_wp_error( $token )
+			? esc_html( $token->get_error_message() ) . ' — check the keys, and that they match the environment above.'
+			: 'accepted'
+	);
+
+	if ( is_wp_error( $token ) ) {
+		return;
+	}
+
+	$ipn = kandi_pesapal_guard( function () use ( $config ) {
+		return kandi_pesapal_ipn_id( $config );
+	} );
+
+	$add(
+		'IPN registration',
+		! is_wp_error( $ipn ),
+		is_wp_error( $ipn ) ? esc_html( $ipn->get_error_message() ) : '<code>' . esc_html( $ipn ) . '</code>'
+	);
+
+	if ( ! is_wp_error( $ipn ) ) {
+		$add( 'Ready', true, '<strong>Payments should work.</strong> Try a real checkout.' );
+	}
+
+	return;
+}
+
+/* -------------------------------------------------------------------------
+ * 7. Settings screen — wp-admin > Kandi Storefront > Pesapal
  * ---------------------------------------------------------------------- */
 
 add_action( 'admin_menu', function () {
@@ -630,6 +1025,11 @@ function kandi_pesapal_settings_page() {
 
 		$current['environment'] = 'live' === ( $_POST['environment'] ?? '' ) ? 'live' : 'sandbox';
 		$current['ipn_id']      = sanitize_text_field( wp_unslash( $_POST['ipn_id'] ?? '' ) );
+
+		$transport = sanitize_text_field( wp_unslash( $_POST['transport'] ?? 'auto' ) );
+		$current['transport'] = in_array( $transport, array( 'auto', 'streams', 'curl' ), true )
+			? $transport
+			: 'auto';
 
 		update_option( 'kandi_pesapal_settings', $current );
 
@@ -704,6 +1104,34 @@ function kandi_pesapal_settings_page() {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row">Connection method</th>
+					<td>
+						<?php $transport = $settings['transport'] ?? 'auto'; ?>
+						<label style="display:block;margin-bottom:6px">
+							<input type="radio" name="transport" value="auto" <?php checked( 'auto', $transport ); ?>>
+							<strong>Automatic</strong> — try PHP streams, fall back to cURL <em>(recommended)</em>
+						</label>
+						<label style="display:block;margin-bottom:6px">
+							<input type="radio" name="transport" value="streams" <?php checked( 'streams', $transport ); ?>>
+							<strong>PHP streams only</strong> — never use cURL
+						</label>
+						<label style="display:block">
+							<input type="radio" name="transport" value="curl" <?php checked( 'curl', $transport ); ?>>
+							cURL only
+						</label>
+						<p class="description">
+							<strong>Automatic already avoids cURL wherever it can</strong>, because a
+							broken cURL does not fail politely — it kills the whole PHP process, so
+							nothing reaches any log and the shopper sees an empty 502. Streams is a
+							separate route out of the server and is unaffected by that.
+							<br>
+							Pick <strong>PHP streams only</strong> if a 502 somehow persists, so cURL is
+							never tried even as a fallback. <strong>cURL only</strong> is for hosts with
+							<code>allow_url_fopen</code> turned off.
+						</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="ipn_id">IPN id</label></th>
 					<td>
 						<input type="text" id="ipn_id" name="ipn_id" value="<?php echo esc_attr( $settings['ipn_id'] ?? '' ); ?>" class="regular-text">
@@ -721,7 +1149,12 @@ function kandi_pesapal_settings_page() {
 		</form>
 
 		<h2>Test the connection</h2>
-		<p>Checks that Pesapal accepts these credentials. No money moves and no payment is created.</p>
+		<p>
+			Runs the whole chain a real payment runs — the PHP extensions, this
+			server's ability to reach the internet, and Pesapal's answer to these
+			keys — and says which step fails. No money moves and no payment is
+			created.
+		</p>
 		<form method="post">
 			<?php wp_nonce_field( 'kandi_pesapal_test', 'kandi_pesapal_test_nonce' ); ?>
 			<?php submit_button( 'Test Pesapal connection', 'secondary', 'kandi_pesapal_test', false ); ?>
@@ -732,37 +1165,13 @@ function kandi_pesapal_settings_page() {
 			&& wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kandi_pesapal_test_nonce'] ) ), 'kandi_pesapal_test' ) ) {
 
 			delete_transient( 'kandi_pesapal_token' );
-			$config = kandi_pesapal_config();
+			delete_transient( 'kandi_pesapal_use_streams' );
 
-			if ( ! $config ) {
-				echo '<div class="notice notice-error"><p>No credentials saved yet.</p></div>';
-			} else {
-				$token = kandi_pesapal_guard( function () use ( $config ) {
-					return kandi_pesapal_token( $config );
-				} );
-				if ( is_wp_error( $token ) ) {
-					printf(
-						'<div class="notice notice-error"><p><strong>Failed:</strong> %s</p><p>Check the keys and that the environment above matches the keys you pasted.</p></div>',
-						esc_html( $token->get_error_message() )
-					);
-				} else {
-					$ipn = kandi_pesapal_guard( function () use ( $config ) {
-						return kandi_pesapal_ipn_id( $config );
-					} );
-					if ( is_wp_error( $ipn ) ) {
-						printf(
-							'<div class="notice notice-warning"><p>Signed in to Pesapal, but the IPN could not be registered: %s</p></div>',
-							esc_html( $ipn->get_error_message() )
-						);
-					} else {
-						printf(
-							'<div class="notice notice-success"><p><strong>Working.</strong> Signed in to Pesapal (%s) and the IPN is registered as <code>%s</code>.</p></div>',
-							$config['live'] ? 'live' : 'sandbox',
-							esc_html( $ipn )
-						);
-					}
-				}
-			}
+			echo '<h3>Diagnosis</h3><table class="widefat striped" style="max-width:900px"><tbody>';
+			// Prints as it goes, so a step that kills the process still leaves
+			// every row before it on the screen.
+			kandi_pesapal_diagnose();
+			echo '</tbody></table>';
 		}
 		?>
 	</div>

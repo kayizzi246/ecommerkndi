@@ -146,6 +146,28 @@
   --font-tabular: var(--font-ui);
 }
 
+/* The page may never scroll sideways.
+
+   A shop that drifts left and right under the thumb feels broken, and on a
+   phone it makes vertical scrolling inaccurate — every swipe becomes a small
+   argument with the page. The usual cause is one element a few pixels wider
+   than the screen: a full-bleed rail whose negative margin outgrew its
+   container's padding, which is exactly what happened here.
+
+   The rails have been fixed, but this stays as a guarantee, because the fault
+   is invisible until someone opens the site on a phone and any new rail can
+   reintroduce it.
+
+   `clip` rather than `hidden` deliberately: `overflow-x: hidden` on body
+   silently kills `position: sticky` in its descendants, and this shop's header
+   and search bar both depend on it. `clip` cuts the overflow without creating
+   a scroll container, so sticky keeps working. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -216,10 +238,13 @@ h5,
 h6,
 .font-heading {
   font-family: var(--font-display);
-  /* Poppins Black. The 900 cut is loaded explicitly in layout.tsx — without it
-     this would silently render at 800, because `font-synthesis-weight` is off
-     and the browser will not fake a weight the file does not contain. */
-  font-weight: 600;
+  /* Bold, not semibold.
+     A heading's job on a marketplace page is to be found without being read —
+     a shopper scrolling past four product rails needs to locate "Daily Deals"
+     at a glance, and at 600 it sat close enough to the product titles beneath
+     it that the eye had to stop and check. Poppins ships the 700 cut, so
+     nothing here is a synthesised bold. */
+  font-weight: 700;
   /* Tightened, but only just.
 
      This was -0.03em, which on Poppins — a geometric face whose round letters

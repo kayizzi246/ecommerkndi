@@ -194,19 +194,13 @@ export default function CheckoutPage() {
       const payment = await fetch("/api/payments/pesapal/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          purpose: { kind: "order", orderId: data.id },
-          amount: data.total,
-          description: `KandiUg order #${data.id}`,
-          billing: {
-            email_address: customer.email,
-            phone_number: customer.phone,
-            first_name: customer.first_name,
-            last_name: customer.last_name,
-            line_1: customer.address_1,
-            city: customer.city,
-          },
-        }),
+        // Only the order number goes over the wire. The amount and the billing
+        // details used to travel with it, and every one of them was thrown away
+        // at the other end: WordPress already holds the order, so it reads the
+        // real total and the real buyer from WooCommerce rather than trusting a
+        // browser to state its own price. Sending them anyway invited the
+        // reading that the two ends disagreed about the payload.
+        body: JSON.stringify({ purpose: { kind: "order", orderId: data.id } }),
       });
 
       const paymentData = await payment.json().catch(() => null);
@@ -228,10 +222,14 @@ export default function CheckoutPage() {
             `The payment service did not respond (error ${payment.status}). ` +
               "Your order is saved — try again, or choose cash on delivery."
         );
+        // Logged as a string, not an object. The console collapsed the object
+        // to a bare `{}` in the screenshots that came back, which hid the one
+        // field worth reading.
         console.error(
-          "[kandi-store] pesapal start returned",
-          payment.status,
-          paymentData ?? "(no JSON body)"
+          `[kandi-store] pesapal start returned ${payment.status} — ` +
+            `code=${paymentData?.code ?? "none"} ` +
+            `upstream=${paymentData?.upstream_status ?? "none"} ` +
+            `message=${paymentData?.error ?? "(no JSON body)"}`
         );
         return;
       }

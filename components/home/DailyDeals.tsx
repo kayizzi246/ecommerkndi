@@ -60,7 +60,7 @@ export default function DailyDeals({
       aria-labelledby="daily-deals-heading"
       className="rounded-2xl border border-shop-line bg-white p-4 md:p-5"
     >
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 md:px-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 id="daily-deals-heading" className="heading-black text-[18px] text-shop-ink md:text-[20px]">
             Daily Deals

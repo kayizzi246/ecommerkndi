@@ -45,9 +45,9 @@ export default async function SalePage({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-3 pb-24 pt-4 sm:px-4 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[1600px] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* Breadcrumbs */}
-      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -59,7 +59,7 @@ export default async function SalePage({
            Every figure here is counted from the products below: how many are
            reduced, the deepest cut, the total the whole page saves. The old
            version was a red block with a headline and nothing to back it up. */}
-      <section className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-shop-sale via-[#c62828] to-[#8e1a1a] px-5 py-7 text-white md:px-10 md:py-9">
+      <section className="relative mb-6 overflow-hidden rounded-none bg-gradient-to-br md:rounded-2xl from-shop-sale via-[#c62828] to-[#8e1a1a] px-5 py-7 text-white md:px-10 md:py-9">
         <span
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/12 blur-3xl"
@@ -131,7 +131,7 @@ export default async function SalePage({
               has a couple of hundred pixels more to spend than search or a
               category — and on a page of markdowns the shopper is comparing,
               which means seeing as many at once as stay legible. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 sm:gap-x-2 sm:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-x-px gap-y-2 sm:grid-cols-3 sm:gap-y-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
