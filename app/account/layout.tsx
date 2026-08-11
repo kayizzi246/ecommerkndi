@@ -81,8 +81,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <main className="mx-auto max-w-[1200px] px-4 pb-24 pt-6 md:px-8 lg:pb-16">
-      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <main className="mx-auto max-w-[1200px] px-3 pb-28 pt-4 sm:px-4 md:px-8 md:pt-6 lg:pb-16">
+      {/* Tighter on a phone: the sidebar card and the tab strip already sit
+          between the shopper and their orders, and 32px of gap on top of that
+          pushed the content below the fold on every small screen. */}
+      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
         {/* Sidebar */}
         <aside>
           <div className="flex items-center gap-3 rounded-2xl border border-shop-line bg-white p-4">

@@ -20,8 +20,6 @@ export default async function SellerRegisterPage() {
     <OnboardingFlow
       registrationFee={seller.registration_fee}
       commissionRate={seller.commission_rate}
-      payNumber={seller.pay_number}
-      payName={seller.pay_name}
     />
   );
 }

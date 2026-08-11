@@ -52,6 +52,14 @@ export default function Header({
    * Desktop is untouched — there is room for the whole masthead there.
    */
   const [scrolled, setScrolled] = useState(false);
+  /**
+   * Whether the phone-sized search field has been opened by hand.
+   *
+   * Only meaningful before the first scroll: past that the field is pinned and
+   * always on screen, so this is reset when the shopper scrolls into that state
+   * rather than leaving a stale flag behind them.
+   */
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     // Reading scrollY in the handler and acting in a frame keeps this off the
@@ -63,7 +71,14 @@ export default function Header({
         frame = 0;
         // Hysteresis: collapsing and expanding at the same pixel makes the row
         // flicker for anyone resting at the boundary.
-        setScrolled((current) => (current ? window.scrollY > 60 : window.scrollY > 120));
+        setScrolled((current) => {
+          const next = current ? window.scrollY > 60 : window.scrollY > 120;
+          // Scrolling pins the field on its own; the hand-opened state has
+          // nothing left to do and would otherwise keep the icon hidden after
+          // the shopper returned to the top.
+          if (next) setSearchOpen(false);
+          return next;
+        });
       });
     };
     onScroll();
@@ -212,10 +227,21 @@ export default function Header({
             Orders and Favorites used to sit to its right; they were four small
             targets competing with the one large one, and all four live in the
             account menu and the footer already. */}
-        {/* Full width on a phone either way — on its own line at rest, and
-            beside the cart once the logo has stepped aside. */}
+        {/* On a phone the search field is not drawn until it is wanted.
+
+            At the top of the page it is a single icon beside the cart, which
+            buys back a whole row for the logo and the departments — the things
+            a shopper arriving on the homepage is actually looking at. Tapping
+            the icon opens the field in place, and scrolling brings it back on
+            its own, pinned, because past the first screen finding something is
+            the only thing a shopper is doing.
+
+            Desktop is unaffected: there is room for the full field always, and
+            it stays where it has always been. */}
         <div
-          className={`w-full min-w-0 flex-1 md:order-none ${scrolled ? "order-none" : "order-last"}`}
+          className={`w-full min-w-0 flex-1 md:order-none md:block ${
+            scrolled ? "order-none" : "order-last"
+          } ${scrolled || searchOpen ? "block" : "hidden"}`}
         >
           <SearchBar />
         </div>
@@ -223,6 +249,26 @@ export default function Header({
         <div
           className={`flex shrink-0 items-center gap-5 md:ml-0 ${scrolled ? "" : "ml-auto"}`}
         >
+          {/* The phone-sized search control. Hidden once the pinned field is on
+              screen, so there are never two ways to start the same search. */}
+          {!scrolled && !searchOpen && (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              aria-expanded={false}
+              className="text-shop-ink md:hidden"
+            >
+              <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+                />
+              </svg>
+            </button>
+          )}
+
           <div className="hidden lg:block">
             <AccountMenu />
           </div>

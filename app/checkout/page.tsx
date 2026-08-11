@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
 import DeliveryPicker, { type DeliveryResult } from "@/components/DeliveryPicker";
 import { saveAddress } from "@/lib/saved-addresses";
+import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
 
 const labelClass = "mb-1.5 block text-[13px] font-medium text-shop-body";
 
@@ -211,9 +212,26 @@ export default function CheckoutPage() {
       const paymentData = await payment.json().catch(() => null);
 
       if (!payment.ok || !paymentData?.redirect_url) {
+        // Three different failures used to arrive as one sentence. They need
+        // different answers, and the shopper cannot pick the right one from
+        // "the payment window would not open":
+        //
+        //   • the payment service said no      → its own words, which usually
+        //                                        name the problem
+        //   • nothing came back as JSON        → the service is down or the
+        //                                        request never reached it
+        //
+        // Either way the order is saved, so cash on delivery is still open to
+        // them and nothing has been lost.
         setError(
           paymentData?.error ??
-            "Your order is saved but the payment window would not open. Please try again from your orders."
+            `The payment service did not respond (error ${payment.status}). ` +
+              "Your order is saved — try again, or choose cash on delivery."
+        );
+        console.error(
+          "[kandi-store] pesapal start returned",
+          payment.status,
+          paymentData ?? "(no JSON body)"
         );
         return;
       }
@@ -492,10 +510,22 @@ export default function CheckoutPage() {
                         <span className="text-[15px] font-medium text-shop-ink">
                           {option.label}
                         </span>
-                        {option.viaPesapal && (
-                          <span className="rounded bg-shop-hairline px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-shop-body">
-                            Pesapal
-                          </span>
+                        {/* The networks this option actually takes, in place of
+                            the "PESAPAL" badge that used to sit here. Pesapal is
+                            the processor, not something a shopper is choosing —
+                            what they need to know is whether their MoMo line or
+                            their card works. */}
+                        {option.value === "mobile" && (
+                          <>
+                            <MtnMark />
+                            <AirtelMark />
+                          </>
+                        )}
+                        {option.value === "card" && (
+                          <>
+                            <VisaMark />
+                            <MastercardMark />
+                          </>
                         )}
                       </span>
                       <span className="mt-1 block text-[14px] leading-5 text-shop-muted">

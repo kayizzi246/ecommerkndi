@@ -76,7 +76,7 @@ export default function AccountOverview() {
   })();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       <header>
         <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">
           Hi {customer?.name.split(" ")[0]} 👋
@@ -86,8 +86,9 @@ export default function AccountOverview() {
         </p>
       </header>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stats — two up on a phone. One per row turned four short figures into
+          four screens of scrolling before the shopper reached their orders. */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Orders" value={loading ? "—" : String(orders!.length)} tone="text-shop-ink" />
         <Stat label="On its way" value={loading ? "—" : String(inFlight)} tone="text-pop-blue" />
         <Stat
@@ -100,7 +101,7 @@ export default function AccountOverview() {
 
       {/* Waiting on a review */}
       {toReview.length > 0 && (
-        <section className="rounded-2xl border border-shop-line bg-white p-5">
+        <section className="rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-[19px] font-extrabold text-shop-ink">Rate what you bought</h2>
             <Link href="/account/reviews" className="text-[14px] font-semibold text-shop-primary">
@@ -134,7 +135,7 @@ export default function AccountOverview() {
       )}
 
       {/* Recent orders */}
-      <section className="rounded-2xl border border-shop-line bg-white p-5">
+      <section className="rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-[19px] font-extrabold text-shop-ink">Recent orders</h2>
           <Link href="/account/orders" className="text-[14px] font-semibold text-shop-primary">
@@ -154,19 +155,26 @@ export default function AccountOverview() {
         ) : (
           <ul className="divide-y divide-shop-hairline">
             {orders!.slice(0, 3).map((order) => (
-              <li key={order.id} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="text-[15px] font-semibold text-shop-ink">#{order.number}</span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
-                    ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
-                  }`}
-                >
-                  {ORDER_STATUS_LABEL[order.status] ?? order.status}
-                </span>
-                <span className="text-[14px] text-shop-muted">
-                  {formatOrderDate(order.date)}
-                </span>
-                <span className="ml-auto text-[15px] font-semibold text-shop-ink">
+              // Two columns rather than a wrapping row: on a phone the wrap put
+              // the total on a line of its own, still pushed right by `ml-auto`,
+              // which read as a layout fault rather than a price.
+              <li key={order.id} className="flex items-start justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[15px] font-semibold text-shop-ink">#{order.number}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
+                        ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
+                      }`}
+                    >
+                      {ORDER_STATUS_LABEL[order.status] ?? order.status}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[13.5px] text-shop-muted">
+                    {formatOrderDate(order.date)}
+                  </p>
+                </div>
+                <span className="shrink-0 whitespace-nowrap text-[15px] font-semibold text-shop-ink">
                   {formatPrice(order.total)}
                 </span>
               </li>

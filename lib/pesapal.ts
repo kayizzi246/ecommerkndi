@@ -52,6 +52,31 @@ export function pesapalEnabled(): boolean {
 
 export class PesapalError extends Error {}
 
+/**
+ * How long to wait on Pesapal before giving up.
+ *
+ * Without this, a Pesapal endpoint that hangs takes the whole request with it
+ * until the hosting platform kills the function — and a killed function returns
+ * the platform's own error page, not ours, so the shopper sees a bare "502"
+ * and the log says nothing. Eight seconds is far longer than a healthy call and
+ * comfortably inside every serverless timeout.
+ */
+const TIMEOUT_MS = 8000;
+
+/** fetch with a deadline, reported as a PesapalError rather than an AbortError. */
+async function fetchWithTimeout(url: string, init: RequestInit, what: string): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    throw new PesapalError(
+      timedOut
+        ? `Pesapal did not answer in time (${what}). Please try again.`
+        : `Could not reach Pesapal (${what}).`
+    );
+  }
+}
+
 /* ------------------------------------------------------------------ token */
 
 // Tokens last five minutes. Cached in module scope and retired a minute early,
@@ -63,15 +88,19 @@ async function getToken(config: PesapalConfig): Promise<string> {
     return cachedToken.value;
   }
 
-  const response = await fetch(`${config.baseUrl}/api/Auth/RequestToken`, {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({
-      consumer_key: config.consumerKey,
-      consumer_secret: config.consumerSecret,
-    }),
-    cache: "no-store",
-  });
+  const response = await fetchWithTimeout(
+    `${config.baseUrl}/api/Auth/RequestToken`,
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        consumer_key: config.consumerKey,
+        consumer_secret: config.consumerSecret,
+      }),
+      cache: "no-store",
+    },
+    "signing in"
+  );
 
   const data = (await response.json().catch(() => null)) as {
     token?: string;
@@ -96,22 +125,37 @@ async function call<T>(
 ): Promise<T> {
   const token = await getToken(config);
 
-  const response = await fetch(`${config.baseUrl}${path}`, {
-    method: init.method,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const response = await fetchWithTimeout(
+    `${config.baseUrl}${path}`,
+    {
+      method: init.method,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      cache: "no-store",
     },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    cache: "no-store",
-  });
+    path.split("/").pop() ?? "request"
+  );
 
-  const data = (await response.json().catch(() => null)) as
-    | (T & { error?: { message?: string } | null; message?: string })
-    | null;
+  const raw = await response.text();
+  let data: (T & { error?: { message?: string } | null; message?: string }) | null = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
 
   if (!response.ok || !data) {
+    // The first 200 characters of whatever came back. Pesapal answers a bad
+    // key with an HTML page, and "Pesapal request failed (500)" on its own has
+    // sent people looking for bugs in code that was working perfectly.
+    console.error(
+      `[kandi-store] pesapal ${path} → ${response.status}:`,
+      raw.slice(0, 200) || "(empty body)"
+    );
     throw new PesapalError(`Pesapal request failed (${response.status}).`);
   }
 

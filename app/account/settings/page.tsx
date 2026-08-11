@@ -52,7 +52,7 @@ export default function AccountSettings() {
       </p>
 
       {/* Profile */}
-      <section className="mt-6 rounded-2xl border border-shop-line bg-white p-5">
+      <section className="mt-6 rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
         <h2 className="text-[19px] font-extrabold text-shop-ink">Profile</h2>
         <div className="mt-4 flex items-center gap-4">
           {customer.avatar ? (
@@ -80,7 +80,7 @@ export default function AccountSettings() {
       </section>
 
       {/* Preferences */}
-      <form onSubmit={save} className="mt-5 rounded-2xl border border-shop-line bg-white p-5">
+      <form onSubmit={save} className="mt-5 rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
         <h2 className="text-[19px] font-extrabold text-shop-ink">Delivery preferences</h2>
         <p className="mt-1 text-[14px] text-shop-muted">
           These pre-fill your checkout and help us show sizes that fit.

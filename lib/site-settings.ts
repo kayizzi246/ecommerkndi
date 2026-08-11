@@ -12,6 +12,12 @@ export type SiteSettings = {
   brand: { name: string; suffix: string; tagline: string; logo_url: string; favicon_url: string };
   promo: { lines: string[]; cta_label: string; cta_url: string };
   ticker: string[];
+  /**
+   * Campaign cards for the homepage rail — Christmas, a shoes week, whatever
+   * the shop is running. Edited in wp-admin; empty when nothing is on, in which
+   * case the storefront derives its own from the catalogue instead.
+   */
+  promotions: { badge: string; headline: string; note: string; url: string }[];
   banner: { eyebrow: string; headline: string; cta_label: string; cta_url: string };
   support: {
     phone: string;
@@ -57,6 +63,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     "14-day free returns, no questions asked",
     "100% authentic brands, checked before dispatch",
   ],
+  // No invented campaigns. An empty list makes the homepage derive its own from
+  // the catalogue, which is always true; a default "Christmas Sale" here would
+  // be live on every shop that never opened the settings screen.
+  promotions: [],
   banner: {
     eyebrow: "Super Price Store",
     headline: "Up to 80% off RRP",
@@ -100,6 +110,30 @@ function list(value: unknown, fallback: string[]): string[] {
   return items.length > 0 ? items : fallback;
 }
 
+/**
+ * Reads the campaign cards, dropping anything without a headline.
+ *
+ * No fallback list: an empty result is meaningful — it tells the homepage to
+ * work out its own promotions from the catalogue rather than print whatever a
+ * default array happened to say.
+ */
+function promotions(value: unknown): SiteSettings["promotions"] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((entry) => {
+      const promo = (entry ?? {}) as Record<string, unknown>;
+      return {
+        badge: typeof promo.badge === "string" ? promo.badge.trim() : "",
+        headline: typeof promo.headline === "string" ? promo.headline.trim() : "",
+        note: typeof promo.note === "string" ? promo.note.trim() : "",
+        url: typeof promo.url === "string" && promo.url.trim() ? promo.url.trim() : "/sale",
+      };
+    })
+    .filter((promo) => promo.headline !== "")
+    .slice(0, 6);
+}
+
 /** Merges the WordPress payload over the defaults, field by field. */
 function merge(raw: unknown): SiteSettings {
   const payload = (raw ?? {}) as Record<string, Record<string, unknown>>;
@@ -130,6 +164,7 @@ function merge(raw: unknown): SiteSettings {
       cta_url: str(promo.cta_url, d.promo.cta_url),
     },
     ticker: list(payload.ticker, d.ticker),
+    promotions: promotions(payload.promotions),
     banner: {
       eyebrow: str(banner.eyebrow, d.banner.eyebrow),
       headline: str(banner.headline, d.banner.headline),

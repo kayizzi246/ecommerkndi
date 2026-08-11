@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { sellerApi, SellerApiError } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
+import { stashGoogleCredential } from "@/lib/seller-google-handoff";
 
 export default function SellerLoginPage() {
   const router = useRouter();
@@ -24,8 +25,67 @@ export default function SellerLoginPage() {
 
   const done = async () => {
     await refresh();
+    // Always /seller. The shell decides from there whether this seller sees
+    // their dashboard or the setup gate — one place makes that call, so the two
+    // sign-in routes cannot disagree about it.
     router.push("/seller");
   };
+
+  /**
+   * Google sign-in, posted from here rather than by the button, so the answer
+   * can be read.
+   *
+   * A seller who signed up but never entered their code gets `kandi_unverified`
+   * back with a fresh code already sent — the useful response to which is the
+   * code box, not an error message about it.
+   */
+  const signInWithGoogle = useCallback(async (credential: string) => {
+    setError(null);
+    try {
+      const response = await fetch("/api/seller/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        code?: string;
+        message?: string;
+        email?: string;
+        data?: { email?: string };
+      };
+
+      if (response.ok) {
+        await done();
+        return;
+      }
+
+      if (payload.code === "kandi_unverified") {
+        const address = payload.data?.email ?? payload.email;
+        if (address) {
+          setUnverified(address);
+          return;
+        }
+      }
+
+      // Signed in with Google, but no store on that address. That is not an
+      // error — it is somebody who wants to open one. Carry the token across so
+      // onboarding starts on the store details rather than asking them to press
+      // the same Google button again.
+      if (payload.code === "kandi_not_seller") {
+        stashGoogleCredential(credential);
+        router.push("/seller/register");
+        return;
+      }
+
+      setError(payload.message ?? "Could not sign you in with Google.");
+    } catch {
+      setError("Network error during sign-in. Please try again.");
+    }
+    // `done` only closes over router and refresh, both stable for the life of
+    // the screen; listing it here would recreate this on every render and make
+    // Google's button re-initialise with it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -88,8 +148,7 @@ export default function SellerLoginPage() {
               so there is no sign-up path here. */}
           <div className="mt-6 flex justify-center">
             <GoogleSignInButton
-              endpoint="/api/seller/google"
-              onSuccess={done}
+              onCredential={signInWithGoogle}
               onError={(message) => setError(message)}
               text="continue_with"
             />

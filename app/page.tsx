@@ -9,6 +9,8 @@ import WideBanner from "@/components/home/WideBanner";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import TrustBar from "@/components/home/TrustBar";
 import SellWithUs from "@/components/home/SellWithUs";
+import PromotionsRail from "@/components/home/PromotionsRail";
+import { derivePromotions } from "@/lib/promotions";
 import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import type { Metadata } from "next";
@@ -42,6 +44,46 @@ export default async function Home() {
   const deals = onSale.products.slice(0, 6);
   const dailyDeals = onSale.products.slice(6, 22);
 
+  // The shop's own campaigns when it has written any, facts from the catalogue
+  // when it has not. Never both, and never nothing.
+  const promotions =
+    settings.promotions.length > 0
+      ? settings.promotions
+      : derivePromotions(
+          onSale.products,
+          latest.products,
+          settings.commerce.free_delivery_from,
+          formatPrice
+        );
+
+  /**
+   * The two product rails under the promotions.
+   *
+   * Both are sorted from the catalogue rather than fetched separately — the
+   * homepage already holds the newest two dozen products, and a third and
+   * fourth WooCommerce round trip to re-sort the same rows would cost the page
+   * its speed for nothing.
+   *
+   * Each is held back until it has enough stock to look like a rail rather than
+   * a mistake, and best sellers needs products that have genuinely sold: a
+   * "best sellers" row of items nobody has bought is the kind of small lie that
+   * teaches shoppers to distrust the rest of the page.
+   */
+  const MIN_RAIL = 4;
+
+  const newArrivals = [...latest.products]
+    .filter((product) => product.date_created)
+    .sort(
+      (a, b) =>
+        new Date(b.date_created!).getTime() - new Date(a.date_created!).getTime()
+    )
+    .slice(0, 12);
+
+  const bestSellers = [...latest.products]
+    .filter((product) => product.total_sales > 0)
+    .sort((a, b) => b.total_sales - a.total_sales)
+    .slice(0, 12);
+
   // Trending is the shop's own picks where any are flagged, newest otherwise.
   // "Picked for you" below is the whole catalogue, so overlap there is expected
   // and fine — it is the endless grid, not a curated rail.
@@ -74,6 +116,44 @@ export default async function Home() {
             this is what is cheap today, and those are the two reasons a shopper
             keeps scrolling a homepage. */}
         <DailyDeals products={dailyDeals} fallback={latest.products} />
+
+        {/* What the shop is running — Christmas, a shoes week, whatever is on.
+            Written in wp-admin; when nothing is written the rail carries facts
+            drawn from the catalogue instead, so it is never empty and never
+            advertises a campaign nobody started. */}
+        <section aria-labelledby="promotions-heading">
+          <SectionHeader
+            title="Promotions"
+            subtitle="Running now across the shop"
+            href="/sale"
+            linkLabel="All offers"
+          />
+          <PromotionsRail promotions={promotions} />
+        </section>
+
+        {/* The stock behind the campaigns. A row of cards is a claim; these are
+            the products a shopper can act on without leaving the page. */}
+        {newArrivals.length >= MIN_RAIL && (
+          <section aria-labelledby="new-arrivals-heading">
+            <SectionHeader
+              title="New arrivals"
+              subtitle="The latest stock on the shop"
+              href="/search?sort=newest"
+            />
+            <DealCarousel products={newArrivals} />
+          </section>
+        )}
+
+        {bestSellers.length >= MIN_RAIL && (
+          <section aria-labelledby="best-sellers-heading">
+            <SectionHeader
+              title="Best sellers"
+              subtitle="What shoppers here buy most"
+              href="/search?sort=popular"
+            />
+            <DealCarousel products={bestSellers} />
+          </section>
+        )}
 
         <SuperDeals products={deals} />
 

@@ -8,6 +8,23 @@ import { useSellerSession } from "@/lib/seller-session";
 /** Routes inside /seller that must render without the authenticated chrome. */
 const PUBLIC_ROUTES = ["/seller/login", "/seller/register"];
 
+/**
+ * The setup gate. Signed in, but not finished: verification documents not sent,
+ * or the joining fee not paid.
+ *
+ * It renders on its own, without the dashboard chrome — a sidebar of links to
+ * places the seller cannot go yet is an invitation to try them.
+ */
+const SETUP_ROUTE = "/seller/onboarding";
+
+/**
+ * `approvedOnly` marks the screens that do nothing for a store awaiting review.
+ *
+ * WordPress already refuses to create a listing for an unapproved seller, and
+ * an unapproved store has by definition never had an order or earned anything —
+ * so these three pages can only show an error or three zeros. Hiding them is
+ * not a restriction; it is not offering a door that opens onto a wall.
+ */
 const NAV = [
   {
     href: "/seller",
@@ -18,17 +35,25 @@ const NAV = [
   {
     href: "/seller/products",
     label: "Products",
+    approvedOnly: true,
     icon: "M4 7l8-3.5L20 7v10l-8 3.5L4 17V7Zm8 3.5L4 7m8 3.5L20 7m-8 3.5V20",
   },
   {
     href: "/seller/orders",
     label: "Orders",
+    approvedOnly: true,
     icon: "M3 6h2.2l2 10.5h11.1L20 9H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8.5 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
   },
   {
     href: "/seller/commissions",
     label: "Earnings",
+    approvedOnly: true,
     icon: "M12 3v18M8 7h6.5a2.5 2.5 0 0 1 0 5H9.5a2.5 2.5 0 0 0 0 5H16",
+  },
+  {
+    href: "/seller/guide",
+    label: "How it works",
+    icon: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-4.5v-.01M9.8 9.2a2.3 2.3 0 1 1 3.3 2.05c-.7.35-1.1 1-1.1 1.75",
   },
   {
     href: "/seller/settings",
@@ -51,13 +76,43 @@ export default function SellerShell({ children }: { children: React.ReactNode })
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isSetup = pathname === SETUP_ROUTE;
 
-  // Bounce unauthenticated visitors to the sign-in screen.
+  /**
+   * Whether the seller still owes us something before the dashboard opens.
+   *
+   * `fee_amount` rather than the shop's current fee: a seller is held to the
+   * figure that applied on the day they applied, and a shop that later sets the
+   * fee to zero must not strand the people who already owe the old one.
+   * `waived` covers a shop that charges nothing at all.
+   */
+  const setupDue = Boolean(
+    seller &&
+      (seller.kyc_status === "missing" ||
+        seller.kyc_status === "rejected" ||
+        (seller.fee_status === "unpaid" && seller.fee_amount > 0))
+  );
+
+  // Bounce unauthenticated visitors to the sign-in screen, and unfinished ones
+  // to the setup gate. Enforced here rather than on the gate page itself, so
+  // typing /seller/products cannot walk around it.
   useEffect(() => {
-    if (!isPublic && !loading && !seller) {
+    if (isPublic || loading) return;
+
+    if (!seller) {
       router.replace("/seller/login");
+      return;
     }
-  }, [isPublic, loading, seller, router]);
+    if (setupDue && !isSetup) {
+      router.replace(SETUP_ROUTE);
+    }
+
+    // Deliberately no redirect *away* from the setup page when nothing is
+    // outstanding. It used to bounce straight back to the dashboard, which is
+    // what happened to anyone pressing "Upload documents" from the checklist at
+    // a moment the shell thought they were finished: the page appeared and
+    // vanished. The gate now stands on its own and says what it sees.
+  }, [isPublic, isSetup, loading, seller, setupDue, router]);
 
   if (isPublic) {
     return <div className="min-h-screen bg-white">{children}</div>;
@@ -71,8 +126,25 @@ export default function SellerShell({ children }: { children: React.ReactNode })
     );
   }
 
+  // The gate stands alone: no sidebar, no navigation, nothing to click past.
+  if (isSetup) {
+    return <div className="min-h-screen bg-shop-hairline/40">{children}</div>;
+  }
+
+  // Redirect in flight — render nothing rather than a flash of the dashboard
+  // the seller is about to be moved away from.
+  if (setupDue) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white text-[15px] text-shop-muted">
+        Taking you to your setup…
+      </div>
+    );
+  }
+
   const status = STATUS_COPY[seller.status] ?? STATUS_COPY.pending;
-  const feeDue = seller.fee_status === "unpaid";
+  const feeDue = seller.fee_status === "unpaid" && seller.fee_amount > 0;
+  /** Products, Orders and Earnings only mean something once the store is live. */
+  const storeApproved = seller.status === "approved";
 
   return (
     // The Seller Centre is columns of figures, so it runs in the neutral face
@@ -149,7 +221,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
           </div>
 
           <nav className="p-2">
-            {NAV.map((item) => {
+            {NAV.filter((item) => storeApproved || !item.approvedOnly).map((item) => {
               const active = item.exact
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
@@ -180,19 +252,38 @@ export default function SellerShell({ children }: { children: React.ReactNode })
             })}
           </nav>
 
-          <div className="m-2 rounded-xl bg-shop-hairline p-4">
-            <p className="text-[14px] font-semibold text-shop-ink">Add a product</p>
-            <p className="mt-1 text-[13px] leading-5 text-shop-muted">
-              Listings go live once our team approves them.
-            </p>
-            <Link
-              href="/seller/products/new"
-              onClick={() => setDrawerOpen(false)}
-              className="btn-shop mt-3 w-full py-2.5 text-[14px]"
-            >
-              New listing
-            </Link>
-          </div>
+          {/* Before approval this offered a button WordPress refuses to honour:
+              creating a listing is rejected outright for an unapproved store.
+              The panel now says what is actually happening instead. */}
+          {storeApproved ? (
+            <div className="m-2 rounded-xl bg-shop-hairline p-4">
+              <p className="text-[14px] font-semibold text-shop-ink">Add a product</p>
+              <p className="mt-1 text-[13px] leading-5 text-shop-muted">
+                Listings go live once our team approves them.
+              </p>
+              <Link
+                href="/seller/products/new"
+                onClick={() => setDrawerOpen(false)}
+                className="btn-shop mt-3 w-full py-2.5 text-[14px]"
+              >
+                New listing
+              </Link>
+            </div>
+          ) : (
+            <div className="m-2 rounded-xl bg-pop-orange-soft p-4">
+              <p className="text-[14px] font-semibold text-pop-orange">Store under review</p>
+              <p className="mt-1 text-[13px] leading-5 text-shop-body">
+                Listings, orders and earnings open up as soon as your store is approved.
+              </p>
+              <Link
+                href="/seller/guide"
+                onClick={() => setDrawerOpen(false)}
+                className="mt-3 block text-[13.5px] font-semibold text-shop-primary hover:underline"
+              >
+                How selling works ›
+              </Link>
+            </div>
+          )}
         </aside>
 
         {drawerOpen && (

@@ -3,10 +3,22 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 type Props = {
-  /** Where to post the Google credential — differs for shoppers and sellers. */
-  endpoint: string;
-  onSuccess: () => void | Promise<void>;
+  /**
+   * Where to post the Google credential — differs for shoppers and sellers.
+   * Ignored when `onCredential` is given, since nothing is posted then.
+   */
+  endpoint?: string;
+  onSuccess?: () => void | Promise<void>;
   onError?: (message: string) => void;
+  /**
+   * Takes the raw credential instead of exchanging it for a session.
+   *
+   * Seller sign-up needs this: the account cannot be created until the seller
+   * has said what their store is called, so the token is held through the
+   * onboarding form and sent with it. The server verifies it again before
+   * creating anything — the credential never becomes a session on its own.
+   */
+  onCredential?: (credential: string) => void | Promise<void>;
   text?: "signin_with" | "signup_with" | "continue_with";
   width?: number;
 };
@@ -26,6 +38,8 @@ type GoogleAccounts = {
         parent: HTMLElement,
         options: Record<string, string | number>
       ) => void;
+      /** Stops Google reusing the last account without asking. */
+      disableAutoSelect: () => void;
     };
   };
 };
@@ -47,6 +61,7 @@ export default function GoogleSignInButton({
   endpoint,
   onSuccess,
   onError,
+  onCredential,
   text = "continue_with",
   width = 340,
 }: Props) {
@@ -65,6 +80,11 @@ export default function GoogleSignInButton({
 
       window.google.accounts.id.initialize({
         client_id: clientId,
+        // Never sign somebody in as whoever used this browser last. Kandi
+        // sellers and shoppers share machines — in an arcade or a household —
+        // and silently reusing the previous account is how the wrong person
+        // ends up looking at somebody else's store.
+        auto_select: false,
         callback: async (response) => {
           if (!response.credential) {
             onError?.("Google did not return a sign-in token.");
@@ -72,6 +92,14 @@ export default function GoogleSignInButton({
           }
           setBusy(true);
           try {
+            if (onCredential) {
+              await onCredential(response.credential);
+              return;
+            }
+            if (!endpoint) {
+              onError?.("Sign-in is not configured.");
+              return;
+            }
             const result = await fetch(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -79,10 +107,14 @@ export default function GoogleSignInButton({
             });
             const payload = await result.json().catch(() => ({}));
             if (!result.ok) {
+              // Whatever went wrong, the next attempt should offer the account
+              // picker rather than silently retrying the same address — often
+              // the failure *is* that it picked the wrong one.
+              window.google?.accounts.id.disableAutoSelect();
               onError?.((payload as { message?: string }).message ?? "Sign-in failed.");
               return;
             }
-            await onSuccess();
+            await onSuccess?.();
           } catch {
             onError?.("Network error during sign-in. Please try again.");
           } finally {
@@ -122,7 +154,10 @@ export default function GoogleSignInButton({
     return () => {
       cancelled = true;
     };
-  }, [clientId, endpoint, onSuccess, onError, text, width]);
+    // Every callback is in here, so a caller passing an inline arrow re-runs
+    // this and re-renders Google's button. Callers that render often should
+    // pass a `useCallback`-stable handler — see the seller onboarding flow.
+  }, [clientId, endpoint, onSuccess, onError, onCredential, text, width]);
 
   if (!clientId) {
     return (

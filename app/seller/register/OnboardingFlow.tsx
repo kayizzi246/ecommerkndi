@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { sellerApi, type Seller } from "@/lib/seller";
 import { formatPrice } from "@/lib/currency";
-import PesapalModal from "@/components/PesapalModal";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
+import { takeGoogleCredential } from "@/lib/seller-google-handoff";
 
 const CATEGORIES = [
   "Shoes & footwear",
@@ -45,8 +46,6 @@ const EMPTY: Form = {
 type Props = {
   registrationFee: number;
   commissionRate: number;
-  payNumber: string;
-  payName: string;
 };
 
 /**
@@ -56,23 +55,36 @@ type Props = {
  * screen that caused it rather than at the end. The account is only created
  * when the last step is submitted — abandoning halfway leaves nothing behind.
  *
- * The joining fee is charged for real on the confirmation screen, through
- * Pesapal, by mobile money or card. The old manual route — send the money to
- * this number and quote a reference — is kept behind a disclosure, because it
- * still works when Pesapal is not configured and some sellers prefer it.
+ * Signing up does not open the Seller Centre. It creates the account and sends
+ * the emailed code; the verification documents and the joining fee are then
+ * collected by the setup gate at /seller/onboarding, which the dashboard cannot
+ * be reached past. Everything to do with paying lives there, in one place.
  */
-export default function OnboardingFlow({
-  registrationFee,
-  commissionRate,
-  payNumber,
-  payName,
-}: Props) {
+export default function OnboardingFlow({ registrationFee, commissionRate }: Props) {
   const feeApplies = registrationFee > 0;
+
+  /**
+   * How the seller is signing up, chosen before anything else is asked.
+   *
+   * Google comes first because it is the shorter road and the one that makes
+   * *coming back* trivial — a seller who signs up with a password has to
+   * remember it in a month; one who used Google taps the same button. It also
+   * removes two whole steps: the address is already proven, so there is no code
+   * to wait for, and there is no password to choose or confirm.
+   */
+  const [method, setMethod] = useState<"google" | "password" | null>(null);
+  /** The raw Google token, held until submit and re-verified server-side then. */
+  const [credential, setCredential] = useState<string | null>(null);
+  const [checkingGoogle, setCheckingGoogle] = useState(false);
+
+  const viaGoogle = method === "google";
 
   const STEPS = [
     { key: "store", title: "Your store", blurb: "What shoppers will see" },
     { key: "you", title: "About you", blurb: "So we can reach you" },
-    { key: "password", title: "Security", blurb: "Protect your account" },
+    // Nothing to secure on a Google account: there is no password, and the
+    // address is already proven.
+    ...(viaGoogle ? [] : [{ key: "password", title: "Security", blurb: "Protect your account" }]),
     ...(feeApplies
       ? [{ key: "fee", title: "Joining fee", blurb: "One-off, and what it pays for" }]
       : []),
@@ -106,7 +118,11 @@ export default function OnboardingFlow({
     }
     if (current === "you") {
       if (form.owner_name.trim().length < 2) return "Tell us your name.";
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) return "Enter a valid email address.";
+      // A Google address comes from the token, not from this form, so there is
+      // nothing here to validate — and nothing the seller could have mistyped.
+      if (!viaGoogle && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
+        return "Enter a valid email address.";
+      }
       if (form.phone.replace(/\D/g, "").length < 9) return "Enter a phone number we can call.";
       return null;
     }
@@ -148,11 +164,14 @@ export default function OnboardingFlow({
       const { seller } = await sellerApi.register({
         store_name: form.store_name.trim(),
         owner_name: form.owner_name.trim(),
-        email: form.email.trim(),
         phone: form.phone.trim(),
-        password: form.password,
         city: form.city,
         category: form.category,
+        // Exactly one of these. With Google the address is taken from the token
+        // server-side and whatever is in the form is ignored.
+        ...(viaGoogle && credential
+          ? { google_credential: credential }
+          : { email: form.email.trim(), password: form.password }),
       });
       setCreated(seller);
       setVerifying(!seller.email_verified);
@@ -162,6 +181,137 @@ export default function OnboardingFlow({
       setSubmitting(false);
     }
   };
+
+  /**
+   * Reads the Google account, fills in what it tells us, and moves on.
+   *
+   * The account is *not* created here — the store has no name yet. The token is
+   * kept and sent with the finished form, where the server verifies it again.
+   */
+  // Stable across renders: the Google button re-initialises whenever its
+  // handler changes, and this screen re-renders on every keystroke of error
+  // state. An inline arrow here would make the button flicker.
+  const continueWithGoogle = useCallback(async (googleCredential: string) => {
+    setCheckingGoogle(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/seller/google/identity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: googleCredential }),
+      });
+      const identity = (await response.json().catch(() => ({}))) as {
+        email?: string;
+        name?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !identity.email) {
+        setError(identity.message ?? "Google sign-in failed. Try again, or use your email.");
+        return;
+      }
+
+      setCredential(googleCredential);
+      setForm((current) => ({
+        ...current,
+        email: identity.email ?? "",
+        owner_name: current.owner_name || identity.name || "",
+      }));
+      setMethod("google");
+      setStep(0);
+    } catch {
+      setError("Could not reach Google. Check your connection and try again.");
+    } finally {
+      setCheckingGoogle(false);
+    }
+  }, []);
+
+  /**
+   * Picks up a seller sent here from the sign-in screen.
+   *
+   * They pressed "Continue with Google" over there, and it turned out no store
+   * uses that address — so they arrive already authenticated with Google and
+   * should not have to press the same button a second time. The token is read
+   * once and destroyed by `takeGoogleCredential`.
+   */
+  useEffect(() => {
+    const handed = takeGoogleCredential();
+    // State does change as a result — that is the point of the handoff, and it
+    // happens once on mount from a value that only exists in the browser.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (handed) continueWithGoogle(handed);
+  }, [continueWithGoogle]);
+
+  // ---- The first screen: how are you signing up? ----
+  if (!method) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[440px]">
+          <p className="text-center text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+            Sell on Kandi
+          </p>
+          <h1 className="mt-2 text-center text-[26px] font-extrabold leading-tight text-shop-ink">
+            Open your store
+          </h1>
+          <p className="mt-2 text-center text-[15px] text-shop-body">
+            Takes about three minutes. We will ask for your store name, what you sell and a
+            number we can call.
+          </p>
+
+          <div className="mt-7 rounded-2xl border border-shop-line bg-white p-6">
+            <div className="flex justify-center">
+              <GoogleSignInButton
+                onCredential={continueWithGoogle}
+                onError={(message) => setError(message)}
+                text="signup_with"
+              />
+            </div>
+            <p className="mt-2.5 text-center text-[13px] text-shop-muted">
+              {checkingGoogle
+                ? "Checking your Google account…"
+                : "Fastest — and signing back in later is one tap."}
+            </p>
+
+            <div className="my-5 flex items-center gap-3 text-[12px] uppercase tracking-[0.08em] text-shop-muted">
+              <span className="h-px flex-1 bg-shop-line" />
+              or
+              <span className="h-px flex-1 bg-shop-line" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMethod("password");
+                setError(null);
+              }}
+              className="btn-shop-outline w-full py-3 text-[15px]"
+            >
+              Sign up with an email address
+            </button>
+            <p className="mt-2.5 text-center text-[13px] text-shop-muted">
+              We will email you a six-digit code to confirm the address.
+            </p>
+
+            {error && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              >
+                {error}
+              </p>
+            )}
+          </div>
+
+          <p className="mt-5 text-center text-[14px] text-shop-muted">
+            Already selling?{" "}
+            <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (created && verifying) {
     return (
@@ -181,12 +331,7 @@ export default function OnboardingFlow({
 
   if (created) {
     return (
-      <Done
-        seller={created}
-        registrationFee={registrationFee}
-        payNumber={payNumber}
-        payName={payName}
-      />
+      <Done seller={created} registrationFee={registrationFee} />
     );
   }
 
@@ -343,15 +488,42 @@ export default function OnboardingFlow({
                     />
                   </Field>
 
-                  <Field delay={1} label="Email" hint="Where order alerts and payout confirmations go.">
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => set("email", event.target.value)}
-                      autoComplete="email"
-                      className="field-shop text-[16px]"
-                    />
-                  </Field>
+                  {viaGoogle ? (
+                    // Not an input: this address came from the Google token and
+                    // the server takes it from there too, so a field here would
+                    // be an edit box over a value nothing reads.
+                    <Field
+                      delay={1}
+                      label="Email"
+                      hint="Confirmed by Google — order alerts and payout confirmations go here."
+                    >
+                      <div className="flex items-center gap-2 rounded-xl border border-shop-line bg-shop-hairline px-4 py-3">
+                        <svg
+                          aria-hidden
+                          className="h-4 w-4 shrink-0 text-pop-green"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.6"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+                        </svg>
+                        <span className="min-w-0 truncate text-[16px] text-shop-ink">
+                          {form.email}
+                        </span>
+                      </div>
+                    </Field>
+                  ) : (
+                    <Field delay={1} label="Email" hint="Where order alerts and payout confirmations go.">
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(event) => set("email", event.target.value)}
+                        autoComplete="email"
+                        className="field-shop text-[16px]"
+                      />
+                    </Field>
+                  )}
 
                   <Field delay={2} label="Phone" hint="We call this number to confirm your application.">
                     <input
@@ -602,157 +774,13 @@ function FeeStep({
  * Payment is confirmed by Pesapal's IPN server-to-server, so a seller who closes
  * the window after paying is still marked paid.
  */
-function FeePayment({
-  seller,
-  registrationFee,
-  payNumber,
-  payName,
-}: {
-  seller: Seller;
-  registrationFee: number;
-  payNumber: string;
-  payName: string;
-}) {
-  const amount = seller.fee_amount || registrationFee;
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
-  const [paid, setPaid] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const startPayment = async () => {
-    setStarting(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/payments/pesapal/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          purpose: { kind: "seller-fee", sellerId: seller.id },
-          amount,
-          description: `KandiUg seller joining fee — ${seller.store_name}`.slice(0, 100),
-          billing: {
-            email_address: seller.email,
-            phone_number: seller.phone,
-            first_name: seller.owner_name,
-          },
-        }),
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok || !data?.redirect_url) {
-        setError(data?.error ?? "Could not open the payment window. Please try again.");
-        return;
-      }
-
-      setPaymentUrl(data.redirect_url);
-    } catch {
-      setError("Network error. Check your connection and try again.");
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  if (paid) {
-    return (
-      <div className="mt-7 rounded-2xl border-2 border-pop-green bg-pop-green-soft p-6 text-left">
-        <p className="text-[15px] font-semibold text-pop-green">Joining fee paid</p>
-        <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
-          Thank you. Your application goes to our team for approval — you can sign in and start
-          adding products in the meantime.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-7 rounded-2xl border-2 border-shop-flame bg-shop-primary-soft p-6 text-left">
-      <p className="text-[14px] font-semibold uppercase tracking-wide text-shop-primary">
-        Next: pay the joining fee
-      </p>
-      <p className="price mt-1 text-[22px] leading-none text-shop-flame">{formatPrice(amount)}</p>
-
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={startPayment}
-          disabled={starting}
-          className="btn-shop flex-1 py-3 text-[15px]"
-        >
-          {starting ? "Opening…" : "Pay by mobile money"}
-        </button>
-        <button
-          type="button"
-          onClick={startPayment}
-          disabled={starting}
-          className="btn-shop-outline flex-1 py-3 text-[15px]"
-        >
-          Pay by card
-        </button>
-      </div>
-
-      {error && (
-        <p role="alert" className="mt-3 text-[13.5px] font-medium text-shop-sale">
-          {error}
-        </p>
-      )}
-
-      <details className="mt-5">
-        <summary className="cursor-pointer text-[13.5px] font-semibold text-shop-body hover:text-shop-primary">
-          Rather send the money yourself?
-        </summary>
-        <dl className="mt-3 space-y-2.5 text-[15px]">
-          {payNumber ? (
-            <>
-              <Row label="Send to" value={payNumber} />
-              {payName && <Row label="Registered name" value={payName} />}
-            </>
-          ) : (
-            <p className="text-shop-body">
-              Call us on the number in your approval email and we will confirm how to pay.
-            </p>
-          )}
-          <Row label="Your reference" value={seller.fee_reference} mono />
-        </dl>
-        <p className="mt-3 text-[13.5px] leading-relaxed text-shop-body">
-          Quote that reference so we can match your payment to your store. We confirm it by email,
-          usually the same day.
-        </p>
-      </details>
-
-      <PesapalModal
-        url={paymentUrl}
-        title={`Pay ${formatPrice(amount)}`}
-        onClose={() => setPaymentUrl(null)}
-        onDone={(outcome) => {
-          setPaymentUrl(null);
-          if (outcome.paid) {
-            setPaid(true);
-          } else {
-            setError(
-              outcome.cancelled
-                ? "You cancelled the payment. You can pay whenever you are ready."
-                : outcome.message || "The payment did not go through. Please try again."
-            );
-          }
-        }}
-      />
-    </div>
-  );
-}
-
 /** Confirmation, with the payment instructions the seller needs next. */
 function Done({
   seller,
   registrationFee,
-  payNumber,
-  payName,
 }: {
   seller: Seller;
   registrationFee: number;
-  payNumber: string;
-  payName: string;
 }) {
   const feeDue = seller.fee_status === "unpaid" && registrationFee > 0;
 
@@ -769,21 +797,17 @@ function Done({
           {seller.store_name} is created
         </h1>
         <p className="mx-auto mt-2 max-w-[42ch] text-[16px] leading-relaxed text-shop-body">
-          You can sign in and start setting up now. Your listings go live once our team approves
-          the store.
+          {feeDue
+            ? "Two things left: your verification documents and the joining fee. Both take a couple of minutes."
+            : "Send us your verification documents and your store goes to our team for approval."}
         </p>
 
-        {feeDue && (
-          <FeePayment
-            seller={seller}
-            registrationFee={registrationFee}
-            payNumber={payNumber}
-            payName={payName}
-          />
-        )}
-
-        <Link href="/seller/login" className="btn-shop mt-7 w-full py-3.5 text-[16px]">
-          Sign in to your dashboard
+        {/* No payment panel here any more. Paying lives in one place — the setup
+            gate — so a seller cannot half-finish in two different screens and be
+            unsure which one counted. Verifying signed them in, so this link
+            lands them straight on it. */}
+        <Link href="/seller/onboarding" className="btn-shop mt-7 w-full py-3.5 text-[16px]">
+          Finish setting up
         </Link>
         <Link
           href="/seller-policies"
@@ -796,13 +820,3 @@ function Done({
   );
 }
 
-function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-shop-primary/15 pb-2">
-      <dt className="text-shop-body">{label}</dt>
-      <dd className={`font-semibold text-shop-ink ${mono ? "font-mono tracking-wide" : ""}`}>
-        {value}
-      </dd>
-    </div>
-  );
-}

@@ -76,24 +76,34 @@ export default function AccountOrders() {
         <ul className="mt-6 space-y-5">
           {orders.map((order) => (
             <li key={order.id} className="overflow-hidden rounded-2xl border border-shop-line bg-white">
-              <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-shop-hairline px-5 py-3.5">
-                <span className="text-[16px] font-semibold text-shop-ink">#{order.number}</span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
-                    ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
-                  }`}
-                >
-                  {ORDER_STATUS_LABEL[order.status] ?? order.status}
-                </span>
-                <span className="text-[14px] text-shop-muted">{formatOrderDate(order.date)}</span>
-                <span className="ml-auto text-[17px] font-semibold text-shop-ink">
+              {/* The order number, its state and the date on the left; the total
+                  pinned right. On a phone the old wrapping row dropped the total
+                  onto a line of its own, still right-aligned, which looked like
+                  a fault rather than a figure. */}
+              <header className="flex items-start justify-between gap-3 border-b border-shop-hairline px-4 py-3.5 sm:px-5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <span className="text-[16px] font-semibold text-shop-ink">#{order.number}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
+                        ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
+                      }`}
+                    >
+                      {ORDER_STATUS_LABEL[order.status] ?? order.status}
+                    </span>
+                  </div>
+                  <span className="mt-0.5 block text-[13.5px] text-shop-muted">
+                    {formatOrderDate(order.date)}
+                  </span>
+                </div>
+                <span className="shrink-0 whitespace-nowrap text-[17px] font-semibold text-shop-ink">
                   {formatPrice(order.total)}
                 </span>
               </header>
 
               <ul className="divide-y divide-shop-hairline">
                 {order.items.map((item, index) => (
-                  <li key={`${order.id}-${item.product_id}-${index}`} className="flex gap-4 px-5 py-4">
+                  <li key={`${order.id}-${item.product_id}-${index}`} className="flex gap-4 px-4 py-4 sm:px-5">
                     <Link
                       href={item.product_id ? `/products/${item.product_id}` : "#"}
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-shop-hairline"

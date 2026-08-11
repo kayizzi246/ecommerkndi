@@ -51,6 +51,18 @@ function kandi_settings_defaults() {
 		// The rotating animated line. One message per line in the textarea.
 		'ticker_messages'     => "FREE delivery on orders over UGX 50,000\nPay on delivery — cash, MTN MoMo or Airtel Money\n14-day free returns, no questions asked\n100% authentic brands, checked before dispatch",
 
+		// Campaign promotions — the row of cards on the homepage. One per line,
+		// four fields separated by a pipe:
+		//
+		//     Badge | Headline | Small line | /where-it-links
+		//
+		// e.g.  30% OFF | Christmas Sale | Ends 26 December | /sale
+		//
+		// Left blank, the storefront works out its own from the catalogue —
+		// the real biggest discount, genuinely new stock — so the row is never
+		// empty and never advertises a sale that is not happening.
+		'promotions'          => '',
+
 		// The one full-width banner on the homepage.
 		'banner_eyebrow'      => 'Super Price Store',
 		'banner_headline'     => 'Up to 80% off RRP',
@@ -100,6 +112,51 @@ function kandi_settings_defaults() {
 		'seller_pay_number'   => '',
 		'seller_pay_name'     => '',
 	);
+}
+
+/**
+ * Turns the promotions textarea into a list the storefront can render.
+ *
+ * One campaign per line, fields separated by a pipe:
+ *
+ *     30% OFF | Christmas Sale | Ends 26 December | /sale
+ *
+ * A pipe-separated line is not elegant, but it is one textarea instead of a
+ * repeater field with add/remove buttons and its own JavaScript — and a shop
+ * owner editing four promotions twice a year is better served by something
+ * they can read at a glance than by a widget.
+ *
+ * Only the headline is required. A line without one is skipped rather than
+ * published as an empty card, and six is the most the row will carry.
+ */
+function kandi_parse_promotions( $raw ) {
+	$out = array();
+
+	foreach ( preg_split( '/\r\n|\r|\n/', (string) $raw ) as $line ) {
+		if ( '' === trim( $line ) ) {
+			continue;
+		}
+
+		$parts    = array_map( 'trim', explode( '|', $line ) );
+		$headline = $parts[1] ?? '';
+
+		if ( '' === $headline ) {
+			continue;
+		}
+
+		$out[] = array(
+			'badge'    => sanitize_text_field( $parts[0] ?? '' ),
+			'headline' => sanitize_text_field( $headline ),
+			'note'     => sanitize_text_field( $parts[2] ?? '' ),
+			'url'      => sanitize_text_field( $parts[3] ?? '/sale' ),
+		);
+
+		if ( count( $out ) >= 6 ) {
+			break;
+		}
+	}
+
+	return $out;
 }
 
 /** The saved settings merged over the defaults. */
@@ -268,6 +325,10 @@ add_action( 'rest_api_init', function () {
 					'cta_url'   => $settings['promo_cta_url'],
 				),
 				'ticker'   => $ticker,
+				// Campaign cards, parsed from "Badge | Headline | Note | /link".
+				// Anything without a headline is dropped rather than published
+				// as a blank card.
+				'promotions' => kandi_parse_promotions( $settings['promotions'] ),
 				'banner'   => array(
 					'eyebrow'   => $settings['banner_eyebrow'],
 					'headline'  => $settings['banner_headline'],
@@ -350,7 +411,7 @@ function kandi_settings_sanitise( $key, $value ) {
 	$url_fields   = array( 'logo_url', 'favicon_url', 'promo_cta_url', 'banner_cta_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
 	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'favicon_id', 'seller_fee', 'seller_commission', 'seller_payout_days', 'delivery_lat', 'delivery_lng', 'delivery_base', 'delivery_per_km', 'delivery_free_km', 'delivery_max_fee', 'delivery_max_km' );
 
-	if ( 'ticker_messages' === $key ) {
+	if ( 'ticker_messages' === $key || 'promotions' === $key ) {
 		return sanitize_textarea_field( $value );
 	}
 	if ( 'app_available' === $key ) {
@@ -565,6 +626,34 @@ function kandi_settings_render_page() {
 							One message per line. They rotate in the masthead, one every few seconds.
 							Keep them to promises you actually keep — invented stock counts and fake
 							countdowns break consumer-protection rules and lose repeat customers.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="promotions">Campaign promotions</label></th>
+					<td>
+						<textarea id="promotions" name="promotions" rows="6" class="large-text code" placeholder="30% OFF | Christmas Sale | Ends 26 December | /sale"><?php echo esc_textarea( $s['promotions'] ); ?></textarea>
+						<p class="description">
+							The row of campaign cards on the homepage. <strong>One per line</strong>,
+							four fields separated by a pipe character:
+							<br>
+							<code>Badge | Headline | Small line | /where-it-links</code>
+							<br><br>
+							For example:
+							<br>
+							<code>30% OFF&nbsp;|&nbsp;Christmas Sale&nbsp;|&nbsp;Ends 26 December&nbsp;|&nbsp;/sale</code>
+							<br>
+							<code>NEW IN&nbsp;|&nbsp;Summer Drop&nbsp;|&nbsp;Fresh this week&nbsp;|&nbsp;/search?sort=newest</code>
+							<br>
+							<code>UP TO 50%&nbsp;|&nbsp;Shoes Week&nbsp;|&nbsp;While stocks last&nbsp;|&nbsp;/category/shoes</code>
+							<br><br>
+							Only the headline is required, and six is the most that will show.
+							<strong>Leave this empty and the shop works out its own</strong> from the
+							catalogue — the real biggest discount, genuinely new stock — so the row is
+							never empty and never advertises a sale that is not happening.
+							<br>
+							Take a campaign down by deleting its line. Nothing expires by itself, so a
+							Christmas card left here will still be up in March.
 						</p>
 					</td>
 				</tr>

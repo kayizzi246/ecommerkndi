@@ -314,6 +314,12 @@ function kandi_format_seller( $user_id ) {
 		// Whether the emailed code has been entered. The Seller Centre uses this
 		// to decide between the dashboard and the verification screen.
 		'email_verified'  => kandi_seller_is_verified( $user->ID ),
+		// Business verification. 'missing' until documents are sent, then
+		// 'submitted' until the marketplace team looks at them.
+		'kyc_status'         => (string) ( get_user_meta( $user->ID, '_kandi_kyc_status', true ) ?: 'missing' ),
+		'business_registered' => (string) get_user_meta( $user->ID, '_kandi_business_registered', true ),
+		'business_name'      => (string) get_user_meta( $user->ID, '_kandi_business_name', true ),
+		'business_number'    => (string) get_user_meta( $user->ID, '_kandi_business_number', true ),
 	);
 }
 
@@ -826,6 +832,75 @@ function kandi_attach_product_images( $product_id, $urls, $replace = false ) {
 	}
 }
 
+/**
+ * Stores a verification document against a seller and returns its URL and id.
+ *
+ * Separate from the product-photo upload for two reasons: it accepts PDFs as
+ * well as images, since a trading licence is usually a scan, and it renames the
+ * file to random hex before it lands. `national-id.jpg` in a public uploads
+ * folder is one guess away from being read by anyone; a 32-character random
+ * name is not guessable, which is the most a stock WordPress install can offer
+ * without a server-level deny rule on the directory.
+ */
+function kandi_seller_store_document( $file, $seller_id, $kind ) {
+	if ( ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
+		return new WP_Error( 'kandi_no_file', 'No document was received.', array( 'status' => 400 ) );
+	}
+
+	if ( isset( $file['size'] ) && (int) $file['size'] > KANDI_SELLER_MAX_UPLOAD ) {
+		return new WP_Error( 'kandi_file_too_big', 'That file is larger than 8 MB.', array( 'status' => 413 ) );
+	}
+
+	$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'] ?? '' );
+	$type  = $check['type'] ? $check['type'] : '';
+	$allowed = array_merge( kandi_seller_image_mimes(), array( 'application/pdf' ) );
+
+	if ( ! in_array( $type, $allowed, true ) ) {
+		return new WP_Error(
+			'kandi_bad_file_type',
+			'Documents must be a photo (JPEG, PNG, WebP) or a PDF.',
+			array( 'status' => 415 )
+		);
+	}
+
+	$extension   = strtolower( pathinfo( $file['name'] ?? '', PATHINFO_EXTENSION ) );
+	$extension   = preg_replace( '/[^a-z0-9]/', '', $extension ) ?: 'jpg';
+	$file['name'] = sprintf( 'kandi-%s-%s.%s', $kind, bin2hex( random_bytes( 16 ) ), $extension );
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+
+	$moved = wp_handle_upload( $file, array( 'test_form' => false ) );
+	if ( ! is_array( $moved ) || isset( $moved['error'] ) ) {
+		return new WP_Error(
+			'kandi_upload_failed',
+			is_array( $moved ) ? $moved['error'] : 'The document could not be saved.',
+			array( 'status' => 500 )
+		);
+	}
+
+	$attachment_id = wp_insert_attachment(
+		array(
+			'post_mime_type' => $moved['type'],
+			'post_title'     => sprintf( 'Seller %d %s document', (int) $seller_id, $kind ),
+			'post_status'    => 'private',
+		),
+		$moved['file']
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		return new WP_Error( 'kandi_upload_failed', 'The document could not be saved.', array( 'status' => 500 ) );
+	}
+
+	wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $moved['file'] ) );
+	update_post_meta( $attachment_id, '_kandi_seller_id', (int) $seller_id );
+	// Marks it as identity paperwork rather than shop media, so a future clean-up
+	// job can find these without guessing from filenames.
+	update_post_meta( $attachment_id, '_kandi_document', $kind );
+
+	return array( 'id' => (int) $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) );
+}
+
 /* -------------------------------------------------------------------------
  * 7. REST API — kandi/v1/seller/*
  * ---------------------------------------------------------------------- */
@@ -856,8 +931,20 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_email_taken', 'An account already uses that email address. Try signing in instead.', array( 'status' => 409 ) );
 			}
 
+			// A Google sign-up arrives with the account id Google issued, which
+			// the storefront obtained by verifying the ID token against Google's
+			// own keys before calling this. Reaching here at all means the
+			// storefront's shared secret checked out, so the id is trustworthy.
+			$google_id = sanitize_text_field( $body['google_id'] ?? '' );
+
 			$password = (string) ( $body['password'] ?? '' );
-			if ( strlen( $password ) < 8 ) {
+			if ( '' !== $google_id ) {
+				// No password is set on a Google account. WordPress requires
+				// one, so it gets a random string nobody ever learns — the
+				// account is reachable only through Google until the seller
+				// asks for a password reset.
+				$password = wp_generate_password( 32, true, true );
+			} elseif ( strlen( $password ) < 8 ) {
 				return new WP_Error( 'kandi_weak_password', 'Choose a password of at least 8 characters.', array( 'status' => 400 ) );
 			}
 
@@ -902,10 +989,16 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_fee_amount', $fee );
 			update_user_meta( $user_id, '_kandi_fee_status', $fee > 0 ? 'unpaid' : 'waived' );
 
-			// The account starts unverified and is sent a code straight away.
-			// Nothing else about it works until that code comes back, which is
-			// what stops a bot registering a hundred stores against addresses
-			// it does not own.
+			// Every new account is sent a code, Google included.
+			//
+			// Google has already proved the address, so this is not a technical
+			// necessity — it is the marketplace's own rule: a store that will be
+			// taking money from shoppers confirms it can be reached at the
+			// address on file, whichever button it signed up with. The Google id
+			// is still recorded, so the same button signs them in afterwards.
+			if ( '' !== $google_id ) {
+				update_user_meta( $user_id, '_kandi_google_id', $google_id );
+			}
 			update_user_meta( $user_id, '_kandi_email_verified', '0' );
 			kandi_seller_send_code( $user_id );
 
@@ -1145,10 +1238,21 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_suspended', 'This seller account is suspended. Contact Kandi support.', array( 'status' => 403 ) );
 			}
 
-			// Signing in with Google proves the address, so the code step is
-			// skipped for good — there is nothing left for it to establish.
-			update_user_meta( $user->ID, '_kandi_email_verified', '1' );
 			update_user_meta( $user->ID, '_kandi_google_id', $google_id );
+
+			// A seller who has not yet entered the code they were emailed meets
+			// it here too. Google would be proof enough on its own, but letting
+			// this button skip a step the password form enforces would make the
+			// rule optional — and the code is the shop's own requirement, not a
+			// technical one.
+			if ( ! kandi_seller_is_verified( $user->ID ) ) {
+				kandi_seller_send_code( $user->ID );
+				return new WP_Error(
+					'kandi_unverified',
+					'Your email address is not confirmed yet. We have sent you a new six-digit code.',
+					array( 'status' => 403, 'seller_id' => (int) $user->ID, 'email' => $user->user_email )
+				);
+			}
 
 			return rest_ensure_response( array(
 				'token'      => kandi_seller_issue_token( $user->ID ),
@@ -1511,6 +1615,107 @@ add_action( 'rest_api_init', function () {
 			return rest_ensure_response( array(
 				'id'  => (int) $attachment_id,
 				'url' => wp_get_attachment_url( $attachment_id ),
+			) );
+		},
+	) );
+
+	/* ---- POST /seller/kyc ----
+	 *
+	 * Business verification: a photo of the seller's national ID, whether the
+	 * business is formally registered, and the registration details if it is.
+	 *
+	 * Deliberately reachable before approval — unlike every other write endpoint
+	 * here — because this is the step that *earns* approval. A seller who cannot
+	 * send their documents until they are approved can never be approved.
+	 *
+	 * ON THE ID PHOTO. WordPress serves everything in wp-content/uploads
+	 * directly from the web server, so an attachment is readable by anyone who
+	 * knows its URL no matter what post status it carries. The filename is
+	 * therefore randomised to 32 hex characters, which makes the URL
+	 * unguessable, and the attachment is kept out of the media library listing.
+	 * That is obscurity, not access control: to make these genuinely private the
+	 * site needs a deny rule on the uploads directory, which is a server
+	 * configuration job and is documented in the README.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/kyc', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$seller_id = kandi_seller_current_id( $request );
+
+			// Sent as multipart, so the fields arrive as body params rather than
+			// JSON. Falls back to the JSON body for a caller that sends no file.
+			$body       = $request->get_body_params();
+			$json       = (array) $request->get_json_params();
+			$registered = sanitize_text_field( $body['business_registered'] ?? $json['business_registered'] ?? '' );
+
+			if ( ! in_array( $registered, array( 'yes', 'no' ), true ) ) {
+				return new WP_Error(
+					'kandi_kyc_incomplete',
+					'Tell us whether the business is formally registered.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$business_name   = sanitize_text_field( $body['business_name'] ?? $json['business_name'] ?? '' );
+			$business_number = sanitize_text_field( $body['business_number'] ?? $json['business_number'] ?? '' );
+
+			if ( 'yes' === $registered && '' === $business_number ) {
+				return new WP_Error(
+					'kandi_kyc_incomplete',
+					'Enter the certificate or TIN number the business is registered under.',
+					array( 'status' => 400 )
+				);
+			}
+
+			$files    = $request->get_file_params();
+			$existing = (string) get_user_meta( $seller_id, '_kandi_id_document', true );
+			$file     = isset( $files['id_document'] ) ? $files['id_document'] : null;
+
+			if ( ! $file && '' === $existing ) {
+				return new WP_Error(
+					'kandi_kyc_no_id',
+					'Upload a photo of your national ID.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( $file ) {
+				$stored = kandi_seller_store_document( $file, $seller_id, 'id' );
+				if ( is_wp_error( $stored ) ) {
+					return $stored;
+				}
+				update_user_meta( $seller_id, '_kandi_id_document', $stored['url'] );
+				update_user_meta( $seller_id, '_kandi_id_document_id', $stored['id'] );
+			}
+
+			if ( isset( $files['business_document'] ) ) {
+				$stored = kandi_seller_store_document( $files['business_document'], $seller_id, 'business' );
+				if ( is_wp_error( $stored ) ) {
+					return $stored;
+				}
+				update_user_meta( $seller_id, '_kandi_business_document', $stored['url'] );
+			}
+
+			update_user_meta( $seller_id, '_kandi_business_registered', $registered );
+			update_user_meta( $seller_id, '_kandi_business_name', $business_name );
+			update_user_meta( $seller_id, '_kandi_business_number', $business_number );
+			update_user_meta( $seller_id, '_kandi_kyc_status', 'submitted' );
+			update_user_meta( $seller_id, '_kandi_kyc_submitted_at', current_time( 'mysql' ) );
+
+			wp_mail(
+				get_option( 'admin_email' ),
+				sprintf( 'Kandi seller documents to check: %s', get_user_meta( $seller_id, '_kandi_store_name', true ) ),
+				sprintf(
+					"%s has sent their verification documents.\n\nReview them: %s",
+					get_user_meta( $seller_id, '_kandi_store_name', true ),
+					admin_url( 'admin.php?page=kandi-sellers' )
+				)
+			);
+
+			return rest_ensure_response( array(
+				'ok'     => true,
+				'seller' => kandi_format_seller( $seller_id ),
 			) );
 		},
 	) );
@@ -2149,6 +2354,16 @@ function kandi_admin_sellers_page() {
 			);
 			update_user_meta( $seller_id, '_kandi_status', $map[ $action ] );
 
+			// Approving a store is the act of accepting its paperwork — there is
+			// no separate "documents are fine" decision to make, and leaving KYC
+			// at 'submitted' on a live store would keep nagging the seller for
+			// documents they have already sent.
+			if ( 'approve' === $action || 'reinstate' === $action ) {
+				update_user_meta( $seller_id, '_kandi_kyc_status', 'approved' );
+			} elseif ( 'reject' === $action ) {
+				update_user_meta( $seller_id, '_kandi_kyc_status', 'rejected' );
+			}
+
 			if ( 'approve' === $action || 'reinstate' === $action ) {
 				$user = get_userdata( $seller_id );
 				if ( $user ) {
@@ -2203,12 +2418,12 @@ function kandi_admin_sellers_page() {
 	echo '<div class="wrap"><h1>Kandi Sellers</h1>';
 	echo '<p>Approve applications, set commission rates and monitor each store.</p>';
 	echo '<table class="wp-list-table widefat striped"><thead><tr>
-			<th>Store</th><th>Contact</th><th>Status</th><th>Reg. fee</th><th>Commission</th>
+			<th>Store</th><th>Contact</th><th>Status</th><th>Verification</th><th>Reg. fee</th><th>Commission</th>
 			<th>Products</th><th>Gross sales</th><th>Owed to Kandi</th><th>Actions</th>
 		  </tr></thead><tbody>';
 
 	if ( empty( $sellers ) ) {
-		echo '<tr><td colspan="9">No sellers have registered yet.</td></tr>';
+		echo '<tr><td colspan="10">No sellers have registered yet.</td></tr>';
 	}
 
 	foreach ( $sellers as $seller ) {
@@ -2243,6 +2458,43 @@ function kandi_admin_sellers_page() {
 			esc_html( get_user_meta( $seller->ID, '_kandi_phone', true ) )
 		);
 		printf( '<td><span class="kandi-status kandi-status-%1$s">%1$s</span></td>', esc_html( $status ) );
+
+		// Verification: the documents, and what the seller said about the
+		// business. The ID link opens the file itself — treat these as
+		// confidential and do not paste them anywhere.
+		$kyc        = get_user_meta( $seller->ID, '_kandi_kyc_status', true ) ?: 'missing';
+		$id_doc     = (string) get_user_meta( $seller->ID, '_kandi_id_document', true );
+		$biz_doc    = (string) get_user_meta( $seller->ID, '_kandi_business_document', true );
+		$registered = (string) get_user_meta( $seller->ID, '_kandi_business_registered', true );
+
+		echo '<td>';
+		printf(
+			'<span class="kandi-status kandi-status-%s">%s</span>',
+			'submitted' === $kyc ? 'pending' : ( 'approved' === $kyc ? 'approved' : 'rejected' ),
+			esc_html( 'missing' === $kyc ? 'no documents' : $kyc )
+		);
+		if ( $id_doc ) {
+			printf(
+				'<br><a href="%s" target="_blank" rel="noopener noreferrer">National ID</a>',
+				esc_url( $id_doc )
+			);
+		}
+		if ( $biz_doc ) {
+			printf(
+				'<br><a href="%s" target="_blank" rel="noopener noreferrer">Business document</a>',
+				esc_url( $biz_doc )
+			);
+		}
+		if ( $registered ) {
+			printf(
+				'<br><span class="description">Registered: %s%s</span>',
+				esc_html( $registered ),
+				'yes' === $registered && get_user_meta( $seller->ID, '_kandi_business_number', true )
+					? ' · ' . esc_html( get_user_meta( $seller->ID, '_kandi_business_number', true ) )
+					: ''
+			);
+		}
+		echo '</td>';
 
 		// Registration fee, with the reference the seller was told to quote.
 		$fee_status = get_user_meta( $seller->ID, '_kandi_fee_status', true ) ?: 'unpaid';

@@ -140,7 +140,71 @@ function kandi_send_mail( $to, $subject, $heading, $body, $cta = null ) {
 		sprintf( 'From: %s <%s>', $brand['name'], kandi_mail_from_address() ),
 	);
 
-	return wp_mail( $to, $subject, kandi_mail_template( $heading, $body, $cta ), $headers );
+	// Replies go to a mailbox a human reads, not to no-reply@. Gmail also reads
+	// a valid Reply-To as a sign of a real sender rather than a blast.
+	if ( $brand['email'] && is_email( $brand['email'] ) ) {
+		$headers[] = sprintf( 'Reply-To: %s <%s>', $brand['name'], $brand['email'] );
+	}
+
+	// Marks the message as transactional. Some filters use it, and it stops
+	// mailbox providers offering to unsubscribe from a verification code.
+	$headers[] = 'Auto-Submitted: auto-generated';
+	$headers[] = 'X-Auto-Response-Suppress: All';
+
+	// A plain-text alternative alongside the HTML. A message that is HTML-only
+	// scores worse in every spam filter there is — a real newsletter has both —
+	// and it is what a text-mode client or a screen reader falls back to.
+	add_action( 'phpmailer_init', 'kandi_mail_attach_plain_text' );
+	$GLOBALS['kandi_mail_plain'] = kandi_mail_plain_text( $heading, $body, $cta );
+
+	$sent = wp_mail( $to, $subject, kandi_mail_template( $heading, $body, $cta ), $headers );
+
+	remove_action( 'phpmailer_init', 'kandi_mail_attach_plain_text' );
+	unset( $GLOBALS['kandi_mail_plain'] );
+
+	return $sent;
+}
+
+/**
+ * Turns the HTML body into readable plain text for the multipart alternative.
+ *
+ * Not a general HTML-to-text converter — it only has to handle the markup this
+ * plugin generates: paragraphs, line breaks, list items and a button.
+ */
+function kandi_mail_plain_text( $heading, $body, $cta = null ) {
+	$text = str_ireplace(
+		array( '</p>', '<br>', '<br/>', '<br />', '</tr>', '</li>' ),
+		"\n",
+		$body
+	);
+	$text = str_ireplace( '<li>', '- ', $text );
+	$text = wp_strip_all_tags( $text );
+	// Collapse the runs of blank lines the table markup leaves behind.
+	$text = preg_replace( "/\n{3,}/", "\n\n", trim( html_entity_decode( $text, ENT_QUOTES, 'UTF-8' ) ) );
+
+	$out = $heading . "\n" . str_repeat( '-', min( 60, strlen( $heading ) ) ) . "\n\n" . $text;
+
+	if ( is_array( $cta ) && ! empty( $cta['url'] ) ) {
+		$out .= "\n\n" . ( $cta['label'] ?? 'Open' ) . ': ' . $cta['url'];
+	}
+
+	$brand = kandi_mail_brand();
+	$out  .= "\n\n--\n" . $brand['name'];
+	if ( $brand['phone'] ) {
+		$out .= "\n" . $brand['phone'];
+	}
+	if ( $brand['email'] ) {
+		$out .= "\n" . $brand['email'];
+	}
+
+	return $out;
+}
+
+/** Hands PHPMailer the plain-text half of the message. */
+function kandi_mail_attach_plain_text( $phpmailer ) {
+	if ( ! empty( $GLOBALS['kandi_mail_plain'] ) ) {
+		$phpmailer->AltBody = $GLOBALS['kandi_mail_plain'];
+	}
 }
 
 /**

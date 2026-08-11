@@ -32,6 +32,16 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  /** Where the seller's identity documents stand, in words rather than a slug. */
+  const documentLabel =
+    seller.status === "approved" || seller.kyc_status === "approved"
+      ? "Approved"
+      : seller.kyc_status === "submitted"
+        ? "Sent — with our team"
+        : seller.kyc_status === "rejected"
+          ? "Please send them again"
+          : "Not sent yet";
+
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -146,6 +156,19 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
           <dl className="space-y-2.5 text-[14px]">
             <Row label="Commission rate" value={`${seller.commission_rate}% per completed order`} />
             <Row label="Account status" value={seller.status} />
+            {/* What the shop has and has not confirmed about this seller. An
+                approved store implies both — nobody is approved without them —
+                so an approved account reads as verified even if it predates the
+                fields being recorded. */}
+            <Row
+              label="Email address"
+              value={
+                seller.status === "approved" || seller.email_verified
+                  ? "Confirmed"
+                  : "Waiting for the code"
+              }
+            />
+            <Row label="Verification documents" value={documentLabel} />
             <Row
               label="Selling since"
               value={new Date(seller.registered_at).toLocaleDateString("en-GB", {

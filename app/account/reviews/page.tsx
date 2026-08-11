@@ -74,7 +74,7 @@ export default function AccountReviews() {
           {reviews.map((review) => (
             <li
               key={review.id}
-              className="flex gap-4 rounded-2xl border border-shop-line bg-white p-5"
+              className="flex gap-4 rounded-2xl border border-shop-line bg-white p-4 sm:p-5"
             >
               <Link
                 href={`/products/${review.product_id}`}

@@ -64,6 +64,35 @@ export async function callSellerApi(
   }
 
   const data = await response.json().catch(() => ({}));
+
+  /**
+   * WordPress answers `rest_no_route` when the endpoint does not exist — which,
+   * for this storefront, almost always means the plugin file on the server
+   * predates the feature being called rather than anything being wrong with the
+   * request.
+   *
+   * Its own wording, "No route was found matching the URL and request method",
+   * is the kind of message that gets screenshotted and sent to a developer. This
+   * translates it once, here, so every seller endpoint says the same useful
+   * thing instead of each route having to remember to.
+   */
+  if ((data as { code?: string }).code === "rest_no_route") {
+    console.error(
+      `[kandi-seller] ${path} is missing on WordPress — upload the current ` +
+        "wordpress/kandi-seller-api.php to wp-content/plugins/kandi-seller-api/."
+    );
+    return {
+      status: 501,
+      data: {
+        code: "kandi_plugin_outdated",
+        message:
+          "This part of the Seller Centre is not switched on yet: the Kandi Seller " +
+          "Centre plugin on WordPress needs updating. Ask your administrator to " +
+          "re-upload it.",
+      },
+    };
+  }
+
   return { status: response.status, data };
 }
 

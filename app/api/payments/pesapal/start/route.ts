@@ -100,6 +100,10 @@ export async function POST(request: Request) {
       merchant_reference: result.merchant_reference,
     });
   } catch (error) {
+    // Everything leaves here as JSON with a readable message. The alternative —
+    // letting an exception escape — hands the shopper whatever error page the
+    // host prints, which is how "your order is saved but the payment window
+    // would not open" came to be the only thing anyone ever saw.
     const message =
       error instanceof PesapalError
         ? error.message

@@ -29,6 +29,24 @@ export type Seller = {
   fee_reference: string;
   /** False until the six-digit code emailed at sign-up has been entered. */
   email_verified: boolean;
+  /**
+   * Business verification. "missing" until the seller sends their national ID
+   * and answers the registration question; "submitted" while the marketplace
+   * team looks at it; "approved" once the store is approved.
+   */
+  kyc_status: "missing" | "submitted" | "approved" | "rejected";
+  business_registered: "" | "yes" | "no";
+  business_name: string;
+  business_number: string;
+};
+
+/** What the setup gate still needs from a seller before the dashboard opens. */
+export type KycInput = {
+  business_registered: "yes" | "no";
+  business_name?: string;
+  business_number?: string;
+  id_document?: File | null;
+  business_document?: File | null;
 };
 
 export type SellerStats = {
@@ -197,8 +215,34 @@ async function uploadImage(file: File): Promise<{ id: number; url: string }> {
   return payload as { id: number; url: string };
 }
 
+/**
+ * Sends the verification documents. Multipart, so it bypasses `request`.
+ */
+async function submitKyc(input: KycInput): Promise<{ seller: Seller }> {
+  const body = new FormData();
+  body.append("business_registered", input.business_registered);
+  if (input.business_name) body.append("business_name", input.business_name);
+  if (input.business_number) body.append("business_number", input.business_number);
+  if (input.id_document) body.append("id_document", input.id_document);
+  if (input.business_document) body.append("business_document", input.business_document);
+
+  const response = await fetch("/api/seller/kyc", { method: "POST", body });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new SellerApiError(
+      (payload as { message?: string }).message ?? `Upload failed (${response.status})`,
+      response.status,
+      (payload as { code?: string }).code ?? ""
+    );
+  }
+
+  return payload as { seller: Seller };
+}
+
 export const sellerApi = {
   uploadImage,
+  submitKyc,
 
   login: (email: string, password: string) =>
     request<{ seller: Seller }>("/login", {
@@ -208,14 +252,23 @@ export const sellerApi = {
 
   logout: () => request<{ ok: true }>("/logout", { method: "POST" }),
 
+  /**
+   * Opens a seller account.
+   *
+   * `password` and `google_credential` are the two ways in and exactly one is
+   * required: a password account has to prove its email address with a code,
+   * a Google account arrives already proven and is signed in by the response.
+   */
   register: (input: {
     store_name: string;
     owner_name: string;
-    email: string;
     phone: string;
-    password: string;
     city: string;
     category: string;
+    email?: string;
+    password?: string;
+    /** The raw Google ID token, re-verified server-side before anything is created. */
+    google_credential?: string;
   }) =>
     request<{ seller: Seller; message: string }>("/register", {
       method: "POST",

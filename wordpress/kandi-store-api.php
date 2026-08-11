@@ -493,15 +493,30 @@ add_action( 'rest_api_init', function () {
 			$order->set_created_via( 'kandi-storefront' );
 			$order->calculate_totals();
 
-			// Cash on delivery is confirmed the moment it is placed. A card or
-			// mobile-money order is created `pending` and only becomes
-			// `processing` once Pesapal confirms the money arrived — so an
-			// abandoned payment leaves a visible unpaid order in wp-admin
-			// rather than a phantom sale or nothing at all.
+			// Cash on delivery is confirmed the moment it is placed.
+			//
+			// A card or mobile-money order is held as a *draft* until Pesapal
+			// says the money arrived, and only then becomes a real order.
+			//
+			// The record has to exist before the payment — Pesapal needs
+			// something to attach the money to, and an order created only after
+			// a successful payment would be lost the moment a shopper closed
+			// the tab at the wrong second. But an unpaid attempt is not a sale,
+			// and WooCommerce's own checkout draws exactly this line:
+			// `checkout-draft` is hidden from the Orders list, excluded from
+			// reports, and cleaned up when it is clearly abandoned. Seven
+			// abandoned attempts should not look like seven orders.
 			$awaiting_payment = ! empty( $body['awaiting_payment'] );
 
 			if ( $awaiting_payment ) {
-				$order->update_status( 'pending', 'Awaiting payment via Pesapal.' );
+				// `checkout-draft` belongs to WooCommerce Blocks. It is present
+				// in every current WooCommerce, but an older or trimmed install
+				// may not have it — and an unknown status silently leaves the
+				// order wherever it was, so this checks rather than assumes.
+				$draft = get_post_status_object( 'wc-checkout-draft' )
+					? 'checkout-draft'
+					: 'pending';
+				$order->update_status( $draft, 'Started a Pesapal payment.' );
 			} else {
 				$order->update_status( 'processing', 'Order placed via Kandi storefront.' );
 			}
@@ -555,6 +570,20 @@ add_action( 'rest_api_init', function () {
 					'status'  => $order->get_status(),
 					'already' => true,
 				) );
+			}
+
+			// A draft is not one of the statuses WooCommerce will complete a
+			// payment from — `payment_complete()` checks the current status
+			// against a list that contains pending, on-hold, failed and
+			// cancelled, and quietly does nothing for anything else. Since
+			// storefront orders now wait as drafts, one that has just been paid
+			// is moved to `pending` first.
+			//
+			// Skipping this would be the worst bug in the shop: the money
+			// leaves the shopper's account, and the order sits invisible in a
+			// draft state that never becomes a sale.
+			if ( $order->has_status( 'checkout-draft' ) ) {
+				$order->update_status( 'pending', 'Payment confirmed; releasing the draft.' );
 			}
 
 			$order->set_payment_method( 'pesapal' );

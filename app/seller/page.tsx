@@ -10,6 +10,7 @@ import StatTile from "@/components/seller/StatTile";
 import RevenueChart from "@/components/seller/RevenueChart";
 import TopProductsChart from "@/components/seller/TopProductsChart";
 import CategorySplit from "@/components/seller/CategorySplit";
+import GettingStarted from "@/components/seller/GettingStarted";
 
 /**
  * Dashboard home.
@@ -52,6 +53,16 @@ export default function SellerOverviewPage() {
 
   const rangeLabel =
     range === "mtd" ? "vs last month" : range === "ytd" ? "vs last year" : "vs previous period";
+
+  /**
+   * An approved store — the point at which the figures below mean anything.
+   *
+   * A seller whose plugin predates the status field would read as unapproved
+   * and lose their dashboard, so an unknown status is treated as approved: the
+   * gate that actually protects the account is in SellerShell, and this only
+   * decides whether to draw empty charts.
+   */
+  const approvedStore = !seller || seller.status === "approved" || !seller.status;
 
   // Everything waiting on the seller, most urgent first. Only real conditions
   // appear — an empty list means there is genuinely nothing to do.
@@ -114,10 +125,22 @@ export default function SellerOverviewPage() {
             How {seller?.store_name ?? "your store"} is doing on Kandi.
           </p>
         </div>
-        <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[15px]">
-          Add a product
-        </Link>
+        {/* Only once the store can actually list. The backend refuses a new
+            product from an unapproved seller, so before that this button leads
+            to a form that ends in an error. */}
+        {approvedStore && (
+          <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[15px]">
+            Add a product
+          </Link>
+        )}
       </div>
+
+      {/* The new seller's path, in order, until the store is trading. It
+          replaces the bare "awaiting approval" notice, which said what was
+          happening but never what to do about it. */}
+      {seller && (
+        <GettingStarted seller={seller} productsLive={stats?.products_live ?? 0} />
+      )}
 
       {seller?.status === "pending" && (
         <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft px-5 py-4 text-[15px] leading-relaxed text-pop-orange">
@@ -126,8 +149,11 @@ export default function SellerOverviewPage() {
         </div>
       )}
 
-      {/* ---- What needs you ---- */}
-      {jobs.length > 0 && (
+      {/* ---- What needs you ----
+           Every job here links to Products, Orders or Earnings, none of which
+           an unapproved store can use. Until then the checklist above is the
+           list of things that genuinely need the seller. */}
+      {approvedStore && jobs.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-3 text-[18px] font-extrabold text-shop-ink">What needs you</h2>
           <ul className="grid gap-3 md:grid-cols-2">
@@ -172,6 +198,7 @@ export default function SellerOverviewPage() {
       )}
 
       {/* ---- Quick actions ---- */}
+      {approvedStore && (
       <section className="mb-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <QuickAction
@@ -208,8 +235,31 @@ export default function SellerOverviewPage() {
           />
         </div>
       </section>
+      )}
 
-      {/* ---- Figures ---- */}
+      {/* ---- Figures ----
+           Held back until the store is approved. Before that every one of them
+           is a zero and every chart is an empty box, which reads as a broken
+           dashboard rather than as a store that has not opened yet. The
+           checklist above is the useful thing on the page until then. */}
+      {!approvedStore ? (
+        <section className="rounded-2xl border border-dashed border-shop-line bg-white p-8 text-center">
+          <h2 className="text-[18px] font-extrabold text-shop-ink">
+            Your sales figures appear here
+          </h2>
+          <p className="mx-auto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-muted">
+            Revenue, best sellers and the split by category — all of it unlocks the moment your
+            store is approved and starts taking orders.
+          </p>
+          <Link
+            href="/seller/guide"
+            className="btn-shop-outline mt-5 inline-flex px-6 py-2.5 text-[15px]"
+          >
+            Read how selling works
+          </Link>
+        </section>
+      ) : (
+        <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-[18px] font-extrabold text-shop-ink">Your numbers</h2>
         <RangeFilter
@@ -300,6 +350,8 @@ export default function SellerOverviewPage() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
