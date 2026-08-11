@@ -117,7 +117,10 @@ export default async function RootLayout({
       lang="en"
       className={`${poppins.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white">
+      {/* `bg-background`, not `bg-white`. Hard-coding white here painted over
+          the `--background` token on every page, which is why changing that
+          token appeared to do nothing at all. */}
+      <body className="min-h-full flex flex-col bg-background">
         {/* Tells Google what this site is and that it has a search endpoint —
             the prerequisite for a sitelinks search box under the homepage
             result. Rendered once, in the layout, so it is on every page. */}

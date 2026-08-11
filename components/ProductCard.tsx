@@ -122,7 +122,7 @@ export default function ProductCard({
   const moreOptions = Math.max(0, options.length - swatches.length);
 
   return (
-    <article className="group relative flex h-full flex-col rounded-lg border border-transparent p-0.5 transition-colors hover:border-shop-line sm:p-1">
+    <article className="group relative flex h-full flex-col rounded-lg border border-transparent bg-white p-0.5 transition-colors hover:border-shop-line sm:p-1">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">

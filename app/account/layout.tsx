@@ -4,8 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCustomerSession } from "@/lib/customer-session";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
-import { useState } from "react";
+import SignInPanel from "@/components/SignInPanel";
 
 const NAV = [
   { href: "/account", label: "Overview", icon: "grid" },
@@ -27,7 +26,6 @@ const NAV = [
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const { customer, loading, refresh, signOut } = useCustomerSession();
   const pathname = usePathname();
-  const [error, setError] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -49,25 +47,15 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           </span>
           <h1 className="mt-4 text-[24px] font-extrabold text-shop-ink">Your Kandi account</h1>
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-shop-muted">
-            Sign in with Google to track orders, manage your wishlist, review what you have
-            bought and check out faster.
+            Sign in to track orders, manage your wishlist, review what you have bought and
+            check out faster.
           </p>
 
-          <div className="mt-6 flex justify-center">
-            <GoogleSignInButton
-              endpoint="/api/auth/google"
-              onSuccess={refresh}
-              onError={setError}
-              text="signin_with"
-              width={300}
-            />
+          {/* No `justify-center` around the panel: it holds full-width fields,
+              and centring a flex child shrinks it to its content. */}
+          <div className="mt-6">
+            <SignInPanel onSuccess={refresh} />
           </div>
-
-          {error && (
-            <p role="alert" className="mt-4 text-[14px] text-shop-sale">
-              {error}
-            </p>
-          )}
 
           <p className="mt-6 border-t border-shop-line pt-4 text-[14px] text-shop-muted">
             Selling with us?{" "}

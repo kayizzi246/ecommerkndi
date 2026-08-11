@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 import type { ProductReview } from "@/lib/woocommerce";
 
 type Props = {
@@ -39,13 +39,7 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
           with your name.
         </p>
         <div className="mt-4 flex justify-center">
-          <GoogleSignInButton
-            endpoint="/api/auth/google"
-            onSuccess={refresh}
-            onError={setError}
-            text="signin_with"
-            width={280}
-          />
+          <SignInPanel onSuccess={refresh} />
         </div>
         {error && (
           <p role="alert" className="mt-3 text-[13px] text-shop-sale">

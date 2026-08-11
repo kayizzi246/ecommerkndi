@@ -25,8 +25,15 @@ export default function DealCarousel({
   products,
   /** Tailwind width classes for one item — controls how many are visible. */
   itemWidth = "w-[48.5%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
-  /** Background the edge fades into; match the rail's own surface. */
-  fadeFrom = "from-white",
+  /**
+   * Background the edge fades into; match the rail's own surface.
+   *
+   * Defaults to the page background rather than white. The fade exists to make
+   * the tile at the cut look like it continues; fading to a colour the page is
+   * not leaves a pale smear down the edge instead, which is what `from-white`
+   * would now do on a soft-white page.
+   */
+  fadeFrom = "from-background",
   priority = false,
 }: {
   products: Product[];

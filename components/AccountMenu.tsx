@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 
 const SIGNED_IN_LINKS = [
   { href: "/account", label: "My dashboard" },
@@ -19,7 +19,6 @@ const SIGNED_IN_LINKS = [
 export default function AccountMenu() {
   const { customer, loading, refresh, signOut } = useCustomerSession();
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,19 +140,10 @@ export default function AccountMenu() {
                 Sign in to track orders, save your wishlist and check out faster.
               </p>
 
-              <GoogleSignInButton
-                endpoint="/api/auth/google"
-                onSuccess={onSignedIn}
-                onError={setError}
-                text="continue_with"
-                width={268}
-              />
-
-              {error && (
-                <p role="alert" className="mt-3 text-[13px] text-bfl-red">
-                  {error}
-                </p>
-              )}
+              {/* `onSignedIn`, not `refresh`: it refreshes *and* closes the
+                  dropdown. Leaving the panel open over a now-signed-in menu
+                  looks like the sign-in did not take. */}
+              <SignInPanel onSuccess={onSignedIn} />
 
               <p className="mt-4 border-t border-bfl-line pt-3 text-center text-[13px] text-bfl-grey">
                 Selling with us?{" "}

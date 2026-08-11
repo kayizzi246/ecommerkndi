@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 import { formatPrice } from "@/lib/currency";
 import {
   formatOrderDate,
@@ -66,13 +66,7 @@ export default function TrackOrderPanel() {
           in.
         </p>
         <div className="mt-5 flex justify-center">
-          <GoogleSignInButton
-            endpoint="/api/auth/google"
-            onSuccess={refresh}
-            onError={setError}
-            text="signin_with"
-            width={280}
-          />
+          <SignInPanel onSuccess={refresh} />
         </div>
         {error && (
           <p role="alert" className="mt-4 text-[14px] text-shop-sale">

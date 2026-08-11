@@ -98,9 +98,19 @@ export default function ProductPurchase({
             </Link>
           )}
 
-          {/* A product name, not a headline: the heading rule in globals.css
-              would otherwise set it at 800 alongside the section titles. */}
-          <h1 className="heading-800 mt-2.5 text-[19px] leading-[1.35] text-shop-ink md:text-[21px]">
+          {/* Set in Poppins, the heading face, rather than the interface font.
+              This is the one line on the page a shopper reads as a title, and
+              in Inter at 19px it sat at the same weight and colour as the
+              delivery copy underneath it — technically a heading, visually just
+              another sentence. Poppins has wider counters and a taller x-height,
+              so it holds the eye at a size that still fits a long marketplace
+              name on two lines.
+
+              Slightly larger and a touch tighter than before: product names run
+              long here ("Men's Leather Oxford Shoes Brown Size 42"), and tight
+              tracking on a wide face is what keeps that on two lines instead of
+              three. */}
+          <h1 className="font-heading mt-2.5 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-shop-ink md:text-[24px]">
             {product.name}
           </h1>
 

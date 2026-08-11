@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CategoryNode } from "@/lib/woocommerce";
 import { useCustomerSession } from "@/lib/customer-session";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 
 const STORAGE_KEY = "kandi-onboarding-v1";
 
@@ -212,12 +212,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                     Sign in with Google to keep your wishlist, track orders and check out without
                     retyping your details.
                   </p>
-                  <GoogleSignInButton
-                    endpoint="/api/auth/google"
-                    onSuccess={refresh}
-                    text="continue_with"
-                    width={300}
-                  />
+                  <SignInPanel onSuccess={refresh} />
                   <p className="mt-4 text-[13px] text-bfl-grey">
                     You can keep browsing without an account — nothing is lost.
                   </p>

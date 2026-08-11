@@ -19,9 +19,20 @@
  */
 
 :root {
-  /* Cool near-white, not pure white. One step of separation is what lets a white
-     product card read as a card without needing a shadow to say so. */
-  --background: #ffffff;
+  /* Soft white — a cool near-white, deliberately not #fff.
+
+     This is what lets a white product card read as a card. On a pure white
+     page a white card is invisible until you draw a border or a shadow round
+     it, and a catalogue full of borders looks like a spreadsheet. One step of
+     separation does the same job with nothing on the screen.
+
+     Cool rather than cream because the type palette is slate (#475569,
+     #64748b); a warm grey underneath it would read as slightly dirty.
+
+     The comment here used to describe this and the value said #ffffff — the
+     intent had been lost, and `bg-white` hard-coded on <body> was overriding
+     the token anyway, so neither had any effect. */
+  --background: #f6f7f8;
   /* Near-black rather than soft charcoal: marketplace listings are dense and
      scanned fast, so product type wants the extra contrast. */
   --foreground: #171717;

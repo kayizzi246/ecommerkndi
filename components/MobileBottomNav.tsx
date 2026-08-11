@@ -16,7 +16,9 @@ const NAV_ITEMS = [
   },
   {
     label: "Categories",
-    href: "/#categories",
+    /* Was `/#categories` — an anchor that exists on no page, so this tab did
+       nothing at all when tapped. It now goes to the real departments page. */
+    href: "/categories",
     icon: (active: boolean) => (
       <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
@@ -48,6 +50,21 @@ const NAV_ITEMS = [
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { count } = useCart();
+
+  /**
+   * Pages that carry their own bottom bar, and so must not carry this one too.
+   *
+   * A product page has a permanent Add to cart / Buy now bar and the cart has a
+   * permanent Checkout bar. Stacking navigation underneath either one produces
+   * two fixed bars competing for the same corner of a phone, eats about 110px
+   * of a screen that is mostly product photograph, and puts "Home" directly
+   * beneath "Buy now" — which is a misdirected tap at the exact moment the
+   * shop is trying to take money.
+   *
+   * `startsWith` covers `/products/<id>` for every product.
+   */
+  const ownsBottomBar = pathname.startsWith("/products/") || pathname === "/cart";
+  if (ownsBottomBar) return null;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-bfl-line bg-white lg:hidden">

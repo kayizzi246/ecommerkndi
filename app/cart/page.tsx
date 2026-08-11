@@ -286,6 +286,39 @@ export default function CartPage() {
           </div>
         </aside>
       </div>
+
+      {/* ---- Sticky checkout, phones only ----
+           The summary card above sits at the bottom of the page on a phone,
+           below every line item — so on a cart of any size the one button that
+           matters is off screen for the whole visit. This keeps it in the
+           thumb's reach with the figure attached, because a checkout button
+           without a total makes people scroll back up to check before they
+           trust it.
+
+           The bottom navigation hides itself on this route, so nothing is
+           stacked underneath. */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] text-shop-muted">
+              {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"}
+            </p>
+            <p className="price text-[18px] leading-none text-shop-ink">{formatPrice(total)}</p>
+          </div>
+
+          <Link
+            href="/checkout"
+            aria-disabled={selectedItems.length === 0}
+            className={`shrink-0 rounded-[10px] px-8 py-3.5 text-center text-[15px] font-semibold ${
+              selectedItems.length === 0
+                ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
+                : "btn-shop"
+            }`}
+          >
+            Checkout
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }
