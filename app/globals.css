@@ -155,7 +155,16 @@ body {
      fixed [Npx] sizes scattered through the components are stepped up with
      the `text-*` scale below rather than one by one. */
   font-size: 16px;
-  line-height: 1.55;
+  /* 1.6 rather than 1.55. The difference is a pixel and a half on a 16px line,
+     and it is the difference between a paragraph that reads and one that has to
+     be got through — descenders on one line stop crowding the caps on the next.
+     Long-form pages go further still with `leading-relaxed`. */
+  line-height: 1.6;
+  /* A hair of positive tracking. Inter is spaced for 16px and above; most of
+     this interface runs at 12–14px, where the counters close up and glyphs like
+     "rn" start reading as "m". This opens them back up without the text looking
+     letterspaced. */
+  letter-spacing: 0.004em;
   -webkit-font-smoothing: antialiased;
   /* Both faces ship every weight the store asks for, so a synthesised bold would
      only ever be the browser smearing a real one — turn it off and any weight
@@ -211,10 +220,15 @@ h6,
      this would silently render at 800, because `font-synthesis-weight` is off
      and the browser will not fake a weight the file does not contain. */
   font-weight: 600;
-  /* Tracking pulled in harder than at 700: at Black the letterforms are already
-     touching, and the default spacing makes a heading look loose against its
-     own weight. */
-  letter-spacing: -0.03em;
+  /* Tightened, but only just.
+
+     This was -0.03em, which on Poppins — a geometric face whose round letters
+     already sit close — pushed "Daily Deals" and "Trending now" into a solid
+     block that has to be decoded rather than read. Tracking that tight is a
+     poster technique: it works on three words at 60px and fails on a sentence
+     at 18px. -0.012em keeps a heading looking deliberate without closing the
+     gaps a reader uses to tell one letter from the next. */
+  letter-spacing: -0.012em;
 }
 
 /* Prices are display type wherever they appear — that is the number the whole
@@ -226,7 +240,10 @@ h6,
      it the first thing read in the tile. Poppins ships the cut, so nothing is
      synthesised. */
   font-weight: 700;
-  letter-spacing: -0.02em;
+  /* Barely tightened. A price is read digit by digit — UGX 145,854 is not a
+     word the eye takes in whole — so the space between figures has to stay open
+     enough to count them. */
+  letter-spacing: -0.008em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -244,7 +261,10 @@ h6,
 .font-normal-heading {
   font-family: var(--font-ui);
   font-weight: 400;
-  letter-spacing: 0;
+  /* Undoes the heading tracking above, but lands on the body's spacing rather
+     than on zero — a product name is body copy that happens to be marked up as
+     a heading, and it should be spaced like the sentences around it. */
+  letter-spacing: 0.004em;
 }
 
 /* ---------- Section titles ----------
@@ -257,8 +277,9 @@ h6,
 .section-title {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.015em;
+  /* 1.1 clipped the descenders of a title that wrapped onto a second line. */
+  line-height: 1.2;
 }
 
 /* Poppins Black, for the two section headings that anchor the homepage.
@@ -273,7 +294,11 @@ h6,
 .heading-black {
   font-family: var(--font-display);
   font-weight: 900;
-  letter-spacing: -0.04em;
+  /* -0.04em at Black was the tightest type on the site and the hardest to read:
+     the two effects compound, because a heavier weight has already eaten the
+     space between the letters before the tracking takes any more. */
+  letter-spacing: -0.018em;
+  line-height: 1.2;
 }
 
 /* The product page title. Heavier than a card's product name — here the name is
@@ -282,7 +307,9 @@ h6,
 .heading-800 {
   font-family: var(--font-display);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  /* A product title runs to two or three lines here; 1.25 keeps them apart. */
+  line-height: 1.25;
 }
 
 /* Large buttons and promotional labels — display face, tighter than body. */

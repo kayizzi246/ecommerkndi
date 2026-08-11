@@ -162,7 +162,10 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="mt-1.5 flex flex-1 flex-col gap-1">
         {/* Chips run inline with the name, so a tag costs no vertical space. */}
         <Link href={href} className="block">
-          <h3 className="font-normal-heading line-clamp-2 text-[14px] leading-[19px] text-shop-ink transition-colors hover:text-shop-primary">
+          {/* 14/20 rather than 14/19: a supplier title always wraps to the full
+              two lines, and a tight leading is felt most exactly where the text
+              is longest. */}
+          <h3 className="font-normal-heading line-clamp-2 text-[14px] leading-[20px] text-shop-ink transition-colors hover:text-shop-primary">
             <span className="mr-1 inline-block rounded-[3px] border border-shop-success/50 px-1 align-[1px] text-[10px] font-semibold text-shop-success">
               Local
             </span>
