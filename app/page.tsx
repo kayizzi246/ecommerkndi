@@ -1,7 +1,5 @@
-import { getCategories, getProductsSafe, getStores } from "@/lib/woocommerce";
+import { getProductsSafe, getStores } from "@/lib/woocommerce";
 import DealCarousel from "@/components/DealCarousel";
-import CategoryChips from "@/components/home/CategoryChips";
-import PromoTiles from "@/components/home/PromoTiles";
 import SuperDeals from "@/components/home/SuperDeals";
 import DailyDeals from "@/components/home/DailyDeals";
 import SectionHeader from "@/components/home/SectionHeader";
@@ -28,9 +26,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [settings, categories, onSale, featured, latest, stores] = await Promise.all([
+  const [settings, onSale, featured, latest, stores] = await Promise.all([
     getSiteSettings(),
-    getCategories(),
     // Enough on-sale stock for both discount sections: Super Deals takes the
     // first five, Daily Deals carries the rest.
     getProductsSafe({ on_sale: true, per_page: 24 }),
@@ -92,19 +89,17 @@ export default async function Home() {
 
   return (
     <main className="pb-20">
-      {/* The hero banner and the category card grid used to open the page. Both
-          are gone: a fashion storefront opens on merchandise, and the chips
-          below carry the departments in one line instead of a screen. */}
-      {/* Section spacing steps up with the window rather than sitting at one
-          value: on a phone 20px is enough to separate two sections, and the gap
-          that reads as generous on a desktop reads as a hole there. The side
-          padding goes the same way — 12px on a phone is the difference between
-          a grid and a grid with a margin around it. */}
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-3 py-4 md:gap-9 md:px-8 md:py-5">
-        <CategoryChips categories={categories} />
+      {/* The page opens on merchandise.
 
-        <PromoTiles />
+          The hero banner and category card grid went first; the department
+          chips and the coloured promo tiles have now followed them. All four
+          were navigation dressed as content, and they pushed the first real
+          product below the fold on every phone. The departments are one tap
+          away in the header, which is where a shopper looks for them.
 
+          Spacing is tight and even: 16px on a phone, 28px from md up. The old
+          36px desktop gap left the page feeling like separate pages stacked. */}
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 py-4 md:gap-7 md:px-8 md:py-5">
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />

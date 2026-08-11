@@ -64,6 +64,57 @@ async function callWordPress(path: string, body: unknown) {
   return data;
 }
 
+/**
+ * Asks WordPress to check and settle the payment.
+ *
+ * Returns null when the endpoint is not there — a shop still running the plugin
+ * from before payments moved — so the caller can fall back rather than fail.
+ */
+async function settleViaWordPress(orderTrackingId: string): Promise<SettleResult | null> {
+  const base = process.env.WP_API_URL;
+  if (!base) return null;
+
+  try {
+    const response = await fetch(
+      `${base.replace(/\/$/, "")}/payments/status?tracking_id=${encodeURIComponent(orderTrackingId)}`,
+      {
+        headers: { "X-Kandi-Secret": process.env.KANDI_API_SECRET ?? "" },
+        cache: "no-store",
+      }
+    );
+
+    const data = (await response.json().catch(() => null)) as
+      | {
+          paid?: boolean;
+          status?: string;
+          description?: string;
+          method?: string;
+          reference?: string;
+          code?: string;
+        }
+      | null;
+
+    // No such route: the WordPress side has not been updated yet.
+    if (!data || data.code === "rest_no_route") return null;
+
+    if (!response.ok) {
+      throw new Error(
+        (data as { message?: string }).message ?? `Payment check failed (${response.status}).`
+      );
+    }
+
+    return {
+      paid: Boolean(data.paid),
+      purpose: parseReference(data.reference ?? ""),
+      description: data.description || data.status || "Payment was not completed.",
+      paymentMethod: data.method || "Pesapal",
+    };
+  } catch (error) {
+    console.error("[kandi-store] settle via WordPress failed:", error);
+    return null;
+  }
+}
+
 export type SettleResult = {
   paid: boolean;
   purpose: PesapalPurpose | null;
@@ -83,6 +134,13 @@ export async function settlePesapalPayment(
   orderTrackingId: string,
   merchantReferenceHint?: string
 ): Promise<SettleResult> {
+  // WordPress owns the Pesapal conversation now, so ask it first: it holds the
+  // keys, it settles the order, and it answers from a process that does not get
+  // killed halfway through. Only if that route is missing — an older plugin —
+  // does this fall back to talking to Pesapal from here.
+  const viaWordPress = await settleViaWordPress(orderTrackingId);
+  if (viaWordPress) return viaWordPress;
+
   const status = await getTransactionStatus(orderTrackingId);
 
   const reference = status.merchant_reference ?? merchantReferenceHint ?? "";
