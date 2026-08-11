@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/currency";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { takeGoogleCredential } from "@/lib/seller-google-handoff";
+import { useSellerSession } from "@/lib/seller-session";
 
 const CATEGORIES = [
   "Shoes & footwear",
@@ -62,6 +63,7 @@ type Props = {
  */
 export default function OnboardingFlow({ registrationFee, commissionRate }: Props) {
   const feeApplies = registrationFee > 0;
+  const { refresh: refreshSession } = useSellerSession();
 
   /**
    * How the seller is signing up, chosen before anything else is asked.
@@ -319,7 +321,27 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
         <div className="w-full max-w-[440px]">
           <VerifyEmailCard
             email={form.email.trim()}
-            onVerified={() => setVerifying(false)}
+            /**
+             * Verifying is the moment this browser stops being whoever it was
+             * and becomes this seller: the code exchange sets a fresh session
+             * cookie server-side. Without refreshing here, the session context
+             * keeps whatever it resolved on mount — which, for anybody
+             * registering on a machine that had another seller signed in, was
+             * that other seller. They would finish sign-up and be shown someone
+             * else's store.
+             *
+             * `refresh` re-reads the new cookie, and `me()` repoints this
+             * screen's own copy, so the confirmation names the store just
+             * created rather than the one that was there before.
+             */
+            onVerified={async () => {
+              await refreshSession();
+              const { seller: current } = await sellerApi
+                .me()
+                .catch(() => ({ seller: null }));
+              if (current) setCreated(current);
+              setVerifying(false);
+            }}
           />
           <p className="mt-4 text-center text-[13px] text-shop-muted">
             Your store is saved — this only confirms we can reach you.

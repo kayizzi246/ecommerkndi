@@ -1,4 +1,4 @@
-import { callSellerApi, setSellerCookie } from "@/lib/seller-server";
+import { callSellerApi, setSellerCookie, clearSellerCookie } from "@/lib/seller-server";
 import { verifyGoogleIdToken, GoogleAuthError } from "@/lib/google-verify";
 
 /** Always required, however the seller signed up. */
@@ -66,8 +66,25 @@ export async function POST(request: Request) {
   // proved the address and there is no code step to wait for. The cookie is set
   // here so the new seller lands in their dashboard signed in.
   const session = data as { token?: string; expires_in?: number };
+
   if (session.token) {
     await setSellerCookie(session.token, session.expires_in ?? 60 * 60 * 24 * 14);
+  } else {
+    /**
+     * A password sign-up has no session yet — the six-digit code has to be
+     * entered first. Any cookie already in this browser belongs to a *different*
+     * seller, and leaving it in place is how somebody registered a new store and
+     * then found themselves inside the demo account: they were still signed in
+     * as it the whole time, because nothing ever said otherwise.
+     *
+     * Clearing it here is the honest state of affairs. Whoever registered is,
+     * for the next minute, nobody — until the code proves who they are.
+     *
+     * Only on success, deliberately. If WordPress rejected the sign-up, nothing
+     * has changed and signing the existing seller out would be a punishment for
+     * a typo.
+     */
+    await clearSellerCookie();
   }
 
   return Response.json(data, { status });

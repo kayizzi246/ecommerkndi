@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
 import type { Seller } from "@/lib/seller";
+import { useSellerSession } from "@/lib/seller-session";
 
 /**
  * The joining-fee panel.
@@ -26,6 +27,7 @@ export default function FeePayment({
   payName: string;
 }) {
   const amount = seller.fee_amount || registrationFee;
+  const { refresh } = useSellerSession();
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -137,10 +139,25 @@ export default function FeePayment({
         url={paymentUrl}
         title={`Pay ${formatPrice(amount)}`}
         onClose={() => setPaymentUrl(null)}
-        onDone={(outcome) => {
+        onDone={async (outcome) => {
           setPaymentUrl(null);
           if (outcome.paid) {
             setPaid(true);
+            /**
+             * Pull the seller again so the gate opens by itself.
+             *
+             * By the time this fires, the callback page has already settled the
+             * payment server-side and WordPress has `fee_status = paid` — but
+             * this browser is still holding the seller it loaded before paying,
+             * where the fee was outstanding. Without this the seller is shown
+             * "Joining fee paid" by one component while another goes on
+             * blocking their dashboard over the very same fee, and the only way
+             * through is the "I have paid — check again" button underneath.
+             *
+             * That button stays, for the case where the IPN is the thing that
+             * settles it and arrives a moment late.
+             */
+            await refresh().catch(() => undefined);
           } else {
             setError(
               outcome.cancelled

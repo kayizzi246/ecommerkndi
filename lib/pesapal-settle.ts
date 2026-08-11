@@ -1,4 +1,4 @@
-import { getTransactionStatus, isPaid } from "@/lib/pesapal";
+import { getTransactionStatus, isPaid, pesapalConfig } from "@/lib/pesapal";
 
 /**
  * Turning a Pesapal payment into a settled order or a paid seller fee.
@@ -134,12 +134,25 @@ export async function settlePesapalPayment(
   orderTrackingId: string,
   merchantReferenceHint?: string
 ): Promise<SettleResult> {
-  // WordPress owns the Pesapal conversation now, so ask it first: it holds the
-  // keys, it settles the order, and it answers from a process that does not get
-  // killed halfway through. Only if that route is missing — an older plugin —
-  // does this fall back to talking to Pesapal from here.
-  const viaWordPress = await settleViaWordPress(orderTrackingId);
-  if (viaWordPress) return viaWordPress;
+  /**
+   * Ask WordPress only when this storefront cannot ask Pesapal itself.
+   *
+   * WordPress is the better place for this in principle — it holds the order
+   * and does the settling in one process. In practice, on this shop's host, its
+   * `/payments/status` dies the moment it opens an outbound connection and
+   * returns a bodiless 502. `settleViaWordPress` swallows that and returns
+   * null, so the payment still settles from here — but only after a wasted
+   * round trip, and this one is spent while a shopper watches a spinner
+   * wondering whether their money has gone.
+   *
+   * So when Pesapal keys are configured here, this route goes first. WordPress
+   * remains the path when they are not, which keeps a storefront without keys
+   * working exactly as before.
+   */
+  if (!pesapalConfig()) {
+    const viaWordPress = await settleViaWordPress(orderTrackingId);
+    if (viaWordPress) return viaWordPress;
+  }
 
   const status = await getTransactionStatus(orderTrackingId);
 
