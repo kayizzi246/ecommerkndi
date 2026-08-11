@@ -84,6 +84,41 @@ function kandi_pesapal_log( $message, $context = null ) {
 	error_log( '[kandi-pesapal] ' . $message );
 }
 
+/**
+ * Runs a payment step and turns *anything* that goes wrong into a readable
+ * WP_Error — including the failures PHP would otherwise treat as fatal.
+ *
+ * This exists because of how the first attempt at this failed. A payment would
+ * die somewhere inside the Pesapal call and the shopper would get a bare `502`
+ * from the CDN: no message, no JSON, and nothing in any log we could reach. A
+ * fatal error kills the process before it can say a word, so every diagnosis
+ * was guesswork.
+ *
+ * `Throwable` catches both exceptions and the errors PHP 7 raises for things
+ * like a missing extension, so the worst case is now a sentence naming the file
+ * and line rather than silence. Payments must never fail invisibly.
+ */
+function kandi_pesapal_guard( callable $work ) {
+	try {
+		return $work();
+	} catch ( Throwable $error ) {
+		kandi_pesapal_log(
+			'FATAL ' . $error->getMessage(),
+			array( 'file' => $error->getFile(), 'line' => $error->getLine() )
+		);
+		return new WP_Error(
+			'kandi_pesapal_crash',
+			sprintf(
+				'The payment could not be started: %s (%s line %d)',
+				$error->getMessage(),
+				basename( $error->getFile() ),
+				$error->getLine()
+			),
+			array( 'status' => 500 )
+		);
+	}
+}
+
 /* -------------------------------------------------------------------------
  * 2. The Pesapal API
  * ---------------------------------------------------------------------- */
@@ -389,7 +424,9 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_bad_amount', 'There is nothing to pay.', array( 'status' => 400 ) );
 			}
 
-			$ipn_id = kandi_pesapal_ipn_id( $config );
+			$ipn_id = kandi_pesapal_guard( function () use ( $config ) {
+				return kandi_pesapal_ipn_id( $config );
+			} );
 			if ( is_wp_error( $ipn_id ) ) {
 				return $ipn_id;
 			}
@@ -400,16 +437,22 @@ add_action( 'rest_api_init', function () {
 
 			$reference = kandi_pesapal_reference( $kind, $id );
 
-			$result = kandi_pesapal_call( $config, '/api/Transactions/SubmitOrderRequest', 'POST', array(
+			$submission = array(
 				'id'              => $reference,
 				'currency'        => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'UGX',
 				'amount'          => round( $amount, 2 ),
-				'description'     => mb_substr( $description, 0, 100 ),
+				'description'     => function_exists( 'mb_substr' )
+					? mb_substr( $description, 0, 100 )
+					: substr( $description, 0, 100 ),
 				'callback_url'    => $storefront . '/payment/callback',
 				'cancellation_url' => $storefront . '/payment/callback?cancelled=1',
 				'notification_id' => $ipn_id,
 				'billing_address' => array_filter( $billing ),
-			) );
+			);
+
+			$result = kandi_pesapal_guard( function () use ( $config, $submission ) {
+				return kandi_pesapal_call( $config, '/api/Transactions/SubmitOrderRequest', 'POST', $submission );
+			} );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -471,10 +514,12 @@ add_action( 'rest_api_init', function () {
 				return rest_ensure_response( array( 'orderNotificationType' => 'IPNCHANGE', 'status' => 500 ) );
 			}
 
-			$status = kandi_pesapal_call(
-				$config,
-				'/api/Transactions/GetTransactionStatus?orderTrackingId=' . rawurlencode( $tracking )
-			);
+			$status = kandi_pesapal_guard( function () use ( $config, $tracking ) {
+				return kandi_pesapal_call(
+					$config,
+					'/api/Transactions/GetTransactionStatus?orderTrackingId=' . rawurlencode( $tracking )
+				);
+			} );
 
 			if ( is_wp_error( $status ) ) {
 				kandi_pesapal_log( 'IPN status lookup failed', $status->get_error_message() );
@@ -518,10 +563,12 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_no_tracking', 'No payment to check.', array( 'status' => 400 ) );
 			}
 
-			$status = kandi_pesapal_call(
-				$config,
-				'/api/Transactions/GetTransactionStatus?orderTrackingId=' . rawurlencode( $tracking )
-			);
+			$status = kandi_pesapal_guard( function () use ( $config, $tracking ) {
+				return kandi_pesapal_call(
+					$config,
+					'/api/Transactions/GetTransactionStatus?orderTrackingId=' . rawurlencode( $tracking )
+				);
+			} );
 			if ( is_wp_error( $status ) ) {
 				return $status;
 			}
@@ -690,14 +737,18 @@ function kandi_pesapal_settings_page() {
 			if ( ! $config ) {
 				echo '<div class="notice notice-error"><p>No credentials saved yet.</p></div>';
 			} else {
-				$token = kandi_pesapal_token( $config );
+				$token = kandi_pesapal_guard( function () use ( $config ) {
+					return kandi_pesapal_token( $config );
+				} );
 				if ( is_wp_error( $token ) ) {
 					printf(
 						'<div class="notice notice-error"><p><strong>Failed:</strong> %s</p><p>Check the keys and that the environment above matches the keys you pasted.</p></div>',
 						esc_html( $token->get_error_message() )
 					);
 				} else {
-					$ipn = kandi_pesapal_ipn_id( $config );
+					$ipn = kandi_pesapal_guard( function () use ( $config ) {
+						return kandi_pesapal_ipn_id( $config );
+					} );
 					if ( is_wp_error( $ipn ) ) {
 						printf(
 							'<div class="notice notice-warning"><p>Signed in to Pesapal, but the IPN could not be registered: %s</p></div>',
