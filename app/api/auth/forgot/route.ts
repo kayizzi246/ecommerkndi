@@ -1,4 +1,6 @@
 import { callCustomerApi } from "@/lib/customer-server";
+import { privateJson } from "@/lib/private-json";
+import { clientIp, rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
 
 /**
  * Asks WordPress to email a password reset link.
@@ -8,6 +10,14 @@ import { callCustomerApi } from "@/lib/customer-server";
  * this endpoint and learn which ones shop here.
  */
 export async function POST(request: Request) {
+  // A reset endpoint sends an email to an address the caller chooses, which
+  // makes it usable as a way to bombard somebody else's inbox from our domain.
+  // WordPress applies its own ceiling — handled below — but that one is per
+  // account; this one is per source, so a script cannot simply walk a list of
+  // addresses one message each.
+  const limit = rateLimit("password-reset", clientIp(request), LIMITS.passwordReset);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
   const body = (await request.json().catch(() => ({}))) as { email?: string };
   const email = (body.email ?? "").trim();
 
@@ -24,10 +34,10 @@ export async function POST(request: Request) {
     const message =
       (data as { message?: string })?.message ??
       "Too many attempts. Please wait a few minutes and try again.";
-    return Response.json({ message }, { status: 429 });
+    return privateJson({ message }, { status: 429 });
   }
 
-  return Response.json({
+  return privateJson({
     ok: true,
     message: "If that address has an account, a reset link is on its way.",
   });

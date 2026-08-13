@@ -96,7 +96,39 @@ export async function clearOwnerCookie() {
   (await cookies()).delete(OWNER_COOKIE);
 }
 
-/** True when the browser is carrying an owner cookie at all. */
+/**
+ * True when the browser is carrying an owner cookie at all.
+ *
+ * Presence only — this says nothing about whether the value is the real
+ * passcode, because anyone can send any cookie they like. `httpOnly` stops
+ * *scripts in the page* from reading the cookie; it does not stop a client from
+ * inventing one, and `curl -H 'Cookie: kandi_owner_passcode=x'` will set this
+ * to true all day.
+ *
+ * Use it only to decide whether it is worth asking WordPress. To decide whether
+ * somebody is actually the owner, use {@link isOwnerAuthenticated}.
+ */
 export async function hasOwnerCookie(): Promise<boolean> {
   return Boolean((await cookies()).get(OWNER_COOKIE)?.value);
+}
+
+/**
+ * True when the cookie holds a passcode WordPress accepts.
+ *
+ * This exists because `hasOwnerCookie` was being used as an authorisation check
+ * on `/api/revalidate`, and presence is not authorisation. Any unauthenticated
+ * client could send an arbitrary cookie value and trigger a full cache purge —
+ * `revalidateTag` plus `revalidatePath("/", "layout")` — as often as it liked,
+ * which is precisely the "make a site rebuild itself on demand until it falls
+ * over" case that route's own comment set out to prevent.
+ *
+ * The check costs one call to WordPress, which is why the cheap presence test
+ * runs first: an anonymous request with no cookie is refused without troubling
+ * the backend at all.
+ */
+export async function isOwnerAuthenticated(): Promise<boolean> {
+  if (!(await hasOwnerCookie())) return false;
+
+  const { status } = await callOwnerApi("/me");
+  return status === 200;
 }

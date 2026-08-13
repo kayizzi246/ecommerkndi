@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSellerSession } from "@/lib/seller-session";
+import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
+import BackendNotice from "@/components/seller/BackendNotice";
 
 /** Routes inside /seller that must render without the authenticated chrome. */
 const PUBLIC_ROUTES = ["/seller/login", "/seller/register"];
@@ -72,8 +74,10 @@ const STATUS_COPY: Record<string, { label: string; className: string }> = {
 export default function SellerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { seller, loading, signOut } = useSellerSession();
+  const { seller, loading, signOut, refresh } = useSellerSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /** Whether the confirm-email strip has been expanded into the code box. */
+  const [enteringCode, setEnteringCode] = useState(false);
 
   const isPublic = PUBLIC_ROUTES.includes(pathname);
   const isSetup = pathname === SETUP_ROUTE;
@@ -114,8 +118,18 @@ export default function SellerShell({ children }: { children: React.ReactNode })
     // vanished. The gate now stands on its own and says what it sees.
   }, [isPublic, isSetup, loading, seller, setupDue, router]);
 
+  // Sign-in and sign-up carry the backend warning too — a mismatched plugin is
+  // most likely to be noticed *because* signing in is behaving strangely, and
+  // that is the screen the seller is looking at when it does.
   if (isPublic) {
-    return <div className="min-h-screen bg-white">{children}</div>;
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-[720px] px-4 pt-6 empty:hidden">
+          <BackendNotice />
+        </div>
+        {children}
+      </div>
+    );
   }
 
   if (loading || !seller) {
@@ -296,6 +310,57 @@ export default function SellerShell({ children }: { children: React.ReactNode })
         )}
 
         <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
+          <BackendNotice />
+
+          {/* ---- Unconfirmed email ----
+               A seller is signed in and working before this is done, so it is a
+               strip rather than a gate: it asks, on every screen, and carries
+               the code box with it so confirming never means navigating
+               somewhere to look for it. Payouts are the one thing held back
+               until it is finished, and it says so.
+
+               This is the visible half of the change that let sellers in at
+               all — the code used to stand between registering and the
+               dashboard, and an undelivered email meant nobody got past it. */}
+          {!seller.email_verified && (
+            <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft p-5">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[16px] font-semibold text-pop-orange">
+                    Confirm your email address
+                  </p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
+                    We sent a six-digit code to{" "}
+                    <span className="font-semibold text-shop-ink">{seller.email}</span>. Everything
+                    here works without it — but we cannot pay you out until the address is
+                    confirmed.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnteringCode((open) => !open)}
+                  className="shrink-0 rounded-lg bg-shop-primary px-5 py-2.5 text-[14px] font-semibold text-white hover:opacity-90"
+                >
+                  {enteringCode ? "Not now" : "Enter the code"}
+                </button>
+              </div>
+
+              {enteringCode && (
+                <div className="mt-4 max-w-[420px]">
+                  <VerifyEmailCard
+                    email={seller.email}
+                    onVerified={async () => {
+                      // Re-reads /me, so the strip disappears on the spot rather
+                      // than at the next full page load.
+                      await refresh();
+                      setEnteringCode(false);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Unpaid joining fee blocks approval, so it is said on every screen
               rather than only on the one the seller happens to open. */}
           {feeDue && (

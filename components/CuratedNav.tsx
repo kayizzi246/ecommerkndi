@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CategoryNode } from "@/lib/woocommerce";
+import { findCategorySlug } from "@/lib/departments";
 
 /**
  * The curated top-level nav.
@@ -32,24 +33,10 @@ const NAV: { label: string; href?: string; match?: string; hot?: boolean }[] = [
   { label: "Top Brands", href: "/sellers" },
 ];
 
-/** Finds a department or sub-category by name/slug, at any depth. */
-function findCategory(departments: CategoryNode[], needle: string): string | null {
-  const wanted = needle.toLowerCase();
-
-  for (const department of departments) {
-    for (const candidate of [department, ...department.children]) {
-      const name = candidate.name.toLowerCase();
-      const slug = candidate.slug.toLowerCase();
-      // "Men" must not match "Women", so names are compared whole; slugs may
-      // carry a suffix ("mens-shoes"), which the prefix test allows.
-      if (name === wanted || slug === wanted || slug.startsWith(`${wanted}-`)) {
-        return candidate.slug;
-      }
-    }
-  }
-
-  return null;
-}
+// The matcher moved to lib/departments.ts: the homepage fills its Men, Women
+// and Kids rails from the same words, and a rail that resolved a department
+// differently from the link above it would send shoppers somewhere other than
+// the products they had just been shown.
 
 export default function CuratedNav({
   departments,
@@ -61,7 +48,7 @@ export default function CuratedNav({
   return (
     <div className={`flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar ${className}`}>
       {NAV.map((entry) => {
-        const slug = entry.match ? findCategory(departments, entry.match) : null;
+        const slug = entry.match ? findCategorySlug(departments, entry.match) : null;
         const href =
           entry.href ??
           (slug ? `/category/${slug}` : `/search?q=${encodeURIComponent(entry.match ?? "")}`);
@@ -70,10 +57,18 @@ export default function CuratedNav({
           <Link
             key={entry.label}
             href={href}
-            className={`relative shrink-0 whitespace-nowrap px-3 py-3 text-[14.5px] transition-colors ${
-              entry.hot
-                ? "font-bold text-shop-sale"
-                : "font-medium text-shop-body hover:text-shop-flame"
+            /* Bold, in ink rather than slate.
+
+               These were 500 in `--color-shop-body`, which put the shop's whole
+               department nav a shade lighter and a weight lighter than the
+               product titles underneath it — so the eye landed on the grid
+               first and the way to navigate it second. At 700 in near-black the
+               row reads as the primary navigation it is.
+
+               The deal link keeps its red: it is the one entry here that is a
+               claim about price rather than a place, and it is already bold. */
+            className={`relative shrink-0 whitespace-nowrap px-3 py-3 text-[14.5px] font-bold transition-colors ${
+              entry.hot ? "text-shop-sale" : "text-shop-ink hover:text-shop-flame"
             }`}
           >
             {entry.label}

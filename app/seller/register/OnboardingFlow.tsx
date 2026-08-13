@@ -66,6 +66,31 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
   const { refresh: refreshSession } = useSellerSession();
 
   /**
+   * Opening this screen ends whatever session the browser was carrying.
+   *
+   * Somebody on "Open a seller account" is, by definition, not signed in — and
+   * the seller cookie lasts a fortnight. Without this, every stale session in
+   * every browser that ever signed a seller in stayed live underneath the form:
+   * abandon the sign-up, or have it rejected, then click anything into /seller,
+   * and the old store opens as though it were yours. That is what kept putting
+   * one test account in front of people registering with their own address.
+   *
+   * `endSession` forgets the cookie here without destroying the token on
+   * WordPress, so a seller who really is signed in elsewhere is not kicked out
+   * of their own dashboard by someone opening this page — see the route.
+   *
+   * Failure is ignored on purpose: the fallback is the session that was already
+   * there, and blocking sign-up behind a housekeeping call that did not answer
+   * would be a worse outcome than the one being prevented.
+   */
+  useEffect(() => {
+    sellerApi
+      .endSession()
+      .then(() => refreshSession())
+      .catch(() => undefined);
+  }, [refreshSession]);
+
+  /**
    * How the seller is signing up, chosen before anything else is asked.
    *
    * Google comes first because it is the shorter road and the one that makes
@@ -176,6 +201,29 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
           : { email: form.email.trim(), password: form.password }),
       });
       setCreated(seller);
+
+      /**
+       * Registering now signs the seller in, so this browser *is* the new
+       * store from here on. Refreshing the session is what makes the rest of
+       * the Seller Centre agree with that — without it the shell keeps whoever
+       * it resolved on mount, which for anyone registering on a machine that
+       * had a seller signed in was that other seller's store.
+       */
+      await refreshSession();
+
+      /**
+       * No longer a wall.
+       *
+       * The code screen used to be compulsory here, because registration
+       * returned no session and the code was the only way to get one. When the
+       * emailed code did not arrive — a host without SMTP sends nothing — the
+       * store that had just been created was unreachable, permanently, by
+       * anybody. That is what left this site with one usable seller account.
+       *
+       * The address is still worth confirming, so an unconfirmed seller is
+       * offered the code box right away. Skipping it now costs them only
+       * payouts, and the dashboard says so on every screen until it is done.
+       */
       setVerifying(!seller.email_verified);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Registration failed.");
@@ -342,9 +390,11 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
               if (current) setCreated(current);
               setVerifying(false);
             }}
+            onCancel={() => setVerifying(false)}
+            cancelLabel="I'll do this later"
           />
           <p className="mt-4 text-center text-[13px] text-shop-muted">
-            Your store is saved — this only confirms we can reach you.
+            Your store is saved and you are signed in — this only confirms we can reach you.
           </p>
         </div>
       </div>
@@ -441,7 +491,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
             <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
               Step {step + 1} of {STEPS.length}
             </p>
-            <h1 className="mt-2 text-[21px] font-extrabold leading-tight text-shop-ink md:text-[19px]">
+            <h1 className="mt-2 text-[21px] font-extrabold leading-tight text-shop-ink md:text-[24px]">
               {STEPS[step].key === "store" && "Let's name your store"}
               {STEPS[step].key === "you" && "Now, a bit about you"}
               {STEPS[step].key === "password" && "Secure your account"}

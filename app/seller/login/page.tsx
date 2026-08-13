@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { sellerApi, SellerApiError } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
@@ -22,6 +22,21 @@ export default function SellerLoginPage() {
    * code box — not an error telling somebody to go and find an old email.
    */
   const [unverified, setUnverified] = useState<string | null>(null);
+
+  /**
+   * Arriving at the sign-in screen ends whatever session the browser was
+   * carrying — the same rule as the sign-up flow, and for the same reason.
+   *
+   * Anyone on this page is here to become somebody. Until they do, they are
+   * nobody: the previous occupant's fortnight-long cookie must not still be
+   * answering for them if they wander back into /seller without signing in.
+   */
+  useEffect(() => {
+    sellerApi
+      .endSession()
+      .then(() => refresh())
+      .catch(() => undefined);
+  }, [refresh]);
 
   const done = async () => {
     await refresh();

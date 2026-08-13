@@ -1,41 +1,33 @@
 import type { Metadata } from "next";
-import { Poppins, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
 import { CustomerSessionProvider } from "@/lib/customer-session";
 import StoreChrome from "@/components/StoreChrome";
-import { getSiteSettings, getFaviconUrl } from "@/lib/site-settings";
+import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl } from "@/lib/seo";
 
 /**
- * Poppins carries everything that has to shout: the KandiUg wordmark, section
- * headings, promotional type, prices and large buttons.
+ * Plus Jakarta Sans carries the whole store — headings, navigation, product
+ * names, prices, forms, tables.
  *
- * It is a geometric sans — circular bowls, even strokes — which is why it reads
- * as confident rather than corporate at 600–800, and why a price set in it holds
- * its own against a photograph. Only the five weights the store actually uses
- * are loaded; Poppins has no variable axis on Google Fonts, so every extra
- * weight is another file over the wire.
- */
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  display: "swap",
-});
-
-/**
- * Inter carries everything that has to be read rather than noticed: navigation,
- * product names, descriptions, filters, form labels, table figures.
+ * One face rather than the Poppins/Inter pair the store used to run. Two
+ * families only earn their weight when they are doing genuinely different jobs,
+ * and here they were not: the same heading, price and label treatments were
+ * being reproduced in both, which is how a page ends up looking assembled from
+ * two templates. Jakarta is a humanist-geometric sans with a tall x-height, so
+ * it does the job Inter was here for at 13–14px while still reading as
+ * confident display type at 700–800, which is what Poppins was here for.
  *
- * At 13–14px — which is most of a marketplace — Inter's taller x-height and
- * narrower set make it plainly more legible than a geometric face, whose wide
- * round letterforms cost horizontal room a product title cannot spare.
+ * A variable font, so every weight from 200 to 800 arrives in a single file —
+ * loading the heavy cuts costs nothing extra over the wire, and
+ * `font-synthesis-weight: none` in globals.css means any weight that renders is
+ * a real one.
  */
-const inter = Inter({
-  variable: "--font-inter",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
@@ -52,7 +44,7 @@ const inter = Inter({
  */
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, favicon] = await Promise.all([getSiteSettings(), getFaviconUrl()]);
-  const brand = `${settings.brand.name}${settings.brand.suffix}`.trim();
+  const brand = brandName(settings);
 
   return {
     // `metadataBase` makes every relative Open Graph image resolve to an
@@ -115,7 +107,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${inter.variable} h-full antialiased`}
+      className={`${jakarta.variable} h-full antialiased`}
     >
       {/* `bg-background`, not `bg-white`. Hard-coding white here painted over
           the `--background` token on every page, which is why changing that
@@ -128,7 +120,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(
-              siteJsonLd(`${settings.brand.name}${settings.brand.suffix}`.trim())
+              siteJsonLd(brandName(settings))
             ),
           }}
         />

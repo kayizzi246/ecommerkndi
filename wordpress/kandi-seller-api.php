@@ -24,6 +24,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * The build of this file. Bump it whenever the API contract changes.
+ *
+ * Reported by /seller/health and shown in the Seller Centre, so "the code on
+ * the server is older than the code in the repository" becomes a sentence on
+ * the screen rather than a fortnight of debugging a fix that was never running.
+ */
+define( 'KANDI_SELLER_API_VERSION', '2.1.0' );
+
+/**
+ * Load guard — this file must run exactly once.
+ *
+ * It can legitimately arrive by two roads: as a plugin in
+ * wp-content/plugins/kandi-seller-api/, and pasted into the Code Snippets
+ * plugin. Installed both ways, the second copy to load hits
+ * `function kandi_seller_install()` a second time and PHP stops the request
+ * dead with "Cannot redeclare" — a 500 on every seller endpoint, with the real
+ * message buried in a log nobody is reading.
+ *
+ * Worse is the near-miss: two *different* versions loaded, where the older one
+ * registers its routes last and silently wins. Every symptom then belongs to
+ * code that is not the code being edited.
+ *
+ * So: first copy in wins and records how it arrived; any later copy returns
+ * immediately and leaves a note that /seller/health reports. Nothing fatals,
+ * and the duplicate is visible from the storefront.
+ */
+if ( defined( 'KANDI_SELLER_LOADED_FROM' ) ) {
+	if ( ! isset( $GLOBALS['kandi_seller_duplicate_loads'] ) ) {
+		$GLOBALS['kandi_seller_duplicate_loads'] = array();
+	}
+	$GLOBALS['kandi_seller_duplicate_loads'][] = __FILE__;
+	return;
+}
+
+define( 'KANDI_SELLER_LOADED_FROM', __FILE__ );
+
 define( 'KANDI_SELLER_DB_VERSION', '1.0.0' );
 define( 'KANDI_SELLER_ROLE', 'kandi_seller' );
 define( 'KANDI_SELLER_TOKEN_TTL', 14 * DAY_IN_SECONDS );
@@ -173,10 +210,44 @@ function kandi_seller_send_code( $user_id ) {
  * the day this plugin was updated, including any test account whose address
  * nobody can actually read email at. Only registration writes the '0', so the
  * distinction is exact: absent means legacy, '0' means new and waiting.
+ *
+ * This no longer decides whether a seller may *sign in* — see
+ * kandi_seller_session_response. It decides what an unconfirmed account may do
+ * once inside, which is everything except take money out.
  */
 function kandi_seller_is_verified( $user_id ) {
 	$flag = get_user_meta( $user_id, '_kandi_email_verified', true );
 	return '' === $flag || '1' === (string) $flag;
+}
+
+/**
+ * The session payload every way into an account returns.
+ *
+ * One function because there are four doors — password, Google, the emailed
+ * code, and registration itself — and they were drifting apart. Three of them
+ * used to refuse an account whose address was unconfirmed, which turned out to
+ * be the single reason no new seller could reach their own dashboard: the code
+ * is delivered by wp_mail, wp_mail on a host without SMTP delivers nothing, and
+ * an account that can never present a code it never received can never sign in
+ * by any route. The store was reachable only by accounts old enough to predate
+ * the flag, which is why one legacy test account appeared to be the only seller
+ * the site had.
+ *
+ * Confirming the address is still asked for, and still means something — it
+ * gates payouts, below, which is the point at which the shop has to be sure it
+ * can reach the person it is sending money to. It no longer stands between a
+ * seller and the dashboard they just created, because a marketplace that cannot
+ * be signed into is not more secure, only empty.
+ *
+ * `email_verified` rides in the seller object, so the storefront can ask for
+ * confirmation without guessing.
+ */
+function kandi_seller_session_response( $user_id ) {
+	return rest_ensure_response( array(
+		'token'      => kandi_seller_issue_token( $user_id ),
+		'expires_in' => KANDI_SELLER_TOKEN_TTL,
+		'seller'     => kandi_format_seller( $user_id ),
+	) );
 }
 
 /* -------------------------------------------------------------------------
@@ -907,6 +978,43 @@ function kandi_seller_store_document( $file, $seller_id, $kind ) {
 
 add_action( 'rest_api_init', function () {
 
+	/* ---- GET /seller/health ----
+	 *
+	 * What is actually running on this server.
+	 *
+	 * Exists because the hardest bug on this project was not in any of the
+	 * logic below — it was not knowing whether the logic below was the code
+	 * answering the request. This states the build, the file it loaded from,
+	 * and whether a second copy tried to load, so that question is settled in
+	 * one request instead of by inference.
+	 *
+	 * Secret-gated, not public: the file path is server detail and nobody
+	 * outside the storefront needs it.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/health', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function () {
+			$duplicates = isset( $GLOBALS['kandi_seller_duplicate_loads'] )
+				? (array) $GLOBALS['kandi_seller_duplicate_loads']
+				: array();
+
+			return rest_ensure_response( array(
+				'version'     => KANDI_SELLER_API_VERSION,
+				'loaded_from' => KANDI_SELLER_LOADED_FROM,
+				// More than zero means this file is installed twice — as a
+				// plugin and as a snippet, most likely. The storefront turns
+				// this into a warning on the Seller Centre.
+				'duplicates'  => array_values( $duplicates ),
+				// Proof of which auth contract is live: false here means a
+				// build old enough to still refuse sign-in to an account whose
+				// email is unconfirmed.
+				'signin_requires_verified_email' => false,
+				'seller_count' => count( get_users( array( 'role' => KANDI_SELLER_ROLE, 'fields' => 'ID' ) ) ),
+			) );
+		},
+	) );
+
 	/* ---- POST /seller/register ---- */
 	register_rest_route( 'kandi/v1', '/seller/register', array(
 		'methods'             => WP_REST_Server::CREATABLE,
@@ -989,18 +1097,24 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_fee_amount', $fee );
 			update_user_meta( $user_id, '_kandi_fee_status', $fee > 0 ? 'unpaid' : 'waived' );
 
-			// Every new account is sent a code, Google included.
-			//
-			// Google has already proved the address, so this is not a technical
-			// necessity — it is the marketplace's own rule: a store that will be
-			// taking money from shoppers confirms it can be reached at the
-			// address on file, whichever button it signed up with. The Google id
-			// is still recorded, so the same button signs them in afterwards.
+			/**
+			 * A Google sign-up is confirmed on arrival: the ID token the
+			 * storefront verified against Google's keys is proof of the address,
+			 * and there is nothing an emailed code would establish that Google
+			 * has not already established better.
+			 *
+			 * A password sign-up is sent a code and marked unconfirmed — but is
+			 * still signed in below. The code confirms the address at the
+			 * seller's convenience; it no longer decides whether the account
+			 * they just created is reachable at all.
+			 */
 			if ( '' !== $google_id ) {
 				update_user_meta( $user_id, '_kandi_google_id', $google_id );
+				update_user_meta( $user_id, '_kandi_email_verified', '1' );
+			} else {
+				update_user_meta( $user_id, '_kandi_email_verified', '0' );
+				kandi_seller_send_code( $user_id );
 			}
-			update_user_meta( $user_id, '_kandi_email_verified', '0' );
-			kandi_seller_send_code( $user_id );
 
 			// Tell the marketplace team a store is waiting.
 			wp_mail(
@@ -1014,10 +1128,20 @@ add_action( 'rest_api_init', function () {
 				)
 			);
 
-			return rest_ensure_response( array(
-				'seller'  => kandi_format_seller( $user_id ),
-				'message' => 'Check your email for the six-digit code, then enter it to finish signing up.',
-			) );
+			/**
+			 * Signed in immediately, whichever way they signed up.
+			 *
+			 * Registration used to return the seller and no token, leaving the
+			 * new account stranded behind a code screen until an email arrived —
+			 * and when the host could not send mail, that was the end of the
+			 * road for every store that ever tried to open here.
+			 *
+			 * The account is still `pending` review and still has its documents
+			 * and joining fee to settle; the storefront's setup gate handles all
+			 * of that. None of it requires locking the seller out of the account
+			 * they have just made.
+			 */
+			return kandi_seller_session_response( $user_id );
 		},
 	) );
 
@@ -1062,26 +1186,18 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_suspended', 'This seller account is suspended. Contact Kandi support.', array( 'status' => 403 ) );
 			}
 
-			// Right password, unconfirmed address: send a fresh code and tell
-			// the storefront to show the code screen rather than the dashboard.
-			// The error data carries the seller id so that screen knows who it
-			// is verifying without a session existing yet.
+			// Right password, unconfirmed address: sign them in and send a fresh
+			// code anyway, so confirming is one click away from the banner the
+			// dashboard shows. This used to refuse the sign-in outright, which
+			// meant an undelivered email locked a seller out of their own store
+			// permanently — see kandi_seller_session_response.
 			if ( ! kandi_seller_is_verified( $user->ID ) ) {
 				kandi_seller_send_code( $user->ID );
-				return new WP_Error(
-					'kandi_unverified',
-					'Your email address is not confirmed yet. We have sent you a new six-digit code.',
-					array( 'status' => 403, 'seller_id' => (int) $user->ID, 'email' => $user->user_email )
-				);
 			}
 
 			kandi_seller_rate_clear( 'login_email', $email );
 
-			return rest_ensure_response( array(
-				'token'      => kandi_seller_issue_token( $user->ID ),
-				'expires_in' => KANDI_SELLER_TOKEN_TTL,
-				'seller'     => kandi_format_seller( $user->ID ),
-			) );
+			return kandi_seller_session_response( $user->ID );
 		},
 	) );
 
@@ -1116,11 +1232,7 @@ add_action( 'rest_api_init', function () {
 			if ( kandi_seller_is_verified( $user->ID ) ) {
 				// Already done — hand back a session rather than an error, so a
 				// double-submitted form does not look like a failure.
-				return rest_ensure_response( array(
-					'token'      => kandi_seller_issue_token( $user->ID ),
-					'expires_in' => KANDI_SELLER_TOKEN_TTL,
-					'seller'     => kandi_format_seller( $user->ID ),
-				) );
+				return kandi_seller_session_response( $user->ID );
 			}
 
 			$hash    = (string) get_user_meta( $user->ID, '_kandi_verify_hash', true );
@@ -1156,11 +1268,7 @@ add_action( 'rest_api_init', function () {
 			delete_user_meta( $user->ID, '_kandi_verify_expires' );
 			delete_user_meta( $user->ID, '_kandi_verify_attempts' );
 
-			return rest_ensure_response( array(
-				'token'      => kandi_seller_issue_token( $user->ID ),
-				'expires_in' => KANDI_SELLER_TOKEN_TTL,
-				'seller'     => kandi_format_seller( $user->ID ),
-			) );
+			return kandi_seller_session_response( $user->ID );
 		},
 	) );
 
@@ -1240,25 +1348,18 @@ add_action( 'rest_api_init', function () {
 
 			update_user_meta( $user->ID, '_kandi_google_id', $google_id );
 
-			// A seller who has not yet entered the code they were emailed meets
-			// it here too. Google would be proof enough on its own, but letting
-			// this button skip a step the password form enforces would make the
-			// rule optional — and the code is the shop's own requirement, not a
-			// technical one.
+			/**
+			 * Google has just proved this address — that is what the ID token
+			 * the storefront verified *is*. So an account arriving here is
+			 * confirmed by any honest reading, and recording that is more
+			 * truthful than leaving a '0' on a seller Google has vouched for
+			 * and then nagging them to prove it a second time by email.
+			 */
 			if ( ! kandi_seller_is_verified( $user->ID ) ) {
-				kandi_seller_send_code( $user->ID );
-				return new WP_Error(
-					'kandi_unverified',
-					'Your email address is not confirmed yet. We have sent you a new six-digit code.',
-					array( 'status' => 403, 'seller_id' => (int) $user->ID, 'email' => $user->user_email )
-				);
+				update_user_meta( $user->ID, '_kandi_email_verified', '1' );
 			}
 
-			return rest_ensure_response( array(
-				'token'      => kandi_seller_issue_token( $user->ID ),
-				'expires_in' => KANDI_SELLER_TOKEN_TTL,
-				'seller'     => kandi_format_seller( $user->ID ),
-			) );
+			return kandi_seller_session_response( $user->ID );
 		},
 	) );
 
@@ -1275,13 +1376,50 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 
-	/* ---- GET /seller/me ---- */
+	/* ---- GET /seller/session ----
+	 *
+	 * Who the bearer token belongs to. The storefront's only source of identity.
+	 *
+	 * This exists because /seller/me was hijacked on a live install. A second,
+	 * unauthenticated registration of `kandi/v1/seller/me` — from a snippet
+	 * outside this file — was returning one hardcoded seller to every caller.
+	 * WordPress does not replace a duplicate route: it merges the registrations
+	 * and dispatches the first handler whose methods match, so the rogue copy
+	 * answered and this one never ran. Signing in worked perfectly and issued
+	 * the right token; the dashboard then asked who it was and was told
+	 * somebody else, which is a very hard bug to see from either end alone.
+	 *
+	 * A distinct route name is the defence. `/seller/me` is left in place below
+	 * for older storefront builds, but nothing this repository ships reads
+	 * identity from it any more — so a stray registration of that path can no
+	 * longer put one seller inside another's account.
+	 *
+	 * `checked` is proof this handler ran: it is the authenticated one, so a
+	 * reply without it did not come from here.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/session', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => 'kandi_seller_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			return rest_ensure_response( array(
+				'seller'  => kandi_format_seller( kandi_seller_current_id( $request ) ),
+				'checked' => true,
+			) );
+		},
+	) );
+
+	/* ---- GET /seller/me ----
+	 *
+	 * Kept for compatibility with storefront builds that predate
+	 * /seller/session. New code must not use it — see the note above.
+	 */
 	register_rest_route( 'kandi/v1', '/seller/me', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'permission_callback' => 'kandi_seller_permission',
 		'callback'            => function ( WP_REST_Request $request ) {
 			return rest_ensure_response( array(
-				'seller' => kandi_format_seller( kandi_seller_current_id( $request ) ),
+				'seller'  => kandi_format_seller( kandi_seller_current_id( $request ) ),
+				'checked' => true,
 			) );
 		},
 	) );
@@ -2204,6 +2342,24 @@ add_action( 'rest_api_init', function () {
 			$seller_id = kandi_seller_current_id( $request );
 			$table     = kandi_seller_commissions_table();
 
+			/**
+			 * The one place a confirmed address is genuinely required.
+			 *
+			 * Signing in, listing and packing orders no longer wait on the
+			 * emailed code — but money leaving the marketplace does. This is the
+			 * moment the shop has to be certain it can reach the person it is
+			 * paying, and the point at which asking them to prove the address
+			 * costs them nothing they have not already earned.
+			 */
+			if ( ! kandi_seller_is_verified( $seller_id ) ) {
+				kandi_seller_send_code( $seller_id );
+				return new WP_Error(
+					'kandi_unverified',
+					'Confirm your email address before requesting a payout. We have sent you a six-digit code.',
+					array( 'status' => 403 )
+				);
+			}
+
 			$open = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM " . kandi_seller_payouts_table() . " WHERE seller_id = %d AND status = 'requested'",
@@ -2381,6 +2537,80 @@ function kandi_admin_sellers_page() {
 			echo '<div class="notice notice-success is-dismissible"><p>Seller updated.</p></div>';
 		}
 
+		/**
+		 * Delete a seller outright.
+		 *
+		 * Suspending is the right tool almost always: it stops the store trading
+		 * while keeping the account, its history and its paperwork. This is for
+		 * the cases where the account should never have existed — a test store,
+		 * a duplicate, a spam sign-up — and leaving it in place is itself the
+		 * problem.
+		 *
+		 * What it does, in order:
+		 *   1. refuses anything that is not actually a Kandi seller, so a
+		 *      tampered form cannot delete an administrator;
+		 *   2. bins their listings, so no product is left on the storefront
+		 *      pointing at a store that no longer exists;
+		 *   3. deletes their identity documents, because a national ID has no
+		 *      business outliving the account it was collected for;
+		 *   4. deletes the user.
+		 *
+		 * Commission rows are deliberately left alone. They are the record of
+		 * money that moved, and an accounting trail that deletes itself when
+		 * somebody tidies up a user list is not an accounting trail. A deleted
+		 * seller's rows simply show a blank store name.
+		 *
+		 * Their sessions die on their own: `kandi_seller_current_id()` checks
+		 * the role on every request, and a deleted user has none.
+		 */
+		if ( 'delete' === $action ) {
+			if ( ! kandi_is_seller( $seller_id ) ) {
+				echo '<div class="notice notice-error is-dismissible"><p>That account is not a Kandi seller, so it was not deleted.</p></div>';
+			} elseif ( get_current_user_id() === $seller_id ) {
+				echo '<div class="notice notice-error is-dismissible"><p>You cannot delete the account you are signed in with.</p></div>';
+			} else {
+				$store_name = get_user_meta( $seller_id, '_kandi_store_name', true );
+
+				// Listings first: a published product whose seller is gone shows
+				// up on the shop with no store behind it.
+				$owned = wc_get_products( array(
+					'limit'      => -1,
+					'status'     => array( 'publish', 'pending', 'draft' ),
+					'return'     => 'ids',
+					'meta_key'   => '_kandi_seller_id',
+					'meta_value' => $seller_id,
+				) );
+				foreach ( $owned as $owned_id ) {
+					wp_trash_post( $owned_id );
+				}
+
+				// Identity paperwork. Force-deleted rather than trashed — the
+				// point is that it stops existing.
+				$documents = get_posts( array(
+					'post_type'      => 'attachment',
+					'post_status'    => 'any',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_key'       => '_kandi_document',
+					'meta_query'     => array(
+						array( 'key' => '_kandi_seller_id', 'value' => $seller_id ),
+					),
+				) );
+				foreach ( $documents as $document_id ) {
+					wp_delete_attachment( $document_id, true );
+				}
+
+				require_once ABSPATH . 'wp-admin/includes/user.php';
+				wp_delete_user( $seller_id );
+
+				printf(
+					'<div class="notice notice-success is-dismissible"><p>Deleted <strong>%s</strong> — %d listing(s) moved to trash. Commission history was kept.</p></div>',
+					esc_html( $store_name ?: 'that seller' ),
+					count( $owned )
+				);
+			}
+		}
+
 		if ( 'set_rate' === $action ) {
 			$rate = max( 0, min( 100, (float) $_POST['commission_rate'] ) );
 			update_user_meta( $seller_id, '_kandi_commission_rate', $rate );
@@ -2546,6 +2776,25 @@ function kandi_admin_sellers_page() {
 			printf( '<button class="button button-small">%s</button>', esc_html( $label ) );
 			echo '</form>';
 		}
+
+		// Delete sits apart from the rest and asks first. It is the only action
+		// on this screen that cannot be undone, and it is one stray click away
+		// from Suspend, which does the same job reversibly.
+		echo '<form method="post" style="display:inline-block;margin:0 4px 4px 0">';
+		wp_nonce_field( 'kandi_seller_action' );
+		printf( '<input type="hidden" name="seller_id" value="%d">', (int) $seller->ID );
+		echo '<input type="hidden" name="kandi_seller_action" value="delete">';
+		printf(
+			'<button class="button button-small" style="color:#a51f1f" onclick="return confirm(%s)">Delete</button>',
+			esc_attr( wp_json_encode(
+				sprintf(
+					"Permanently delete %s?\n\nTheir listings go to trash and their ID documents are destroyed. Commission history is kept.\n\nThis cannot be undone. To stop the store trading without deleting it, use Suspend instead.",
+					get_user_meta( $seller->ID, '_kandi_store_name', true ) ?: $seller->user_email
+				)
+			) )
+		);
+		echo '</form>';
+
 		echo '</td></tr>';
 	}
 

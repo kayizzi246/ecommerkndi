@@ -1,4 +1,5 @@
 import { callSellerApi, setSellerCookie, clearSellerCookie } from "@/lib/seller-server";
+import { privateJson } from "@/lib/private-json";
 import { verifyGoogleIdToken, GoogleAuthError } from "@/lib/google-verify";
 
 /** Always required, however the seller signed up. */
@@ -19,11 +20,29 @@ const REQUIRED = ["store_name", "owner_name", "phone"] as const;
  * form at all.
  */
 export async function POST(request: Request) {
+  /**
+   * Whoever this browser was, it is not them any more.
+   *
+   * Unconditional, and before WordPress is called at all. This used to happen
+   * only on a successful password sign-up, which left the exact case that
+   * caused the trouble: a sign-up that *failed* — a taken address, a short
+   * password, a dropped connection — returned an error to the form and left the
+   * previous seller's cookie sitting in the browser. The person then navigated
+   * to /seller and was shown a store that was never theirs, having just been
+   * told their registration did not work.
+   *
+   * Clearing first makes the rule simple enough to reason about: posting a
+   * sign-up ends the old session, whatever happens next. The only way to hold a
+   * seller session after this line is to be issued a new one — below, by a
+   * Google sign-up, or by entering the emailed code.
+   */
+  await clearSellerCookie();
+
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
   const missing = REQUIRED.filter((field) => !body[field]);
   if (missing.length > 0) {
-    return Response.json(
+    return privateJson(
       { message: `Missing required field(s): ${missing.join(", ")}.` },
       { status: 400 }
     );
@@ -43,10 +62,10 @@ export async function POST(request: Request) {
       delete payload.password;
     } catch (error) {
       const message = error instanceof GoogleAuthError ? error.message : "Google sign-in failed.";
-      return Response.json({ message }, { status: 401 });
+      return privateJson({ message }, { status: 401 });
     }
   } else if (!body.email || !body.password) {
-    return Response.json(
+    return privateJson(
       { message: "Missing required field(s): email, password." },
       { status: 400 }
     );
@@ -59,33 +78,28 @@ export async function POST(request: Request) {
   });
 
   if (status !== 200) {
-    return Response.json(data, { status });
+    return privateJson(data, { status });
   }
 
-  // A Google sign-up comes back with a session, because Google has already
-  // proved the address and there is no code step to wait for. The cookie is set
-  // here so the new seller lands in their dashboard signed in.
-  const session = data as { token?: string; expires_in?: number };
+  /**
+   * Registration now always comes back with a session, whichever way the seller
+   * signed up, so the new store is signed in the moment it exists. It used to
+   * arrive without one on the password path, which left the account waiting on
+   * an emailed code — and unreachable for good if that email never arrived.
+   */
+  const session = data as { token?: string; expires_in?: number; seller?: unknown };
 
   if (session.token) {
     await setSellerCookie(session.token, session.expires_in ?? 60 * 60 * 24 * 14);
-  } else {
-    /**
-     * A password sign-up has no session yet — the six-digit code has to be
-     * entered first. Any cookie already in this browser belongs to a *different*
-     * seller, and leaving it in place is how somebody registered a new store and
-     * then found themselves inside the demo account: they were still signed in
-     * as it the whole time, because nothing ever said otherwise.
-     *
-     * Clearing it here is the honest state of affairs. Whoever registered is,
-     * for the next minute, nobody — until the code proves who they are.
-     *
-     * Only on success, deliberately. If WordPress rejected the sign-up, nothing
-     * has changed and signing the existing seller out would be a punishment for
-     * a typo.
-     */
-    await clearSellerCookie();
   }
 
-  return Response.json(data, { status });
+  /**
+   * The token goes in the httpOnly cookie and nowhere else.
+   *
+   * Passing WordPress's reply straight through would put it in a JSON body that
+   * any script on the page can read, which is the whole thing the cookie flag
+   * exists to prevent. Only the seller object crosses back — the same shape the
+   * sign-in route returns.
+   */
+  return privateJson({ seller: session.seller }, { status });
 }

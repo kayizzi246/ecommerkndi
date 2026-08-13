@@ -17,11 +17,21 @@ export default function VerifyEmailCard({
   email,
   onVerified,
   onCancel,
+  cancelLabel = "Use a different account",
 }: {
   email: string;
   onVerified: () => void | Promise<void>;
-  /** Shown as "use a different account" when there is somewhere to go back to. */
+  /** The way out, when there is somewhere to go back to. */
   onCancel?: () => void;
+  /**
+   * What that way out is called.
+   *
+   * On the sign-in screen it means "this is not my account". After registering
+   * it means "I will do this later" — the seller is already signed in by then,
+   * and calling it "use a different account" would offer to undo a store they
+   * have just spent five minutes creating.
+   */
+  cancelLabel?: string;
 }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -145,7 +155,7 @@ export default function VerifyEmailCard({
         </p>
         {onCancel && (
           <button type="button" onClick={onCancel} className="mt-2 link-bfl">
-            Use a different account
+            {cancelLabel}
           </button>
         )}
       </div>

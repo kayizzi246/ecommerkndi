@@ -1,4 +1,5 @@
 import { verifyGoogleIdToken, GoogleAuthError } from "@/lib/google-verify";
+import { privateJson } from "@/lib/private-json";
 
 /**
  * Reads a Google credential and hands back who it belongs to. Creates nothing.
@@ -17,17 +18,17 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { credential?: string };
 
   if (!body.credential) {
-    return Response.json({ message: "Missing Google credential." }, { status: 400 });
+    return privateJson({ message: "Missing Google credential." }, { status: 400 });
   }
 
   try {
     const identity = await verifyGoogleIdToken(body.credential);
-    return Response.json({
+    return privateJson({
       email: identity.email,
       name: identity.name ?? "",
     });
   } catch (error) {
     const message = error instanceof GoogleAuthError ? error.message : "Google sign-in failed.";
-    return Response.json({ message }, { status: 401 });
+    return privateJson({ message }, { status: 401 });
   }
 }

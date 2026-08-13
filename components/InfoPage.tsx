@@ -34,11 +34,21 @@ export default function InfoPage({
             {eyebrow}
           </p>
         )}
-        <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink md:text-[19px]">
+        {/* The desktop step used to be `md:text-[19px]` — *smaller* than the
+            21px it renders at on a phone. A page title that shrinks as the
+            screen grows is backwards, and it left every policy and help page
+            with a heading barely distinguishable from the body copy under it on
+            the screens where there was most room for one. It now steps up. */}
+        <h1 className="heading-800 text-[24px] text-shop-ink md:text-[30px]">
           {title}
         </h1>
         {intro && (
-          <p className="mt-3 max-w-[65ch] text-[17px] leading-relaxed text-shop-body">{intro}</p>
+          // The lede. 500 rather than 400: this is the paragraph that has to be
+          // read for the page to have worked, and at the body weight it was
+          // indistinguishable from the sections below it.
+          <p className="mt-3 max-w-[65ch] text-[17px] font-medium leading-relaxed text-shop-body">
+            {intro}
+          </p>
         )}
       </header>
 

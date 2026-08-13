@@ -11,7 +11,9 @@ import {
 } from "@/lib/seo";
 import { formatPrice } from "@/lib/currency";
 import ProductCarousel from "@/components/ProductCarousel";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import ReviewSection from "@/components/ReviewSection";
+import { getSiteSettings } from "@/lib/site-settings";
 import ExpandableContent from "@/components/ExpandableContent";
 import ProductPurchase from "./ProductPurchase";
 import ProductTabs from "./ProductTabs";
@@ -95,6 +97,25 @@ export default async function ProductPage({
   // numeric id the lookup above resolved, since reviews are id-only.
   const reviews = await getProductReviews(product.id);
 
+  // The shop's own terms, so the free-delivery figure beside the buy button is
+  // the one the checkout actually charges against.
+  const settings = await getSiteSettings();
+
+  /**
+   * The ratings split, counted here so the summary beside the price is in the
+   * HTML rather than assembled by the browser — it is a search-visible signal
+   * as much as a shopper-facing one.
+   *
+   * Index 0 is five stars, matching the order the bars are drawn in and the
+   * tally {@link ReviewSection} keeps further down the page, so the two blocks
+   * cannot disagree about the same reviews.
+   */
+  const ratingBreakdown = [0, 0, 0, 0, 0];
+  for (const review of reviews.reviews) {
+    const index = 5 - review.rating;
+    if (index >= 0 && index < 5) ratingBreakdown[index] += 1;
+  }
+
   const brand = product.categories[0];
   const subCategory = product.categories[1];
 
@@ -138,8 +159,20 @@ export default async function ProductPage({
   //
   // Every figure comes from WooCommerce. Structured data that disagrees with the
   // visible page is a manual action from Google, not a shortcut.
+  //
+  // The delivery and returns terms go in with it. Google renders those under
+  // the result itself — "Free delivery", "14-day returns" — which answers the
+  // two questions that otherwise each cost a click, and both figures come from
+  // the same wp-admin settings the checkout charges against, so the markup
+  // cannot promise something the basket then refuses.
   const structuredData = [
-    productJsonLd(product),
+    productJsonLd(product, {
+      terms: {
+        freeDeliveryFrom: settings.commerce.free_delivery_from,
+        returnsDays: settings.commerce.returns_days,
+      },
+      reviews: reviews.reviews,
+    }),
     breadcrumbJsonLd([
       { name: "Home", path: "/" },
       ...(brand ? [{ name: brand.name, path: `/category/${brand.slug}` }] : []),
@@ -148,7 +181,15 @@ export default async function ProductPage({
   ];
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-24 pt-5 md:px-8 lg:pb-16">
+    /* Tightened throughout.
+     *
+     * The page was built as a stack of generously separated slabs — 20px above
+     * the breadcrumbs, 48px to the tabs, 56px to the reviews — which on a
+     * laptop meant a shopper scrolled past whitespace between every section
+     * that could have been selling. A product page's job is to keep the buy box
+     * and the reasons to use it inside one or two screens; the air between
+     * blocks is the first thing that should give way. */
+    <main className="mx-auto max-w-[1600px] px-4 pb-20 pt-3 md:px-8 lg:pb-12">
       <script
         type="application/ld+json"
         // The payload is built from our own typed data, never from user input,
@@ -157,7 +198,7 @@ export default async function ProductPage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-5 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 text-[13px] text-shop-muted no-scrollbar">
+      <nav className="mb-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-0.5 text-[13px] text-shop-muted no-scrollbar">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -181,7 +222,14 @@ export default async function ProductPage({
         <span className="text-shop-ink">{product.name}</span>
       </nav>
 
-      <ProductPurchase product={product} isNew={isNew} />
+      <ProductPurchase
+        product={product}
+        isNew={isNew}
+        freeDeliveryFrom={settings.commerce.free_delivery_from}
+        ratingAverage={reviews.average_rating}
+        ratingCount={reviews.rating_count}
+        ratingBreakdown={ratingBreakdown}
+      />
 
       <ProductTabs
         tabs={[
@@ -189,7 +237,14 @@ export default async function ProductPage({
             id: "description",
             label: "Description",
             content: (
-              <ExpandableContent>
+              /* Collapsed at 200px rather than the component's 320px default.
+                 At 320 almost nothing on this catalogue overflowed, so the
+                 toggle never appeared and every imported description — spec
+                 tables, size charts, supplier boilerplate — ran at full height
+                 and pushed the related products and reviews off the screen.
+                 200px is about eight lines: enough to judge whether to read
+                 on, short enough that the rest of the page stays reachable. */
+              <ExpandableContent collapsedHeight={200}>
                 <ul className="list-disc pl-5 text-[15px] leading-7 text-shop-body">
                   <li>Style code: KD-{product.id}</li>
                   {product.short_description && <li>{product.short_description}</li>}
@@ -257,6 +312,13 @@ export default async function ProductPage({
       />
 
       <ProductCarousel title="You may also like" products={related} />
+
+      {/* The shopper's own trail back through the products they were weighing
+          this one against. It costs nothing to render — the list is already in
+          their browser — and it is the cheapest recovery there is for somebody
+          about to leave: the item they nearly bought two clicks ago is a better
+          recommendation than anything the catalogue can guess at. */}
+      <RecentlyViewed />
 
       <ReviewSection productId={product.id} initial={reviews} />
     </main>

@@ -19,7 +19,7 @@ export default function ProductTabs({ tabs }: { tabs: Tab[] }) {
   const panel = tabs.find((tab) => tab.id === active) ?? tabs[0];
 
   return (
-    <section className="mt-12 rounded-lg border border-shop-line bg-white">
+    <section className="mt-6 rounded-lg border border-shop-line bg-white">
       <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-shop-line px-3 no-scrollbar">
         {tabs.map((tab) => {
           const selected = tab.id === panel.id;
@@ -51,7 +51,7 @@ export default function ProductTabs({ tabs }: { tabs: Tab[] }) {
         role="tabpanel"
         id={`panel-${panel.id}`}
         aria-labelledby={`tab-${panel.id}`}
-        className="px-5 py-7 md:px-8"
+        className="px-5 py-5 md:px-8"
       >
         {panel.content}
       </div>

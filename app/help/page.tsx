@@ -3,6 +3,7 @@ import Link from "next/link";
 import InfoPage, { InfoSection } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
+import { faqJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/help" },
@@ -53,6 +54,13 @@ export default async function HelpPage() {
       title="Help centre"
       intro="The questions we get asked most, and where to go for everything else."
     >
+      {/* The same `faqs` array the page renders below, marked up for Google.
+          One source, so the expandable questions under the search result can
+          never quote an answer this page no longer gives. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqs)) }}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         {topics.map((topic) => (
           <Link

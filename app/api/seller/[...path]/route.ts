@@ -1,6 +1,14 @@
 import { revalidatePath, revalidateTag } from "next/cache";
+import { privateJson } from "@/lib/private-json";
 import { callSellerApi } from "@/lib/seller-server";
 import { PRODUCTS_TAG } from "@/lib/owner-server";
+
+/**
+ * Never prerendered, never revalidated: the answer depends entirely on the
+ * session cookie, so a shared build-time copy would belong to nobody.
+ */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * Authenticated passthrough for every remaining Seller Centre endpoint
@@ -13,6 +21,9 @@ import { PRODUCTS_TAG } from "@/lib/owner-server";
 type Context = { params: Promise<{ path: string[] }> };
 
 const ALLOWED_ROOTS = new Set([
+  // Identity. `/session/end` has its own route file, which takes precedence
+  // over this catch-all for that exact path.
+  "session",
   "me",
   "stats",
   "products",
@@ -26,7 +37,7 @@ async function proxy(request: Request, context: Context, method: string) {
   const { path } = await context.params;
 
   if (path.length === 0 || !ALLOWED_ROOTS.has(path[0])) {
-    return Response.json({ message: "Unknown seller endpoint." }, { status: 404 });
+    return privateJson({ message: "Unknown seller endpoint." }, { status: 404 });
   }
 
   const body =
@@ -50,7 +61,7 @@ async function proxy(request: Request, context: Context, method: string) {
     revalidatePath("/", "layout");
   }
 
-  return Response.json(data, { status });
+  return privateJson(data, { status });
 }
 
 export async function GET(request: Request, context: Context) {

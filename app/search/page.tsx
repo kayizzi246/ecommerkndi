@@ -86,10 +86,10 @@ export default async function SearchPage({
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line px-3 pb-4 md:px-0">
             <div>
-              <h1 className="section-title text-[20px] text-shop-ink md:text-[19px]">
+              <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
                 {query ? `“${query}”` : "Search"}
               </h1>
-              <p className="mt-1 text-[14px] text-shop-muted">
+              <p className="section-sub mt-1 text-[14px]">
                 {filtered
                   ? `${visible.length} of ${products.length} shown`
                   : `${total} ${total === 1 ? "item" : "items"} found`}

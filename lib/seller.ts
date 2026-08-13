@@ -169,8 +169,22 @@ export class SellerApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/seller${path}`, {
     ...init,
+    /**
+     * Never from a cache, at any layer.
+     *
+     * Every seller asks the same URL — `/api/seller/me` — so a cached copy is
+     * not a stale copy of *their* dashboard, it is somebody else's. A seller
+     * here signed in with their own address and was shown a different store,
+     * and suspending that store changed nothing, because the reply was being
+     * answered before it ever reached the server.
+     *
+     * The server sends `private, no-store` as well. Both ends, because this is
+     * the one thing in the app where a cache hit is a breach.
+     */
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
       ...(init?.headers ?? {}),
     },
   });
@@ -253,11 +267,27 @@ export const sellerApi = {
   logout: () => request<{ ok: true }>("/logout", { method: "POST" }),
 
   /**
-   * Opens a seller account.
+   * Forgets whatever session this browser is carrying, without destroying the
+   * token on WordPress.
+   *
+   * Called by the sign-in and sign-up screens as they open. Both are, by
+   * definition, screens for somebody who is not yet signed in — so arriving at
+   * either means the cookie already in the browser belongs to a *previous*
+   * occupant, and acting on it is how a new seller ends up looking at an old
+   * seller's dashboard.
+   *
+   * See /api/seller/session/end for why this is not `logout`.
+   */
+  endSession: () => request<{ ok: true }>("/session/end", { method: "POST" }),
+
+  /**
+   * Opens a seller account, and signs it in.
    *
    * `password` and `google_credential` are the two ways in and exactly one is
-   * required: a password account has to prove its email address with a code,
-   * a Google account arrives already proven and is signed in by the response.
+   * required. Either way the response carries a session cookie, so the new
+   * seller lands in their own dashboard rather than behind a code screen: a
+   * password account is additionally emailed a code, which confirms the address
+   * afterwards and gates payouts until it is entered.
    */
   register: (input: {
     store_name: string;
@@ -270,7 +300,7 @@ export const sellerApi = {
     /** The raw Google ID token, re-verified server-side before anything is created. */
     google_credential?: string;
   }) =>
-    request<{ seller: Seller; message: string }>("/register", {
+    request<{ seller: Seller }>("/register", {
       method: "POST",
       body: JSON.stringify(input),
     }),
@@ -288,7 +318,36 @@ export const sellerApi = {
       body: JSON.stringify({ email }),
     }),
 
-  me: () => request<{ seller: Seller }>("/me"),
+  /**
+   * Who this browser is signed in as. The only source of seller identity.
+   *
+   * Calls `/session`, not `/me`. On a live install `/seller/me` was registered
+   * a second time by a snippet outside the plugin, with no authentication and
+   * one seller's id baked in — WordPress merges duplicate route registrations
+   * and dispatches the first match, so that copy answered every request. Every
+   * seller who signed in was correctly issued their own token and then shown
+   * the same stranger's store, because this call was the one being lied to.
+   *
+   * `checked: true` is set only by the authenticated handler. A 200 without it
+   * is an impostor answering on that path, and is rejected here rather than
+   * rendered as somebody's dashboard — if the shape is wrong we have no idea
+   * whose account we are looking at, and showing it is the actual harm.
+   */
+  me: async (): Promise<{ seller: Seller }> => {
+    const payload = await request<{ seller: Seller; checked?: boolean }>("/session");
+
+    if (!payload?.checked || !payload.seller) {
+      throw new SellerApiError(
+        "The seller backend answered the identity check without authenticating it. " +
+          "Another plugin or snippet on WordPress is registering kandi/v1/seller/* — " +
+          "remove it, then sign in again.",
+        502,
+        "kandi_identity_untrusted"
+      );
+    }
+
+    return { seller: payload.seller };
+  },
 
   stats: (range: string) => request<SellerStats>(`/stats?range=${encodeURIComponent(range)}`),
 

@@ -15,12 +15,23 @@ export default function SectionHeader({
   subtitle,
   href,
   linkLabel = "View All",
+  id,
   children,
 }: {
   title: string;
   subtitle?: string;
   href?: string;
   linkLabel?: string;
+  /**
+   * The heading's DOM id, for the wrapping section's `aria-labelledby`.
+   *
+   * Every homepage section pointed `aria-labelledby` at an id like
+   * `super-deals-heading` that nothing rendered, because this component never
+   * put one on the `<h2>`. A dangling reference leaves the section unlabelled
+   * to a screen reader — worse than no attribute, since it reads as a region
+   * with no name at all.
+   */
+  id?: string;
   /** Anything that belongs beside the title — a countdown, a badge. */
   children?: React.ReactNode;
 }) {
@@ -33,10 +44,10 @@ export default function SectionHeader({
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets
               600, and these two anchor the page. */}
-          <h2 className="heading-black text-[18px] text-shop-ink md:text-[20px]">
+          <h2 id={id} className="heading-black text-[18px] text-shop-ink md:text-[20px]">
             {title}
           </h2>
-          {subtitle && <p className="mt-0.5 text-[13.5px] text-shop-muted">{subtitle}</p>}
+          {subtitle && <p className="section-sub mt-0.5 text-[13.5px]">{subtitle}</p>}
         </div>
         {children}
       </div>

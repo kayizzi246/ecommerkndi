@@ -53,7 +53,7 @@ export default function ReviewSection({ productId, initial }: Props) {
   };
 
   return (
-    <section id="reviews" className="mt-14 border-t border-shop-line pt-8">
+    <section id="reviews" className="mt-8 border-t border-shop-line pt-6">
       <h2 className="mb-6 text-[20px] font-extrabold uppercase tracking-tight text-shop-ink">
         Customer reviews
       </h2>

@@ -72,8 +72,11 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-3 text-[14.5px] font-medium transition-colors ${
-          open ? "text-shop-flame" : "text-shop-body hover:text-shop-flame"
+        // Bold and inked, matching the curated links it sits beside — this is
+        // the entry to the whole department tree and should not be the lightest
+        // thing in the row.
+        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-3 text-[14.5px] font-bold transition-colors ${
+          open ? "text-shop-flame" : "text-shop-ink hover:text-shop-flame"
         }`}
       >
         Categories

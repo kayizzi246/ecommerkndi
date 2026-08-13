@@ -152,7 +152,10 @@ function merge(raw: unknown): SiteSettings {
   return {
     brand: {
       name: str(brand.name, d.brand.name),
-      suffix: str(brand.suffix, d.brand.suffix),
+      // Trimmed, so the join in `brandName` is the only thing deciding the
+      // spacing — a suffix saved as " For Less" in wp-admin must not produce a
+      // double space in every page title.
+      suffix: str(brand.suffix, d.brand.suffix).trim(),
       tagline: str(brand.tagline, d.brand.tagline),
       // No fallback: an empty logo means "use the wordmark".
       logo_url: typeof brand.logo_url === "string" ? brand.logo_url.trim() : "",
@@ -311,4 +314,27 @@ export async function getDeliveryRates(): Promise<DeliveryRates> {
     // comes from there rather than being configured twice and drifting.
     freeDeliveryFrom: settings.commerce.free_delivery_from,
   };
+}
+
+/**
+ * The shop's full name — brand plus suffix, with a space between them.
+ *
+ * This exists because there wasn't one. Four call sites each built the name by
+ * hand, and they did not agree: the header interpolated `${name} ${suffix}`,
+ * while the layout and the site JSON-LD interpolated `${name}${suffix}` with no
+ * separator. With the shipped settings that produced **"KandiFor Less"** in the
+ * `<title>` of every page on the site, in the Open Graph card of every shared
+ * link, and in the `OnlineStore` name Google reads to learn what the shop is
+ * called — while the logo beside it read "Kandi For Less" correctly.
+ *
+ * A brand name misspelt in the title tag is not cosmetic. It is the string the
+ * shop ranks for on its own name, the one a returning shopper types, and the
+ * one that has to match across the site for Google to treat the mentions as the
+ * same entity.
+ *
+ * `filter(Boolean)` so a shop that clears the suffix in wp-admin gets "Kandi"
+ * rather than "Kandi " with a trailing space.
+ */
+export function brandName(settings: SiteSettings): string {
+  return [settings.brand.name, settings.brand.suffix].filter(Boolean).join(" ");
 }

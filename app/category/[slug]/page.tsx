@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
-import { absolute, breadcrumbJsonLd } from "@/lib/seo";
+import { absolute, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
 import { sortProducts, filterProducts, brandFacets } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
@@ -91,15 +91,20 @@ export default async function CategoryPage({
           reads. It is what turns "kandiug.com › category › men" in a result
           into "Home › Men", and it tells a crawler where this page sits in the
           shop rather than leaving it to guess from the URL. */}
+      {/* The ItemList alongside it names the products on the page, which is
+          what gets them discovered as products rather than as words in a long
+          document. `collectionJsonLd` existed in lib/seo.ts and was never
+          called from anywhere — the markup was written and then not wired up. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
+          __html: JSON.stringify([
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: title, path: `/category/${slug}` },
-            ])
-          ),
+            ]),
+            collectionJsonLd(title, `/category/${slug}`, visible),
+          ]),
         }}
       />
 
@@ -136,10 +141,10 @@ export default async function CategoryPage({
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line px-3 pb-4 md:px-0">
             <div>
-              <h1 className="section-title text-[20px] capitalize text-shop-ink md:text-[19px]">
+              <h1 className="section-title text-[20px] capitalize text-shop-ink md:text-[24px]">
                 {title}
               </h1>
-              <p className="mt-1 text-[14px] text-shop-muted">
+              <p className="section-sub mt-1 text-[14px]">
                 {filtered
                   ? `${visible.length} of ${products.length} shown`
                   : `${total} ${total === 1 ? "item" : "items"}`}

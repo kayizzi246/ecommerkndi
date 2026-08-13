@@ -12,6 +12,8 @@ import InfoModal from "@/components/InfoModal";
 import TrustStrip from "@/components/TrustStrip";
 import DeliveryPromise from "@/components/DeliveryPromise";
 import StarRating from "@/components/StarRating";
+import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
+import RatingSummary from "@/components/RatingSummary";
 import Link from "next/link";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
@@ -24,9 +26,29 @@ type Modal = "delivery" | "sizing" | "rrp" | null;
 export default function ProductPurchase({
   product,
   isNew,
+  /**
+   * The shop's free-delivery threshold, from wp-admin.
+   *
+   * Passed in from the server rather than read here, so the figure quoted
+   * beside the buy button is the same one the checkout charges against. Zero
+   * means the shop has not set one, and the nudge simply does not render.
+   */
+  freeDeliveryFrom = 0,
+  /**
+   * The ratings split, counted on the server from the same reviews the section
+   * at the foot of the page lists — so the summary beside the price and the one
+   * below can never report different numbers for the same product.
+   */
+  ratingAverage = 0,
+  ratingCount = 0,
+  ratingBreakdown = [],
 }: {
   product: Product;
   isNew: boolean;
+  freeDeliveryFrom?: number;
+  ratingAverage?: number;
+  ratingCount?: number;
+  ratingBreakdown?: number[];
 }) {
   const [activeImage, setActiveImage] = useState<string | null>(product.image);
   const [modal, setModal] = useState<Modal>(null);
@@ -68,7 +90,7 @@ export default function ProductPurchase({
 
   return (
     <>
-      <div className="mx-auto flex max-w-[1180px] flex-col gap-6 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-4 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
         {/* Gallery, capped at 460px. It was running to 680px on a 58% column,
             which pushed the price, the variant pickers and Add to cart below
             the fold on a laptop — the photograph was winning the page from the
@@ -98,26 +120,25 @@ export default function ProductPurchase({
             </Link>
           )}
 
-          {/* Set in Poppins, the heading face, rather than the interface font.
-              This is the one line on the page a shopper reads as a title, and
-              in Inter at 19px it sat at the same weight and colour as the
-              delivery copy underneath it — technically a heading, visually just
-              another sentence. Poppins has wider counters and a taller x-height,
-              so it holds the eye at a size that still fits a long marketplace
-              name on two lines.
+          {/* Set at the heading weight rather than the interface one. This is
+              the one line on the page a shopper reads as a title, and at 19px
+              regular it sat at the same weight and colour as the delivery copy
+              underneath it — technically a heading, visually just another
+              sentence. The extra weight holds the eye at a size that still fits
+              a long marketplace name on two lines.
 
               Slightly larger and a touch tighter than before: product names run
               long here ("Men's Leather Oxford Shoes Brown Size 42"), and tight
               tracking on a wide face is what keeps that on two lines instead of
               three. */}
-          <h1 className="font-heading mt-2.5 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-shop-ink md:text-[24px]">
+          <h1 className="font-heading mt-1.5 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-shop-ink md:text-[24px]">
             {product.name}
           </h1>
 
           {/* Social proof, straight from WooCommerce — shown only when there
               actually are reviews or sales to report. */}
           {(product.rating_count > 0 || product.total_sales > 0) && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
               {product.rating_count > 0 && (
                 <a href="#reviews" className="flex items-center gap-2">
                   <StarRating rating={product.average_rating} size="md" showCount={false} />
@@ -137,7 +158,7 @@ export default function ProductPurchase({
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             <span
               className={`text-[22px] font-semibold ${
                 discount > 0 ? "text-shop-sale" : "text-shop-ink"
@@ -162,12 +183,12 @@ export default function ProductPurchase({
               against their wallet, and it is the single line that most reliably
               moves a discounted product. */}
           {discount > 0 && (
-            <p className="price mt-2 text-[15px] text-shop-success">
+            <p className="price mt-1.5 text-[15px] text-shop-success">
               You save {formatPrice(product.regular_price - product.price)}
             </p>
           )}
 
-          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-shop-muted">
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-shop-muted">
             Tax included. Shipping calculated at checkout.
             {discount > 0 && (
               <button
@@ -181,29 +202,94 @@ export default function ProductPurchase({
             )}
           </p>
 
-          <DeliveryPromise className="mt-5" />
+          {/* What other buyers made of it, beside the price rather than at the
+              foot of the page. The full section below stays the place to read
+              the reviews themselves — this block links straight to it. */}
+          <RatingSummary
+            average={ratingAverage}
+            count={ratingCount}
+            breakdown={ratingBreakdown}
+            className="mt-3.5"
+          />
+
+          <DeliveryPromise className="mt-3.5" />
 
           {/* Stock signal — driven by the real quantity, so it only appears
               when the shop actually is running low. */}
           {product.stock_status === "instock" &&
           product.stock_quantity !== null &&
           product.stock_quantity <= 10 ? (
-            <p className="mt-3 flex items-center gap-2 text-[14px] font-medium text-shop-sale">
+            <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-sale">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
               Only {product.stock_quantity} left in stock
             </p>
           ) : (
-            <p className="mt-3 flex items-center gap-2 text-[13px] text-shop-muted">
+            <p className="mt-2.5 flex items-center gap-2 text-[13px] text-shop-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-success" aria-hidden />
               {viewers} people viewed this in the last 24 hours
             </p>
           )}
 
-          <div id="buy-box" className="mt-6 scroll-mt-32">
+          <div id="buy-box" className="mt-4 scroll-mt-32">
             <AddToCartButton product={product} onOptionChange={handleOptionChange} />
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
+          {/* ---- What you can pay with, at the moment of deciding ----
+               Directly under the button rather than in the footer or a modal.
+               The commonest reason a first-time shopper abandons a Ugandan
+               storefront is not price, it is not knowing whether their MoMo
+               line works here — and answering that two clicks away answers it
+               for nobody. Drawn inline as SVG, so no marks can fail to load. */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-shop-hairline pt-3">
+            <span className="text-[13px] font-semibold text-shop-body">
+              Pay on delivery, or with
+            </span>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <MtnMark />
+              <AirtelMark />
+              <VisaMark />
+              <MastercardMark />
+            </span>
+          </div>
+
+          {/* ---- Free delivery, as a number rather than a slogan ----
+               Either this item already clears the shop's threshold, in which
+               case say so plainly, or it does not and the exact shortfall is
+               the most useful thing on the page: "add UGX 12,000" is an
+               instruction a shopper can act on, where "free delivery over UGX
+               50,000" is a fact they have to do arithmetic against.
+
+               Both readings come from the shop's real threshold, so neither can
+               promise what the checkout will not honour. */}
+          {freeDeliveryFrom > 0 && (
+            <p
+              className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2.5 text-[13.5px] leading-snug ${
+                product.price >= freeDeliveryFrom
+                  ? "bg-shop-successbg text-shop-success"
+                  : "bg-shop-primary-soft text-shop-primary-ink"
+              }`}
+            >
+              <svg aria-hidden className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
+              </svg>
+              {product.price >= freeDeliveryFrom ? (
+                <span>
+                  <strong className="font-semibold">This item ships free.</strong> Orders over{" "}
+                  {formatPrice(freeDeliveryFrom)} never pay delivery.
+                </span>
+              ) : (
+                <span>
+                  Add{" "}
+                  <strong className="font-semibold">
+                    {formatPrice(freeDeliveryFrom - product.price)}
+                  </strong>{" "}
+                  more to your order and delivery is free.
+                </span>
+              )}
+            </p>
+          )}
+
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
             <button
               type="button"
               onClick={() => setModal("delivery")}
@@ -232,7 +318,7 @@ export default function ProductPurchase({
             brand && <FollowBrand brandName={brand.name} />
           )}
 
-          <TrustStrip className="mt-6" />
+          <TrustStrip className="mt-4" />
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { privateJson } from "@/lib/private-json";
 import { SELLER_COOKIE, sellerApiBase } from "@/lib/seller-server";
 
 /**
@@ -25,7 +26,7 @@ const ALLOWED_TYPES = new Set([
 export async function POST(request: Request) {
   const token = (await cookies()).get(SELLER_COOKIE)?.value;
   if (!token) {
-    return Response.json(
+    return privateJson(
       { message: "Your session has expired. Please sign in again." },
       { status: 401 }
     );
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   try {
     incoming = await request.formData();
   } catch {
-    return Response.json({ message: "Nothing was received." }, { status: 400 });
+    return privateJson({ message: "Nothing was received." }, { status: 400 });
   }
 
   const outgoing = new FormData();
@@ -50,13 +51,13 @@ export async function POST(request: Request) {
     if (!(file instanceof File) || file.size === 0) continue;
 
     if (file.size > MAX_BYTES) {
-      return Response.json(
+      return privateJson(
         { message: "That file is larger than 8 MB. Please use a smaller one." },
         { status: 413 }
       );
     }
     if (!ALLOWED_TYPES.has(file.type)) {
-      return Response.json(
+      return privateJson(
         { message: "Documents must be a photo (JPEG, PNG, WebP) or a PDF." },
         { status: 415 }
       );
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
   } catch {
-    return Response.json(
+    return privateJson(
       { message: "Could not reach the store backend. Please try again." },
       { status: 502 }
     );
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
   const data = await response.json().catch(() => ({}));
 
   if ((data as { code?: string }).code === "rest_no_route") {
-    return Response.json(
+    return privateJson(
       {
         message:
           "Verification is not switched on yet: the Kandi Seller Centre plugin on " +
@@ -95,5 +96,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json(data, { status: response.status });
+  return privateJson(data, { status: response.status });
 }

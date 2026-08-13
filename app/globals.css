@@ -19,20 +19,18 @@
  */
 
 :root {
-  /* Soft white — a cool near-white, deliberately not #fff.
+  /* Pure white, everywhere.
 
-     This is what lets a white product card read as a card. On a pure white
-     page a white card is invisible until you draw a border or a shadow round
-     it, and a catalogue full of borders looks like a spreadsheet. One step of
-     separation does the same job with nothing on the screen.
+     The page ran on a soft #f6f7f8 so that a white product card would separate
+     from it without a border. The separation now comes from the hairline the
+     cards already carry, and white buys two things the tint could not: product
+     photography — most of it shot on white — stops sitting in a visible grey
+     box, and every white panel on the site (cards, drawers, the masthead, the
+     checkout) lands on the same ground instead of one step off it.
 
-     Cool rather than cream because the type palette is slate (#475569,
-     #64748b); a warm grey underneath it would read as slightly dirty.
-
-     The comment here used to describe this and the value said #ffffff — the
-     intent had been lost, and `bg-white` hard-coded on <body> was overriding
-     the token anyway, so neither had any effect. */
-  --background: #f6f7f8;
+     Cards, rails and sections that hard-code `bg-white` are therefore now flush
+     with the page by design, not by accident. */
+  --background: #ffffff;
   /* Near-black rather than soft charcoal: marketplace listings are dense and
      scanned fast, so product type wants the extra contrast. */
   --foreground: #171717;
@@ -41,9 +39,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-poppins);
-  --font-body: var(--font-inter);
+  --font-sans: var(--font-jakarta);
+  --font-heading: var(--font-jakarta);
+  --font-body: var(--font-jakarta);
 }
 
 @theme {
@@ -141,18 +139,23 @@
   --color-sold: #71717a;
 }
 
-/* Two faces, split by job rather than by page.
-   `--font-ui` (Inter) is the default for the whole document: navigation, product
-   names, descriptions, filters, forms, tables — everything meant to be read.
-   `--font-display` (Poppins) is opted into by headings, prices and promotional
-   type — everything meant to be noticed. */
+/* One face for the whole site — Plus Jakarta Sans.
+ *
+ * `--font-ui` and `--font-display` are kept as separate names because a hundred
+ * rules and components refer to them, and because the *distinction* still holds
+ * even though the family no longer changes: display type is set heavy and
+ * tight, UI type is set at 400–500 and spaced for reading. What has gone is the
+ * second download and the seam between two families that were being asked to do
+ * the same job.
+ *
+ * The fallbacks are the system UI stack in both cases, so a page rendered
+ * before the webfont arrives has consistent metrics rather than one face
+ * falling back to Futura and the other to Roboto. */
 :root {
   --font-ui:
-    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --font-display:
-    var(--font-poppins), "Century Gothic", "Futura", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
   --font-tabular: var(--font-ui);
 }
@@ -193,7 +196,7 @@ body {
      be got through — descenders on one line stop crowding the caps on the next.
      Long-form pages go further still with `leading-relaxed`. */
   line-height: 1.6;
-  /* A hair of positive tracking. Inter is spaced for 16px and above; most of
+  /* A hair of positive tracking. The face is spaced for 16px and above; most of
      this interface runs at 12–14px, where the counters close up and glyphs like
      "rn" start reading as "m". This opens them back up without the text looking
      letterspaced. */
@@ -253,12 +256,12 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. Poppins ships the 700 cut, so
-     nothing here is a synthesised bold. */
+     it that the eye had to stop and check. Jakarta is variable across 200–800,
+     so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
 
-     This was -0.03em, which on Poppins — a geometric face whose round letters
+     This was -0.03em, which on a geometric face whose round letters
      already sit close — pushed "Daily Deals" and "Trending now" into a solid
      block that has to be decoded rather than read. Tracking that tight is a
      poster technique: it works on three words at 60px and fails on a sentence
@@ -273,8 +276,8 @@ h6,
   font-family: var(--font-display);
   /* Bold, not semibold. The price is the number a shopper scans a grid for, and
      at 600 it sat at the same weight as the product name beside it; 700 makes
-     it the first thing read in the tile. Poppins ships the cut, so nothing is
-     synthesised. */
+     it the first thing read in the tile. The variable axis covers it, so
+     nothing is synthesised. */
   font-weight: 700;
   /* Barely tightened. A price is read digit by digit — UGX 145,854 is not a
      word the eye takes in whole — so the space between figures has to stay open
@@ -288,10 +291,10 @@ h6,
 /* The product-name weight.
  *
  * A product name is set as an <h1> on the product page and an <h3> on a card,
- * which means the heading rule above would otherwise render it in Poppins Black
- * — a supplier's 90-character title at 900 is a wall. Names take the UI face at
- * 500: they are read, not announced, and 500 is where a two-line title stays
- * legible against the price shouting beside it.
+ * which means the heading rule above would otherwise render it bold and tight
+ * — a supplier's 90-character title at 700 is a wall. Names take the plain
+ * weight: they are read, not announced, and that is where a two-line title
+ * stays legible against the price shouting beside it.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands. */
 .font-normal-heading {
@@ -312,25 +315,59 @@ h6,
  */
 .section-title {
   font-family: var(--font-display);
-  font-weight: 600;
+  /* 700, not 600. At 600 a section title sat only one step above the product
+     names underneath it, and on a rail the two ran together — the eye had to
+     stop and work out which line was the label. The gap between a heading and
+     its content has to be visible at a glance or it is not doing the job of a
+     heading. */
+  font-weight: 700;
   letter-spacing: -0.015em;
   /* 1.1 clipped the descenders of a title that wrapped onto a second line. */
   line-height: 1.2;
 }
 
-/* Poppins Black, for the two section headings that anchor the homepage.
+/* ---------- Section subtitles ----------
+ * The second line under a section or department title — "Running now across
+ * the shop", "The pieces moving fastest right now".
  *
- * The 900 cut is loaded explicitly in layout.tsx — without it this would
- * silently render at 800, because `font-synthesis-weight` is off and the browser
- * will not fake a weight the file does not contain.
+ * These were set at 400 in the muted grey, which on a page of product
+ * photography made them the faintest text on screen: they read as a caption
+ * the eye skips, when they are in fact the line doing the selling. A subtitle
+ * is a promise about the row beneath it, and a shopper who does not read it
+ * scrolls past the row.
+ *
+ * 600 and a step darker fixes that without turning the subtitle into a second
+ * heading — it stays clearly subordinate to the title above it, which is set
+ * at 800, while landing firmly enough to be read.
+ *
+ * One class rather than three utilities repeated at every call site, so the
+ * sections cannot drift apart again. */
+.section-sub {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  /* `--color-shop-body` rather than `--color-shop-muted`: 7.4:1 on white
+     against the muted grey's 4.6:1. Bold grey text at 13px is still grey text,
+     and the weight alone would not have made it comfortably readable. */
+  color: var(--color-shop-body);
+  /* Bold type sits loose at default spacing; this is the same correction the
+     headings take, scaled down for the smaller size. */
+  letter-spacing: -0.006em;
+  line-height: 1.4;
+}
+
+/* The heaviest step, for the section headings that anchor the homepage.
+ *
+ * 800 rather than the 900 this used to ask for: Jakarta's variable axis stops
+ * at 800, and with `font-synthesis-weight` off a request for 900 clamps to the
+ * same 800 anyway. Stating it plainly means the CSS says what actually renders.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
- * Tracking is pulled in harder than at 600: at Black the letterforms already
- * crowd, and default spacing makes the word look loose against its own weight. */
+ * Tracking is pulled in harder than at 600: at this weight the letterforms
+ * already crowd, and default spacing makes the word look loose against it. */
 .heading-black {
   font-family: var(--font-display);
-  font-weight: 900;
-  /* -0.04em at Black was the tightest type on the site and the hardest to read:
+  font-weight: 800;
+  /* -0.04em here was the tightest type on the site and the hardest to read:
      the two effects compound, because a heavier weight has already eaten the
      space between the letters before the tracking takes any more. */
   letter-spacing: -0.018em;

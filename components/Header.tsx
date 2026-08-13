@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
 import type { SiteSettings } from "@/lib/site-settings";
+import { brandName } from "@/lib/site-settings";
 import SearchBar from "@/components/SearchBar";
 import CuratedNav from "@/components/CuratedNav";
 import CategoriesMenu from "@/components/CategoriesMenu";
@@ -97,16 +98,29 @@ export default function Header({
     // and the grid scrolling under it, so a shadow takes over that job.
     <header className={`sticky top-0 z-40 bg-white ${scrolled ? "shadow-sm md:shadow-none" : ""}`}>
       {/* ---- Announcement strip ----
-           A near-black rule across the top. It was white on white, which meant
-           the shop's three strongest promises — pay on delivery, free returns,
-           the sale — sat in the palest text on the page and were read by nobody.
-           Dark, they read first and cost 32px.
+           A yellow rule across the top, carrying the shop's three strongest
+           promises — pay on delivery, free returns, the sale. It was white on
+           white once, which left them in the palest text on the page and read
+           by nobody; then near-black, which read but receded. Yellow is the
+           loudest thing a marketplace can put above its masthead without
+           spending a pixel on an image.
+
+           Type is near-black, not white. White on #facc15 is about 1.7:1 and
+           genuinely unreadable — yellow is a light hue, so the contrast has to
+           come from below it rather than above. Black on this yellow is 11:1,
+           which is why the ADD TO CART button has always been drawn this way.
+
+           `bg-bfl-yellow` rather than a redefined `--color-shop-nav`: that
+           token still paints the footer and the admin masthead, where white
+           text on near-black is correct and yellow would be a disaster.
 
            Once there is something in the cart the rotating line gives way to
            live free-delivery progress, which is the more useful message. Every
            figure is real: the threshold from settings, the shopper's own
            subtotal, the payment methods actually accepted at checkout. */}
-      <div className={`bg-shop-nav text-white/80 ${scrolled ? "hidden md:block" : ""}`}>
+      <div
+        className={`bg-bfl-yellow text-bfl-black/80 ${scrolled ? "hidden md:block" : ""}`}
+      >
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
@@ -130,9 +144,14 @@ export default function Header({
                 {line}
               </span>
             ))}
+            {/* The one accent in the strip. It was `text-bfl-yellow`, which on
+                the old near-black bar was the brightest thing in it and on a
+                yellow bar is invisible. The darkened brand orange keeps it
+                warm, distinct from the near-black copy beside it, and clears
+                4.9:1 on this yellow. */}
             <Link
               href={settings.promo.cta_url}
-              className="font-semibold text-bfl-yellow hover:underline"
+              className="font-bold text-shop-primary-ink hover:underline"
             >
               {settings.promo.cta_label} ›
             </Link>
@@ -158,14 +177,20 @@ export default function Header({
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
             // not necessarily in `next.config` remotePatterns.
+            // Stepped up from 40px tall / 190px wide. The wordmark is the one
+            // thing in the masthead that has to be recognised rather than read,
+            // and at 40px it was losing that contest to the search field beside
+            // it. `w-auto` with a max width means a wide logo grows into the
+            // room rather than distorting, and the intrinsic size is raised to
+            // match so the file is not upscaled.
             <Image
               src={settings.brand.logo_url}
-              alt={`${settings.brand.name} ${settings.brand.suffix}`.trim()}
-              width={190}
-              height={44}
+              alt={brandName(settings)}
+              width={260}
+              height={60}
               unoptimized
               priority
-              className="h-10 w-auto max-w-[190px] object-contain"
+              className="h-12 w-auto max-w-[220px] object-contain md:h-14 md:max-w-[260px]"
             />
           ) : (
             <>
@@ -175,10 +200,10 @@ export default function Header({
                   it stays crisp at any size and costs no extra request. */}
               <span className="flex items-center gap-1">
                 <svg
-                  className="h-9 w-9"
+                  className="h-11 w-11 md:h-12 md:w-12"
                   viewBox="0 0 40 40"
                   role="img"
-                  aria-label={`${settings.brand.name}${settings.brand.suffix}`}
+                  aria-label={brandName(settings)}
                 >
                   <defs>
                     <linearGradient id="kandi-bag" x1="0" y1="0" x2="1" y2="1">
@@ -214,7 +239,7 @@ export default function Header({
                   />
                 </svg>
               </span>
-              <span className="font-heading text-[23px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[26px]">
+              <span className="font-heading text-[28px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[32px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
@@ -343,7 +368,7 @@ export default function Header({
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-2 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-2 text-[14px] font-semibold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
+              className="my-2 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-2 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />

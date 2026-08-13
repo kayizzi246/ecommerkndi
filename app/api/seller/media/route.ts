@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { privateJson } from "@/lib/private-json";
 import { SELLER_COOKIE, sellerApiBase } from "@/lib/seller-server";
 
 /**
@@ -19,7 +20,7 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/we
 export async function POST(request: Request) {
   const token = (await cookies()).get(SELLER_COOKIE)?.value;
   if (!token) {
-    return Response.json(
+    return privateJson(
       { message: "Your session has expired. Please sign in again." },
       { status: 401 }
     );
@@ -29,25 +30,25 @@ export async function POST(request: Request) {
   try {
     incoming = await request.formData();
   } catch {
-    return Response.json({ message: "No photo was received." }, { status: 400 });
+    return privateJson({ message: "No photo was received." }, { status: 400 });
   }
 
   const file = incoming.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return Response.json({ message: "No photo was received." }, { status: 400 });
+    return privateJson({ message: "No photo was received." }, { status: 400 });
   }
 
   // Checked here as well as in WordPress: a seller who picks a 12 MB photo
   // should be told before it goes up the (slow, metered) uplink, not after.
   if (file.size > MAX_BYTES) {
-    return Response.json(
+    return privateJson(
       { message: "That photo is larger than 8 MB. Please use a smaller one." },
       { status: 413 }
     );
   }
 
   if (!ALLOWED_TYPES.has(file.type)) {
-    return Response.json(
+    return privateJson(
       { message: "Photos must be JPEG, PNG, WebP or GIF." },
       { status: 415 }
     );
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[kandi-seller] photo upload failed:", error);
-    return Response.json(
+    return privateJson(
       { message: "Could not reach the store backend. Please try again." },
       { status: 502 }
     );
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
       "[kandi-seller] /seller/media is missing on WordPress — upload the current " +
         "wordpress/kandi-seller-api.php to wp-content/plugins/kandi-seller-api/."
     );
-    return Response.json(
+    return privateJson(
       {
         message:
           "Photo uploads are not switched on yet: the Kandi Seller Centre plugin on " +
@@ -98,5 +99,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json(data, { status: response.status });
+  return privateJson(data, { status: response.status });
 }

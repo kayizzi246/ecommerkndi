@@ -27,7 +27,7 @@ export function CustomerSessionProvider({ children }: { children: React.ReactNod
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
       if (!response.ok) {
         setCustomer(null);
         return;
@@ -48,7 +48,7 @@ export function CustomerSessionProvider({ children }: { children: React.ReactNod
 
     (async () => {
       try {
-        const response = await fetch("/api/auth/me");
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = response.ok ? ((await response.json()) as { customer: Customer }) : null;
         if (!cancelled) setCustomer(data?.customer ?? null);
       } catch {

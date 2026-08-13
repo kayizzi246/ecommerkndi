@@ -107,7 +107,7 @@ export default function EarningsCalculator({
         <p className="text-[12px] font-semibold uppercase tracking-wide text-pop-green">
           You keep, every month
         </p>
-        <p className="mt-1 text-[34px] font-black leading-none text-pop-green">
+        <p className="mt-1 text-[34px] font-extrabold leading-none text-pop-green">
           {formatPrice(net)}
         </p>
         <p className="mt-1.5 text-[14px] text-shop-body">

@@ -1,7 +1,17 @@
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/site-settings";
+import type { CategoryNode } from "@/lib/woocommerce";
 import { formatPrice } from "@/lib/currency";
 import AppStoreBadges from "@/components/AppStoreBadges";
+
+/**
+ * How many departments the footer lists.
+ *
+ * Enough to give every significant category a link from every page, few enough
+ * that the column stays a column. `buildCategoryTree` returns them sorted by
+ * product count, so this keeps the ones with stock behind them.
+ */
+const FOOTER_DEPARTMENTS = 8;
 
 const COLUMNS = [
   {
@@ -42,8 +52,29 @@ const SOCIAL_LABELS: Record<string, string> = {
   x: "X",
 };
 
-export default function Footer({ settings }: { settings: SiteSettings }) {
+export default function Footer({
+  settings,
+  departments = [],
+}: {
+  settings: SiteSettings;
+  /**
+   * The department tree, for the shop-by-department column.
+   *
+   * The footer previously carried no link to a single category or product. That
+   * left the mega-menu — which opens on hover, and is a client component — as
+   * the only route from most of the site into the catalogue, so a crawler
+   * reading the static HTML of a policy page found no way down into the shop at
+   * all. These links are on every page, in the markup, and they are also the
+   * fastest route back to shopping for a reader who has just finished the
+   * returns policy.
+   */
+  departments?: CategoryNode[];
+}) {
   const { support, social, commerce, brand, app } = settings;
+
+  const shopDepartments = departments
+    .filter((department) => (department.count ?? 0) > 0)
+    .slice(0, FOOTER_DEPARTMENTS);
 
   const serviceStrip = [
     { title: "Free delivery", copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`, tone: "text-pop-green-on-dark" },
@@ -69,7 +100,40 @@ export default function Footer({ settings }: { settings: SiteSettings }) {
       </div>
 
       {/* Link columns */}
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
+        {shopDepartments.length > 0 && (
+          <div>
+            <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
+              Shop by department
+            </h2>
+            <ul className="space-y-2.5 text-[13px] text-white/70">
+              {shopDepartments.map((department) => (
+                <li key={department.id}>
+                  <Link
+                    className="hover:text-white hover:underline"
+                    href={`/category/${department.slug}`}
+                  >
+                    {department.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link className="font-semibold text-white/90 hover:underline" href="/categories">
+                  All categories
+                </Link>
+              </li>
+              <li>
+                {/* The sale page belongs in the footer for the same reason it
+                    belongs in the nav: it is the highest-converting page on the
+                    shop, and it was reachable from the homepage alone. */}
+                <Link className="font-semibold text-pop-orange-on-dark hover:underline" href="/sale">
+                  Today&rsquo;s offers
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
+
         {COLUMNS.map((column) => (
           <div key={column.title}>
             <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">

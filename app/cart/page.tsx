@@ -64,7 +64,7 @@ export default function CartPage() {
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 pb-28 md:px-8 lg:pb-16">
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="section-title text-[21px] text-shop-ink md:text-[19px]">Your cart</h1>
+        <h1 className="section-title text-[21px] text-shop-ink md:text-[26px]">Your cart</h1>
         <Link
           href="/"
           className="text-[14px] text-shop-body underline underline-offset-4 hover:text-shop-ink"

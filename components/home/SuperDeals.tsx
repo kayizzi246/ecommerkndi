@@ -1,18 +1,23 @@
 import type { Product } from "@/lib/woocommerce";
-import ProductCard from "@/components/ProductCard";
+import DealCarousel from "@/components/DealCarousel";
 import SectionHeader from "@/components/home/SectionHeader";
 import CountdownBlocks from "@/components/home/CountdownBlocks";
 
 /**
- * Super Deals — one row of genuinely discounted products, under a countdown.
+ * Super Deals — genuinely discounted products, under a countdown.
  *
- * This used to be a purple promo card sitting beside its own product rail; the
- * card was a second heading for a section that already had one. Now the
- * countdown rides in the section header, and the whole width goes to products.
+ * Built exactly like Trending now: a {@link SectionHeader} over a
+ * {@link DealCarousel}. It used to be a hand-rolled hybrid — a scroll strip on
+ * a phone that became a five- or six-column grid at `lg` — which meant this one
+ * section scrolled differently from every rail above and below it, capped at
+ * six products, and drifted out of alignment whenever the shared carousel's
+ * widths were touched. Sharing the rail component means it cannot drift again,
+ * and the section now holds as many products as it is given.
  *
- * The clock counts to real midnight, when the rail is rebuilt from whatever is
- * on sale then. A countdown that resets to eight hours on every page load is
- * the oldest trick on the internet and shoppers read it as a lie.
+ * The countdown rides in the header rather than in a card of its own, and it
+ * counts to real midnight, when the rail is rebuilt from whatever is on sale
+ * then. A countdown that resets to eight hours on every page load is the oldest
+ * trick on the internet and shoppers read it as a lie.
  *
  * Renders nothing when nothing is on sale: an empty "Super Deals" advertises a
  * promise the catalogue is not keeping.
@@ -22,27 +27,19 @@ export default function SuperDeals({ products }: { products: Product[] }) {
 
   return (
     <section aria-labelledby="super-deals-heading">
-      <SectionHeader title="Super Deals" href="/sale">
+      <SectionHeader
+        id="super-deals-heading"
+        title="Super Deals"
+        subtitle="Today's deepest cuts"
+        href="/sale"
+      >
         <span className="flex items-center gap-2 rounded-lg bg-shop-sale/10 px-3 py-1.5 text-shop-sale">
           <span className="text-[12px] font-semibold">Ends in</span>
           <CountdownBlocks />
         </span>
       </SectionHeader>
 
-      {/* Six across on a wide desktop, matching the grids either side of it —
-          a row of five beside a row of six is the kind of half-alignment that
-          reads as a mistake rather than a decision. */}
-      {/* No negative margin any more. It existed to bleed past the container's
-          side padding, and that padding is gone on a phone — but the two never
-          matched (16px against 12px), so the rail hung 4px off each edge and
-          dragged the whole page sideways. */}
-      <ul className="flex snap-x gap-px overflow-x-auto pb-1 no-scrollbar lg:grid lg:grid-cols-5 lg:gap-x-px lg:overflow-visible xl:grid-cols-6">
-        {products.slice(0, 6).map((product) => (
-          <li key={product.id} className="w-[48.5%] shrink-0 snap-start sm:w-[31.5%] lg:w-auto">
-            <ProductCard product={product} />
-          </li>
-        ))}
-      </ul>
+      <DealCarousel products={products} />
     </section>
   );
 }

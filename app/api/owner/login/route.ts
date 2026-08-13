@@ -1,4 +1,5 @@
 import { callOwnerApi, setOwnerCookie } from "@/lib/owner-server";
+import { clientIp, rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
 
 /**
  * Owner sign-in.
@@ -9,6 +10,16 @@ import { callOwnerApi, setOwnerCookie } from "@/lib/owner-server";
  * never leaves a half-signed-in state behind.
  */
 export async function POST(request: Request) {
+  // The most valuable credential on the site, and a single passcode rather than
+  // an email-and-password pair — so there is no username to guess and the whole
+  // secret is one guessable string. That makes a ceiling on attempts the main
+  // thing standing between a determined stranger and the product manager.
+  //
+  // There is no per-account key here because there is only one account: the
+  // source address is the only thing to throttle on.
+  const limit = rateLimit("owner-signin", clientIp(request), LIMITS.signIn);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
   const body = (await request.json().catch(() => ({}))) as { passcode?: unknown };
   const passcode = typeof body.passcode === "string" ? body.passcode.trim() : "";
 

@@ -3,6 +3,7 @@ import { getProductsSafe } from "@/lib/woocommerce";
 import { sortProducts } from "@/lib/sort-products";
 import { discountPercent, formatPrice } from "@/lib/currency";
 import { getSiteSettings } from "@/lib/site-settings";
+import { breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
 import Pagination from "@/components/Pagination";
@@ -46,6 +47,23 @@ export default async function SalePage({
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+      {/* The highest-converting page on the shop, and it carried no structured
+          data at all — so the one page whose entire content is discounted stock
+          was the page Google understood least. The breadcrumb places it, the
+          ItemList names what is on it. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Super Price Store", path: "/sale" },
+            ]),
+            collectionJsonLd("Super Price Store", "/sale", sorted),
+          ]),
+        }}
+      />
+
       {/* Breadcrumbs */}
       <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
         <Link href="/" className="hover:text-shop-ink">

@@ -38,7 +38,7 @@ export default async function CategoriesPage() {
 
       <header className="mb-5 px-3 md:px-0">
         <h1 className="heading-black text-[24px] text-shop-ink md:text-[28px]">All categories</h1>
-        <p className="mt-1 text-[14.5px] text-shop-muted">
+        <p className="section-sub mt-1 text-[14.5px]">
           {departments.length > 0
             ? `${departments.length} ${departments.length === 1 ? "department" : "departments"} to browse`
             : "Categories are being set up."}

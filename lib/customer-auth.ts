@@ -1,4 +1,5 @@
 import { callCustomerApi, setCustomerCookie } from "@/lib/customer-server";
+import { privateJson } from "@/lib/private-json";
 
 /**
  * The shape WordPress hands back whenever a shopper proves who they are —
@@ -40,7 +41,7 @@ export async function completeCustomerSession(
     // WordPress writes these messages for shoppers, not for developers — "that
     // email and password do not match", "use at least 8 characters" — so they
     // are passed through rather than replaced with something vaguer.
-    return Response.json(
+    return privateJson(
       { message: payload.message ?? "Could not sign you in. Please try again." },
       { status: status === 200 ? 502 : status }
     );
@@ -48,5 +49,5 @@ export async function completeCustomerSession(
 
   await setCustomerCookie(payload.token, payload.expires_in ?? 60 * 60 * 24 * 30);
 
-  return Response.json({ customer: payload.customer });
+  return privateJson({ customer: payload.customer });
 }

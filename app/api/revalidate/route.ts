@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { hasOwnerCookie, PRODUCTS_TAG } from "@/lib/owner-server";
+import { isOwnerAuthenticated, PRODUCTS_TAG } from "@/lib/owner-server";
+import { clientIp, rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
 
 /**
  * Cache purge, called by WordPress whenever a product changes.
@@ -38,12 +39,26 @@ function authorised(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
+  // Throttled before either credential is examined. Purging is the single most
+  // expensive thing an outsider can ask this app to do — it drops the whole
+  // render cache and sends every subsequent visitor through to WordPress — so
+  // the ceiling has to apply to unauthenticated attempts too, not only to the
+  // ones that get past the check.
+  const limit = rateLimit("revalidate", clientIp(request), LIMITS.revalidate);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
   // Two ways in: the shared secret, which is how WordPress calls this, and a
   // signed-in owner, which is how the "Refresh catalogue" button on /admin
   // calls it. The button matters because the WordPress ping only works once
   // the Storefront URL is filled in — the owner should never be stuck looking
   // at a stale shop with no way to clear it by hand.
-  if (!authorised(request) && !(await hasOwnerCookie())) {
+  //
+  // The owner branch verifies the passcode with WordPress rather than merely
+  // noting that a cookie was sent. It used to do the latter, which meant this
+  // endpoint was open to anyone willing to type a cookie header: `httpOnly`
+  // prevents the page's own scripts from reading the value, but nothing stops a
+  // client inventing one.
+  if (!authorised(request) && !(await isOwnerAuthenticated())) {
     return Response.json({ message: "Invalid API secret." }, { status: 403 });
   }
 

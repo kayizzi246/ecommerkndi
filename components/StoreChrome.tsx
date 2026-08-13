@@ -6,7 +6,6 @@ import type { CategoryNode } from "@/lib/woocommerce";
 import type { SiteSettings } from "@/lib/site-settings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AppBanner from "@/components/AppBanner";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import ShopperOnboarding from "@/components/ShopperOnboarding";
 import CartDrawer from "@/components/CartDrawer";
@@ -70,9 +69,14 @@ export default function StoreChrome({
       <Header departments={departments} settings={settings} />
       <div className="flex-1">{children}</div>
       <CartDrawer />
-      <Footer settings={settings} />
+      <Footer settings={settings} departments={departments} />
+      {/* The sliding "Create account" bar that used to sit here is gone with the
+          rest of the site's banners. The cookie notice stays: it is a legal
+          notice rather than a promotion, and it is the thing AppBanner used to
+          have to queue behind — so nothing now stacks two bars along the foot
+          of a phone screen. Account creation is still one tap away in the
+          masthead and the bottom nav. */}
       <CookieNotice />
-      <AppBanner />
       <MobileBottomNav />
       <ShopperOnboarding departments={departments} />
     </>

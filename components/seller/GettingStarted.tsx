@@ -51,17 +51,37 @@ export default function GettingStarted({
    */
   const feeAmount = seller.fee_amount || registrationFee || 0;
   const feeSettled = approved || seller.fee_status !== "unpaid" || feeAmount === 0;
-  const emailConfirmed = approved || seller.email_verified;
+  /**
+   * Read straight, not inferred from approval.
+   *
+   * This used to say `approved || seller.email_verified`, on the reasoning that
+   * an approved store must have cleared everything before it. That inference is
+   * wrong for this one field — a store can be approved by hand in wp-admin
+   * while its address is still unconfirmed — and it put two contradictory
+   * statements on the same screen: this checklist struck out "Confirm your
+   * email address" as done, directly under a banner asking for the code.
+   *
+   * When the dashboard disagrees with itself, a seller stops believing either
+   * half of it. `email_verified` is always present in the payload, so there is
+   * nothing left to guess around.
+   */
+  const emailConfirmed = seller.email_verified;
   const documentsSent =
     approved || seller.kyc_status === "submitted" || seller.kyc_status === "approved";
 
   const steps: Step[] = [
     {
+      /**
+       * No link. This used to offer "Enter the code" pointing at
+       * /seller/onboarding, which is the documents-and-fee gate and has never
+       * had a code box on it — the button went to a page that could not do the
+       * thing it promised. The code box now rides in the strip at the top of
+       * this very screen, so the step says where it is instead of sending
+       * anybody anywhere.
+       */
       title: "Confirm your email address",
-      copy: "The six-digit code we sent when you signed up.",
+      copy: "Use the six-digit code in the orange bar at the top of this page.",
       done: emailConfirmed,
-      href: "/seller/onboarding",
-      action: "Enter the code",
     },
     {
       title: "Send your verification documents",
