@@ -7,7 +7,7 @@ import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
 import { CustomerSessionProvider } from "@/lib/customer-session";
 import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
-import { siteJsonLd, siteUrl } from "@/lib/seo";
+import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
  * Plus Jakarta Sans carries the whole store — headings, navigation, product
@@ -120,7 +120,25 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(
-              siteJsonLd(brandName(settings))
+              siteJsonLd(brandName(settings), {
+                // The three spellings people actually type. `brand.name` and
+                // the full name are included so that whichever one wp-admin is
+                // set to, the other still resolves to this shop — the aliases
+                // are filtered against the primary name inside `siteJsonLd`.
+                alternateNames: [
+                  settings.brand.name,
+                  `${settings.brand.name} UG`,
+                  "KandiUg",
+                  "Kandi UG",
+                  "Kandi",
+                ],
+                // The uploaded logo when there is one, otherwise the icon that
+                // ships in `app/` — which is 512×512 and square, comfortably
+                // past the 48px minimum Google reads a favicon at.
+                logo: settings.brand.logo_url || absolute("/icon.png"),
+                sameAs: Object.values(settings.social).filter(Boolean),
+                phone: settings.support.phone,
+              })
             ),
           }}
         />

@@ -310,18 +310,71 @@ export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
  * Site-level JSON-LD: who the shop is, and the search box Google can render
  * under the homepage result once the domain has enough authority.
  */
-export function siteJsonLd(brandName: string) {
+export function siteJsonLd(
+  brandName: string,
+  options: {
+    /** Other names people genuinely use for the shop. */
+    alternateNames?: string[];
+    /** Absolute URL of the shop's logo. */
+    logo?: string | null;
+    /** Social profile URLs the shop actually controls. */
+    sameAs?: string[];
+    /** Public support number, in the shop's own settings. */
+    phone?: string;
+  } = {}
+) {
   const url = siteUrl();
 
-  return [
-    {
-      "@context": "https://schema.org",
-      "@type": "OnlineStore",
-      name: brandName,
-      url,
+  /**
+   * The names a shopper might type.
+   *
+   * This is how Google learns that "kandi ug", "KandiUg" and "Kandi For Less"
+   * are one business rather than three unrelated strings, and it is the single
+   * most useful structured-data field for ranking on your own brand. Without
+   * it, only the exact `name` above is a strong signal.
+   *
+   * Deduplicated and case-insensitive, and the primary name is never repeated
+   * as an alias — `alternateName` listing the same string as `name` is noise.
+   *
+   * Only genuine aliases belong here. Stuffing competitor or generic terms in
+   * is a spam signal, not a shortcut.
+   */
+  const aliases = [...new Set(options.alternateNames ?? [])].filter(
+    (alias) => alias && alias.toLowerCase() !== brandName.toLowerCase()
+  );
+
+  const store: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "OnlineStore",
+    name: brandName,
+    url,
+    areaServed: "UG",
+    currenciesAccepted: "UGX",
+  };
+
+  if (aliases.length > 0) store.alternateName = aliases;
+
+  // The logo Google may show beside the result, and the image it associates
+  // with the brand in a knowledge panel.
+  if (options.logo) store.logo = options.logo;
+
+  // Confirms the shop owns these profiles, which is how Google connects the
+  // site to the social accounts and treats them as one entity.
+  const profiles = (options.sameAs ?? []).filter(Boolean);
+  if (profiles.length > 0) store.sameAs = profiles;
+
+  if (options.phone) {
+    store.contactPoint = {
+      "@type": "ContactPoint",
+      telephone: options.phone,
+      contactType: "customer service",
       areaServed: "UG",
-      currenciesAccepted: "UGX",
-    },
+      availableLanguage: "en",
+    };
+  }
+
+  return [
+    store,
     {
       "@context": "https://schema.org",
       "@type": "WebSite",

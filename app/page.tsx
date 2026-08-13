@@ -1,10 +1,4 @@
-import {
-  getProductsSafe,
-  getStores,
-  getCategories,
-  buildCategoryTree,
-} from "@/lib/woocommerce";
-import { findCategorySlug } from "@/lib/departments";
+import { buildHomeFeed, MIN_RAIL } from "@/lib/home-feed";
 import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import SuperDeals from "@/components/home/SuperDeals";
@@ -13,8 +7,8 @@ import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import TrustBar from "@/components/home/TrustBar";
 import SellWithUs from "@/components/home/SellWithUs";
-import { getSiteSettings, brandName } from "@/lib/site-settings";
-import { discountPercent, formatPrice } from "@/lib/currency";
+import { brandName } from "@/lib/site-settings";
+import { formatPrice } from "@/lib/currency";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -31,128 +25,30 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [settings, onSale, featured, latest, stores, departments] = await Promise.all([
-    getSiteSettings(),
-    // Enough on-sale stock for all three discount rails without any of them
-    // repeating another's products: Promotions takes twelve, Super Deals the
-    // next twelve, Daily Deals whatever is left (and tops itself up from the
-    // general catalogue when that is thin, which it usually is).
-    getProductsSafe({ on_sale: true, per_page: 36 }),
-    getProductsSafe({ featured: true, per_page: 12 }),
-    getProductsSafe({ per_page: 24 }),
-    // Only for the seller band's store count. Returns [] on an older plugin, so
-    // the band simply drops the figure rather than the page failing.
-    getStores(),
-    // The department tree, so the Men/Women/Kids rails can find the shop's real
-    // categories. The layout asks for this too and Next dedupes identical
-    // fetches within a render, so it is one request rather than two.
-    getCategories().then(buildCategoryTree),
-  ]);
-
   /**
-   * Men, Women and Kids — the three departments almost every shopper arrives
-   * already knowing they want.
+   * Every rail on this page is composed in `lib/home-feed.ts`, not here.
    *
-   * The slugs are resolved from the shop's own catalogue rather than assumed,
-   * because a shop that has not created a Kids category yet must not get a rail
-   * that links nowhere. `findCategorySlug` is the same matcher the header nav
-   * uses, so the rail and the link above it can never disagree about which
-   * category a word means.
-   *
-   * Fetched in one parallel batch after the tree is known — three sequential
-   * round trips would cost the page more than the rails are worth. A department
-   * the shop does not have resolves to null, fetches nothing, and the rail
-   * simply does not render.
+   * It moved there when the Flutter app started needing the same rails: the
+   * ordering, the cut-offs and the no-product-appears-twice rule are
+   * merchandising decisions, and a merchandising decision duplicated in two
+   * places is a merchandising decision that will eventually disagree with
+   * itself. This page renders the result; `/api/app/home` serialises the same
+   * result for the app. Neither one decides anything.
    */
-  const DEPARTMENTS = [
-    {
-      id: "dept-men",
-      match: "men",
-      title: "For men",
-      subtitle: "Shoes, shirts and everyday wear",
-      chip: "For him",
-      tone: "bg-pop-blue-soft text-pop-blue",
-    },
-    {
-      id: "dept-women",
-      match: "women",
-      title: "For women",
-      subtitle: "The pieces moving fastest right now",
-      chip: "For her",
-      tone: "bg-pop-violet-soft text-pop-violet",
-    },
-    {
-      id: "dept-kids",
-      match: "kids",
-      title: "For kids",
-      subtitle: "Hard-wearing, and priced to be replaced",
-      chip: "Little ones",
-      tone: "bg-pop-green-soft text-pop-green",
-    },
-  ] as const;
-
-  const departmentRails = await Promise.all(
-    DEPARTMENTS.map(async (department) => {
-      const slug = findCategorySlug(departments, department.match);
-      if (!slug) return { ...department, slug: null, products: [] };
-
-      const { products } = await getProductsSafe({ category: slug, per_page: 12 });
-      return { ...department, slug, products };
-    })
-  );
-
-  /**
-   * The three discount rails share one pool, cut so that no product appears in
-   * two of them.
-   *
-   * Sorted by how much is genuinely off rather than by date, because that is
-   * the question all three section titles raise, and the deepest cuts go to
-   * Promotions — it is the highest rail of the three on the page, so it should
-   * carry the strongest stock.
-   */
-  const bySaving = [...onSale.products].sort(
-    (a, b) =>
-      discountPercent(b.regular_price, b.price) -
-      discountPercent(a.regular_price, a.price)
-  );
-
-  const promoProducts = bySaving.slice(0, 12);
-  const deals = bySaving.slice(12, 24);
-  const dailyDeals = bySaving.slice(24);
-
-  /**
-   * New arrivals and Best sellers.
-   *
-   * Both are sorted from the catalogue rather than fetched separately — the
-   * homepage already holds the newest two dozen products, and a third and
-   * fourth WooCommerce round trip to re-sort the same rows would cost the page
-   * its speed for nothing.
-   *
-   * Each is held back until it has enough stock to look like a rail rather than
-   * a mistake, and best sellers needs products that have genuinely sold: a
-   * "best sellers" row of items nobody has bought is the kind of small lie that
-   * teaches shoppers to distrust the rest of the page.
-   */
-  const MIN_RAIL = 4;
-
-  const newArrivals = [...latest.products]
-    .filter((product) => product.date_created)
-    .sort(
-      (a, b) =>
-        new Date(b.date_created!).getTime() - new Date(a.date_created!).getTime()
-    )
-    .slice(0, 12);
-
-  const bestSellers = [...latest.products]
-    .filter((product) => product.total_sales > 0)
-    .sort((a, b) => b.total_sales - a.total_sales)
-    .slice(0, 12);
-
-  // Trending is the shop's own picks where any are flagged, newest otherwise.
-  // "Picked for you" below is the whole catalogue, so overlap there is expected
-  // and fine — it is the endless grid, not a curated rail.
-  const trendingPool = featured.products.length > 0 ? featured.products : latest.products;
-  const trending = trendingPool.slice(0, 12);
+  const {
+    settings,
+    trending,
+    promoProducts,
+    deals,
+    dailyDeals,
+    newArrivals,
+    bestSellers,
+    departmentRails,
+    latest,
+    latestTotalPages,
+    storeCount,
+    departmentMinimum,
+  } = await buildHomeFeed();
 
   /** Brand plus suffix, spaced — for the closing about block. */
   const brand = brandName(settings);
@@ -192,7 +88,7 @@ export default async function Home() {
         {/* Deals sit directly under Trending: the rail above is what is popular,
             this is what is cheap today, and those are the two reasons a shopper
             keeps scrolling a homepage. */}
-        <DailyDeals products={dailyDeals} fallback={latest.products} />
+        <DailyDeals products={dailyDeals} fallback={latest} />
 
         {/* What is on promotion, as the products themselves.
 
@@ -267,7 +163,7 @@ export default async function Home() {
              * men's products today; at a threshold of four the department a
              * shopper is most likely to be looking for would be invisible.
              */
-            minimum={2}
+            minimum={departmentMinimum}
           />
         ))}
 
@@ -284,8 +180,8 @@ export default async function Home() {
         <section>
           <SectionHeader title="Picked for you" />
           <InfiniteProducts
-            initialProducts={latest.products}
-            totalPages={latest.total_pages}
+            initialProducts={latest}
+            totalPages={latestTotalPages}
           />
         </section>
 
@@ -294,7 +190,7 @@ export default async function Home() {
         {/* Recruiting sellers at the foot of the page, after a shopper has seen
             what the shop looks like — the trader worth having is the one who
             liked the catalogue first. */}
-        <SellWithUs settings={settings} storeCount={stores.length} />
+        <SellWithUs settings={settings} storeCount={storeCount} />
 
         {/* ---- About the shop, at the foot of the page ----
          *

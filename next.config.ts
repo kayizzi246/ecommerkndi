@@ -137,7 +137,31 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+
+      /**
+       * The mobile app's public API is the one place that must be readable
+       * from another origin.
+       *
+       * The blanket rule above sets `Cross-Origin-Resource-Policy: same-origin`,
+       * which is right for the storefront and wrong here: these endpoints send
+       * `Access-Control-Allow-Origin: *` precisely so the app can read them, so
+       * the two headers were saying opposite things about the same response.
+       *
+       * In practice a CORS-mode `fetch` is not subject to CORP — the check only
+       * applies to no-cors requests and to pages under COEP — so this was
+       * unlikely to break the native app. But the FlutterFlow *web* build runs
+       * on kandistyles.flutterflow.app and is cross-origin to this API, and a
+       * header that contradicts the intent is a trap for whoever debugs it
+       * next. Later rules win on duplicate keys, so this narrows CORP to
+       * `cross-origin` for /api/app/* only.
+       */
+      {
+        source: "/api/app/:path*",
+        headers: [{ key: "Cross-Origin-Resource-Policy", value: "cross-origin" }],
+      },
+    ];
   },
 };
 
