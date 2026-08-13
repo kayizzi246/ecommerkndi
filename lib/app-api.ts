@@ -33,6 +33,14 @@ export type AppProduct = {
   /** Both prices already formatted by the shop's own `formatPrice`. */
   priceLabel: string;
   wasPriceLabel: string | null;
+  /**
+   * Money off, formatted — "UGX 5,000" — or null when not reduced.
+   *
+   * The web card prints this because "−17%" is arithmetic the shopper has to
+   * do and "Save UGX 5,000" is the answer. Computed here so the app cannot
+   * arrive at a different figure.
+   */
+  savingLabel: string | null;
   /** Whole percent off, 0 when not reduced. */
   discountPercent: number;
   inStock: boolean;
@@ -75,6 +83,9 @@ export function toAppProduct(product: Product): AppProduct {
     wasPrice: reduced ? product.regular_price : null,
     priceLabel: formatPrice(product.price),
     wasPriceLabel: reduced ? formatPrice(product.regular_price) : null,
+    savingLabel: reduced
+      ? formatPrice(product.regular_price - product.price)
+      : null,
     discountPercent: reduced
       ? discountPercent(product.regular_price, product.price)
       : 0,
