@@ -92,14 +92,35 @@ export default async function ProductPage({
   const product = await getProduct(id);
   if (!product) notFound();
 
-  // Reviews come from WordPress with the page, so they are in the HTML for
-  // search engines rather than fetched by the browser afterwards. Keyed on the
-  // numeric id the lookup above resolved, since reviews are id-only.
-  const reviews = await getProductReviews(product.id);
+  /**
+   * Everything else about the page, in one round of requests rather than four.
+   *
+   * These were four sequential `await`s — reviews, then settings, then the
+   * related rail — and every one of them is a trip to WordPress on a shared
+   * host. Awaited in a line they add up: the page could not start rendering
+   * until the last one came back, and three of the four had been answerable
+   * since the moment the product arrived.
+   *
+   * Only the related rail genuinely depends on the product, and only for its
+   * category. So the page is now two stages — resolve the product, then fetch
+   * the rest at once — which takes the server's wait from the sum of four
+   * requests to the longest of two.
+   */
+  const brand = product.categories[0];
+  const subCategory = product.categories[1];
 
-  // The shop's own terms, so the free-delivery figure beside the buy button is
-  // the one the checkout actually charges against.
-  const settings = await getSiteSettings();
+  const [reviews, settings, relatedResponse] = await Promise.all([
+    // Reviews come from WordPress with the page, so they are in the HTML for
+    // search engines rather than fetched by the browser afterwards. Keyed on
+    // the numeric id the lookup above resolved, since reviews are id-only.
+    getProductReviews(product.id),
+    // The shop's own terms, so the free-delivery figure beside the buy button
+    // is the one the checkout actually charges against.
+    getSiteSettings(),
+    brand
+      ? getProductsSafe({ category: brand.slug, per_page: 6 })
+      : Promise.resolve({ products: [] as typeof product[] }),
+  ]);
 
   /**
    * The ratings split, counted here so the summary beside the price is in the
@@ -116,12 +137,6 @@ export default async function ProductPage({
     if (index >= 0 && index < 5) ratingBreakdown[index] += 1;
   }
 
-  const brand = product.categories[0];
-  const subCategory = product.categories[1];
-
-  const relatedResponse = brand
-    ? await getProductsSafe({ category: brand.slug, per_page: 6 })
-    : { products: [] };
   const related = relatedResponse.products
     .filter((item) => item.id !== product.id)
     .slice(0, 5);

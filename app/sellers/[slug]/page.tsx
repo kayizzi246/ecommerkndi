@@ -35,10 +35,18 @@ function since(iso: string): string | null {
 export default async function StorePage({ params }: Params) {
   const { slug } = await params;
 
-  const store = (await getStores()).find((entry) => entry.store_slug === slug);
+  // Both at once. The product filter is keyed on the slug from the URL, not on
+  // anything the store directory tells us, so waiting for one before starting
+  // the other spent a whole WordPress round trip for nothing.
+  const [stores, listing] = await Promise.all([
+    getStores(),
+    getProductsSafe({ seller: slug, per_page: 48 }),
+  ]);
+
+  const store = stores.find((entry) => entry.store_slug === slug);
   if (!store) notFound();
 
-  const { products } = await getProductsSafe({ seller: slug, per_page: 48 });
+  const { products } = listing;
 
   /**
    * Figures the header states, all counted from what is actually on the page.

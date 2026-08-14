@@ -181,6 +181,28 @@ function baseUrl(): string {
   return url.replace(/\/$/, "");
 }
 
+/**
+ * The origin serving the WordPress media library — `https://shop.example.com`.
+ *
+ * Used by the layout to open a connection to it before the first product photo
+ * asks for one. Derived from `WP_API_URL` rather than configured separately,
+ * because a preconnect to a host the images do not come from is a wasted
+ * connection and a second setting nobody would remember to change.
+ *
+ * Returns null rather than throwing when the variable is missing: a preconnect
+ * is an optimisation, and it must never be the reason a page fails to render.
+ */
+export function wordpressOrigin(): string | null {
+  const url = process.env.WP_API_URL;
+  if (!url) return null;
+
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
 function storeApiBaseUrl(): string {
   const url = baseUrl().replace(/\/$/, "");
   const wpJsonMatch = url.match(/^(.*\/wp-json)(?:\/[^/]+)?$/i);

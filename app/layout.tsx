@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
-import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
+import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocommerce";
 import { CustomerSessionProvider } from "@/lib/customer-session";
 import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
@@ -104,11 +104,34 @@ export default async function RootLayout({
     getSiteSettings(),
   ]);
 
+  const mediaOrigin = wordpressOrigin();
+
   return (
     <html
       lang="en"
       className={`${jakarta.variable} h-full antialiased`}
     >
+      {/* ---- Open the connection to the media host before it is needed ----
+           Every product photograph on every page comes from the WordPress media
+           library, and the first one cannot start downloading until the browser
+           has done a DNS lookup, a TCP handshake and a TLS negotiation with
+           that host — three round trips it only begins once it has parsed far
+           enough to find an <img>. On a Ugandan mobile connection that is
+           comfortably 300–600ms of dead time before a single pixel moves.
+
+           `preconnect` starts those three round trips while the HTML is still
+           arriving, so the connection is warm by the time the first tile asks
+           for its file. `dns-prefetch` is the fallback for the browsers that
+           ignore preconnect hints.
+
+           The host is derived from WP_API_URL rather than typed, so it cannot
+           drift away from where the images actually live. */}
+      {mediaOrigin && (
+        <head>
+          <link rel="preconnect" href={mediaOrigin} crossOrigin="" />
+          <link rel="dns-prefetch" href={mediaOrigin} />
+        </head>
+      )}
       {/* `bg-background`, not `bg-white`. Hard-coding white here painted over
           the `--background` token on every page, which is why changing that
           token appeared to do nothing at all. */}
