@@ -181,6 +181,25 @@ const DEPARTMENTS = [
     tone: "text-pop-green",
     band: "from-pop-green-soft",
   },
+  {
+    /**
+     * Shoes is here because it is what this shop actually sells.
+     *
+     * The other three are demographics — who the shopper is buying for. This
+     * one is a product type, and mixing the two is normally how a homepage ends
+     * up with eleven rails that all overlap. It earns the exception because
+     * Shoes is the deepest category in the catalogue and the one people arrive
+     * searching for by name, which is exactly the "I know what I want, take me
+     * there" job the department rails exist to do.
+     */
+    id: "dept-shoes",
+    match: "shoes",
+    title: "Shoes",
+    subtitle: "Trainers, boots and everyday pairs",
+    chip: "Step out",
+    tone: "text-pop-orange",
+    band: "from-pop-orange-soft",
+  },
 ] as const;
 
 export async function buildHomeFeed(): Promise<HomeFeed> {
@@ -303,10 +322,38 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
   const newArrivalsRail = ledger.claim(newArrivals, 12);
   const bestSellersRail = ledger.claim(bestSellers, 12);
 
-  const departmentRails = departmentPools.map((department) => ({
-    ...department,
-    products: ledger.claim(department.products, 12, DEPARTMENT_MINIMUM),
-  }));
+  /**
+   * Departments are the one thing on this page exempt from the no-repeats rule.
+   *
+   * They were not, and it made them disappear. The ledger is all-or-nothing: a
+   * rail that cannot reach its minimum from unclaimed stock renders nothing at
+   * all. On a catalogue this size the five rails above take almost everything,
+   * so "For men" and "For kids" were reliably empty by the time they were
+   * filled — the homepage carried one department rail out of three, and the
+   * shop's own men's section was invisible on its front page.
+   *
+   * The exemption is right on its own terms, not just convenient. The ledger
+   * exists to stop a shopper meeting the same six products under six different
+   * *claims* — Trending, Promotions, New arrivals all say "this is special",
+   * and saying it six times about one product is what makes a page feel padded.
+   * A department says something different: it says "this is where men's things
+   * live". A shirt appearing in Trending and again under For men is not a
+   * repetition, it is an answer to a second question.
+   *
+   * The ledger is still asked first, so a department prefers stock nothing else
+   * has shown; it just falls back to its own catalogue rather than vanishing.
+   */
+  const departmentRails = departmentPools.map((department) => {
+    const fresh = ledger.claim(department.products, 12, DEPARTMENT_MINIMUM);
+
+    return {
+      ...department,
+      products:
+        fresh.length >= DEPARTMENT_MINIMUM
+          ? fresh
+          : department.products.slice(0, 12),
+    };
+  });
 
   // Super Deals sits near the foot of the page, so it claims last of the rails.
   const deals = ledger.claim(bySaving, 12);
