@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
 import ProductCard from "@/components/ProductCard";
 
@@ -40,8 +41,20 @@ export default function DealCarousel({
    */
   itemWidth = "w-[40%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   priority = false,
+  viewAll,
 }: {
   products: Product[];
+  /**
+   * A tile at the end of the track linking on to the full list.
+   *
+   * The alternative — and what this replaced — is a "View All" link in the
+   * section heading. That link is read at the moment a shopper has seen none of
+   * the products and has no reason to want more of them; here it arrives at the
+   * one moment they demonstrably do, having swiped past everything in the rail.
+   * It also gives the track a proper end, so the last swipe lands on something
+   * rather than a half tile against the edge.
+   */
+  viewAll?: { href: string; label: string };
   /** Accepted and ignored — kept so existing call sites compile unchanged. */
   tone?: DealTone;
   itemWidth?: string;
@@ -111,6 +124,27 @@ export default function DealCarousel({
             />
           </div>
         ))}
+
+        {viewAll && (
+          <div className={`shrink-0 snap-start ${itemWidth}`}>
+            {/* Sized to the tile beside it and shaped like the photograph, so
+                the row keeps its rhythm — a link floating at half height would
+                read as the rail having broken rather than ended. */}
+            <Link
+              href={viewAll.href}
+              className="group/all flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-shop-line bg-white px-2 text-center transition-colors hover:border-shop-primary"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-shop-primary-soft text-shop-primary transition-transform group-hover/all:translate-x-0.5">
+                <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                </svg>
+              </span>
+              <span className="text-[13px] font-bold leading-tight text-shop-ink">
+                {viewAll.label}
+              </span>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* The edge fades are gone.
