@@ -60,33 +60,56 @@ export default function DailyDeals({
       aria-labelledby="daily-deals-heading"
       className="rounded-2xl border border-shop-line bg-white p-4 md:p-5"
     >
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 md:px-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h2 id="daily-deals-heading" className="heading-black text-[18px] text-shop-ink md:text-[20px]">
-            Daily Deals
-          </h2>
+      {/* ---- Header ----
+           One wrapping flex row, ordered differently at each width.
 
-          <span className="rounded-full bg-shop-sale px-2.5 py-1 text-[12px] font-bold text-white">
-            {best > 0 ? `Up to ${best}% OFF` : "Lowest prices today"}
-          </span>
+           On a phone the four things — title, badge, clock, View All — do not
+           fit on one line, and the clock was the piece that lost: it wrapped
+           into the middle of the second line, next to nothing, reading as an
+           orphan. It is now given the whole second line and pinned to the right
+           edge, which is where a countdown belongs — the eye tracks left to
+           right across the title and lands on the deadline last.
 
-          {/* The same midnight clock as Super Deals: both rails are rebuilt from
-              what WooCommerce has on sale, and they are rebuilt together. */}
-          <span className="flex items-center gap-2 rounded-lg bg-shop-hairline px-3 py-1.5 text-shop-sale">
-            <span className="text-[12px] font-semibold">Ends in</span>
-            <CountdownBlocks />
-          </span>
-        </div>
+           From md up there is room for one line, and the clock steps back
+           beside the badge with View All at the far right, as before. `order`
+           does that without rendering the timer twice: two mounted clocks would
+           be two intervals and two elements a screen reader announces. */}
+      {/* No `px-3` of its own. The section is already padded, and the extra
+          gutter held the clock 12px short of the right edge it is aligned to. */}
+      <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2
+          id="daily-deals-heading"
+          className="order-1 heading-black text-[18px] text-shop-ink md:text-[20px]"
+        >
+          Daily Deals
+        </h2>
+
+        <span className="order-2 rounded-full bg-shop-sale px-2.5 py-1 text-[12px] font-bold text-white">
+          {best > 0 ? `Up to ${best}% OFF` : "Lowest prices today"}
+        </span>
 
         <Link
           href="/sale"
-          className="flex shrink-0 items-center gap-1 text-[13.5px] font-semibold text-shop-primary transition-colors hover:text-shop-primary-dark"
+          className="order-3 ml-auto flex shrink-0 items-center gap-1 text-[13.5px] font-semibold text-shop-primary transition-colors hover:text-shop-primary-dark md:order-4"
         >
           View All
           <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
         </Link>
+
+        {/* `w-full` is what forces the break below md — the row has nowhere left
+            to put it, so it takes a line of its own and `justify-end` sends it
+            to the edge. From md it is an ordinary inline item again. */}
+        <div className="order-4 flex w-full justify-end md:order-3 md:w-auto">
+          {/* One 24-hour cycle, resetting at midnight on the viewer's clock —
+              the same window Super Deals runs on, because both rails are
+              rebuilt from WooCommerce's on-sale stock and rebuilt together. */}
+          <span className="flex items-center gap-2 rounded-lg bg-shop-hairline px-3 py-1.5 text-shop-sale">
+            <span className="text-[12px] font-semibold">Ends in</span>
+            <CountdownBlocks />
+          </span>
+        </div>
       </div>
 
       <DealCarousel products={deepest.slice(0, MAX_ITEMS)} />

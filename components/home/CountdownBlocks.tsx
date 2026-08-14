@@ -7,14 +7,28 @@ function pad(n: number) {
 }
 
 /**
- * The Super Deals clock, counting to the next local midnight.
+ * The hour of day the deal window turns over, on the viewer's own clock.
  *
- * That is a real deadline the shop can honour: the deals rail is built from
- * what is genuinely on sale in WooCommerce right now, and at midnight it is
- * rebuilt. A countdown that resets on every page load is the oldest trick on the
- * internet and shoppers have learned to read it as a lie.
+ * Midnight. The whole cycle is 24 hours long — it opens at 00:00 showing
+ * 24:00:00 and runs down to zero, at which point the rails are rebuilt from
+ * whatever WooCommerce has on sale on the new day.
  *
- * Renders dashes until mounted — the remaining time depends on the viewer's own
+ * It is a fixed wall-clock time rather than "24 hours from now" on purpose, and
+ * the distinction is the entire honesty of the component. A window anchored to
+ * the visit restarts at a full day for every shopper on every page load, which
+ * is the oldest trick on the internet and one shoppers have long since learned
+ * to read as a lie. Anchored to midnight, two people looking at the shop at the
+ * same moment see the same number, and the number is true — which does mean
+ * somebody arriving at 22:45 correctly sees 01:15:00 rather than a fresh day.
+ *
+ * Change this to move the reset: 18 would end the day's deals at 6pm.
+ */
+const RESET_HOUR = 24;
+
+/**
+ * The deals clock — one 24-hour cycle, counting down to the next reset.
+ *
+ * Renders dashes until mounted: the remaining time depends on the viewer's own
  * clock, so rendering a real figure on the server would guarantee a hydration
  * mismatch.
  */
@@ -24,9 +38,9 @@ export default function CountdownBlocks() {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0);
-      setRemaining(Math.max(0, midnight.getTime() - now.getTime()));
+      const reset = new Date(now);
+      reset.setHours(RESET_HOUR, 0, 0, 0);
+      setRemaining(Math.max(0, reset.getTime() - now.getTime()));
     };
     tick();
     const id = setInterval(tick, 1000);
