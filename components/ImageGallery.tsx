@@ -65,7 +65,7 @@ export default function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-shop-line bg-white text-sm text-shop-muted">
+      <div className="flex aspect-square w-full items-center justify-center rounded-[4px] border border-shop-line bg-white text-sm text-shop-muted">
         No image
       </div>
     );
@@ -94,7 +94,7 @@ export default function ImageGallery({
   return (
     <div>
       {/* Main frame */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-shop-line bg-white">
+      <div className="relative aspect-square w-full overflow-hidden rounded-[4px] border border-shop-line bg-white">
         <button
           type="button"
           onClick={() => setLightbox(true)}
@@ -197,7 +197,7 @@ export default function ImageGallery({
                 onClick={() => setActiveImage(src)}
                 aria-label={`View image ${i + 1}`}
                 aria-current={i === activeIndex}
-                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-white transition-colors hover:border-shop-primary ${
+                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-[4px] border bg-white transition-colors hover:border-shop-primary ${
                   i === activeIndex ? "border-2 border-shop-primary" : "border-shop-line"
                 }`}
               >

@@ -5,7 +5,7 @@ export function ProductCardSkeleton() {
           the price under it. The text bars matter — a bare square shimmering on
           its own reads as a broken image, where a square with lines beneath it
           reads as a product that has not arrived yet. */}
-      <div className="shimmer aspect-square w-full rounded-lg" />
+      <div className="shimmer aspect-square w-full rounded-[3px]" />
       <div className="shimmer mt-2 h-3 w-[92%] rounded" />
       <div className="shimmer mt-1.5 h-3 w-[64%] rounded" />
       <div className="shimmer mt-2.5 h-4 w-[45%] rounded" />

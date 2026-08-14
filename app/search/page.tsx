@@ -129,7 +129,7 @@ export default async function SearchPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-px gap-y-2 sm:gap-y-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:gap-y-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

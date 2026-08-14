@@ -411,9 +411,19 @@ add_action( 'rest_api_init', function () {
 			 * "Sold by" block on the product page, the commission ledger — and
 			 * these store pages were the one place still asking the author.
 			 *
-			 * Appended to `meta_query` rather than assigned to it: the price
-			 * filter above may already have put a range in there, and a store
-			 * page with a price filter applied must keep both conditions.
+			 * ---- And why the ids are resolved first ----
+			 *
+			 * The obvious version of this appends a clause to `$args['meta_query']`
+			 * and hands it to `wc_get_products`. It does not work: WooCommerce's
+			 * product query maps a known set of arguments onto WP_Query and
+			 * quietly drops what it does not recognise, so the filter vanished
+			 * and the store page returned the entire catalogue under a heading
+			 * that correctly said "2 products". A filter that fails open is
+			 * worse than one that errors — the page looked plausible.
+			 *
+			 * `include` is on the supported list (the on-sale branch below has
+			 * always used it), so the owning seller's ids are resolved with a
+			 * plain WP_Query first and passed in that way.
 			 */
 			if ( ! empty( $request['seller'] ) ) {
 				$owners = get_users( array(
@@ -425,13 +435,32 @@ add_action( 'rest_api_init', function () {
 				if ( empty( $owners ) ) {
 					return rest_ensure_response( array( 'products' => array(), 'total' => 0, 'total_pages' => 0 ) );
 				}
-				$args['meta_query'][] = array( // phpcs:ignore WordPress.DB.SlowDBQuery
-					'key'   => '_kandi_seller_id',
-					'value' => (int) $owners[0],
-				);
+
+				$owned = get_posts( array(
+					'post_type'      => 'product',
+					'post_status'    => 'publish',
+					'meta_key'       => '_kandi_seller_id', // phpcs:ignore WordPress.DB.SlowDBQuery
+					'meta_value'     => (int) $owners[0], // phpcs:ignore WordPress.DB.SlowDBQuery
+					'fields'         => 'ids',
+					'posts_per_page' => -1,
+				) );
+
+				if ( empty( $owned ) ) {
+					return rest_ensure_response( array( 'products' => array(), 'total' => 0, 'total_pages' => 0 ) );
+				}
+
+				$args['include'] = array_map( 'intval', $owned );
 			}
 			if ( ! empty( $request['on_sale'] ) ) {
-				$args['include'] = wc_get_product_ids_on_sale();
+				$on_sale = wc_get_product_ids_on_sale();
+
+				// Intersected rather than assigned: `?seller=x&on_sale=1` is a
+				// store's own offers, and overwriting `include` here would have
+				// answered it with every discounted product in the shop.
+				$args['include'] = isset( $args['include'] )
+					? array_values( array_intersect( $args['include'], $on_sale ) )
+					: $on_sale;
+
 				if ( empty( $args['include'] ) ) {
 					return rest_ensure_response( array( 'products' => array(), 'total' => 0, 'total_pages' => 0 ) );
 				}

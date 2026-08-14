@@ -152,7 +152,7 @@ export default async function SalePage({
               has a couple of hundred pixels more to spend than search or a
               category — and on a page of markdowns the shopper is comparing,
               which means seeing as many at once as stay legible. */}
-          <div className="grid grid-cols-2 gap-x-px gap-y-2 sm:grid-cols-3 sm:gap-y-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:grid-cols-3 sm:gap-y-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

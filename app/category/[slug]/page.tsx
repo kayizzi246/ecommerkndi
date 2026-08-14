@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
-import { absolute, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
+import { absolute, breadcrumbJsonLd, collectionJsonLd, faqJsonLd } from "@/lib/seo";
+import CategoryIntro, { categoryFaqs } from "@/components/CategoryIntro";
 import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
@@ -75,19 +77,50 @@ export default async function CategoryPage({
   // Sort and the price/stock filters are applied by WordPress across the whole
   // category, not just the 24 rows this page returns — otherwise paging through
   // a sorted category reshuffles at every page boundary.
-  const { products, total, total_pages } = await getProductsSafe({
-    category: slug,
-    page,
-    per_page: 24,
-    ...toProductQuery(search),
-  });
+  const [{ products, total, total_pages }, categories, settings] = await Promise.all([
+    getProductsSafe({
+      category: slug,
+      page,
+      per_page: 24,
+      ...toProductQuery(search),
+    }),
+    // For the department's real name. `generateMetadata` already resolves it
+    // and Next dedupes the fetch within a render, so this costs nothing.
+    getCategories().catch(() => []),
+    getSiteSettings(),
+  ]);
 
   // Facets are counted before filtering so the counts stay stable as the
   // shopper narrows down; the grid itself shows the filtered, sorted page.
   const brands = brandFacets(products);
   const visible = sortProducts(filterProducts(products, search), sort);
-  const title = slug.replace(/-/g, " ");
+  /**
+   * The department's name as WooCommerce holds it, not as the URL spells it.
+   *
+   * This was `slug.replace(/-/g, " ")`, so the page's own `<h1>` read "mens
+   * shoes" while the `<title>` this file also generates read "Men's Shoes in
+   * Uganda". The heading is the strongest on-page signal there is about what a
+   * page is for, and it was the one place on the page still guessing at the
+   * answer from a URL fragment. The slug stays as the fallback for a category
+   * that has been deleted between the fetch and the render.
+   */
+  const title = categories.find((entry) => entry.slug === slug)?.name
+    ?? slug.replace(/-/g, " ");
   const filtered = visible.length !== products.length;
+
+  /**
+   * The prose block is written for one page only: the unfiltered first page.
+   *
+   * The canonical drops every query string, so page 2 and every facet
+   * combination already point back here — repeating the same four paragraphs
+   * under each of them would be the same text on a dozen URLs, which is worth
+   * nothing to a crawler and is a wasted screen for a shopper who has scrolled
+   * that far twice.
+   */
+  const showIntro = page === 1 && !filtered && visible.length > 0;
+  const faqs = showIntro
+    ? categoryFaqs({ name: title, total, products: visible, settings })
+    : [];
 
   return (
     <main className="w-full px-0 pb-24 pt-4 md:px-8 lg:pb-12">
@@ -108,6 +141,9 @@ export default async function CategoryPage({
               { name: title, path: `/category/${slug}` },
             ]),
             collectionJsonLd(title, `/category/${slug}`, visible),
+            // The same questions the page renders below the grid, never a
+            // second set — Google drops FAQ data it cannot see on the page.
+            ...(faqs.length > 0 ? [faqJsonLd(faqs)] : []),
           ]),
         }}
       />
@@ -175,7 +211,7 @@ export default async function CategoryPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-px gap-y-2 sm:gap-y-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:gap-y-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
@@ -186,6 +222,19 @@ export default async function CategoryPage({
                 totalPages={total_pages}
                 params={{ sort }}
               />
+
+              {/* Below the grid deliberately. A shopper who arrived knowing what
+                  they want should meet products first; the text is for the one
+                  who scrolled to the end without buying, and for Google. */}
+              {showIntro && (
+                <CategoryIntro
+                  name={title}
+                  total={total}
+                  products={visible}
+                  settings={settings}
+                  faqs={faqs}
+                />
+              )}
             </>
           )}
         </div>

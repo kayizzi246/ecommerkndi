@@ -95,7 +95,7 @@ export default function InfiniteProducts({
           background, so the hairline reads as a grid line rather than a gap,
           and every pixel saved goes into the photograph — which is the thing
           that actually sells. Vertical breathing room returns at sm. */}
-      <ul className="grid grid-cols-2 gap-px sm:gap-y-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-px sm:gap-y-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

@@ -188,7 +188,13 @@ export default function ProductCard({
   const moreOptions = Math.max(0, options.length - swatches.length);
 
   return (
-    <article className="group relative flex h-full flex-col rounded-lg border border-transparent bg-white p-0.5 transition-colors hover:border-shop-line sm:p-1">
+    // Corners are 3px, not 8px, and the tile's own padding is gone below sm.
+    //
+    // A rounded photograph reads as a card floating on the page; a nearly
+    // square one reads as the product itself, which is the whole argument of a
+    // chrome-free tile. At 2.5 tiles per phone screen the 8px radius was also
+    // eating a visible bite out of a 150px image on all four corners.
+    <article className="group relative flex h-full flex-col rounded-[3px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line sm:p-0.5">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -196,7 +202,7 @@ export default function ProductCard({
               standing up, and a square crop of a portrait shot spends its
               height on floor and ceiling — the extra 25% goes to the garment,
               which on a phone is most of what the shopper can see at all. */}
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-shop-hairline">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -312,12 +318,17 @@ export default function ProductCard({
       </div>
 
       {/* ---- Detail ----
-           Tight on purpose: every pixel between these five short lines is a
+           Tight on purpose: every pixel between these six short lines is a
            pixel of photograph the next row does not get. The photograph and the
            name it belongs to are one object, so they sit 2px apart rather than
            6 — at 6 the text read as a caption floating under the tile instead
-           of part of it. */}
-      <div className="mt-0.5 flex flex-1 flex-col gap-0.5">
+           of part of it.
+
+           The gap between the lines themselves is now 1px rather than 2. Each
+           line already carries its own leading, and the six of them were
+           stacking six gaps under every tile in the shop — about a fifth of the
+           text block spent on air. */}
+      <div className="mt-0.5 flex flex-1 flex-col gap-px">
         {/* Chips run inline with the name, so a tag costs no vertical space. */}
         <Link href={href} className="block">
           {/* 14/20 rather than 14/19: a supplier title always wraps to the full
@@ -334,7 +345,7 @@ export default function ProductCard({
         {/* The money, all on one line: what it costs, what it cost, what that
             saves. A discounted price turns red — the one place red is allowed —
             because at a glance the colour is the discount. */}
-        <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+        <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-px">
           <span
             className={`price text-[19px] leading-none ${
               discount > 0 ? "text-shop-sale" : "text-shop-ink"
@@ -365,7 +376,7 @@ export default function ProductCard({
         {/* Rating and units sold on one line — the two numbers a shopper uses to
             decide whether anyone else has taken the risk first. */}
         {(product.rating_count > 0 || product.total_sales > 0) && (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-px">
             {product.rating_count > 0 && (
               <span className="flex items-center gap-1">
                 <Stars rating={product.average_rating} />
@@ -425,7 +436,7 @@ export default function ProductCard({
           </p>
         ) : null}
 
-        <p className="mt-auto pt-0.5 text-[12.5px] font-medium text-shop-success">
+        <p className="mt-auto text-[12.5px] font-medium text-shop-success">
           {soldOut ? (
             "Back in stock soon"
           ) : lowStock ? (
