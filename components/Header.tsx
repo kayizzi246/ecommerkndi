@@ -46,9 +46,10 @@ export default function Header({
    * On a phone the full masthead — promo strip, logo row, search, department
    * bar — is close to 200px, and all of it is sticky, so a shopper scrolling a
    * product grid was reading it through a letterbox. Past that first scroll the
-   * strip and the department bar fold away and the logo steps aside, leaving a
-   * single slim row: the search field at full width, the cart, the menu. Search
-   * is the thing worth keeping pinned in a catalogue this size.
+   * strip, the department bar, the logo, the cart and the menu toggle all fold
+   * away, leaving a single slim row holding nothing but the search field, edge
+   * to edge. Search is the one thing worth keeping pinned in a catalogue this
+   * size; cart and categories are both tabs on the fixed bottom bar already.
    *
    * Desktop is untouched — there is room for the whole masthead there.
    */
@@ -271,8 +272,21 @@ export default function Header({
           <SearchBar />
         </div>
 
+        {/* Once the shopper has scrolled, the phone masthead is the search
+            field and nothing else.
+
+            The cart and the menu toggle used to stay pinned beside it, which
+            left the field about 70px short of the row on a 390px screen — and
+            the query, not the chrome, is what a shopper is looking at by then.
+            Neither is lost: the fixed bottom bar carries Cart and Categories as
+            full tabs, so this is the same two destinations one thumb-length
+            lower, and the whole row goes to the one thing being used.
+
+            `md:flex` so desktop keeps the cluster exactly as it was. */}
         <div
-          className={`flex shrink-0 items-center gap-5 md:ml-0 ${scrolled ? "" : "ml-auto"}`}
+          className={`shrink-0 items-center gap-5 md:ml-0 md:flex ${
+            scrolled ? "ml-0 hidden" : "ml-auto flex"
+          }`}
         >
           {/* The phone-sized search control. Hidden once the pinned field is on
               screen, so there are never two ways to start the same search. */}

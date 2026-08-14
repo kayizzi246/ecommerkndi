@@ -195,6 +195,7 @@ export default async function Home() {
             subtitle={department.subtitle}
             chip={department.chip}
             tone={department.tone}
+            band={department.band}
             href={department.slug ? `/category/${department.slug}` : "/categories"}
             products={department.products}
             /**

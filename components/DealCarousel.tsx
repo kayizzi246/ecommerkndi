@@ -26,17 +26,18 @@ export default function DealCarousel({
   /**
    * Tailwind width classes for one item — controls how many are visible.
    *
-   * 27% on a phone, so 3.7 tiles sit in the viewport. The fraction is the
-   * point: a rail showing a whole number of tiles looks like a finished grid
-   * that happens to be one row tall, and a shopper has no reason to swipe it.
-   * The cut tile at the right edge is the affordance — it is the only thing
-   * that says there is more this way.
+   * 35.7% on a phone — 100/2.8 — so 2.8 tiles sit in the viewport. The
+   * fraction is the point: a rail showing a whole number of tiles looks like a
+   * finished grid that happens to be one row tall, and a shopper has no reason
+   * to swipe it. The cut tile at the right edge is the affordance — it is the
+   * only thing that says there is more this way.
    *
-   * It used to be 48.5%, which showed two. Three-and-a-bit is what the large
-   * marketplace apps settled on for a reason: it is the most product you can
-   * put in front of a thumb before the photograph stops being legible.
+   * It showed 3.7 before. At that density a product photograph on a 390px
+   * screen is about 100px wide, which is a thumbnail rather than a product;
+   * 2.8 gives each tile half again as much glass while still cutting the third
+   * one visibly in half.
    */
-  itemWidth = "w-[27%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
+  itemWidth = "w-[35.7%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   priority = false,
 }: {
   products: Product[];
@@ -105,7 +106,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 27vw, (max-width: 768px) 31vw, (max-width: 1024px) 23.5vw, (max-width: 1280px) 18.5vw, 16vw"
+              sizes="(max-width: 640px) 36vw, (max-width: 768px) 31vw, (max-width: 1024px) 23.5vw, (max-width: 1280px) 18.5vw, 16vw"
             />
           </div>
         ))}

@@ -103,8 +103,10 @@ export type DepartmentRailData = {
   title: string;
   subtitle: string;
   chip: string;
-  /** Tailwind classes for the web. The app maps the id to its own palette. */
+  /** Tailwind classes for the web chip. The app maps the id to its palette. */
   tone: string;
+  /** Tailwind classes tinting the whole band on the web. Ignored by the app. */
+  band: string;
   /** Null when the shop has not created this department yet. */
   slug: string | null;
   products: Product[];
@@ -149,7 +151,17 @@ const DEPARTMENTS = [
     title: "For men",
     subtitle: "Shoes, shirts and everyday wear",
     chip: "For him",
-    tone: "bg-pop-blue-soft text-pop-blue",
+    tone: "text-pop-blue",
+    /**
+     * The band tint, as a gradient that fades to white before the products
+     * reach it.
+     *
+     * The colour lives in the heading strip and dies out under the tiles: a
+     * saturated slab running the full height of a rail would put a cast behind
+     * every product photograph in it, which is the one thing a shop cannot
+     * afford to do to its own stock.
+     */
+    band: "from-pop-blue-soft",
   },
   {
     id: "dept-women",
@@ -157,7 +169,8 @@ const DEPARTMENTS = [
     title: "For women",
     subtitle: "The pieces moving fastest right now",
     chip: "For her",
-    tone: "bg-pop-violet-soft text-pop-violet",
+    tone: "text-pop-violet",
+    band: "from-pop-violet-soft",
   },
   {
     id: "dept-kids",
@@ -165,7 +178,8 @@ const DEPARTMENTS = [
     title: "For kids",
     subtitle: "Hard-wearing, and priced to be replaced",
     chip: "Little ones",
-    tone: "bg-pop-green-soft text-pop-green",
+    tone: "text-pop-green",
+    band: "from-pop-green-soft",
   },
 ] as const;
 

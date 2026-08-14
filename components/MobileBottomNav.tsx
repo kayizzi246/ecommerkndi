@@ -67,8 +67,16 @@ export default function MobileBottomNav() {
   if (ownsBottomBar) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-bfl-line bg-white lg:hidden">
-      <div className="flex items-center justify-around h-14">
+    /**
+     * The bar itself stays flat against the bottom edge rather than floating as
+     * a rounded island: a detached pill looks smart in a mockup and costs a
+     * real phone the strip of screen underneath it plus the gesture bar's own
+     * margin. `pb-[env(safe-area-inset-bottom)]` is what keeps the tabs clear
+     * of the home indicator on an iPhone, and it belongs on the bar, not on a
+     * gap below it.
+     */
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <div className="flex h-[60px] items-stretch justify-around">
         {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/"
@@ -79,21 +87,42 @@ export default function MobileBottomNav() {
             <Link
               key={item.label}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className={`relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-                isActive ? "font-semibold text-black" : "text-bfl-grey hover:text-black"
+              className={`relative flex w-full flex-col items-center justify-center gap-1 pt-1 text-[10.5px] transition-colors ${
+                isActive
+                  ? "font-bold text-shop-primary"
+                  : "font-medium text-shop-muted active:text-shop-ink"
               }`}
             >
-              <span className="relative">
+              {/* The active tab is marked three ways at once — a short rule at
+                  the top edge of the bar, a tinted pill under the icon, and the
+                  brand orange on both icon and label. Colour alone would be the
+                  only signal for anyone who cannot separate orange from grey,
+                  and on a four-tab bar "which page am I on" is the only
+                  question this component answers. */}
+              <span
+                aria-hidden
+                className={`absolute top-0 h-[3px] w-9 rounded-b-full bg-shop-primary transition-opacity ${
+                  isActive ? "opacity-100" : "opacity-0"
+                }`}
+              />
+
+              <span
+                className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                  isActive ? "bg-shop-primary-soft" : "bg-transparent"
+                }`}
+              >
                 {item.icon(isActive)}
                 {item.label === "Cart" && count > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bfl-yellow px-1 text-[9px] font-semibold text-black">
+                  <span className="absolute right-1.5 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-shop-ember px-1 text-[9.5px] font-bold text-white ring-2 ring-white">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}
               </span>
-              <span>{item.label}</span>
+
+              <span className="leading-none">{item.label}</span>
             </Link>
           );
         })}
