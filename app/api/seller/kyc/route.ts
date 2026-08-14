@@ -20,6 +20,7 @@ const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/avif",
   "application/pdf",
 ]);
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     }
     if (!ALLOWED_TYPES.has(file.type)) {
       return privateJson(
-        { message: "Documents must be a photo (JPEG, PNG, WebP) or a PDF." },
+        { message: "Documents must be a photo (JPEG, PNG, WebP, AVIF) or a PDF." },
         { status: 415 }
       );
     }

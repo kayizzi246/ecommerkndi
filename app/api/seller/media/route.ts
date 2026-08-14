@@ -15,7 +15,29 @@ import { SELLER_COOKIE, sellerApiBase } from "@/lib/seller-server";
 /** Matches KANDI_SELLER_MAX_UPLOAD in the WordPress plugin. */
 const MAX_BYTES = 8 * 1024 * 1024;
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+/**
+ * The formats a seller may upload.
+ *
+ * WebP and AVIF are here because that is increasingly what a phone hands over:
+ * every Android share sheet and every "save image" from a browser now produces
+ * WebP, and a modern iPhone screenshot pipeline can produce AVIF. A seller
+ * whose photo was refused for being "not an image" had no way to know it needed
+ * converting first, and no tool on the phone to convert it with — so the
+ * listing went up without a picture, which is the failure this whole uploader
+ * exists to prevent.
+ *
+ * Kept in step with `ACCEPTED` in ImageUploader (what the file picker offers)
+ * and `kandi_seller_image_mimes()` in the WordPress plugin (what finally
+ * accepts the bytes). All three have to agree or a file passes one gate and is
+ * refused by the next.
+ */
+const ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+]);
 
 export async function POST(request: Request) {
   const token = (await cookies()).get(SELLER_COOKIE)?.value;
@@ -49,7 +71,7 @@ export async function POST(request: Request) {
 
   if (!ALLOWED_TYPES.has(file.type)) {
     return privateJson(
-      { message: "Photos must be JPEG, PNG, WebP or GIF." },
+      { message: "Photos must be JPEG, PNG, WebP, AVIF or GIF." },
       { status: 415 }
     );
   }

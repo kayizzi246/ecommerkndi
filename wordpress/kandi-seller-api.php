@@ -67,10 +67,43 @@ define( 'KANDI_SELLER_TOKEN_TTL', 14 * DAY_IN_SECONDS );
 /** Ceiling for one product photo, in bytes. Phone cameras routinely exceed 5 MB. */
 define( 'KANDI_SELLER_MAX_UPLOAD', 8 * 1024 * 1024 );
 
-/** Image types a seller may upload. */
+/**
+ * Image types a seller may upload.
+ *
+ * WebP and AVIF are on the list because that is increasingly what a phone hands
+ * over — every Android share sheet produces WebP, and modern iOS pipelines
+ * produce AVIF. A seller whose photo was refused as "not an image" had no way
+ * to know it needed converting and no tool on the phone to convert it with, so
+ * the listing went up with no picture at all.
+ *
+ * Kept in step with `ALLOWED_TYPES` in app/api/seller/media/route.ts and
+ * `ACCEPTED` in ImageUploader.tsx. All three must agree, or a file passes one
+ * gate and is turned away by the next.
+ */
 function kandi_seller_image_mimes() {
-	return array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
+	return array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif' );
 }
+
+/**
+ * Lets WordPress itself accept WebP and AVIF.
+ *
+ * The allow-list above governs what this plugin will take; this governs what
+ * WordPress will take, and both have to say yes. `wp_handle_upload` and
+ * `wp_check_filetype_and_ext` both test the file against
+ * `get_allowed_mime_types()`, so without this an AVIF is refused by core after
+ * passing every check here — the upload fails with WordPress's own generic
+ * "Sorry, you are not allowed to upload this file type", which tells the seller
+ * nothing.
+ *
+ * WordPress has shipped both by default since 6.5 (AVIF) and 5.8 (WebP); this
+ * is what makes the uploader work on the installs that predate them. Adding a
+ * key that is already present is a no-op.
+ */
+add_filter( 'upload_mimes', function ( $mimes ) {
+	$mimes['webp'] = 'image/webp';
+	$mimes['avif'] = 'image/avif';
+	return $mimes;
+} );
 
 /** How long an emailed verification code stays valid. */
 define( 'KANDI_SELLER_CODE_TTL', 30 * MINUTE_IN_SECONDS );
@@ -929,7 +962,7 @@ function kandi_seller_store_document( $file, $seller_id, $kind ) {
 	if ( ! in_array( $type, $allowed, true ) ) {
 		return new WP_Error(
 			'kandi_bad_file_type',
-			'Documents must be a photo (JPEG, PNG, WebP) or a PDF.',
+			'Documents must be a photo (JPEG, PNG, WebP, AVIF) or a PDF.',
 			array( 'status' => 415 )
 		);
 	}
@@ -1712,7 +1745,7 @@ add_action( 'rest_api_init', function () {
 			if ( ! in_array( $type, kandi_seller_image_mimes(), true ) ) {
 				return new WP_Error(
 					'kandi_bad_file_type',
-					'Photos must be JPEG, PNG, WebP or GIF.',
+					'Photos must be JPEG, PNG, WebP, AVIF or GIF.',
 					array( 'status' => 415 )
 				);
 			}
@@ -1731,6 +1764,7 @@ add_action( 'rest_api_init', function () {
 						'png'          => 'image/png',
 						'gif'          => 'image/gif',
 						'webp'         => 'image/webp',
+						'avif'         => 'image/avif',
 					),
 				)
 			);

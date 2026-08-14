@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/currency";
 import FeePayment from "@/components/seller/FeePayment";
 
 const MAX_MB = 8;
-const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
+const ACCEPT = "image/jpeg,image/png,image/webp,image/avif,application/pdf";
 
 /**
  * What a new seller must finish before the Seller Centre opens.

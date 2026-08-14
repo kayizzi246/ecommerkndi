@@ -20,7 +20,19 @@ import { sellerApi } from "@/lib/seller";
 const MAX_PHOTOS = 8;
 /** Matches the ceiling in the media route and the WordPress plugin. */
 const MAX_BYTES = 8 * 1024 * 1024;
-const ACCEPTED = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+/**
+ * Kept in step with `ALLOWED_TYPES` in app/api/seller/media/route.ts and
+ * `kandi_seller_image_mimes()` in the WordPress plugin. A format the picker
+ * offers but something downstream refuses is a seller staring at "not an image"
+ * for a file their own phone has just produced.
+ */
+const ACCEPTED = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+];
 
 type Photo = {
   /** Stable key across the upload's lifetime — the URL is not known up front. */
@@ -154,7 +166,7 @@ export default function ImageUploader({
           break;
         }
         if (!ACCEPTED.includes(file.type)) {
-          setNotice(`${file.name} is not a JPEG, PNG, WebP or GIF.`);
+          setNotice(`${file.name} is not a JPEG, PNG, WebP, AVIF or GIF.`);
           continue;
         }
         if (file.size > MAX_BYTES) {
@@ -283,7 +295,7 @@ export default function ImageUploader({
             : "Tap to choose from your phone or computer, or drag files here."}
         </span>
         <span className="text-[12px] text-bfl-grey">
-          JPEG, PNG, WebP or GIF · up to 8 MB each · {MAX_PHOTOS} maximum
+          JPEG, PNG, WebP, AVIF or GIF · up to 8 MB each · {MAX_PHOTOS} maximum
         </span>
       </button>
 
