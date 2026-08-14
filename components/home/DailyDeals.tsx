@@ -52,13 +52,32 @@ export default function DailyDeals({
   const best = discountPercent(deepest[0].regular_price, deepest[0].price);
 
   return (
-    // White, like every other section. The band was tinted orange to separate
-    // it from the rails above and below; on a page whose job is showing
-    // photographs, a hairline border does that job without putting a colour
-    // behind sixteen product shots.
+    /**
+     * ---- The band ----
+     *
+     * This section has been three things now, and the history is the argument.
+     *
+     * It began as a solid orange slab, which was wrong: a saturated block
+     * running the full height of a rail puts a colour cast behind sixteen
+     * product photographs, and on a page whose entire job is showing stock that
+     * is the one thing it cannot do. It was then flattened to a white card with
+     * a hairline border, which fixed the cast and lost the point — Daily Deals
+     * is the only section on the homepage making a claim about *time*, and it
+     * looked exactly like the four rails around it that do not.
+     *
+     * So: a tint that dies before the merchandise. The red is at full strength
+     * where the heading and the clock are, has faded to white by the time the
+     * first tile begins, and no photograph sits on anything but white. The
+     * 3px sale-red rule along the top is what carries at a glance while
+     * scrolling — one line of the colour the whole section is about.
+     *
+     * Edge to edge on a phone, a rounded card from md, which is how every other
+     * band on this page behaves. It was an inset card at every width, so on a
+     * 390px screen it gave up 32px of product width to a border nobody needed.
+     */
     <section
       aria-labelledby="daily-deals-heading"
-      className="rounded-2xl border border-shop-line bg-white p-4 md:p-5"
+      className="overflow-hidden border-t-[3px] border-shop-sale bg-gradient-to-b from-pop-red-soft via-white to-white pt-4 md:rounded-2xl md:border md:border-t-[3px] md:border-shop-line md:border-t-shop-sale md:pt-5"
     >
       {/* ---- Header ----
            One wrapping flex row, ordered differently at each width.
@@ -74,9 +93,9 @@ export default function DailyDeals({
            beside the badge with View All at the far right, as before. `order`
            does that without rendering the timer twice: two mounted clocks would
            be two intervals and two elements a screen reader announces. */}
-      {/* No `px-3` of its own. The section is already padded, and the extra
-          gutter held the clock 12px short of the right edge it is aligned to. */}
-      <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* The gutter lives here rather than on the section, so the rail below
+          can run to the glass on a phone while the words never touch it. */}
+      <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 md:px-5">
         <h2
           id="daily-deals-heading"
           className="order-1 heading-black text-[18px] text-shop-ink md:text-[20px]"
@@ -105,14 +124,21 @@ export default function DailyDeals({
           {/* One 24-hour cycle, resetting at midnight on the viewer's clock —
               the same window Super Deals runs on, because both rails are
               rebuilt from WooCommerce's on-sale stock and rebuilt together. */}
-          <span className="flex items-center gap-2 rounded-lg bg-shop-hairline px-3 py-1.5 text-shop-sale">
+          {/* White, not the grey it wore on the old white card: on the tinted
+              band a grey pill reads as disabled, where a white one reads as a
+              plate sitting on the colour. */}
+          <span className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-shop-sale shadow-sm ring-1 ring-black/5">
             <span className="text-[12px] font-semibold">Ends in</span>
             <CountdownBlocks />
           </span>
         </div>
       </div>
 
-      <DealCarousel products={deepest.slice(0, MAX_ITEMS)} />
+      {/* A hair of padding under the rail so the last line of a tile is not
+          flush against the card's own edge from md up. */}
+      <div className="pb-1 md:pb-4">
+        <DealCarousel products={deepest.slice(0, MAX_ITEMS)} />
+      </div>
     </section>
   );
 }
