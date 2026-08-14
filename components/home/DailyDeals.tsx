@@ -54,73 +54,77 @@ export default function DailyDeals({
     /**
      * ---- The band ----
      *
-     * Dark, and the products on a white shelf inside it.
+     * The same band the department rails wear, in sale red.
      *
-     * Every previous attempt fought the same constraint from the wrong side. A
-     * solid orange slab, then a red gradient, both put colour *behind* sixteen
-     * product photographs; a plain white card avoided that and made the only
-     * section on the page claiming a deadline look exactly like the four rails
-     * around it that claim nothing. Tinting harder makes the cast worse and
-     * tinting softer makes the section disappear — the two directions cancel.
+     * This section has now been an orange slab, a white card, a red gradient
+     * and a near-black frame, and the last of those was the mistake this one
+     * corrects: it was a *different* idea from everything around it. The
+     * homepage already had an answer for "a section that needs to stand apart
+     * without putting colour behind a photograph" — the Men, Women and Kids
+     * bands — and Daily Deals inventing a second answer to the same question
+     * meant the page carried two competing treatments and read as two pages
+     * stacked.
      *
-     * Near-black breaks the trade. It is not a hue, so nothing on it reads as
-     * "warm" or "cool" the way a wash of orange does, and it is the strongest
-     * possible frame for the one thing this rail is selling: urgency. The
-     * merchandise never touches it — the tiles sit on a white panel with its
-     * own corners, so the photographs have exactly the ground they have in
-     * every other rail on the site, and the dark is a mount around them rather
-     * than a filter over them.
-     *
-     * Edge to edge on a phone, a rounded card from md, like every other band
-     * here.
+     * So it is the department band exactly: a tint at full strength behind the
+     * heading, faded to white before the first tile, a white disc holding a
+     * glyph, edge to edge on a phone and rounded from md. Red rather than blue
+     * or violet, because that is the shop's discount colour and this is the
+     * discount rail. Nothing else differs — the tiles are the tiles.
      */
     <section
       aria-labelledby="daily-deals-heading"
-      className="overflow-hidden bg-gradient-to-b from-[#26262b] to-bfl-black p-3 md:rounded-2xl md:p-5"
+      className="overflow-hidden bg-gradient-to-b from-pop-red-soft via-white to-white pt-4 md:rounded-2xl md:pt-5"
     >
-      {/* ---- Header ----
-           Two things on one line at every width now, which is what removing
-           "View All" from here bought.
-
-           It was four — title, badge, clock, link — and at 390px they did not
-           fit, so the clock wrapped to a second line of its own. With the link
-           gone to the end of the rail (where a shopper who has seen the deals
-           is the one being offered more of them), the title and the clock sit
-           on one line with the clock hard against the right edge: the eye
-           crosses the heading left to right and lands on the deadline last. */}
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          {/* White on near-black. `heading-black` still carries the weight. */}
-          <h2
-            id="daily-deals-heading"
-            className="heading-black text-[18px] text-white md:text-[20px]"
+      <div className="mb-3.5 flex items-center gap-3 px-3 md:px-5">
+        {/* The disc, matching the department rails. A price tag: the one glyph
+            that means "this costs less" without a word. */}
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-shop-sale shadow-sm ring-1 ring-black/5">
+          <svg
+            aria-hidden
+            className="h-[22px] w-[22px]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            viewBox="0 0 24 24"
           >
-            Daily Deals
-          </h2>
+            <path d="M3.5 12.5 11 5h8v8l-7.5 7.5a1.5 1.5 0 0 1-2.1 0l-5.9-5.9a1.5 1.5 0 0 1 0-2.1ZM15.5 9h.01" />
+          </svg>
+        </span>
 
-          <span className="rounded-full bg-shop-sale px-2.5 py-1 text-[12px] font-bold text-white">
-            {best > 0 ? `Up to ${best}% OFF` : "Lowest prices today"}
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2
+              id="daily-deals-heading"
+              className="heading-black text-[18px] text-shop-ink md:text-[20px]"
+            >
+              Daily Deals
+            </h2>
+            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-sale">
+              {best > 0 ? `Up to ${best}% off` : "Lowest today"}
+            </span>
+          </div>
+          <p className="section-sub mt-0.5 truncate text-[13px]">
+            Today&rsquo;s reductions, gone at midnight
+          </p>
         </div>
 
-        {/* One 24-hour cycle, resetting at midnight on the viewer's clock — the
-            same window Super Deals runs on, because both rails are rebuilt from
-            WooCommerce's on-sale stock and rebuilt together. */}
-        <span className="flex shrink-0 items-center gap-2 rounded-lg bg-white/10 px-2.5 py-1.5 text-white ring-1 ring-white/15">
-          <span className="hidden text-[12px] font-semibold sm:inline">Ends in</span>
+        {/* Where "Shop all" sits on a department rail. It is the same shape and
+            the same position, because it answers the same question — what is
+            the one thing worth knowing about this rail — and here that is the
+            deadline rather than a link. One 24-hour cycle, resetting at
+            midnight on the viewer's clock. */}
+        <span className="flex shrink-0 items-center gap-2 rounded-full bg-shop-ink px-3 py-2 text-white">
+          <span className="hidden text-[11.5px] font-semibold sm:inline">Ends in</span>
           <CountdownBlocks />
         </span>
       </div>
 
-      {/* The white shelf. The dark is a mount around the products, never a
-          ground beneath them: inside this panel a tile has exactly the white it
-          has in every other rail on the site. */}
-      <div className="rounded-xl bg-white p-2 pb-1 md:p-3">
-        <DealCarousel
-          products={deepest.slice(0, MAX_ITEMS)}
-          viewAll={{ href: "/sale", label: "See all deals" }}
-        />
-      </div>
+      <DealCarousel
+        products={deepest.slice(0, MAX_ITEMS)}
+        viewAll={{ href: "/sale", label: "See all deals" }}
+      />
     </section>
   );
 }
