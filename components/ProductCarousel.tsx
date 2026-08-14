@@ -33,15 +33,15 @@ export default function ProductCarousel({
         ref={trackRef}
         className="flex gap-5 overflow-x-auto scroll-smooth no-scrollbar"
       >
-        {/* Same 35.7% as the homepage rails, so a phone shows 2.8 tiles here
-            too — the recommendation rail and the merchandising rails must not
+        {/* Same 40% as the homepage rails, so a phone shows 2.5 tiles here too
+            — the recommendation rail and the merchandising rails must not
             disagree about how big a product is. `sizes` mirrors the widths, so
             the browser asks for a file the tile can actually use. */}
         {products.map((product) => (
-          <div key={product.id} className="w-[35.7%] shrink-0 sm:w-[31%] md:w-[23%] lg:w-[18%]">
+          <div key={product.id} className="w-[40%] shrink-0 sm:w-[31%] md:w-[23%] lg:w-[18%]">
             <ProductCard
               product={product}
-              sizes="(max-width: 640px) 36vw, (max-width: 768px) 31vw, (max-width: 1024px) 23vw, 18vw"
+              sizes="(max-width: 640px) 40vw,(max-width: 768px) 31vw, (max-width: 1024px) 23vw, 18vw"
             />
           </div>
         ))}

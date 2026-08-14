@@ -26,18 +26,19 @@ export default function DealCarousel({
   /**
    * Tailwind width classes for one item — controls how many are visible.
    *
-   * 35.7% on a phone — 100/2.8 — so 2.8 tiles sit in the viewport. The
-   * fraction is the point: a rail showing a whole number of tiles looks like a
+   * 40% on a phone — 100/2.5 — so two and a half tiles sit in the viewport.
+   * The half is the point: a rail showing a whole number of tiles looks like a
    * finished grid that happens to be one row tall, and a shopper has no reason
-   * to swipe it. The cut tile at the right edge is the affordance — it is the
-   * only thing that says there is more this way.
+   * to swipe it. The tile sliced by the right edge is the affordance — it is
+   * the only thing that says there is more this way.
    *
-   * It showed 3.7 before. At that density a product photograph on a 390px
-   * screen is about 100px wide, which is a thumbnail rather than a product;
-   * 2.8 gives each tile half again as much glass while still cutting the third
-   * one visibly in half.
+   * It showed 3.7 before, then 2.8. At 3.7 a product photograph on a 390px
+   * screen was about 100px wide — a thumbnail of a product rather than a
+   * product. At 2.5 it is ~150px, which is where the price, the struck-through
+   * original and the discount are all legible without a second look, and that
+   * is what a rail has to do in the second a thumb gives it.
    */
-  itemWidth = "w-[35.7%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
+  itemWidth = "w-[40%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   priority = false,
 }: {
   products: Product[];
@@ -106,7 +107,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 36vw, (max-width: 768px) 31vw, (max-width: 1024px) 23.5vw, (max-width: 1280px) 18.5vw, 16vw"
+              sizes="(max-width: 640px) 40vw,(max-width: 768px) 31vw, (max-width: 1024px) 23.5vw, (max-width: 1280px) 18.5vw, 16vw"
             />
           </div>
         ))}

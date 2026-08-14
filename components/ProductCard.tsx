@@ -217,11 +217,36 @@ export default function ProductCard({
             Sold out
           </span>
         )}
-        {/* The discount used to be stamped across the photograph as a 56px
-            orange medallion. It now lives beside the price instead: the saving
-            is a number to read next to the two other numbers it relates to, and
-            forty medallions across a grid covered forty products with the same
-            piece of orange. The photographs are the point of the page. */}
+        {/* ---- The discount flag ----
+             A percentage on the photograph, and the argument for it is narrow
+             enough to be worth writing down, because it was deliberately
+             removed once.
+
+             What was removed was a 56px orange medallion stamped across the
+             middle of every discounted product. That was correct to kill: it
+             covered the merchandise, and orange is this shop's brand colour, so
+             a grid of forty of them read as decoration rather than as a
+             number. What replaced it — the percentage beside the price — is
+             where the number *means* the most, sitting between what the item
+             costs and what it cost.
+
+             But the price block is the last thing read, and on a rail that a
+             thumb flicks past in under a second it is often the only thing not
+             read at all. The discount is the single strongest reason to stop,
+             and it was the one signal with no presence in the part of the tile
+             a shopper actually looks at.
+
+             So it is back — as a corner flag, not a medallion: 11px, top
+             right, out of the subject of the shot, in sale red rather than the
+             brand orange, and only on products with a genuine reduction. It
+             does not replace the figure beside the price; that stays, because
+             the two do different jobs — this one stops the scroll, that one
+             closes the sale. */}
+        {!soldOut && discount > 0 && (
+          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale px-1.5 py-[3px] text-[11px] font-bold leading-none text-white shadow-sm">
+            −{discount}%
+          </span>
+        )}
 
         {/* The reference card carries no heart, so it appears on hover — and on
             focus, so it stays reachable from the keyboard. Wishlisting is real

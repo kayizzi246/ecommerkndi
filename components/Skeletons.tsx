@@ -51,7 +51,7 @@ export function ProductRailSkeleton({
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className="w-[35.7%] shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            className="w-[40%] shrink-0sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>
