@@ -1539,6 +1539,19 @@ add_action( 'rest_api_init', function () {
 
 				update_post_meta( $product_id, '_kandi_seller_id', $seller_id );
 
+				/*
+				 * And put the seller's name on the post itself.
+				 *
+				 * Nothing in the marketplace reads `post_author` any more — the
+				 * two places that did are what made store pages look empty —
+				 * but WooCommerce and wp-admin do. Left at 0 the listing shows
+				 * up in the products table with no owner at all, which is the
+				 * one screen a shop owner uses to work out where a product came
+				 * from. The meta stays the record of ownership; this keeps
+				 * WordPress's own idea of it from being a lie.
+				 */
+				wp_update_post( array( 'ID' => $product_id, 'post_author' => $seller_id ) );
+
 				// Sellers file into existing departments only — they never create
 				// new ones. This used to fall through to wp_insert_term, so a
 				// seller typing "Sportswear" or "Mens Shoes" minted a category
@@ -2460,6 +2473,41 @@ add_filter( 'kandi_product_payload', function ( $data, $product ) {
 	return $data;
 }, 10, 2 );
 
+/**
+ * One-time repair: give every existing marketplace listing its seller as author.
+ *
+ * Listings created before the write above went in are sitting on `post_author`
+ * 0, so wp-admin shows them with no owner. Nothing on the storefront depends on
+ * this — the store pages and counts read `_kandi_seller_id` now — which is why
+ * it is a tidy-up rather than a migration the site has to be taken down for.
+ *
+ * Runs once and marks itself done in an option. Scoped to posts that carry the
+ * seller meta, so on a shop whose own stock outnumbers its sellers' this touches
+ * only the handful of rows it has to.
+ */
+add_action( 'admin_init', function () {
+	if ( 'done' === get_option( 'kandi_seller_author_sync' ) ) {
+		return;
+	}
+
+	$listings = get_posts( array(
+		'post_type'      => 'product',
+		'post_status'    => 'any',
+		'meta_key'       => '_kandi_seller_id', // phpcs:ignore WordPress.DB.SlowDBQuery
+		'fields'         => 'ids',
+		'posts_per_page' => -1,
+	) );
+
+	foreach ( $listings as $listing_id ) {
+		$owner = (int) get_post_meta( $listing_id, '_kandi_seller_id', true );
+		if ( $owner && (int) get_post_field( 'post_author', $listing_id ) !== $owner ) {
+			wp_update_post( array( 'ID' => $listing_id, 'post_author' => $owner ) );
+		}
+	}
+
+	update_option( 'kandi_seller_author_sync', 'done', false );
+} );
+
 /* -------------------------------------------------------------------------
  * 9. wp-admin — the marketplace control panel
  * ---------------------------------------------------------------------- */
@@ -3163,10 +3211,23 @@ add_action( 'rest_api_init', function () {
 
 			$stores = array();
 			foreach ( $sellers as $seller ) {
+				/*
+				 * Counted by `_kandi_seller_id`, not by post author.
+				 *
+				 * Same bug as the storefront's `?seller=` filter: a listing
+				 * saved through Seller Centre has no author, because Seller
+				 * Centre authenticates with a bearer token and nothing is
+				 * logged in when WooCommerce writes the post. Counting authors
+				 * gave every marketplace store "0 products" on its own page
+				 * while its owner was looking at the listing in their
+				 * dashboard — the two were reading different records of the
+				 * same fact. This is the record the rest of the plugin uses.
+				 */
 				$product_ids = get_posts( array(
 					'post_type'      => 'product',
 					'post_status'    => 'publish',
-					'author'         => $seller->ID,
+					'meta_key'       => '_kandi_seller_id', // phpcs:ignore WordPress.DB.SlowDBQuery
+					'meta_value'     => $seller->ID, // phpcs:ignore WordPress.DB.SlowDBQuery
 					'fields'         => 'ids',
 					'posts_per_page' => -1,
 				) );

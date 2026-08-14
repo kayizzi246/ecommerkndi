@@ -392,8 +392,29 @@ add_action( 'rest_api_init', function () {
 			if ( ! empty( $request['featured'] ) ) {
 				$args['featured'] = true;
 			}
-			// `?seller=store-slug` limits the list to one marketplace store,
-			// which is what the storefront's store pages are built on.
+			/*
+			 * `?seller=store-slug` limits the list to one marketplace store,
+			 * which is what the storefront's store pages are built on.
+			 *
+			 * ---- Why this matches on meta and not on the post author ----
+			 *
+			 * It filtered by `author` before, and that is why every store page
+			 * on the site said "This store has nothing listed right now" while
+			 * the seller was looking at their live listing in Seller Centre.
+			 *
+			 * Seller Centre authenticates with a bearer token, not a WordPress
+			 * login. So when a seller saves a listing there is no current user,
+			 * WooCommerce writes the product with `post_author` 0, and the only
+			 * record of who owns it is the `_kandi_seller_id` post meta written
+			 * immediately afterwards. Every other part of this marketplace
+			 * already reads that meta — the Seller Centre product list, the
+			 * "Sold by" block on the product page, the commission ledger — and
+			 * these store pages were the one place still asking the author.
+			 *
+			 * Appended to `meta_query` rather than assigned to it: the price
+			 * filter above may already have put a range in there, and a store
+			 * page with a price filter applied must keep both conditions.
+			 */
 			if ( ! empty( $request['seller'] ) ) {
 				$owners = get_users( array(
 					'meta_key'   => '_kandi_store_slug',
@@ -404,7 +425,10 @@ add_action( 'rest_api_init', function () {
 				if ( empty( $owners ) ) {
 					return rest_ensure_response( array( 'products' => array(), 'total' => 0, 'total_pages' => 0 ) );
 				}
-				$args['author'] = (int) $owners[0];
+				$args['meta_query'][] = array( // phpcs:ignore WordPress.DB.SlowDBQuery
+					'key'   => '_kandi_seller_id',
+					'value' => (int) $owners[0],
+				);
 			}
 			if ( ! empty( $request['on_sale'] ) ) {
 				$args['include'] = wc_get_product_ids_on_sale();
