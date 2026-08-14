@@ -137,14 +137,54 @@ export default function ProductCard({
   const saving = discount > 0 ? product.regular_price - product.price : 0;
 
   /**
-   * The sizes or colours this product comes in.
+   * The sizes this product comes in — "40 · 41 · 42 +3".
    *
    * A shopper's second question, after "what does the back look like", is
-   * "will it fit me" — and a tile that answers it saves a click for the people
-   * it fits and saves a wasted one for the people it does not.
+   * "will it fit me", and a tile that answers it saves a click for the people
+   * it fits and a wasted one for the people it does not.
+   *
+   * Two things were wrong with how it answered before.
+   *
+   * It read `attributes[0]` — whichever attribute the seller happened to enter
+   * first. On half the catalogue that is Colour, so the line under the price
+   * was "Black · Navy · Wine Red", which is information the photograph has
+   * already given and which pushes the size out of the tile entirely. The
+   * attribute is now *chosen*: a size-like one if the product has one, and only
+   * then a fallback.
+   *
+   * And each option was drawn as a bordered chip, so four sizes cost four
+   * boxes, eight borders and a wrapped second line on a 150px tile. Sizes are
+   * numbers; they are read as a list, and a list is what they are set as now —
+   * one line, dot-separated, truncated rather than wrapped. The borders were
+   * the "unwanted" part of the tile.
+   *
+   * Colours keep their dots when the seller gave real hex values, because a dot
+   * is the compact form of a colour in a way a word is not.
    */
-  const options = product.attributes[0]?.options ?? [];
-  const swatches = options.slice(0, 4);
+  const sizeAttribute =
+    product.attributes.find((attribute) => /siz|shoe|fit|uk|eu/i.test(attribute.name)) ??
+    product.attributes.find(
+      (attribute) => !/colou?r|shade/i.test(attribute.name)
+    ) ??
+    product.attributes[0];
+
+  /**
+   * Deduplicated and emptied out.
+   *
+   * WooCommerce quite happily stores the same option twice when a seller edits
+   * an attribute by hand, and a tile reading "40 · 40 · 41" looks like a bug in
+   * the shop rather than a repeat in the data.
+   */
+  const options = (sizeAttribute?.options ?? []).filter(
+    (option, index, all) =>
+      option.name.trim() !== "" &&
+      all.findIndex((other) => other.name.trim() === option.name.trim()) === index
+  );
+
+  /** Colours are dots; everything else is the text list. */
+  const isColourList = options.length > 0 && options.every((option) => option.value?.startsWith("#"));
+
+  const swatches = options.slice(0, isColourList ? 5 : 4);
   const moreOptions = Math.max(0, options.length - swatches.length);
 
   return (
@@ -343,33 +383,35 @@ export default function ProductCard({
         )}
 
         {/* Sizes or colours, straight from the product's own attributes.
-            Colour options that carry a hex value are drawn as dots; everything
-            else is set as text, because "38 · 39 · 40" tells a shopper more
-            than four identical grey circles would. */}
-        {swatches.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1">
-            {swatches.map((option) =>
-              option.value && option.value.startsWith("#") ? (
+            A pure colour list is drawn as dots; everything else is one line of
+            dot-separated text, because "40 · 41 · 42" is read at a glance and
+            four bordered boxes are four objects to look at. */}
+        {swatches.length > 0 &&
+          (isColourList ? (
+            <div className="flex flex-wrap items-center gap-1">
+              {swatches.map((option) => (
                 <span
                   key={option.name}
                   title={option.name}
                   className="h-3.5 w-3.5 rounded-full border border-shop-line"
                   style={{ backgroundColor: option.value }}
                 />
-              ) : (
-                <span
-                  key={option.name}
-                  className="rounded border border-shop-line px-1 py-px text-[11px] leading-none text-shop-body"
-                >
-                  {option.name}
-                </span>
-              )
-            )}
-            {moreOptions > 0 && (
-              <span className="text-[11px] leading-none text-shop-muted">+{moreOptions}</span>
-            )}
-          </div>
-        )}
+              ))}
+              {moreOptions > 0 && (
+                <span className="text-[11px] leading-none text-shop-muted">+{moreOptions}</span>
+              )}
+            </div>
+          ) : (
+            /* `truncate` rather than wrapping: a product with nine sizes must
+               not be a taller tile than the one beside it with two, or the rail
+               stops being a row. The `+3` carries what the line could not. */
+            <p className="truncate text-[11.5px] leading-none text-shop-body">
+              {swatches.map((option) => option.name.trim()).join(" · ")}
+              {moreOptions > 0 && (
+                <span className="text-shop-muted"> +{moreOptions}</span>
+              )}
+            </p>
+          ))}
 
         {/* One promotional line, earned from real figures rather than pasted on
             every card. Orange is reserved for this. */}
