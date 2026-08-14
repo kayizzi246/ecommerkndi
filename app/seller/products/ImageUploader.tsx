@@ -194,6 +194,28 @@ export default function ImageUploader({
       return next;
     });
 
+  /**
+   * Moves one photo to another position, taking everything after it along.
+   *
+   * A swap, which is what the arrows do, is the wrong operation for a drag: a
+   * seller dragging their fourth photo onto the first slot means "this is the
+   * main picture", not "swap these two and leave the old main in fourth". This
+   * lifts the photo out and drops it in, so the rest keep their order.
+   */
+  const reorder = (from: number, to: number) =>
+    setPhotos((current) => {
+      if (from === to || from < 0 || to < 0 || from >= current.length || to >= current.length) {
+        return current;
+      }
+      const next = [...current];
+      const [lifted] = next.splice(from, 1);
+      next.splice(to, 0, lifted);
+      return next;
+    });
+
+  /** Straight to the front — the whole point of ordering, in one tap. */
+  const makeMain = (index: number) => reorder(index, 0);
+
   const retry = (photo: Photo) => {
     if (!photo.file) return;
     setPhotos((current) =>
@@ -206,6 +228,23 @@ export default function ImageUploader({
 
   const full = photos.length >= MAX_PHOTOS;
 
+  /**
+   * The tile currently being dragged, and the one it is hovering over.
+   *
+   * `dragIndex` is state rather than a ref because the grid dims the tile being
+   * carried, and `overIndex` draws the line the seller is aiming at. Both are
+   * cleared on drop and on dragend — a drag abandoned outside the window fires
+   * dragend and nothing else, and a tile left permanently half-transparent
+   * would look like a failed upload.
+   */
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const endDrag = () => {
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
   return (
     <div>
       {/* Drop zone. Also a button, so keyboard and screen-reader users get the
@@ -215,11 +254,16 @@ export default function ImageUploader({
         onClick={() => inputRef.current?.click()}
         disabled={full}
         onDragOver={(event) => {
+          // A photo being reordered is not a file being added. Without this the
+          // drop zone lights up as the seller drags a tile past it, which reads
+          // as "let go here" for a gesture that would do nothing.
+          if (dragIndex !== null) return;
           event.preventDefault();
           setDragging(true);
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={(event) => {
+          if (dragIndex !== null) return;
           event.preventDefault();
           setDragging(false);
           if (!full) accept(event.dataTransfer.files);
@@ -268,7 +312,40 @@ export default function ImageUploader({
             {photos.map((photo, index) => (
               <li
                 key={photo.key}
-                className={`relative aspect-square overflow-hidden border border-bfl-line bg-bfl-surface ${inner}`}
+                /* Only a finished photo can be dragged. One still uploading has
+                   no URL yet, and letting it be moved into first place would
+                   mean the listing's main image is a file that may still fail. */
+                draggable={photo.status === "done"}
+                onDragStart={(event) => {
+                  setDragIndex(index);
+                  event.dataTransfer.effectAllowed = "move";
+                  // Firefox refuses to start a drag unless something is set.
+                  event.dataTransfer.setData("text/plain", String(index));
+                }}
+                onDragOver={(event) => {
+                  if (dragIndex === null) return; // A file being dragged in.
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setOverIndex(index);
+                }}
+                onDrop={(event) => {
+                  if (dragIndex === null) return;
+                  event.preventDefault();
+                  // Stops the drop zone above from also handling this.
+                  event.stopPropagation();
+                  reorder(dragIndex, index);
+                  endDrag();
+                }}
+                onDragEnd={endDrag}
+                className={`relative aspect-square overflow-hidden border bg-bfl-surface transition ${inner} ${
+                  photo.status === "done" ? "cursor-grab active:cursor-grabbing" : ""
+                } ${
+                  dragIndex === index
+                    ? "border-bfl-line opacity-40"
+                    : overIndex === index && dragIndex !== null
+                      ? "border-shop-primary ring-2 ring-shop-primary"
+                      : "border-bfl-line"
+                }`}
               >
                 {(photo.preview || photo.url) && (
                   // A plain img: these come straight from the WordPress media
@@ -278,6 +355,9 @@ export default function ImageUploader({
                   <img
                     src={photo.preview ?? photo.url ?? ""}
                     alt=""
+                    // The tile is the drag handle. Left draggable, the image
+                    // would start its own drag and the reorder never begins.
+                    draggable={false}
                     className={`h-full w-full object-cover ${
                       photo.status === "done" ? "" : "opacity-50"
                     }`}
@@ -318,24 +398,43 @@ export default function ImageUploader({
                 </button>
 
                 {/* Order decides which photo shoppers see first, so it has to be
-                    changeable without deleting and re-uploading. */}
+                    changeable without deleting and re-uploading.
+
+                    Dragging is the fast way and these are the reliable one.
+                    HTML5 drag and drop does not exist on a touchscreen — and
+                    the sellers here are photographing stock on a phone and
+                    listing it on the same phone — so a drag-only control would
+                    have made the main image unchangeable for most of them. The
+                    arrows step, and "Main" jumps straight to the front, which
+                    is the thing anyone actually wants. */}
                 {photos.length > 1 && (
-                  <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/55">
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/55">
                     <button
                       type="button"
                       onClick={() => move(index, -1)}
                       disabled={index === 0}
                       aria-label="Move photo earlier"
-                      className="px-2 py-0.5 text-[13px] text-white disabled:opacity-30"
+                      className="px-2 py-1 text-[13px] leading-none text-white disabled:opacity-30"
                     >
                       ‹
                     </button>
+
+                    {index > 0 && photo.status === "done" && (
+                      <button
+                        type="button"
+                        onClick={() => makeMain(index)}
+                        className="px-1 py-1 text-[10px] font-bold uppercase tracking-wide text-white underline decoration-white/60 underline-offset-2"
+                      >
+                        Main
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => move(index, 1)}
                       disabled={index === photos.length - 1}
                       aria-label="Move photo later"
-                      className="px-2 py-0.5 text-[13px] text-white disabled:opacity-30"
+                      className="px-2 py-1 text-[13px] leading-none text-white disabled:opacity-30"
                     >
                       ›
                     </button>
@@ -346,7 +445,9 @@ export default function ImageUploader({
           </ul>
 
           <p className="mt-2 text-[12px] text-bfl-grey">
-            The first photo is the one shoppers see in search and on the shop front.
+            The first photo is the one shoppers see in search and on the shop
+            front. Drag a photo to reorder, or tap <strong>Main</strong> to move
+            it to the front.
           </p>
         </>
       )}
