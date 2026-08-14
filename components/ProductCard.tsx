@@ -76,9 +76,19 @@ function Stars({ rating }: { rating: number }) {
  * Every figure comes from WooCommerce, and each line disappears when there is no
  * number behind it rather than printing a zero.
  */
+/**
+ * How wide this tile renders, as a `sizes` hint for the browser.
+ *
+ * The grid widths, since most cards are in a grid. A rail passes its own —
+ * see below for why that is worth the prop.
+ */
+const GRID_SIZES =
+  "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw";
+
 export default function ProductCard({
   product,
   priority = false,
+  sizes = GRID_SIZES,
 }: {
   product: Product;
   /**
@@ -92,6 +102,22 @@ export default function ProductCard({
    * bandwidth and would be slower than doing nothing.
    */
   priority?: boolean;
+  /**
+   * The width this tile actually occupies, per breakpoint.
+   *
+   * This is the single biggest lever on how fast product photography arrives,
+   * and it was wrong everywhere the card appeared in a rail. `sizes` is what
+   * the browser uses to pick a file out of the `srcset`; it is a promise about
+   * layout, and a wrong one is not corrected by anything downstream. The value
+   * was hard-coded to the grid's `50vw` on mobile, so a rail tile that renders
+   * at 27vw was still being served the 50vw file — roughly four times the
+   * pixels it can display, downloaded and decoded on a phone connection, for
+   * every tile in every rail on the homepage.
+   *
+   * Defaulted rather than required so the several grids that were already
+   * correct stay untouched.
+   */
+  sizes?: string;
 }) {
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
@@ -133,12 +159,23 @@ export default function ProductCard({
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
+                {/* The eager branch below is `loading="eager"` +
+                    `fetchPriority="high"`, not `priority`. Next 16 deprecated
+                    `priority` in favour of `preload`, but `preload` is
+                    explicitly the wrong tool here: the docs say not to use it
+                    when several images could be the LCP depending on viewport,
+                    and this flag is set on the first two tiles of a rail —
+                    exactly that case. Two `<link rel=preload>` tags in the head
+                    would fight each other. Eager loading with a high fetch
+                    priority gets the same head start without the contention. */}
                 <Image
                   src={product.image}
                   alt={product.name}
                   fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
-                  {...(priority ? { priority: true } : { loading: "lazy" as const })}
+                  sizes={sizes}
+                  {...(priority
+                    ? { loading: "eager" as const, fetchPriority: "high" as const }
+                    : { loading: "lazy" as const })}
                   className={`object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
                     soldOut ? "opacity-50" : ""
                   } ${secondPhoto ? "group-hover:opacity-0" : ""}`}
@@ -156,7 +193,7 @@ export default function ProductCard({
                     alt=""
                     aria-hidden
                     fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw"
+                    sizes={sizes}
                     loading="lazy"
                     className="object-cover opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
                   />
@@ -211,8 +248,11 @@ export default function ProductCard({
 
       {/* ---- Detail ----
            Tight on purpose: every pixel between these five short lines is a
-           pixel of photograph the next row does not get. */}
-      <div className="mt-1.5 flex flex-1 flex-col gap-1">
+           pixel of photograph the next row does not get. The photograph and the
+           name it belongs to are one object, so they sit 2px apart rather than
+           6 — at 6 the text read as a caption floating under the tile instead
+           of part of it. */}
+      <div className="mt-0.5 flex flex-1 flex-col gap-0.5">
         {/* Chips run inline with the name, so a tag costs no vertical space. */}
         <Link href={href} className="block">
           {/* 14/20 rather than 14/19: a supplier title always wraps to the full

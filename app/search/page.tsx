@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Search",
   robots: { index: false, follow: true },
 };
-import { sortProducts, filterProducts, brandFacets } from "@/lib/sort-products";
+import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -45,8 +45,17 @@ export default async function SearchPage({
   const page = Math.max(1, Number(pageParam) || 1);
   const query = q.trim();
 
+  // Sorting and the price/stock filters go to WordPress, so they apply to the
+  // whole result set rather than to whichever 24 rows this page happened to
+  // get. Without that, "price: low to high" ordered page 1 among itself and
+  // left cheaper products stranded on page 2.
   const { products, total, total_pages } = query
-    ? await getProductsSafe({ search: query, page, per_page: 24 })
+    ? await getProductsSafe({
+        search: query,
+        page,
+        per_page: 24,
+        ...toProductQuery(search),
+      })
     : { products: [], total: 0, total_pages: 0 };
 
   const brands = brandFacets(products);

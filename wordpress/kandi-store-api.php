@@ -95,57 +95,113 @@ add_filter( 'rest_post_dispatch', function ( $response, $server, $request ) {
 }, 10, 3 );
 
 /**
+ * Beyond this many variations a product is a data-entry accident, not a
+ * product. Stops one pathological item stalling a whole response.
+ */
+if ( ! defined( 'KANDI_MAX_VARIATIONS' ) ) {
+	define( 'KANDI_MAX_VARIATIONS', 60 );
+}
+
+/**
  * Turn a WC_Product into the plain array the storefront consumes.
+ *
+ * @param WC_Product $product
+ * @param bool       $with_description Single-product view: include the long
+ *                                     description and the variation matrix.
+ *                                     Both are expensive and neither is read by
+ *                                     a grid, so a listing must never ask for
+ *                                     them. See the note on variations below.
  */
 function kandi_format_product( $product, $with_description = false ) {
-	$image_id  = $product->get_image_id();
-	$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : wc_placeholder_img_src( 'large' );
+	/*
+	 * ---- The main product image ----
+	 *
+	 * `$main_image_url`, not `$image_url`.
+	 *
+	 * THIS IS THE FIX FOR PRODUCTS ARRIVING WITH "image": null.
+	 *
+	 * The attribute loop further down used to assign to `$image_id` and
+	 * `$image_url` while reading swatch images off each attribute term — the
+	 * same two variables the product's own photograph had been resolved into
+	 * thirty lines earlier. So the last attribute term processed overwrote the
+	 * product image, and `'image' => $image_url` at the bottom shipped whatever
+	 * that term happened to have.
+	 *
+	 * Almost no attribute term has a `thumbnail_id`, so the value was almost
+	 * always null — and because every product in this catalogue carries a Size
+	 * attribute, *every* product came back with no main image. The storefront
+	 * fell back to the first gallery shot where there was one and printed "No
+	 * image" where there was not, which is exactly how it looked.
+	 *
+	 * The names below are now distinct, so neither loop can reach the other.
+	 */
+	$main_image_id  = $product->get_image_id();
+	$main_image_url = $main_image_id
+		? wp_get_attachment_image_url( $main_image_id, 'large' )
+		: wc_placeholder_img_src( 'large' );
 
 	$gallery = array();
-	foreach ( $product->get_gallery_image_ids() as $gallery_id ) {
+	foreach ( (array) $product->get_gallery_image_ids() as $gallery_id ) {
 		$url = wp_get_attachment_image_url( $gallery_id, 'large' );
 		if ( $url ) {
 			$gallery[] = $url;
 		}
 	}
 
-	$categories = array();
-	$terms      = get_the_terms( $product->get_id(), 'product_cat' );
-	if ( $terms && ! is_wp_error( $terms ) ) {
-		foreach ( $terms as $term ) {
+	$categories     = array();
+	$category_terms = get_the_terms( $product->get_id(), 'product_cat' );
+	if ( $category_terms && ! is_wp_error( $category_terms ) ) {
+		foreach ( $category_terms as $category_term ) {
 			$categories[] = array(
-				'id'   => $term->term_id,
-				'name' => $term->name,
-				'slug' => $term->slug,
+				'id'   => $category_term->term_id,
+				'name' => $category_term->name,
+				'slug' => $category_term->slug,
 			);
 		}
 	}
 
 	// Attributes (e.g. Size, Color) so the storefront can show option pickers.
 	$attributes = array();
-	foreach ( $product->get_attributes() as $attribute ) {
-		if ( is_object( $attribute ) && $attribute->is_taxonomy() ) {
-			$terms = wc_get_product_terms( $product->get_id(), $attribute->get_name() );
-			$options = array();
-			foreach($terms as $term) {
-				// Assumes a swatch plugin saves color hex as 'color' term meta.
-				// Common plugins: 'WooCommerce Attribute Swatches', 'Variation Swatches for WooCommerce'.
-				$color_val = get_term_meta( $term->term_id, 'color', true );
-				$image_id  = get_term_meta( $term->term_id, 'thumbnail_id', true ); // Common key for swatch images
-				$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : null;
-				$options[] = array(
-					'name'  => $term->name,
-					'value' => $color_val ?: null, // e.g. #RRGGBB
-					'image' => $image_url,
-				);
-			}
-		} elseif ( is_object( $attribute ) ) {
-			$options = array_map(function($opt) {
-				return array('name' => $opt, 'value' => null);
-			}, $attribute->get_options());
-		} else {
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( ! is_object( $attribute ) ) {
 			continue;
 		}
+
+		$options = array();
+
+		if ( $attribute->is_taxonomy() ) {
+			$attribute_terms = wc_get_product_terms( $product->get_id(), $attribute->get_name() );
+
+			// `wc_get_product_terms` returns a WP_Error when the taxonomy has
+			// been removed but the product still references it — which happens
+			// routinely after an importer is uninstalled. Iterating that raised
+			// a fatal, and a fatal inside one product killed the entire
+			// response, which is one of the ways search "errored".
+			if ( is_wp_error( $attribute_terms ) || ! is_array( $attribute_terms ) ) {
+				continue;
+			}
+
+			foreach ( $attribute_terms as $attribute_term ) {
+				// Assumes a swatch plugin saves the colour hex as `color` term
+				// meta. Common plugins: WooCommerce Attribute Swatches,
+				// Variation Swatches for WooCommerce.
+				$swatch_colour   = get_term_meta( $attribute_term->term_id, 'color', true );
+				$swatch_image_id = get_term_meta( $attribute_term->term_id, 'thumbnail_id', true );
+
+				$options[] = array(
+					'name'  => $attribute_term->name,
+					'value' => $swatch_colour ?: null, // e.g. #RRGGBB
+					'image' => $swatch_image_id
+						? wp_get_attachment_image_url( $swatch_image_id, 'large' )
+						: null,
+				);
+			}
+		} else {
+			foreach ( (array) $attribute->get_options() as $option ) {
+				$options[] = array( 'name' => $option, 'value' => null, 'image' => null );
+			}
+		}
+
 		if ( ! empty( $options ) ) {
 			$attributes[] = array(
 				'name'    => wc_attribute_label( $attribute->get_name() ), // e.g. "Color"
@@ -154,23 +210,56 @@ function kandi_format_product( $product, $with_description = false ) {
 		}
 	}
 
-	// For variable products, add variation data (attributes, stock status, price).
+	/*
+	 * ---- Variations ----
+	 *
+	 * THIS IS THE FIX FOR THE SEARCH AND CATEGORY ENDPOINTS TIMING OUT.
+	 *
+	 * This block used to run for every product in every response, and it built
+	 * the matrix with `get_available_variations()` — the single most expensive
+	 * call in WooCommerce. That method assembles the *complete* front-end
+	 * payload for each variation: prices formatted for display, availability
+	 * HTML, image arrays, dimensions. It then loaded each variation a second
+	 * time with `wc_get_product()`, purely to read two fields off it.
+	 *
+	 * On a listing of 24 products averaging fifty size/colour combinations that
+	 * is around 2,400 full product loads for one request, none of which a grid
+	 * of tiles ever reads — the storefront only uses `variations` on the
+	 * product page. That is why `/products?per_page=24` took 47 to 117 seconds
+	 * and then returned 500, 503 or a Cloudflare 524.
+	 *
+	 * Two changes: it is now gated behind `$with_description`, so only the
+	 * single-product route pays for it; and it reads the variation objects
+	 * directly from `get_children()` instead of asking for the display payload
+	 * and then re-fetching. Same output, one load per variation instead of two
+	 * plus the formatting.
+	 */
 	$variations_data = array();
-	if ( $product->is_type( 'variable' ) ) {
-		$available_variations = $product->get_available_variations();
-		foreach ( $available_variations as $variation_obj ) {
-			$variation_product = wc_get_product( $variation_obj['variation_id'] );
-			if ( ! $variation_product ) {
+	if ( $with_description && $product->is_type( 'variable' ) ) {
+		$variation_ids = array_slice( (array) $product->get_children(), 0, KANDI_MAX_VARIATIONS );
+
+		foreach ( $variation_ids as $variation_id ) {
+			$variation_product = wc_get_product( $variation_id );
+			if ( ! $variation_product || ! $variation_product->exists() ) {
 				continue;
 			}
+
 			$variation_attributes = array();
 			foreach ( $variation_product->get_variation_attributes() as $attr_key => $attr_value ) {
 				$attr_name = wc_attribute_label( str_replace( 'attribute_', '', $attr_key ) );
+
+				// A variation that matches "any" value of an attribute stores an
+				// empty string. Passing that on gave the storefront an option
+				// with no name, which rendered as an unlabelled dead button.
+				if ( '' === $attr_value ) {
+					continue;
+				}
 				$variation_attributes[ $attr_name ] = $attr_value;
 			}
+
 			$variations_data[] = array(
-				'attributes'   => $variation_attributes,
-				'is_in_stock'  => $variation_product->is_in_stock(),
+				'attributes'  => $variation_attributes,
+				'is_in_stock' => $variation_product->is_in_stock(),
 			);
 		}
 	}
@@ -186,7 +275,7 @@ function kandi_format_product( $product, $with_description = false ) {
 		'featured'          => $product->is_featured(),
 		'stock_status'      => $product->get_stock_status(), // instock | outofstock | onbackorder
 		'stock_quantity'    => $product->get_stock_quantity(),
-		'image'             => $image_url,
+		'image'             => $main_image_url,
 		'gallery'           => $gallery,
 		'date_created'      => $product->get_date_created() ? $product->get_date_created()->date( 'c' ) : null,
 		'short_description' => wp_strip_all_tags( $product->get_short_description() ),
@@ -231,6 +320,69 @@ add_action( 'rest_api_init', function () {
 				'paginate' => true,
 			);
 
+			/*
+			 * Sorting, done here rather than in the storefront.
+			 *
+			 * `orderby` used to be hard-coded to `date`, so the shop could only
+			 * ever receive the newest page of a result set. The storefront then
+			 * re-sorted *that page* in JavaScript, which looks correct on a
+			 * catalogue that fits on one page and is wrong the moment it does
+			 * not: asking for "price: low to high" sorted the 24 rows already
+			 * fetched, so page 2 was full of items cheaper than page 1. The
+			 * cheapest product in the shop could sit on the last page of a
+			 * search sorted by price.
+			 *
+			 * The allow-list is deliberate — `orderby` reaches WP_Query, and
+			 * passing a caller's string through to it unchecked is an injection
+			 * surface. Anything unrecognised falls through to the date default.
+			 *
+			 * `price` and `popularity` are WooCommerce's own aliases: WC rewrites
+			 * them onto the `_price` and `total_sales` meta and handles the
+			 * numeric casting, which is why they are used instead of a
+			 * hand-rolled meta_query.
+			 */
+			$sorts = array(
+				'price_asc'  => array( 'price', 'ASC' ),
+				'price_desc' => array( 'price', 'DESC' ),
+				'newest'     => array( 'date', 'DESC' ),
+				'popular'    => array( 'popularity', 'DESC' ),
+				'rating'     => array( 'rating', 'DESC' ),
+			);
+			$sort = isset( $request['sort'] ) ? (string) $request['sort'] : '';
+			if ( isset( $sorts[ $sort ] ) ) {
+				$args['orderby'] = $sorts[ $sort ][0];
+				$args['order']   = $sorts[ $sort ][1];
+			}
+
+			/*
+			 * Stock and price filters, for the same reason.
+			 *
+			 * The storefront's filter rail was also applying these to whichever
+			 * page happened to be in hand, so "in stock only" could empty a page
+			 * while the pagination underneath still advertised nine more, and the
+			 * result count never matched what was on screen.
+			 */
+			if ( ! empty( $request['in_stock'] ) ) {
+				$args['stock_status'] = 'instock';
+			}
+
+			$min_price = isset( $request['min_price'] ) ? (float) $request['min_price'] : 0;
+			$max_price = isset( $request['max_price'] ) ? (float) $request['max_price'] : 0;
+			if ( $min_price > 0 || $max_price > 0 ) {
+				$range = array( 'key' => '_price', 'type' => 'NUMERIC' );
+				if ( $min_price > 0 && $max_price > 0 ) {
+					$range['value']   = array( $min_price, $max_price );
+					$range['compare'] = 'BETWEEN';
+				} elseif ( $min_price > 0 ) {
+					$range['value']   = $min_price;
+					$range['compare'] = '>=';
+				} else {
+					$range['value']   = $max_price;
+					$range['compare'] = '<=';
+				}
+				$args['meta_query'] = array( $range ); // phpcs:ignore WordPress.DB.SlowDBQuery
+			}
+
 			if ( ! empty( $request['category'] ) ) {
 				$args['category'] = array( sanitize_title( $request['category'] ) );
 			}
@@ -261,8 +413,43 @@ add_action( 'rest_api_init', function () {
 				}
 			}
 
+			/*
+			 * ---- Failure containment ----
+			 *
+			 * A listing is a loop over rows the shop does not control: an import
+			 * can leave a product referencing a deleted attribute taxonomy, a
+			 * half-migrated variation, or an image attachment that no longer
+			 * exists. Formatting used to be a bare `array_map`, so the first row
+			 * that raised anything took the whole response down and the shopper
+			 * got a failed search rather than the twenty-three products that
+			 * were perfectly fine.
+			 *
+			 * Each row is now formatted inside its own try/catch. A row that
+			 * cannot be formatted is skipped and logged for whoever fixes it,
+			 * and the rest of the page still renders. `Throwable` catches
+			 * PHP 7+ Errors as well as Exceptions — a call on a null product
+			 * object is an Error, not an Exception, and catching only the latter
+			 * would have missed the common case.
+			 *
+			 * `total` is left as WooCommerce reported it. It counts what matched
+			 * the query, and a row we failed to render still matched — recounting
+			 * here would make the pagination disagree with itself.
+			 */
 			$results  = wc_get_products( $args );
-			$products = array_map( 'kandi_format_product', $results->products );
+			$products = array();
+
+			foreach ( $results->products as $result ) {
+				try {
+					$products[] = kandi_format_product( $result );
+				} catch ( Throwable $error ) {
+					$id = is_object( $result ) && method_exists( $result, 'get_id' ) ? $result->get_id() : 0;
+					error_log( sprintf(
+						'[kandi] skipped product %d in a listing: %s',
+						$id,
+						$error->getMessage()
+					) );
+				}
+			}
 
 			return rest_ensure_response( array(
 				'products'    => $products,

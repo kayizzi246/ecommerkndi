@@ -69,6 +69,22 @@ export default function ProductPurchase({
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
+
+  /**
+   * Nothing left to sell, and the softer case where WooCommerce will still
+   * take the order but cannot ship it yet.
+   *
+   * The page had no notion of either. `AddToCartButton` quietly rendered a
+   * disabled "Sold out" and that was the whole of it — everything above the
+   * button carried on as though the item were buyable, so a sold-out product
+   * still advertised its discount, still promised free delivery, and still
+   * claimed a few hundred people had looked at it in the last day. A shopper
+   * read all of that and only found out at the button. The state belongs at
+   * the top, with the price, where it changes how the rest is read.
+   */
+  const soldOut = product.stock_status === "outofstock";
+  const onBackorder = product.stock_status === "onbackorder";
+
   const brand = product.categories[0];
   const images = [product.image, ...product.gallery].filter(Boolean);
   const colorAttribute = product.attributes?.find(
@@ -105,6 +121,7 @@ export default function ProductPurchase({
               isNew={isNew}
               discount={discount}
               superPrice={discount >= 50}
+              soldOut={soldOut}
             />
           </div>
         </div>
@@ -130,8 +147,17 @@ export default function ProductPurchase({
               Slightly larger and a touch tighter than before: product names run
               long here ("Men's Leather Oxford Shoes Brown Size 42"), and tight
               tracking on a wide face is what keeps that on two lines instead of
-              three. */}
-          <h1 className="font-heading mt-1.5 text-[21px] font-semibold leading-[1.3] tracking-[-0.01em] text-shop-ink md:text-[24px]">
+              three.
+
+              `heading-800`, the class written for exactly this line and until
+              now used nowhere. It matters that it is a class and not a utility:
+              the `h1`/`.font-heading` rule in globals.css is unlayered, so it
+              beats any Tailwind `font-*` on the same element — the
+              `font-semibold` that used to sit here never applied at all, and
+              the title was rendering at the generic heading 700. At 800 the
+              name finally outweighs the price and the delivery copy beneath
+              it, which is the order a shopper should read them in. */}
+          <h1 className="heading-800 mt-1.5 text-[21px] text-shop-ink md:text-[24px]">
             {product.name}
           </h1>
 
@@ -161,12 +187,29 @@ export default function ProductPurchase({
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             <span
               className={`text-[22px] font-semibold ${
-                discount > 0 ? "text-shop-sale" : "text-shop-ink"
+                soldOut
+                  ? "text-shop-muted line-through"
+                  : discount > 0
+                    ? "text-shop-sale"
+                    : "text-shop-ink"
               }`}
             >
               {formatPrice(product.price)}
             </span>
-            {discount > 0 && (
+            {/* Struck through and greyed above, and labelled here. A price a
+                shopper cannot pay should not be set in the colour that means
+                "this is a deal". */}
+            {soldOut && (
+              <span className="rounded-full bg-shop-ink px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-white">
+                Out of stock
+              </span>
+            )}
+            {onBackorder && (
+              <span className="rounded-full bg-shop-primary-soft px-2.5 py-1 text-[12px] font-semibold text-shop-primary-ink">
+                On backorder
+              </span>
+            )}
+            {!soldOut && discount > 0 && (
               <>
                 <span className="text-[17px] text-shop-muted line-through">
                   {formatPrice(product.regular_price)}
@@ -182,7 +225,7 @@ export default function ProductPurchase({
               abstraction; "You save UGX 55,000" is the number a shopper weighs
               against their wallet, and it is the single line that most reliably
               moves a discounted product. */}
-          {discount > 0 && (
+          {!soldOut && discount > 0 && (
             <p className="price mt-1.5 text-[15px] text-shop-success">
               You save {formatPrice(product.regular_price - product.price)}
             </p>
@@ -212,13 +255,59 @@ export default function ProductPurchase({
             className="mt-3.5"
           />
 
-          <DeliveryPromise className="mt-3.5" />
+          {/* The delivery promise is a promise about this item, so it goes when
+              there is no item to deliver. */}
+          {!soldOut && <DeliveryPromise className="mt-3.5" />}
 
-          {/* Stock signal — driven by the real quantity, so it only appears
-              when the shop actually is running low. */}
-          {product.stock_status === "instock" &&
-          product.stock_quantity !== null &&
-          product.stock_quantity <= 10 ? (
+          {/* ---- Stock signal ----
+               Four states, in descending order of how much they change what the
+               shopper does next.
+
+               Sold out is first and is a block rather than a line: it is the
+               only one that ends the visit for this product, so it says what
+               happened and offers the way out — the category the item came
+               from, which is where a shopper who wanted this thing is most
+               likely to find the next one. Sending them back to a dead end
+               instead is how a sold-out page becomes a lost sale twice.
+
+               The viewer count is the fallback and only the fallback. It used
+               to catch every case the low-stock branch missed, which included
+               sold out — so an item nobody could buy reported a few hundred
+               people looking at it. Social proof for an unavailable product is
+               not persuasion, it is a taunt. */}
+          {soldOut ? (
+            <div className="mt-3 rounded-lg border border-shop-line bg-shop-surface px-3.5 py-3">
+              <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-ink">
+                <svg aria-hidden className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path strokeLinecap="round" d="M9 12h6" />
+                </svg>
+                Out of stock
+              </p>
+              <p className="mt-1 text-[13.5px] leading-snug text-shop-body">
+                This item has sold out. We restock popular lines regularly — check
+                back, or{" "}
+                {brand ? (
+                  <Link
+                    href={`/category/${brand.slug}`}
+                    className="font-semibold text-shop-primary hover:underline"
+                  >
+                    browse more in {brand.name}
+                  </Link>
+                ) : (
+                  <Link href="/search" className="font-semibold text-shop-primary hover:underline">
+                    browse the rest of the shop
+                  </Link>
+                )}
+                .
+              </p>
+            </div>
+          ) : onBackorder ? (
+            <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-primary-ink">
+              <span className="h-1.5 w-1.5 rounded-full bg-shop-primary" aria-hidden />
+              Available on backorder — ships as soon as it arrives
+            </p>
+          ) : product.stock_quantity !== null && product.stock_quantity <= 10 ? (
             <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-sale">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
               Only {product.stock_quantity} left in stock
@@ -260,8 +349,11 @@ export default function ProductPurchase({
                50,000" is a fact they have to do arithmetic against.
 
                Both readings come from the shop's real threshold, so neither can
-               promise what the checkout will not honour. */}
-          {freeDeliveryFrom > 0 && (
+               promise what the checkout will not honour — and neither is shown
+               at all on a sold-out item, where "add UGX 12,000 more and
+               delivery is free" is advice about a basket the shopper cannot
+               build. */}
+          {!soldOut && freeDeliveryFrom > 0 && (
             <p
               className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2.5 text-[13.5px] leading-snug ${
                 product.price >= freeDeliveryFrom

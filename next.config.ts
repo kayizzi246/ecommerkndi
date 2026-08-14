@@ -54,10 +54,27 @@ import type { NextConfig } from "next";
  * exfiltration, and both ends are closed.
  *
  * Worth revisiting if the shop ever moves to mostly-dynamic rendering.
+ *
+ * ## `'unsafe-eval'`, in development only
+ *
+ * React's development build calls `eval()` — it is how it reconstructs a
+ * component stack that originated on the server so the error overlay can point
+ * at the right line. With the policy below applied verbatim, `next dev` threw
+ * "eval() is not supported in this environment" into the console on every page
+ * load and the overlay lost its stack traces.
+ *
+ * React never calls `eval()` in a production build, so the allowance is gated
+ * on NODE_ENV rather than added outright. `next build` and `next start` both
+ * run with NODE_ENV=production, which means the deployed shop keeps the strict
+ * policy and only the local dev server relaxes it — the shape of exemption
+ * that cannot quietly reach production, because the flag that enables it is the
+ * same one that decides which React build is being served.
  */
+const DEV = process.env.NODE_ENV !== "production";
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""} https://accounts.google.com`,
   // Tailwind and Next both emit inline style attributes; there is no nonce-free
   // way around this one, and injected CSS is a far smaller problem than
   // injected script.
@@ -66,7 +83,11 @@ const CSP = [
   // next/font downloads Google Fonts at build time and serves them from our own
   // origin, so no external font host is needed.
   "font-src 'self' data:",
-  "connect-src 'self' https://accounts.google.com",
+  // The `ws:` in development is Hot Module Replacement talking back to the dev
+  // server. Browsers disagree about whether `'self'` covers a WebSocket on the
+  // same origin, so it is named rather than assumed — and, like `'unsafe-eval'`
+  // above, it is gated on NODE_ENV so production never carries it.
+  `connect-src 'self'${DEV ? " ws: wss:" : ""} https://accounts.google.com`,
   "frame-src 'self' https://accounts.google.com https://*.pesapal.com",
   // Nothing here is a plugin, and `object-src 'none'` closes a whole family of
   // legacy injection tricks.
@@ -130,6 +151,31 @@ const nextConfig: NextConfig = {
       // account, so naming one of them would work until the day it did not.
       { protocol: "https", hostname: "**.googleusercontent.com" },
     ],
+
+    /**
+     * How long an optimized product photo stays cached before Next re-fetches
+     * the original and re-encodes it.
+     *
+     * The default is 4 hours, which is tuned for images that change behind a
+     * stable URL. Product photography here does the opposite: a seller uploads
+     * a file, WordPress gives it its own URL, and that URL's contents never
+     * change again — a replacement photo is a new upload with a new URL. So the
+     * 4-hour expiry bought no freshness at all and cost a re-download from
+     * WordPress plus a re-encode every time it lapsed, which is the "the images
+     * are slow again" that shows up hours after a product was added.
+     *
+     * 31 days, the figure the docs give for exactly this case. The risk the
+     * short default protects against — a changed image behind a cached URL —
+     * cannot happen with WooCommerce media.
+     */
+    minimumCacheTTL: 2678400,
+
+    // WebP only, deliberately. AVIF compresses about 20% smaller but takes
+    // roughly 50% longer to encode, and that cost lands on the *first* request
+    // for an image — which is precisely the moment this shop cares about, when
+    // a seller has just added a product and is looking at it. Faster-once-warm
+    // is the wrong trade for a catalogue that has new photos in it every day.
+    formats: ["image/webp"],
   },
 
   // Hides the framework version from responses. Minor, but a version number is

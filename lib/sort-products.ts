@@ -1,5 +1,45 @@
-import type { Product } from "@/lib/woocommerce";
+import type { Product, ProductQuery } from "@/lib/woocommerce";
 import { discountPercent } from "@/lib/currency";
+
+/**
+ * Turns the URL's sort and filter parameters into a WordPress query.
+ *
+ * This is the half of listing behaviour that has to happen on the server. The
+ * pages used to do all of it in the browser, against whichever 24 rows they had
+ * been handed — so "price: low to high" ordered one page at a time, "in stock
+ * only" emptied pages while the pagination still promised more, and the result
+ * count never matched what was on screen.
+ *
+ * Everything WooCommerce can express goes through here. What it cannot express
+ * — the discount ordering, and the brand facet, which is counted from the
+ * products themselves — stays in {@link sortProducts} and
+ * {@link filterProducts} below, applied to the page afterwards. Those two are
+ * now refinements of a correctly sorted, correctly filtered result set rather
+ * than a substitute for one.
+ */
+export function toProductQuery(search: ProductFilters & { sort?: string }): Partial<ProductQuery> {
+  const query: Partial<ProductQuery> = {};
+
+  // `discount` is missing from this map deliberately: WooCommerce cannot order
+  // by a comparison between two meta values, so it stays page-local.
+  const sorts: Record<string, ProductQuery["sort"]> = {
+    price_asc: "price_asc",
+    price_desc: "price_desc",
+    newest: "newest",
+    popular: "popular",
+    rating: "rating",
+  };
+  if (search.sort && sorts[search.sort]) query.sort = sorts[search.sort];
+
+  if (search.stock === "1") query.in_stock = true;
+
+  const min = Number(search.min_price);
+  const max = Number(search.max_price);
+  if (search.min_price && Number.isFinite(min) && min > 0) query.min_price = min;
+  if (search.max_price && Number.isFinite(max) && max > 0) query.max_price = max;
+
+  return query;
+}
 
 export type ProductFilters = {
   min_price?: string;

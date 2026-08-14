@@ -218,8 +218,11 @@ export default function Footer({
       {/* Legal bar */}
       <div className="border-t border-white/10 bg-shop-ink">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
+          {/* "KandiUg" here as well as on the homepage: a legal bar is on every
+              page of the site, which is what turns one mention of the name
+              people search into a site-wide one. */}
           <span>
-            © {new Date().getFullYear()} {brand.name} Uganda. All rights reserved.
+            © {new Date().getFullYear()} {brand.name} Uganda (KandiUg). All rights reserved.
           </span>
           <span className="text-white/55">
             Cash on delivery · MTN MoMo · Airtel Money · Visa · Mastercard

@@ -14,6 +14,16 @@ type Props = {
   discount?: number;
   /** Super price flag, for deep discounts. */
   superPrice?: boolean;
+  /**
+   * Nothing left to sell.
+   *
+   * Fades the photograph and stamps it, the way the product card already does.
+   * The state has to be readable from the picture alone: on a phone the buy
+   * button is a screen below the image, and a shopper who has scrolled to a
+   * product from a rail should not have to reach it to find out the item is
+   * gone.
+   */
+  soldOut?: boolean;
 };
 
 /**
@@ -32,6 +42,7 @@ export default function ImageGallery({
   isNew = false,
   discount = 0,
   superPrice = false,
+  soldOut = false,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState(false);
@@ -96,24 +107,37 @@ export default function ImageGallery({
             alt={`${productName} — image ${activeIndex + 1}`}
             fill
             sizes="(min-width: 1024px) 680px, 100vw"
-            className="h-full w-full object-contain p-1.5"
+            className={`h-full w-full object-contain p-1.5 ${soldOut ? "opacity-45" : ""}`}
             priority
           />
         </button>
 
-        {/* Flags */}
+        {/* Sold out, across the middle of the frame.
+            Centred rather than tucked in a corner with the other flags: this is
+            not a badge competing for attention with a discount, it is the one
+            fact that decides whether the rest of the page is worth reading. */}
+        {soldOut && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="rounded-full bg-shop-ink/90 px-5 py-2 text-[14px] font-semibold uppercase tracking-[0.08em] text-white">
+              Sold out
+            </span>
+          </div>
+        )}
+
+        {/* Flags. Suppressed when the item is gone — a "−40%" on something
+            nobody can buy is an advert for a disappointment. */}
         <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
-          {discount > 0 && (
+          {!soldOut && discount > 0 && (
             <span className="rounded-full bg-shop-sale px-3 py-1 text-[13px] font-semibold text-white">
               −{discount}%
             </span>
           )}
-          {superPrice && (
+          {!soldOut && superPrice && (
             <span className="rounded-full bg-shop-flame px-3 py-1 text-[13px] font-semibold text-white">
               Super price
             </span>
           )}
-          {isNew && !superPrice && discount === 0 && (
+          {!soldOut && isNew && !superPrice && discount === 0 && (
             <span className="rounded-full bg-pop-green px-3 py-1 text-[13px] font-semibold text-white">
               New in
             </span>

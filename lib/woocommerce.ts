@@ -104,6 +104,22 @@ export type ProductQuery = {
   featured?: boolean;
   /** Marketplace store slug, for the per-store listing pages. */
   seller?: string;
+  /**
+   * Sort key, applied by WordPress across the whole result set.
+   *
+   * The listing pages used to sort the page they had already been given, which
+   * is only correct while the results fit on one page. Sorting has to happen
+   * where the pagination happens or the two disagree.
+   *
+   * `discount` is absent on purpose: it is a computed comparison between two
+   * meta values and WooCommerce cannot order by it, so that one stays a
+   * page-local refinement. See `sortProducts`.
+   */
+  sort?: "price_asc" | "price_desc" | "newest" | "popular" | "rating";
+  /** Restrict to products currently in stock. */
+  in_stock?: boolean;
+  min_price?: number;
+  max_price?: number;
 };
 
 /** A marketplace store, as shown in the public directory. */
@@ -396,6 +412,10 @@ export async function getProducts(
     if (query.on_sale) params.set("on_sale", "1");
     if (query.featured) params.set("featured", "1");
     if (query.seller) params.set("seller", query.seller);
+    if (query.sort) params.set("sort", query.sort);
+    if (query.in_stock) params.set("in_stock", "1");
+    if (query.min_price) params.set("min_price", String(query.min_price));
+    if (query.max_price) params.set("max_price", String(query.max_price));
 
     const qs = params.toString();
     const path = `/products${qs ? `?${qs}` : ""}`;

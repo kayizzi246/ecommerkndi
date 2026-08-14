@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getProductsSafe } from "@/lib/woocommerce";
-import { sortProducts } from "@/lib/sort-products";
+import { sortProducts, toProductQuery } from "@/lib/sort-products";
 import { discountPercent, formatPrice } from "@/lib/currency";
 import { getSiteSettings } from "@/lib/site-settings";
 import { breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
@@ -27,8 +27,11 @@ export default async function SalePage({
   const { page: pageParam, sort } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
+  // Sorted by WordPress across the whole sale, not within the page. The
+  // `discount` option is the exception and stays local — WooCommerce cannot
+  // order by the gap between two prices — so `sortProducts` still runs below.
   const [{ products, total, total_pages }, settings] = await Promise.all([
-    getProductsSafe({ on_sale: true, page, per_page: 24 }),
+    getProductsSafe({ on_sale: true, page, per_page: 24, ...toProductQuery({ sort }) }),
     getSiteSettings(),
   ]);
 

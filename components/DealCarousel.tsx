@@ -23,24 +23,26 @@ export type DealTone = "orange" | "red" | "green" | "blue" | "violet";
  */
 export default function DealCarousel({
   products,
-  /** Tailwind width classes for one item — controls how many are visible. */
-  itemWidth = "w-[48.5%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   /**
-   * Background the edge fades into; match the rail's own surface.
+   * Tailwind width classes for one item — controls how many are visible.
    *
-   * Defaults to the page background rather than white. The fade exists to make
-   * the tile at the cut look like it continues; fading to a colour the page is
-   * not leaves a pale smear down the edge instead, which is what `from-white`
-   * would now do on a soft-white page.
+   * 27% on a phone, so 3.7 tiles sit in the viewport. The fraction is the
+   * point: a rail showing a whole number of tiles looks like a finished grid
+   * that happens to be one row tall, and a shopper has no reason to swipe it.
+   * The cut tile at the right edge is the affordance — it is the only thing
+   * that says there is more this way.
+   *
+   * It used to be 48.5%, which showed two. Three-and-a-bit is what the large
+   * marketplace apps settled on for a reason: it is the most product you can
+   * put in front of a thumb before the photograph stops being legible.
    */
-  fadeFrom = "from-background",
+  itemWidth = "w-[27%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   priority = false,
 }: {
   products: Product[];
   /** Accepted and ignored — kept so existing call sites compile unchanged. */
   tone?: DealTone;
   itemWidth?: string;
-  fadeFrom?: string;
   /**
    * Set on the one rail that is above the fold when the page opens — nothing
    * below it benefits, and marking more rails eager would slow the first paint
@@ -96,25 +98,28 @@ export default function DealCarousel({
             {/* Only the two tiles a phone can actually see are eager. Beyond
                 that they would compete with each other for bandwidth and the
                 first paint would arrive later, not sooner. */}
-            <ProductCard product={product} priority={priority && index < 2} />
+            {/* `sizes` mirrors `itemWidth` above. The two have to be changed
+                together: `itemWidth` is what the tile measures and `sizes` is
+                what we tell the browser it measures, and when they disagree
+                the browser silently downloads the wrong file. */}
+            <ProductCard
+              product={product}
+              priority={priority && index < 2}
+              sizes="(max-width: 640px) 27vw, (max-width: 768px) 31vw, (max-width: 1024px) 23.5vw, (max-width: 1280px) 18.5vw, 16vw"
+            />
           </div>
         ))}
       </div>
 
-      {/* Edge fades. The tile at the cut is meant to peek — without these it
-          just looks chopped off, and with them it reads as "more this way". */}
-      {scrollable && !atStart && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r ${fadeFrom} to-transparent`}
-        />
-      )}
-      {scrollable && !atEnd && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l ${fadeFrom} to-transparent`}
-        />
-      )}
+      {/* The edge fades are gone.
+          They were two gradient overlays, 48px and 64px wide, sitting on top of
+          the tiles at each end of the track. The intent was to make the cut
+          tile read as continuing off-screen — but a gradient over a photograph
+          washes the photograph out, and what it actually produced was a pale
+          glow smeared down both edges of every rail on the homepage. With the
+          rail now showing 3.7 tiles the cut itself does that job honestly: a
+          tile visibly sliced by the viewport edge says "more this way" without
+          bleaching the product next to it. */}
 
       {scrollable && (
         <>

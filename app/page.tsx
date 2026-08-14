@@ -7,7 +7,7 @@ import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import TrustBar from "@/components/home/TrustBar";
 import SellWithUs from "@/components/home/SellWithUs";
-import { brandName } from "@/lib/site-settings";
+import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -17,12 +17,52 @@ import type { Metadata } from "next";
  *
  * Not inherited from the layout any more: metadata set there applies to every
  * page under it, which is how every policy page ended up claiming to be this
- * one. The title and description still come from the layout, where they are
- * built from the shop's wp-admin branding.
+ * one.
+ *
+ * ---- Why the title is written by hand here ----
+ *
+ * It used to fall through to the layout's default, which is built from the
+ * wp-admin branding and therefore read "Kandi For Less | Online Shopping in
+ * Uganda…". That is the shop's registered name — but it is not what anybody
+ * types. People search **kandi ug**, because that is the address they were
+ * given and the name on the receipt, and until now the string "KandiUg"
+ * appeared nowhere on this page: not in the title, not in the description, not
+ * in a single visible sentence. The only place it existed was the
+ * `alternateName` array in the site JSON-LD, which is a hint to Google, not
+ * evidence. Google will not rank a page for a phrase the page never says.
+ *
+ * So the query leads the title and the registered name follows it. Both are
+ * true, both are the same business, and now both are on the page.
+ *
+ * `title.absolute` rather than a plain string: a plain one would be run through
+ * the layout's `%s | {brand}` template and come out with the brand twice.
+ *
+ * A function rather than a constant so the registered name still comes from
+ * wp-admin — a shop that renames itself should not need a redeploy.
  */
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const brand = brandName(settings);
+
+  return {
+    alternates: { canonical: "/" },
+    title: {
+      absolute: `KandiUg — Online Shopping in Uganda | ${brand}`,
+    },
+    description:
+      `KandiUg (${brand}) is a Ugandan online marketplace for shoes, fashion, ` +
+      `electronics and home. Fast delivery countrywide, pay on delivery, ` +
+      `${settings.commerce.returns_days}-day returns.`,
+    openGraph: {
+      type: "website",
+      title: `KandiUg — Online Shopping in Uganda`,
+      description:
+        `Shop shoes, fashion, electronics and more on KandiUg. Fast delivery ` +
+        `across Uganda, pay on delivery, ${settings.commerce.returns_days}-day returns.`,
+      url: "/",
+    },
+  };
+}
 
 export default async function Home() {
   /**
@@ -88,7 +128,11 @@ export default async function Home() {
         {/* Deals sit directly under Trending: the rail above is what is popular,
             this is what is cheap today, and those are the two reasons a shopper
             keeps scrolling a homepage. */}
-        <DailyDeals products={dailyDeals} fallback={latest} />
+        {/* No `fallback` any more. It used to be the whole catalogue, which is
+            what let this rail re-show products from every other section on the
+            page. `buildHomeFeed` now tops the rail up from stock nothing else
+            has claimed, so what arrives here is already final. */}
+        <DailyDeals products={dailyDeals} />
 
         {/* What is on promotion, as the products themselves.
 
@@ -218,8 +262,21 @@ export default async function Home() {
             id="about-kandi"
             className="mx-auto max-w-[62ch] text-[17px] leading-snug text-shop-body md:text-[19px]"
           >
+            {/* The registered name and the name people type, in the one
+                element Google weighs most heavily on the page.
+
+                "KandiUg" is not decoration and it is not keyword stuffing: it
+                is the shop's own address, the name on its receipts and the
+                phrase every returning customer searches. Saying it once, in
+                the `<h1>`, is the difference between Google knowing this site
+                is the answer to "kandi ug" and Google having only a JSON-LD
+                alias to go on. Set lighter than the registered name so the
+                brand still reads as one wordmark rather than two. */}
             <span className="heading-black block text-[20px] text-shop-ink md:text-[24px]">
               {brandName(settings)}
+            </span>
+            <span className="mt-0.5 block text-[14px] font-semibold text-shop-muted md:text-[15px]">
+              KandiUg
             </span>
             <span className="mt-1.5 block">
               {"Online shopping in Uganda. "}
@@ -232,9 +289,11 @@ export default async function Home() {
 
           <div className="mx-auto mt-5 max-w-[68ch] space-y-3.5 text-[15px] leading-relaxed text-shop-body">
             <p>
-              {brand} is a Ugandan online marketplace selling shoes, clothing,
-              electronics, home essentials and more — from our own shelves and
-              from independent Ugandan stores approved to sell alongside us.
+              {brand} — also known as <strong className="font-semibold text-shop-ink">KandiUg</strong>,
+              after the kandiug.com address — is a Ugandan online marketplace
+              selling shoes, clothing, electronics, home essentials and more —
+              from our own shelves and from independent Ugandan stores approved
+              to sell alongside us.
               Every listing is checked before it goes live, and every seller is
               vetted individually, so a low price here is a real one rather than
               a risk.

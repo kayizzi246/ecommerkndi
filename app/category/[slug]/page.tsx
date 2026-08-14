@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
 import { absolute, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
-import { sortProducts, filterProducts, brandFacets } from "@/lib/sort-products";
+import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
 import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -72,10 +72,14 @@ export default async function CategoryPage({
   const { page: pageParam, sort } = search;
   const page = Math.max(1, Number(pageParam) || 1);
 
+  // Sort and the price/stock filters are applied by WordPress across the whole
+  // category, not just the 24 rows this page returns — otherwise paging through
+  // a sorted category reshuffles at every page boundary.
   const { products, total, total_pages } = await getProductsSafe({
     category: slug,
     page,
     per_page: 24,
+    ...toProductQuery(search),
   });
 
   // Facets are counted before filtering so the counts stay stable as the
