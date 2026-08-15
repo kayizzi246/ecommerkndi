@@ -9,6 +9,21 @@ type SessionState = {
   loading: boolean;
   /** Re-reads /api/seller/me, e.g. after settings are saved. */
   refresh: () => Promise<void>;
+  /**
+   * Seed the session from a seller the caller already has, with no request.
+   *
+   * Both sign-in routes get the full seller back in the response that
+   * establishes the session, and until now both threw it away and called
+   * `refresh()` — asking WordPress for the record they were already holding.
+   * On a shared host that is a second or more of "Signing you in…" spent
+   * fetching known data, in the middle of the slowest moment in the product.
+   *
+   * This is deliberately not exposed as a general setter for arbitrary state:
+   * it exists so a caller that has *just been handed* an authenticated seller
+   * can put it in the context. Anything that changes a seller server-side
+   * should still go through `refresh`.
+   */
+  setSession: (seller: Seller | null) => void;
   signOut: () => Promise<void>;
 };
 
@@ -51,6 +66,16 @@ export function SellerSessionProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
+  /** See the note on `setSession` in `SessionState`. */
+  const setSession = useCallback((current: Seller | null) => {
+    setSeller(current);
+    // The provider resolves its own session on mount and clears `loading` when
+    // that settles. A caller seeding a seller has settled it by other means, so
+    // this has to clear too — otherwise the Seller Centre shell keeps rendering
+    // its loading gate around a session that is already known.
+    setLoading(false);
+  }, []);
+
   const signOut = useCallback(async () => {
     await sellerApi.logout().catch(() => undefined);
     setSeller(null);
@@ -58,7 +83,7 @@ export function SellerSessionProvider({ children }: { children: React.ReactNode 
   }, [router]);
 
   return (
-    <SellerSessionContext.Provider value={{ seller, loading, refresh, signOut }}>
+    <SellerSessionContext.Provider value={{ seller, loading, refresh, setSession, signOut }}>
       {children}
     </SellerSessionContext.Provider>
   );

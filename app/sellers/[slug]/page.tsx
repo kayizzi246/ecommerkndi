@@ -197,9 +197,27 @@ export default async function StorePage({ params }: Params) {
           {/* The same grid as every other listing on the site. A store page that
               invented its own columns and its own gutters would make the
               identical product look like a different object here. */}
-          <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:grid-cols-3 sm:gap-y-2 lg:grid-cols-5 xl:grid-cols-6">
+          {/* Seven across on a wide screen, up from six.
+
+              The tiles are chrome-free and their text block is a fixed four
+              rows, so they lose nothing by being narrower — at 1440px seven
+              still leaves each photograph around 180px, comfortably above the
+              point where a product stops being recognisable. What it buys is a
+              row that reads as a catalogue rather than a shelf: more of the
+              store is above the fold, which on a page whose entire job is
+              "here is everything this seller has" is the whole point. */}
+          <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:grid-cols-3 sm:gap-y-2 lg:grid-cols-5 xl:grid-cols-7">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              /* `sizes` stated rather than defaulted. The card's default
+                 describes the six-column grids elsewhere in the shop and ends
+                 at 17vw; this grid is seven across above 1280px, so a tile is
+                 nearer 14vw and the default would have every photograph on the
+                 page fetched about 20% larger than it can ever be shown. */
+              <ProductCard
+                key={product.id}
+                product={product}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 14vw"
+              />
             ))}
           </div>
         </>

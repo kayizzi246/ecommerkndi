@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { sellerApi, SellerApiError } from "@/lib/seller";
+import { sellerApi, SellerApiError, type Seller } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
@@ -11,7 +11,7 @@ import { stashGoogleCredential } from "@/lib/seller-google-handoff";
 
 export default function SellerLoginPage() {
   const router = useRouter();
-  const { refresh } = useSellerSession();
+  const { refresh, setSession } = useSellerSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +38,31 @@ export default function SellerLoginPage() {
       .catch(() => undefined);
   }, [refresh]);
 
-  const done = async () => {
-    await refresh();
+  /**
+   * Finish signing in.
+   *
+   * Takes the seller from the response that just authenticated them, rather
+   * than fetching it again. Both routes into here — the password form and the
+   * Google button — are handed the full record by the call that establishes the
+   * session, and this used to discard it and `await refresh()`, which asks
+   * WordPress for the same seller a second time.
+   *
+   * That round trip was pure waiting, and it landed at the worst moment: the
+   * "Signing you in…" overlay covers the screen for the whole of it, on a
+   * shared host where a single call runs 0.8–1.8s, stacked behind Google's
+   * token check and the sign-in call itself. Seeding the session directly
+   * removes a full request from the slowest interaction in the Seller Centre.
+   *
+   * `refresh` stays the fallback for the case that should not happen: a
+   * successful sign-in whose payload carried no seller. Better one wasted
+   * request than a signed-in seller the shell thinks is a stranger.
+   */
+  const done = async (seller?: Seller | null) => {
+    if (seller) {
+      setSession(seller);
+    } else {
+      await refresh();
+    }
     // Always /seller. The shell decides from there whether this seller sees
     // their dashboard or the setup gate — one place makes that call, so the two
     // sign-in routes cannot disagree about it.
@@ -67,10 +90,13 @@ export default function SellerLoginPage() {
         message?: string;
         email?: string;
         data?: { email?: string };
+        seller?: Seller;
       };
 
       if (response.ok) {
-        await done();
+        // `/api/seller/google` returns the seller alongside the cookie it sets,
+        // so the session can be seeded from here without a second call.
+        await done(payload.seller);
         return;
       }
 
@@ -107,8 +133,10 @@ export default function SellerLoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await sellerApi.login(email, password);
-      await done();
+      // `login` resolves with the seller it just authenticated, so the session
+      // is seeded from it rather than re-read.
+      const { seller } = await sellerApi.login(email, password);
+      await done(seller);
     } catch (caught) {
       // 403 with this message means the account exists and the password was
       // right; anything else is a genuine failure.
