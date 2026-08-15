@@ -10,7 +10,15 @@ export type ProductCategory = {
 };
 
 /** A top-level department with its child categories, for the mega menu. */
-export type CategoryNode = ProductCategory & { children: ProductCategory[] };
+/**
+ * A category and everything filed under it, to any depth.
+ *
+ * `children` is `CategoryNode[]` rather than `ProductCategory[]`, which is a
+ * widening rather than a breaking change — a node still *is* a
+ * `ProductCategory`, so every existing reader of `child.name` or `child.slug`
+ * keeps working, and the ones that want to go deeper now can.
+ */
+export type CategoryNode = ProductCategory & { children: CategoryNode[] };
 
 /**
  * Groups the flat category list from WordPress into departments and their
@@ -18,24 +26,52 @@ export type CategoryNode = ProductCategory & { children: ProductCategory[] };
  * top level so nothing silently disappears from the nav.
  */
 export function buildCategoryTree(categories: ProductCategory[]): CategoryNode[] {
-  const byId = new Map(categories.map((category) => [category.id, category]));
-  const nodes = new Map<number, CategoryNode>();
+  /**
+   * Every category becomes a node, at whatever depth it sits.
+   *
+   * The previous version created nodes only for top-level categories and then
+   * pushed everything else into its parent's `children` as a flat
+   * `ProductCategory`. That is a two-level tree by construction, and it threw
+   * the third level away: this shop files Men → Shoes → Boots / Flats / Heels /
+   * School Shoes, and every one of those grandchildren was dropped on the floor
+   * because their parent — Shoes — was a child rather than a node, so there was
+   * nothing to attach them to.
+   *
+   * Losing them mattered twice over. They are most of the catalogue's structure,
+   * and they are exactly what a mega menu is for: a dropdown listing "Shoes" and
+   * stopping is a dropdown that tells a shopper nothing they did not already
+   * know from the word they hovered.
+   */
+  const nodes = new Map<number, CategoryNode>(
+    categories.map((category) => [category.id, { ...category, children: [] }])
+  );
+
+  const roots: CategoryNode[] = [];
 
   for (const category of categories) {
+    const node = nodes.get(category.id)!;
     const parentId = category.parent ?? 0;
-    if (parentId === 0 || !byId.has(parentId)) {
-      nodes.set(category.id, { ...category, children: [] });
+    const parent = parentId === 0 ? undefined : nodes.get(parentId);
+
+    // `parentId !== category.id` guards the one malformed row that would
+    // otherwise make a node its own parent and hang anything that walks the
+    // tree. Categories whose parent is missing from the list are promoted to
+    // top level so nothing silently disappears from the nav.
+    if (parent && parentId !== category.id) {
+      parent.children.push(node);
+    } else {
+      roots.push(node);
     }
   }
 
-  for (const category of categories) {
-    const parentId = category.parent ?? 0;
-    if (parentId !== 0 && nodes.has(parentId)) {
-      nodes.get(parentId)!.children.push(category);
-    }
-  }
+  /** Busiest first, at every level rather than only the top one. */
+  const sortByCount = (list: CategoryNode[]) => {
+    list.sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+    for (const node of list) sortByCount(node.children);
+  };
+  sortByCount(roots);
 
-  return [...nodes.values()].sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+  return roots;
 }
 
 export type ProductAttributeOption = {
@@ -621,7 +657,23 @@ function dedupeByName(categories: ProductCategory[]): ProductCategory[] {
   const best = new Map<string, ProductCategory>();
 
   for (const category of categories) {
-    const key = category.name.trim().toLowerCase();
+    /**
+     * Keyed on the parent as well as the name — and that is the whole fix.
+     *
+     * This used to key on the name alone, which is correct for the duplicate it
+     * was written for (two unrelated top-level categories both called "Shoes")
+     * and catastrophic for a properly built catalogue. This shop files Hoodies,
+     * Jewelry and Shoes under *each* of Men, Women and Kids: nine real
+     * categories, three distinct names. Deduping globally kept three of the nine
+     * and silently deleted the rest, so Women and Kids came back with no
+     * children at all and their mega menus had nothing to show.
+     *
+     * Two categories with the same name under different parents are different
+     * categories — "Men → Shoes" and "Women → Shoes" hold different products and
+     * have different slugs. Only a repeat *within the same parent* is a genuine
+     * duplicate, and that is what this now collapses.
+     */
+    const key = `${category.parent ?? 0}::${category.name.trim().toLowerCase()}`;
     const held = best.get(key);
 
     if (

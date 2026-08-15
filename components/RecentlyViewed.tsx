@@ -25,14 +25,35 @@ export default function RecentlyViewed() {
             href={`/products/${item.productId}`}
             className="group w-28 shrink-0"
           >
+            {/* ---- The image, when there is one ----
+                 A product with no photograph stores `image: ""` in the
+                 recently-viewed list, and an empty string is the one value
+                 `next/image` refuses: it throws `Image is missing required
+                 "src" property`, and the browser treats `src=""` as a request
+                 for the current page — so an imageless product in this rail
+                 downloaded the whole page again for every tile.
+
+                 The guard is on the value rather than a fallback `src`, because
+                 there is no image to fall back to; the tile draws the same empty
+                 frame the product card uses so the rail keeps its shape. */}
             <div className="relative aspect-square overflow-hidden rounded-lg border border-shop-line bg-white">
-              <Image
-                src={item.image}
-                alt={item.name}
-                fill
-                sizes="112px"
-                className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
-              />
+              {item.image ? (
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  sizes="112px"
+                  className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-shop-muted">
+                  <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
+                    <rect x="3" y="5" width="18" height="14" rx="1" />
+                    <circle cx="8.5" cy="10" r="1.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4 17 5-5 4 4 3-2 4 3" />
+                  </svg>
+                </div>
+              )}
             </div>
             <p className="mt-2 text-[15px] font-semibold leading-none text-shop-ink">
               {formatPrice(item.price)}

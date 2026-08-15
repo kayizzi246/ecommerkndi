@@ -22,9 +22,22 @@ import ProductCard from "@/components/ProductCard";
 export default function InfiniteProducts({
   initialProducts,
   totalPages,
+  /**
+   * Restrict the grid to one category, by slug.
+   *
+   * The homepage leaves this off and gets the whole catalogue. A product page
+   * passes the category of the product being viewed, so its "You may also like"
+   * grid keeps pulling in neighbours of that item rather than drifting into the
+   * rest of the shop by page three.
+   */
+  category,
+  /** Exclude one product from the grid — the one whose page this is. */
+  excludeId,
 }: {
   initialProducts: Product[];
   totalPages: number;
+  category?: string;
+  excludeId?: number;
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [page, setPage] = useState(1);
@@ -42,16 +55,26 @@ export default function InfiniteProducts({
 
     try {
       const next = page + 1;
-      const response = await fetch(`/api/products?page=${next}&per_page=24`);
+      const response = await fetch(
+        `/api/products?page=${next}&per_page=24${
+          category ? `&category=${encodeURIComponent(category)}` : ""
+        }`
+      );
       if (!response.ok) throw new Error(String(response.status));
 
       const payload = (await response.json()) as { products: Product[] };
 
       setProducts((current) => {
         // WooCommerce can repeat a product across pages when the catalogue is
-        // edited mid-scroll; React would then throw on the duplicate key.
+        // edited mid-scroll; React would then throw on the duplicate key. The
+        // product whose page this is gets filtered out for the same reason it is
+        // filtered out of the first page — recommending the thing already on
+        // screen is not a recommendation.
         const seen = new Set(current.map((product) => product.id));
-        return [...current, ...payload.products.filter((p) => !seen.has(p.id))];
+        return [
+          ...current,
+          ...payload.products.filter((p) => !seen.has(p.id) && p.id !== excludeId),
+        ];
       });
       setPage(next);
     } catch {
@@ -59,7 +82,7 @@ export default function InfiniteProducts({
     } finally {
       setLoading(false);
     }
-  }, [loading, done, page]);
+  }, [loading, done, page, category, excludeId]);
 
   useEffect(() => {
     const node = sentinel.current;

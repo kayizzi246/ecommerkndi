@@ -10,7 +10,7 @@ import {
   productPath,
 } from "@/lib/seo";
 import { formatPrice } from "@/lib/currency";
-import ProductCarousel from "@/components/ProductCarousel";
+import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import ReviewSection from "@/components/ReviewSection";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -117,9 +117,13 @@ export default async function ProductPage({
     // The shop's own terms, so the free-delivery figure beside the buy button
     // is the one the checkout actually charges against.
     getSiteSettings(),
+    // 24 rather than 6, and the total page count comes back with them: this
+    // feeds the endless "You may also like" grid at the foot of the page rather
+    // than a five-tile rail, so the first screenful has to be a full grid and
+    // the component needs to know how much more there is to fetch.
     brand
-      ? getProductsSafe({ category: brand.slug, per_page: 6 })
-      : Promise.resolve({ products: [] as typeof product[] }),
+      ? getProductsSafe({ category: brand.slug, per_page: 24 })
+      : Promise.resolve({ products: [] as typeof product[], total_pages: 0 }),
   ]);
 
   /**
@@ -137,9 +141,11 @@ export default async function ProductPage({
     if (index >= 0 && index < 5) ratingBreakdown[index] += 1;
   }
 
-  const related = relatedResponse.products
-    .filter((item) => item.id !== product.id)
-    .slice(0, 5);
+  // Everything the category returned except this product — no `slice`, because
+  // the grid below is endless and the first page should fill it.
+  const related = relatedResponse.products.filter((item) => item.id !== product.id);
+  const relatedTotalPages =
+    (relatedResponse as { total_pages?: number }).total_pages ?? 1;
 
   const isNew = isNewListing(product.date_created);
 
@@ -326,7 +332,32 @@ export default async function ProductPage({
         ]}
       />
 
-      <ProductCarousel title="You may also like" products={related} />
+      {/* ---- You may also like ----
+           An endless grid rather than the five-tile rail this used to be.
+
+           A rail is the right shape when the page has somewhere else to send the
+           shopper. The foot of a product page does not: they have read the
+           description, they have read the reviews, and if this item is not the
+           one, the only useful thing left is more items. Five of them in a row
+           they have to swipe is a smaller answer than the catalogue can give.
+
+           Scoped to this product's own category and seeded with its first page
+           on the server, so the grid is full on arrival and indexable, then
+           extends as the shopper scrolls. The product being viewed is filtered
+           out of every page of it. */}
+      {related.length > 0 && (
+        <section className="mt-8">
+          <h2 className="section-title mb-3 px-1 text-[18px] text-shop-ink md:text-[20px]">
+            You may also like
+          </h2>
+          <InfiniteProducts
+            initialProducts={related}
+            totalPages={relatedTotalPages}
+            category={brand?.slug}
+            excludeId={product.id}
+          />
+        </section>
+      )}
 
       {/* The shopper's own trail back through the products they were weighing
           this one against. It costs nothing to render — the list is already in

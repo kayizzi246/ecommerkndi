@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import type { Product } from "@/lib/woocommerce";
@@ -19,6 +20,7 @@ const SIZE_SYSTEMS = ["EU", "UK", "US"];
 export default function AddToCartButton({ product, onOptionChange }: Props) {
   const { addItem } = useCart();
   const { notify } = useToast();
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [sizeSystem, setSizeSystem] = useState(SIZE_SYSTEMS[0]);
   const [selected, setSelected] = useState<Record<string, string | null>>(() => {
@@ -83,14 +85,20 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
     );
   }
 
-  const add = () => {
+  /**
+   * Put the item in the basket. Returns whether it actually went in, so the
+   * "Buy now" path below can tell a successful add from a blocked one and only
+   * navigate on the former — sending a shopper to the checkout after refusing
+   * to add the item would land them on an empty basket with no explanation.
+   */
+  const add = (): boolean => {
     const missing = attributes.find((attr) => !selected[attr.name] && attr.options.length > 0);
     if (missing) {
       setError(`Please select a ${missing.name.toLowerCase()}`);
       // The sticky bar can trigger this from far down the page, so bring the
       // pickers — and the message — back into view.
       actionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
+      return false;
     }
     setError(null);
     addItem(
@@ -104,6 +112,20 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
       quantity
     );
     notify("Added to cart", { image: product.image, showBagLink: true });
+    return true;
+  };
+
+  /**
+   * The same add, followed straight by the checkout.
+   *
+   * A second action beside the first, because "add to cart" and "buy this" are
+   * different intentions and the page was only serving one of them. A shopper
+   * who has decided had to add, find the basket, open it and then check out —
+   * four steps to do the thing the page exists for. This is the same basket and
+   * the same validation; it just does not stop to admire the toast.
+   */
+  const buyNow = () => {
+    if (add()) router.push("/checkout");
   };
 
   return (
@@ -239,13 +261,41 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={add}
-          className="btn-shop mt-3 w-full py-4 text-[15px]"
-        >
-          Add to cart
-        </button>
+        {/* ---- Two actions, side by side ----
+             "Add to cart" keeps shopping; "Buy now" ends it. They are weighted
+             to say so: the primary is the orange fill and carries the delivery
+             promise as a second line, because the last thing a shopper wants
+             before committing is to know when the thing arrives — putting it
+             on the button answers it at the exact moment it is asked rather
+             than in a panel further down.
+
+             Both are full pills rather than the 8px rectangles used elsewhere.
+             A pill reads as the terminal action on the page, and having the two
+             of them match keeps the pair legible as one choice with two
+             answers. */}
+        <div className="mt-3 flex flex-col gap-2.5 sm:flex-row">
+          <button
+            type="button"
+            onClick={add}
+            className="flex-1 rounded-full border border-shop-ink bg-white px-6 py-3.5 text-[15px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+          >
+            Add to cart
+          </button>
+          <button
+            type="button"
+            onClick={buyNow}
+            className="flex-1 rounded-full bg-shop-primary px-6 py-2.5 text-center leading-tight text-white transition-colors hover:bg-shop-primary-dark"
+          >
+            <span className="block text-[15px] font-bold">Buy now</span>
+            {/* Full white, not white/90. White on the brand orange is already
+                only 2.9:1 (see the palette note in globals.css); dimming it
+                further to look "secondary" would have put the smallest text on
+                the page at the worst contrast on the page. */}
+            <span className="block text-[11.5px] font-medium text-white">
+              Fastest delivery: 1 business day
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Sticky buy bar. Sits above the mobile tab bar and reuses `add`, so the
@@ -258,7 +308,11 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
       >
         <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
           <div className="relative hidden h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white sm:block">
-            <Image src={product.image} alt="" fill sizes="48px" className="object-contain p-1" />
+            {/* Guarded: an imageless product stores "" here, and `next/image`
+                treats an empty src as a request for the current page. */}
+            {product.image && (
+              <Image src={product.image} alt="" fill sizes="48px" className="object-contain p-1" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-1 text-[14px] font-medium text-shop-ink">{product.name}</p>

@@ -250,7 +250,11 @@ export default function CheckoutPage() {
         {items.map((item) => (
           <li key={item.key} className="flex items-center gap-4">
             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white">
-              <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" />
+              {/* Guarded: an imageless product stores "" here, and `next/image`
+                  treats an empty src as a request for the current page. */}
+              {item.image && (
+                <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" />
+              )}
               <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-500 px-1 text-[11px] font-semibold text-white">
                 {item.quantity}
               </span>

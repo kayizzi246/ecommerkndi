@@ -128,13 +128,29 @@ export default function CartDrawer() {
               {items.map((item) => (
                 <li key={item.key} className="flex w-full flex-col border-b border-shop-line">
                   <div className="relative flex w-full flex-row justify-between gap-3 py-4">
-                    {/* Delete pinned to the thumbnail corner. */}
+                    {/* ---- Delete, pinned to the thumbnail corner ----
+                         `left-0 top-3` rather than the `-ml-1.5 -mt-1.5` this
+                         used to carry, which is what made the button look
+                         sliced in half.
+
+                         With no `left` or `top`, an absolutely positioned
+                         element sits at its *static* position — here the start
+                         of the flex row — and the negative margins then pulled
+                         it 6px further left and up, outside the row entirely.
+                         The scrolling `<ul>` around it is `overflow-auto`, so
+                         everything outside its content box is clipped: the left
+                         6px of every remove button was cut off, leaving a row of
+                         half-circles down the side of the cart.
+
+                         Anchoring it explicitly keeps the button on the corner
+                         of the thumbnail and wholly inside the scroll container,
+                         so nothing is clipped at any drawer width. */}
                     <button
                       type="button"
                       aria-label={`Remove ${item.name} from cart`}
                       tabIndex={drawerOpen ? 0 : -1}
                       onClick={() => removeItem(item.key)}
-                      className="absolute -ml-1.5 -mt-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-500 text-white transition-colors hover:bg-shop-sale"
+                      className="absolute left-0 top-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-500 text-white transition-colors hover:bg-shop-sale"
                     >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
                         <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -148,13 +164,18 @@ export default function CartDrawer() {
                       className="flex min-w-0 flex-row gap-3"
                     >
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-shop-line bg-white">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          sizes="64px"
-                          className="object-contain p-1"
-                        />
+                        {/* Guarded: an imageless product stores "" here, and
+                            `next/image` treats an empty src as a request for
+                            the current page. */}
+                        {item.image && (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="64px"
+                            className="object-contain p-1"
+                          />
+                        )}
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="line-clamp-2 text-[15px] leading-tight text-shop-ink">

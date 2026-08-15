@@ -123,3 +123,34 @@ export function findCategorySlug(
 
   return best ? (best as { slug: string }).slug : null;
 }
+
+/**
+ * The same match as {@link findCategorySlug}, but returning the whole department
+ * node rather than just a slug.
+ *
+ * The mega menu needs the children, not the address: a dropdown under "Men" is a
+ * list of what is inside Men, and that list only exists on the node. Built on
+ * the slug matcher rather than beside it so the panel that opens under a nav
+ * link and the page that link goes to can never disagree about which category
+ * the word "Men" refers to.
+ *
+ * When the match landed on a child category — a shop that files Men under
+ * Clothing — the *parent* is returned, because that is the node with siblings
+ * worth listing. Null when the shop has no such category at all, in which case
+ * the nav link falls back to a search and simply opens no panel.
+ */
+export function findDepartment(
+  departments: CategoryNode[],
+  needle: string
+): CategoryNode | null {
+  const slug = findCategorySlug(departments, needle);
+  if (!slug) return null;
+
+  return (
+    departments.find((department) => department.slug === slug) ??
+    departments.find((department) =>
+      department.children.some((child) => child.slug === slug)
+    ) ??
+    null
+  );
+}

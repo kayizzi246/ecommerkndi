@@ -8,14 +8,6 @@ import TileCartButton from "@/components/TileCartButton";
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
 
-/** A product counts as new for this long after it was created. */
-const NEW_WINDOW_DAYS = 30;
-
-function isNew(product: Product): boolean {
-  if (!product.date_created) return false;
-  return Date.now() - new Date(product.date_created).getTime() < NEW_WINDOW_DAYS * 86_400_000;
-}
-
 /** "2.2K sold" — the compact form marketplaces print beside a price. */
 function compactSold(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -64,17 +56,24 @@ function Stars({ rating }: { rating: number }) {
  *   image → name → price, was-price and discount on one line →
  *   rating and units sold → the delivery promise.
  *
- * The price leads the text because it is what a shopper scans a grid for. It is
- * set large and bold, with the struck-through original and the saving beside it
- * rather than on a line of their own — the three numbers only mean anything
- * read together, and splitting them costs a line of vertical space in a tile
- * that has none to spare.
+ * Four text rows, and always the same four. Every tile in the shop is therefore
+ * exactly as tall as every other tile, which is what lets a rail of them read as
+ * a row rather than as a ragged fence. The rows that used to come and going with
+ * the data — a saving, a size list, a "Best Seller in Shoes" — are gone, and the
+ * detail block below carries the full argument for why.
+ *
+ * The price sits under the name rather than above it, and at 15px rather than
+ * the 19 it once ran at: it is still the first thing read in the text, because
+ * it is bold and near-black against a 14px name, but the photograph is what
+ * should set the tile's rhythm. The struck-through original and the reduction
+ * sit beside it rather than on lines of their own — the three numbers only mean
+ * anything read together.
  *
  * Colour is rationed: the resting price is near-black and only a discounted one
  * turns red, so red still means something; green is delivery and nothing else.
  *
- * Every figure comes from WooCommerce, and each line disappears when there is no
- * number behind it rather than printing a zero.
+ * Every figure comes from WooCommerce, and a row with no number behind it
+ * renders empty rather than printing a zero or collapsing.
  */
 /**
  * How wide this tile renders, as a `sizes` hint for the browser.
@@ -128,64 +127,24 @@ export default function ProductCard({
 
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
-  const category = product.categories[0];
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
 
-  /** Money off in shillings, which lands harder than a percentage. */
-  const saving = discount > 0 ? product.regular_price - product.price : 0;
-
-  /**
-   * The sizes this product comes in — "40 · 41 · 42 +3".
+  /* ---- What used to be computed here, and where it went ----
    *
-   * A shopper's second question, after "what does the back look like", is
-   * "will it fit me", and a tile that answers it saves a click for the people
-   * it fits and a wasted one for the people it does not.
+   * The tile also derived a shillings-off saving, a chosen size attribute with
+   * its deduplicated options, and a colour-versus-text decision for drawing
+   * them. All of it fed rows that rendered on some products and not others,
+   * which is what made neighbouring tiles different heights — see the detail
+   * block below for the full argument.
    *
-   * Two things were wrong with how it answered before.
-   *
-   * It read `attributes[0]` — whichever attribute the seller happened to enter
-   * first. On half the catalogue that is Colour, so the line under the price
-   * was "Black · Navy · Wine Red", which is information the photograph has
-   * already given and which pushes the size out of the tile entirely. The
-   * attribute is now *chosen*: a size-like one if the product has one, and only
-   * then a fallback.
-   *
-   * And each option was drawn as a bordered chip, so four sizes cost four
-   * boxes, eight borders and a wrapped second line on a 150px tile. Sizes are
-   * numbers; they are read as a list, and a list is what they are set as now —
-   * one line, dot-separated, truncated rather than wrapped. The borders were
-   * the "unwanted" part of the tile.
-   *
-   * Colours keep their dots when the seller gave real hex values, because a dot
-   * is the compact form of a colour in a way a word is not.
+   * None of it is lost to the shopper: the reduction is still on the tile as a
+   * percentage twice over (the corner flag and the figure beside the price), and
+   * sizes and colours are on the product page, which is the screen where they
+   * are chosen rather than merely previewed. Deleting the derivations rather
+   * than leaving them unused keeps the component honest about what it renders.
    */
-  const sizeAttribute =
-    product.attributes.find((attribute) => /siz|shoe|fit|uk|eu/i.test(attribute.name)) ??
-    product.attributes.find(
-      (attribute) => !/colou?r|shade/i.test(attribute.name)
-    ) ??
-    product.attributes[0];
-
-  /**
-   * Deduplicated and emptied out.
-   *
-   * WooCommerce quite happily stores the same option twice when a seller edits
-   * an attribute by hand, and a tile reading "40 · 40 · 41" looks like a bug in
-   * the shop rather than a repeat in the data.
-   */
-  const options = (sizeAttribute?.options ?? []).filter(
-    (option, index, all) =>
-      option.name.trim() !== "" &&
-      all.findIndex((other) => other.name.trim() === option.name.trim()) === index
-  );
-
-  /** Colours are dots; everything else is the text list. */
-  const isColourList = options.length > 0 && options.every((option) => option.value?.startsWith("#"));
-
-  const swatches = options.slice(0, isColourList ? 5 : 4);
-  const moreOptions = Math.max(0, options.length - swatches.length);
 
   return (
     // Corners are 3px, not 8px, and the tile's own padding is gone below sm.
@@ -194,7 +153,7 @@ export default function ProductCard({
     // square one reads as the product itself, which is the whole argument of a
     // chrome-free tile. At 2.5 tiles per phone screen the 8px radius was also
     // eating a visible bite out of a 150px image on all four corners.
-    <article className="group relative flex h-full flex-col rounded-[3px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line sm:p-0.5">
+    <article className="group relative flex h-full flex-col rounded-[3px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -318,36 +277,62 @@ export default function ProductCard({
       </div>
 
       {/* ---- Detail ----
-           Tight on purpose: every pixel between these six short lines is a
-           pixel of photograph the next row does not get. The photograph and the
-           name it belongs to are one object, so they sit 2px apart rather than
-           6 — at 6 the text read as a caption floating under the tile instead
-           of part of it.
+           Four rows, always the same four, each a fixed height. That is the
+           whole design of this block and it is worth saying why, because it
+           replaced something more informative.
 
-           The gap between the lines themselves is now 1px rather than 2. Each
-           line already carries its own leading, and the six of them were
-           stacking six gaps under every tile in the shop — about a fifth of the
-           text block spent on air. */}
-      <div className="mt-0.5 flex flex-1 flex-col gap-px">
-        {/* Chips run inline with the name, so a tag costs no vertical space. */}
+           ---- Why every tile is now identical ----
+
+           This used to render up to seven rows, most of them conditional: a
+           "Save UGX 5,000" line only on discounted products, a rating row only
+           on reviewed ones, a size or colour list only where the seller had
+           filled the attribute in, a "Best Seller in Shoes" line only past 50
+           sales. Every one of those was a good line on its own. Together they
+           meant no two tiles in a grid were the same height, and the text under
+           a row of four products started at four different places.
+
+           In a grid that is merely untidy. In a rail it is worse: the tiles
+           stretch to the tallest one, so a single product with five extra lines
+           of metadata added that much empty space to the bottom of every other
+           tile in the row. The information was being bought with the row's
+           alignment, and on a page that is eight rails deep the alignment is
+           what makes it scannable.
+
+           So the variable rows are gone and the four that survive are the four
+           every product genuinely has: what it is, what it costs, how it is
+           rated, and when it arrives. The rating row renders even when there is
+           nothing to put in it — an empty box of the right height, rather than a
+           missing row that shortens the tile.
+
+           ---- No space ----
+
+           `gap-0` between the rows and no padding on the tile. Each row already
+           carries its own leading, which is the space; a flex gap on top of that
+           was a second helping of it, stacked six times under every tile in the
+           shop. */}
+      <div className="mt-0.5 flex flex-1 flex-col gap-0">
         <Link href={href} className="block">
-          {/* 14/20 rather than 14/19: a supplier title always wraps to the full
-              two lines, and a tight leading is felt most exactly where the text
-              is longest. */}
-          <h3 className="font-normal-heading line-clamp-2 text-[14px] leading-[20px] text-shop-ink transition-colors hover:text-shop-primary">
-            <span className="mr-1 inline-block rounded-[3px] border border-shop-success/50 px-1 align-[1px] text-[10px] font-semibold text-shop-success">
-              Local
-            </span>
+          {/* Exactly two lines, always — `h-10` is 2 × the 20px leading, and it
+              is a fixed height rather than a clamp so that a short name reserves
+              the second line instead of pulling the price up under it. This is
+              the single biggest contributor to tiles matching. */}
+          <h3 className="font-normal-heading line-clamp-2 h-10 text-[14px] leading-[20px] text-shop-ink transition-colors hover:text-shop-primary">
             {product.name}
           </h3>
         </Link>
 
-        {/* The money, all on one line: what it costs, what it cost, what that
-            saves. A discounted price turns red — the one place red is allowed —
-            because at a glance the colour is the discount. */}
-        <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-px">
+        {/* The money, all on one line: what it costs, what it cost, and the
+            reduction. A discounted price turns red — the one place red is
+            allowed — because at a glance the colour is the discount.
+
+            15px, down from 19. At 19 the price was the loudest thing in the
+            tile by a wide margin and set the tile's rhythm; the photograph is
+            meant to do that. 15 still reads first among the text — it is bold,
+            near-black and sits under a 14px name — without shouting over the
+            product it belongs to. */}
+        <p className="flex h-5 items-baseline gap-x-1.5 overflow-hidden">
           <span
-            className={`price text-[19px] leading-none ${
+            className={`price text-[15px] leading-none ${
               discount > 0 ? "text-shop-sale" : "text-shop-ink"
             }`}
           >
@@ -355,88 +340,43 @@ export default function ProductCard({
           </span>
           {discount > 0 && (
             <>
-              <span className="text-[12.5px] leading-none text-shop-faint line-through">
+              <span className="text-[11.5px] leading-none text-shop-faint line-through">
                 {formatPrice(product.regular_price)}
               </span>
-              <span className="text-[12.5px] font-bold leading-none text-shop-sale">
+              <span className="text-[11.5px] font-bold leading-none text-shop-sale">
                 −{discount}%
               </span>
             </>
           )}
         </p>
 
-        {/* What the discount is worth in money. "−17%" is arithmetic a shopper
-            has to do; "Save UGX 5,000" is the answer. */}
-        {saving > 0 && (
-          <p className="text-[12.5px] font-semibold leading-none text-shop-success">
-            Save {formatPrice(saving)}
-          </p>
-        )}
+        {/* Rating and units sold — the two numbers a shopper uses to decide
+            whether anyone else has taken the risk first.
 
-        {/* Rating and units sold on one line — the two numbers a shopper uses to
-            decide whether anyone else has taken the risk first. */}
-        {(product.rating_count > 0 || product.total_sales > 0) && (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-px">
-            {product.rating_count > 0 && (
-              <span className="flex items-center gap-1">
-                <Stars rating={product.average_rating} />
-                <span className="text-[12.5px] font-semibold text-shop-body">
-                  {product.average_rating.toFixed(1)}
-                </span>
+            The row is always present, even with nothing in it. A product with no
+            reviews and no sales is exactly the one that would otherwise render a
+            shorter tile than its neighbours, and an empty 16px box costs less
+            than the row of ragged baselines that hiding it caused. */}
+        <div className="flex h-4 items-center gap-x-2 overflow-hidden">
+          {product.rating_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Stars rating={product.average_rating} />
+              <span className="text-[11.5px] font-semibold text-shop-body">
+                {product.average_rating.toFixed(1)}
               </span>
-            )}
-            {product.total_sales > 0 && (
-              <span className="text-[12.5px] font-medium text-shop-muted">
-                {compactSold(product.total_sales)} sold
-              </span>
-            )}
-          </div>
-        )}
+            </span>
+          )}
+          {product.total_sales > 0 && (
+            <span className="text-[11.5px] font-medium text-shop-muted">
+              {compactSold(product.total_sales)} sold
+            </span>
+          )}
+        </div>
 
-        {/* Sizes or colours, straight from the product's own attributes.
-            A pure colour list is drawn as dots; everything else is one line of
-            dot-separated text, because "40 · 41 · 42" is read at a glance and
-            four bordered boxes are four objects to look at. */}
-        {swatches.length > 0 &&
-          (isColourList ? (
-            <div className="flex flex-wrap items-center gap-1">
-              {swatches.map((option) => (
-                <span
-                  key={option.name}
-                  title={option.name}
-                  className="h-3.5 w-3.5 rounded-full border border-shop-line"
-                  style={{ backgroundColor: option.value }}
-                />
-              ))}
-              {moreOptions > 0 && (
-                <span className="text-[11px] leading-none text-shop-muted">+{moreOptions}</span>
-              )}
-            </div>
-          ) : (
-            /* `truncate` rather than wrapping: a product with nine sizes must
-               not be a taller tile than the one beside it with two, or the rail
-               stops being a row. The `+3` carries what the line could not. */
-            <p className="truncate text-[11.5px] leading-none text-shop-body">
-              {swatches.map((option) => option.name.trim()).join(" · ")}
-              {moreOptions > 0 && (
-                <span className="text-shop-muted"> +{moreOptions}</span>
-              )}
-            </p>
-          ))}
-
-        {/* One promotional line, earned from real figures rather than pasted on
-            every card. Orange is reserved for this. */}
-        {!soldOut && product.total_sales >= 50 && category ? (
-          <p className="truncate text-[12.5px] font-medium text-shop-primary">
-            Best Seller <span className="font-normal text-shop-body">in {category.name}</span>
-          </p>
-        ) : !soldOut && isNew(product) && category ? (
-          <p className="truncate text-[12.5px] font-medium text-shop-primary">
-            New Arrival <span className="font-normal text-shop-body">in {category.name}</span>
-          </p>
-        ) : null}
-
-        <p className="mt-auto text-[12.5px] font-medium text-shop-success">
+        {/* The delivery promise, and the last row on every tile. `truncate` so a
+            long stock message cannot wrap into a second line and undo the
+            matching heights above it. */}
+        <p className="flex h-4 items-center truncate text-[11.5px] font-medium text-shop-success">
           {soldOut ? (
             "Back in stock soon"
           ) : lowStock ? (

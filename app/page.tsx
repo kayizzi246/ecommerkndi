@@ -94,6 +94,16 @@ export default async function Home() {
   const brand = brandName(settings);
 
   return (
+    // White, like every other page in the shop.
+    //
+    // This carried an off-white ground for a while, on the argument that white
+    // product tiles need something to sit on. In practice the separation was not
+    // worth what it cost: most of this catalogue is photographed on white, so a
+    // tinted page put every product in a faintly visible grey box, and the rails
+    // and panels that hard-code `bg-white` stopped being flush with the page.
+    // The tiles get their definition from spacing and their hover hairline
+    // instead. The `--background` token in globals.css is the one place the
+    // page's colour is decided, and this defers to it.
     <main className="pb-20">
       {/* The page opens on merchandise.
 
@@ -103,8 +113,23 @@ export default async function Home() {
           product below the fold on every phone. The departments are one tap
           away in the header, which is where a shopper looks for them.
 
-          Spacing is tight and even: 16px on a phone, 28px from md up. The old
-          36px desktop gap left the page feeling like separate pages stacked. */}
+          ---- Spacing between sections ----
+
+          24px on a phone, 48px from md up.
+
+          This has been wrong in both directions. It was 36px, judged too loose
+          and cut to 28 — but 28 was too tight, and the screenshots show why: a
+          rail's last line of product text sat closer to the *next* section's
+          heading than that heading sat to its own products. The eye groups by
+          proximity, so "Daily Deals" read as a caption belonging to the rail
+          above it rather than a title for the row below, and the page arrived as
+          one continuous stream of tiles with words occasionally in it.
+
+          What fixes it is not simply more air, it is more air *between* sections
+          than within them. 48px is comfortably larger than the ~12px a heading
+          sits above its own rail, so each block now reads as one object. This is
+          the separation the large marketplaces use, and it is what makes a long
+          homepage scannable rather than exhausting. */}
       {/* Edge to edge on a phone, padded from md up.
 
           The side gutter used to be 12px, which bought nothing: it cost a
@@ -114,7 +139,7 @@ export default async function Home() {
           sideways. Removing the gutter fixes the drift and gives the width
           back to the products. Headings and copy carry their own `px-3` so
           words never touch the glass. */}
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-0 py-4 md:gap-7 md:px-8 md:py-5">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-0 py-4 md:gap-12 md:px-8 md:py-6">
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />

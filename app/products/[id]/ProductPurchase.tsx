@@ -18,6 +18,22 @@ import Link from "next/link";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
 
+/** The green check in front of each guarantee line. */
+function Tick() {
+  return (
+    <svg
+      aria-hidden
+      className="mt-[3px] h-3 w-3 shrink-0 text-shop-success"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+    </svg>
+  );
+}
+
 /**
  * The interactive half of the product page: the gallery and the buy box share
  * `activeImage` so picking a colour swaps the shot. Everything that does not
@@ -106,13 +122,26 @@ export default function ProductPurchase({
 
   return (
     <>
-      <div className="mx-auto flex max-w-[1180px] flex-col gap-4 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
-        {/* Gallery, capped at 460px. It was running to 680px on a 58% column,
-            which pushed the price, the variant pickers and Add to cart below
-            the fold on a laptop — the photograph was winning the page from the
-            things that actually close a sale. */}
-        <div className="w-full lg:basis-[46%]">
-          <div className="mx-auto w-full max-w-[460px] lg:mx-0">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
+        {/* ---- Gallery ----
+             Bigger, and the page around it is wider to pay for it: the row is
+             capped at 1320px rather than 1180, and the gallery takes 52% of it
+             up to 720px.
+
+             The old 460px cap came from a real problem — the photograph had been
+             running to 680px in a narrow row and pushing the price and Add to
+             cart below the fold. Shrinking the picture fixed the fold at the
+             expense of the thing the shopper came to look at. Widening the row
+             fixes it the other way round: at 1320 there is enough width for a
+             large photograph *and* a buy box that still starts at the top of the
+             screen, which is what the reference layout does. The buy box copy
+             was tightened in the same pass, so it needs less height than it did.
+
+             The 720px cap is on the whole gallery, thumbnail rail included, so
+             the frame itself lands at about 650 — roughly the size the reference
+             renders and comfortably the largest thing on the page. */}
+        <div className="w-full lg:basis-[52%]">
+          <div className="mx-auto w-full max-w-[720px] lg:mx-0">
             <ImageGallery
               images={images}
               productName={product.name}
@@ -127,66 +156,97 @@ export default function ProductPurchase({
         </div>
 
         {/* Buy box */}
-        <div className="w-full lg:basis-[54%]">
-          {brand && (
-            <Link
-              href={`/category/${brand.slug}`}
-              className="text-[13px] font-medium uppercase tracking-[0.1em] text-shop-muted hover:text-shop-ink"
-            >
-              {brand.name}
-            </Link>
-          )}
+        <div className="w-full lg:basis-[48%]">
+          {/* ---- Title ----
+               The fulfilment badge runs inline with the name rather than above
+               it, so it costs no line of its own, and the name itself is set at
+               the interface weight rather than the display one.
 
-          {/* Set at the heading weight rather than the interface one. This is
-              the one line on the page a shopper reads as a title, and at 19px
-              regular it sat at the same weight and colour as the delivery copy
-              underneath it — technically a heading, visually just another
-              sentence. The extra weight holds the eye at a size that still fits
-              a long marketplace name on two lines.
-
-              Slightly larger and a touch tighter than before: product names run
-              long here ("Men's Leather Oxford Shoes Brown Size 42"), and tight
-              tracking on a wide face is what keeps that on two lines instead of
-              three.
-
-              `heading-800`, the class written for exactly this line and until
-              now used nowhere. It matters that it is a class and not a utility:
-              the `h1`/`.font-heading` rule in globals.css is unlayered, so it
-              beats any Tailwind `font-*` on the same element — the
-              `font-semibold` that used to sit here never applied at all, and
-              the title was rendering at the generic heading 700. At 800 the
-              name finally outweighs the price and the delivery copy beneath
-              it, which is the order a shopper should read them in. */}
-          <h1 className="heading-800 mt-1.5 text-[21px] text-shop-ink md:text-[24px]">
+               That is a reversal. The title used to be `heading-800` at 24px —
+               the heaviest thing on the page — on the reasoning that it is what
+               a shopper reads first. It is not: they arrived from a photograph
+               of the product and already know what it is. What they came to the
+               page to find is the price, the rating and the delivery date, and a
+               heavy 24px name pushed all three further down and outweighed them
+               when they got there. A marketplace title is a label on the thing
+               in the picture, so it is set like one — 15px, regular, two lines
+               of it, and the price beneath it is now unambiguously the loudest
+               element in the column. */}
+          <h1 className="font-normal-heading text-[15px] leading-[22px] text-shop-ink md:text-[16px] md:leading-[24px]">
+            <span className="mr-1.5 inline-flex items-center gap-1 align-[1px] text-[13px] font-semibold text-shop-success">
+              <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
+              </svg>
+              Ships from Uganda
+            </span>
             {product.name}
           </h1>
 
-          {/* Social proof, straight from WooCommerce — shown only when there
-              actually are reviews or sales to report. */}
-          {(product.rating_count > 0 || product.total_sales > 0) && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              {product.rating_count > 0 && (
-                <a href="#reviews" className="flex items-center gap-2">
-                  <StarRating rating={product.average_rating} size="md" showCount={false} />
-                  <span className="text-[14px] font-semibold text-shop-ink">
-                    {product.average_rating.toFixed(1)}
-                  </span>
-                  <span className="text-[14px] text-shop-muted underline underline-offset-4">
-                    {product.rating_count} reviews
-                  </span>
-                </a>
-              )}
+          {/* ---- The credentials line ----
+               Units sold and who is selling on the left, the star rating pushed
+               to the right edge. One row instead of the two this used to take,
+               and the split is what makes it readable at a glance: the eye picks
+               up "2.2K sold" and the rating without reading a sentence.
+
+               Every figure is from WooCommerce and each half disappears when
+               there is nothing behind it. */}
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] text-shop-muted">
               {product.total_sales > 0 && (
-                <span className="text-[14px] font-semibold text-shop-primary">
+                <span className="font-semibold text-shop-body">
                   {product.total_sales} sold
                 </span>
               )}
+              {product.total_sales > 0 && (product.seller || brand) && <span>|</span>}
+              {product.seller ? (
+                <span>
+                  Sold by{" "}
+                  <span className="font-medium text-shop-body">
+                    {product.seller.store_name}
+                  </span>
+                </span>
+              ) : (
+                brand && (
+                  <Link href={`/category/${brand.slug}`} className="hover:text-shop-ink">
+                    {brand.name}
+                  </Link>
+                )
+              )}
             </div>
+
+            {product.rating_count > 0 && (
+              <a href="#reviews" className="flex shrink-0 items-center gap-1.5">
+                <span className="text-[14px] font-semibold text-shop-ink">
+                  {product.average_rating.toFixed(1)}
+                </span>
+                <StarRating rating={product.average_rating} size="md" showCount={false} />
+              </a>
+            )}
+          </div>
+
+          {/* ---- Earned, not decorated ----
+               A green rank pill, and the condition on it is the point: it needs
+               a genuinely high average over a meaningful number of reviews. The
+               obvious version of this badge is one every product wears, which is
+               worth nothing to the products that deserve it and misleads on the
+               ones that do not. No position number is printed either — this shop
+               does not rank its catalogue, and inventing "#10" would be a claim
+               with nothing behind it. */}
+          {brand && product.rating_count >= 10 && product.average_rating >= 4.5 && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-[4px] bg-shop-successbg px-2 py-1 text-[12.5px] font-semibold text-shop-success">
+              Top rated
+              <span className="font-normal text-shop-body">in {brand.name}</span>
+            </p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {/* ---- Price ----
+               Set at 30px, up from 22, and the single largest thing in the
+               column now that the title has stepped back. This is the number the
+               page is built around and every other decision above is in service
+               of reading it quickly. */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
             <span
-              className={`text-[22px] font-semibold ${
+              className={`price text-[30px] leading-none ${
                 soldOut
                   ? "text-shop-muted line-through"
                   : discount > 0
@@ -219,6 +279,19 @@ export default function ProductPurchase({
                 </span>
               </>
             )}
+
+            {/* Scarcity, in the price row where the decision is made rather than
+                as a line further down. Outlined rather than filled: it is a
+                qualifier on the price, not a third badge competing with the
+                discount beside it. Only ever rendered off a real stock figure —
+                an "almost sold out" on an item with 400 in the warehouse is the
+                fastest way to teach shoppers to ignore every urgency signal the
+                shop prints. */}
+            {!soldOut && !onBackorder && product.stock_quantity !== null && product.stock_quantity <= 10 && (
+              <span className="rounded-[4px] border border-shop-primary px-2 py-[3px] text-[12px] font-bold uppercase tracking-[0.03em] text-shop-primary-ink">
+                Almost sold out
+              </span>
+            )}
           </div>
 
           {/* The saving in shillings, not just a percentage. "Save 30%" is an
@@ -245,19 +318,51 @@ export default function ProductPurchase({
             )}
           </p>
 
-          {/* What other buyers made of it, beside the price rather than at the
-              foot of the page. The full section below stays the place to read
-              the reviews themselves — this block links straight to it. */}
-          <RatingSummary
-            average={ratingAverage}
-            count={ratingCount}
-            breakdown={ratingBreakdown}
-            className="mt-3.5"
-          />
+          {/* ---- The terms bar ----
+               Delivery and returns as one quiet grey strip directly under the
+               price, which is where both questions are actually asked: a shopper
+               who has just read the number wants to know what it will really
+               cost them and what happens if it is wrong.
 
-          {/* The delivery promise is a promise about this item, so it goes when
-              there is no item to deliver. */}
-          {!soldOut && <DeliveryPromise className="mt-3.5" />}
+               They were previously two separate coloured panels — a green or
+               orange free-delivery banner and a delivery promise block — sitting
+               between the price and the button. Two saturated panels in the
+               middle of the buy path is two things to read before the action,
+               and the colour made them look like promotions rather than terms.
+               Grey, one line each, and the figures still come from wp-admin. */}
+          {!soldOut && (
+            <div className="mt-3 rounded-lg bg-shop-surface px-3 py-2.5 text-[13px] leading-snug text-shop-body">
+              <p className="flex items-start gap-2">
+                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
+                </svg>
+                {freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom ? (
+                  <span>
+                    <strong className="font-semibold text-shop-ink">
+                      This item ships free.
+                    </strong>{" "}
+                    Delivery across Uganda in 1–3 business days.
+                  </span>
+                ) : freeDeliveryFrom > 0 ? (
+                  <span>
+                    Free delivery on orders over{" "}
+                    <strong className="font-semibold text-shop-ink">
+                      {formatPrice(freeDeliveryFrom)}
+                    </strong>{" "}
+                    — add {formatPrice(freeDeliveryFrom - product.price)} more.
+                  </span>
+                ) : (
+                  <span>Delivery across Uganda in 1–3 business days.</span>
+                )}
+              </p>
+              <p className="mt-1.5 flex items-start gap-2">
+                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+                </svg>
+                <span>Pay on delivery · 14-day returns</span>
+              </p>
+            </div>
+          )}
 
           {/* ---- Stock signal ----
                Four states, in descending order of how much they change what the
@@ -341,45 +446,87 @@ export default function ProductPurchase({
             </span>
           </div>
 
-          {/* ---- Free delivery, as a number rather than a slogan ----
-               Either this item already clears the shop's threshold, in which
-               case say so plainly, or it does not and the exact shortfall is
-               the most useful thing on the page: "add UGX 12,000" is an
-               instruction a shopper can act on, where "free delivery over UGX
-               50,000" is a fact they have to do arithmetic against.
+          {/* ---- Who ships it, and when ----
+               The free-delivery banner that used to sit here has gone: it now
+               says the same thing in the terms bar above the button, where it is
+               read before the decision rather than after it. Two copies of one
+               promise on one screen is how a page stops being believed.
 
-               Both readings come from the shop's real threshold, so neither can
-               promise what the checkout will not honour — and neither is shown
-               at all on a sold-out item, where "add UGX 12,000 more and
-               delivery is free" is advice about a basket the shopper cannot
-               build. */}
-          {!soldOut && freeDeliveryFrom > 0 && (
-            <p
-              className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2.5 text-[13.5px] leading-snug ${
-                product.price >= freeDeliveryFrom
-                  ? "bg-shop-successbg text-shop-success"
-                  : "bg-shop-primary-soft text-shop-primary-ink"
-              }`}
-            >
-              <svg aria-hidden className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
-              </svg>
-              {product.price >= freeDeliveryFrom ? (
-                <span>
-                  <strong className="font-semibold">This item ships free.</strong> Orders over{" "}
-                  {formatPrice(freeDeliveryFrom)} never pay delivery.
-                </span>
-              ) : (
-                <span>
-                  Add{" "}
-                  <strong className="font-semibold">
-                    {formatPrice(freeDeliveryFrom - product.price)}
-                  </strong>{" "}
-                  more to your order and delivery is free.
-                </span>
-              )}
-            </p>
+               What replaces it is the part the page never answered — the
+               despatch detail a shopper checks once they have decided. */}
+          {!soldOut && (
+            <div className="mt-3.5 border-t border-shop-hairline pt-3.5">
+              <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-success">
+                <svg aria-hidden className="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
+                </svg>
+                {product.seller
+                  ? `Ships from ${product.seller.store_name}`
+                  : "Ships from our Kampala warehouse"}
+              </p>
+              <DeliveryPromise className="mt-2" />
+            </div>
           )}
+
+          {/* ---- The guarantees ----
+               Two columns of what the shop stands behind, in a quiet panel below
+               the action. It is deliberately *below*: these answer the doubt of a
+               shopper who has not committed yet, and putting them above the
+               button makes a page that argues before it offers.
+
+               Every line here is a term the shop already operates — the returns
+               window, pay-on-delivery, the buyer protection in the policies — so
+               nothing in this panel is a claim the business has not made
+               elsewhere. */}
+          <div className="mt-3.5 rounded-lg border border-shop-line bg-white p-3.5">
+            <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-ink">
+              <svg aria-hidden className="h-[18px] w-[18px] shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
+              </svg>
+              Why shop with us
+            </p>
+            <div className="mt-2.5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+              <div>
+                <p className="text-[13px] font-semibold text-shop-body">
+                  Payment &amp; privacy
+                </p>
+                <ul className="mt-1 space-y-1 text-[12.5px] text-shop-body">
+                  <li className="flex items-start gap-1.5">
+                    <Tick /> Pay on delivery — cash or mobile money
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <Tick /> Card details never stored by the shop
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-shop-body">
+                  Delivery guarantee
+                </p>
+                <ul className="mt-1 space-y-1 text-[12.5px] text-shop-body">
+                  <li className="flex items-start gap-1.5">
+                    <Tick /> Refund if the item arrives damaged
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <Tick /> 14-day returns, in original condition
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* What other buyers made of it. Below the action rather than beside
+              the price: the star average is already in the credentials line at
+              the top, and this is the breakdown for a shopper who wants to know
+              whether the 4.6 is fifty fives and ten ones. Links straight to the
+              full section at the foot of the page. */}
+          <RatingSummary
+            average={ratingAverage}
+            count={ratingCount}
+            breakdown={ratingBreakdown}
+            className="mt-3.5"
+          />
 
           <div className="mt-3.5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
             <button

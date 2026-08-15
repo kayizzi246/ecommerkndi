@@ -39,9 +39,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jakarta);
-  --font-heading: var(--font-jakarta);
-  --font-body: var(--font-jakarta);
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-display);
+  --font-body: var(--font-ui);
 }
 
 @theme {
@@ -139,22 +139,29 @@
   --color-sold: #71717a;
 }
 
-/* One face for the whole site — Plus Jakarta Sans.
+/* ---- The type: Geist, everywhere ----
  *
- * `--font-ui` and `--font-display` are kept as separate names because a hundred
- * rules and components refer to them, and because the *distinction* still holds
- * even though the family no longer changes: display type is set heavy and
- * tight, UI type is set at 400–500 and spaced for reading. What has gone is the
- * second download and the seam between two families that were being asked to do
- * the same job.
+ * `--font-geist` is set by `next/font` in `app/layout.tsx`, where the reasoning
+ * for the face and for self-hosting it is written out. This is the other half:
+ * the system stack stays behind it as a fallback, so a request that somehow
+ * arrives before the font file does still paints in a sans face rather than in
+ * the browser's default serif.
  *
- * The fallbacks are the system UI stack in both cases, so a page rendered
- * before the webfont arrives has consistent metrics rather than one face
- * falling back to Futura and the other to Roboto. */
+ * The `--font-display` / `--font-ui` distinction is kept even though both
+ * resolve to the same family: display type is set heavy and tight, UI type at
+ * 400–500 and spaced for reading, and every rule below still refers to them.
+ * Keeping the two names means a future decision to set headings in something
+ * else is one line here rather than a search through the components. */
 :root {
+  /* `system-ui` leads, which is the one difference from the stack this shop ran
+     before. It resolves to whatever the device calls its own interface face —
+     Segoe UI Variable on Windows 11, Roboto on Android, SF on iOS — rather than
+     naming those faces one at a time and hoping the list covers the device. The
+     named fallbacks stay behind it for the browsers that never implemented the
+     keyword. This is the same stack brandsforless.com sets its type in. */
   --font-ui:
-    var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
   --font-tabular: var(--font-ui);
@@ -256,7 +263,7 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. Jakarta is variable across 200–800,
+     it that the eye had to stop and check. Geist is variable across 100–900,
      so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
@@ -357,9 +364,10 @@ h6,
 
 /* The heaviest step, for the section headings that anchor the homepage.
  *
- * 800 rather than the 900 this used to ask for: Jakarta's variable axis stops
- * at 800, and with `font-synthesis-weight` off a request for 900 clamps to the
- * same 800 anyway. Stating it plainly means the CSS says what actually renders.
+ * 800 rather than 900, by choice rather than by limit. Geist's variable axis
+ * does reach 900, but at the sizes these headings run — 18 to 24px, not poster
+ * scale — 900 closes the counters up and the word turns into a black bar. 800
+ * is the heaviest step that still reads as letters.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
  * Tracking is pulled in harder than at 600: at this weight the letterforms

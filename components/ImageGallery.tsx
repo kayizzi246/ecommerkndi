@@ -93,8 +93,47 @@ export default function ImageGallery({
 
   return (
     <div>
-      {/* Main frame */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-[4px] border border-shop-line bg-white">
+      {/* ---- Gallery layout ----
+           A vertical strip of thumbnails to the left of the frame on a desktop,
+           and the same strip laid out horizontally underneath it on a phone.
+
+           The strip used to be a wrapped row below the frame in every case,
+           which on a product with eight shots became two rows of 80px squares —
+           roughly 170px of gallery furniture sitting directly between the
+           photograph and the price. Standing them up the side costs no vertical
+           space at all, puts every shot in view without scrolling, and is what
+           every large marketplace does on a wide screen for exactly that
+           reason. Below `lg` there is no width to spare for a side rail, so it
+           becomes a single scrolling row instead. */}
+      <div className="flex gap-3">
+        {images.length > 1 && (
+          <ul className="hidden w-[64px] shrink-0 flex-col gap-2 lg:flex">
+            {images.map((src, i) => (
+              <li key={src}>
+                <button
+                  type="button"
+                  onClick={() => setActiveImage(src)}
+                  aria-label={`View image ${i + 1}`}
+                  aria-current={i === activeIndex}
+                  className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-[4px] border bg-white transition-colors hover:border-shop-primary ${
+                    i === activeIndex ? "border-2 border-shop-primary" : "border-shop-line"
+                  }`}
+                >
+                  <Image
+                    src={src}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="h-full w-full object-contain p-1"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Main frame */}
+        <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[4px] border border-shop-line bg-white">
         <button
           type="button"
           onClick={() => setLightbox(true)}
@@ -187,11 +226,16 @@ export default function ImageGallery({
         )}
       </div>
 
-      {/* Thumbnail row */}
+      </div>
+
+      {/* The same thumbnails under the frame, for the screens too narrow to
+          carry the side rail. One scrolling row rather than a wrapping grid, so
+          a product with eight shots costs exactly as much height as one with
+          three. */}
       {images.length > 1 && (
-        <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <ul className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar lg:hidden">
           {images.map((src, i) => (
-            <li key={src} className="h-20 w-20">
+            <li key={src} className="h-16 w-16 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveImage(src)}
@@ -204,8 +248,8 @@ export default function ImageGallery({
                 <Image
                   src={src}
                   alt=""
-                  width={80}
-                  height={80}
+                  width={64}
+                  height={64}
                   className="h-full w-full object-contain p-1"
                 />
               </button>

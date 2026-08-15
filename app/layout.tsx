@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
@@ -10,27 +11,28 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * Plus Jakarta Sans carries the whole store — headings, navigation, product
- * names, prices, forms, tables.
+ * There is no webfont, and no `next/font` call.
  *
- * One face rather than the Poppins/Inter pair the store used to run. Two
- * families only earn their weight when they are doing genuinely different jobs,
- * and here they were not: the same heading, price and label treatments were
- * being reproduced in both, which is how a page ends up looking assembled from
- * two templates. Jakarta is a humanist-geometric sans with a tall x-height, so
- * it does the job Inter was here for at 13–14px while still reading as
- * confident display type at 700–800, which is what Poppins was here for.
+ * The shop has now been through four settings: a Poppins/Inter pair, Plus
+ * Jakarta Sans, the system stack, a brief run on self-hosted Geist, and back to
+ * the system stack — which is where it stays, matched deliberately to
+ * brandsforless.com, whose type is `system-ui, -apple-system, …` and nothing
+ * else. The stack itself lives in `globals.css`, with the reasoning.
  *
- * A variable font, so every weight from 200 to 800 arrives in a single file —
- * loading the heavy cuts costs nothing extra over the wire, and
- * `font-synthesis-weight: none` in globals.css means any weight that renders is
- * a real one.
+ * What it buys is the whole point. A webfont is a file that must arrive before a
+ * word can be painted in its intended shape, and it sits on the critical path in
+ * front of the product photographs that are the only reason anybody opened the
+ * page. The system face is already resident on the device, so the first paint is
+ * the final paint — no download, no swap, no reflow of every price and product
+ * name a second into the page's life.
+ *
+ * The cost is real and worth stating: the shop renders in Segoe UI on Windows,
+ * Roboto on Android and SF on iOS, so no two shoppers see quite the same letter
+ * shapes. That is the trade every large marketplace has made — Temu, Amazon,
+ * AliExpress and Brands For Less all resolve to the reader's own interface font.
+ * This shop's identity lives in its logo, its orange and its photography, none
+ * of which is type.
  */
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 /**
  * Site-wide metadata, read from wp-admin.
@@ -59,14 +61,40 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `${settings.brand.tagline} Pay on delivery, ${settings.commerce.returns_days}-day returns.`
       : "Shop shoes, fashion, electronics and more at low prices. Fast delivery across Uganda.",
     applicationName: brand,
-    // The uploaded favicon, when there is one worth using — see getFaviconUrl.
-    // Otherwise nothing is declared here and the icons that ship in `app/`
-    // (favicon.ico, icon.png, apple-icon.png) carry the tab on their own, so it
-    // is never blank. `apple` is the same image: iOS uses it when somebody saves
-    // the shop to their home screen.
+    /**
+     * The tab icon — and the *only* declaration of it on the page.
+     *
+     * That exclusivity is the fix for "I upload a favicon in Store Settings and
+     * nothing changes".
+     *
+     * The uploaded icon was always reaching the HTML. What it was competing with
+     * was a second icon the framework emitted on its own: `favicon.ico` and
+     * `icon.png` used to sit in `app/`, where they are a Next file convention,
+     * so every page shipped BOTH the wp-admin PNG and
+     * `<link rel="icon" href="/favicon.ico" sizes="48x48" type="image/x-icon">`.
+     * Faced with two, a browser picks one — and Chrome prefers the `.ico` with
+     * an explicit `sizes`, which is the bundled one that never changes. The
+     * upload worked; it was simply never the icon that won.
+     *
+     * Both files have moved to `public/`, which serves them at the same URLs but
+     * stops Next advertising them. `/favicon.ico` therefore still answers the
+     * bare request browsers and crawlers make by habit, while the only icon
+     * *declared* in the head is the one this function chooses.
+     *
+     * The fallback is explicit for the same reason: with nothing in `app/` there
+     * is no automatic icon behind us any more, so a shop that has not uploaded
+     * one must be given the bundled image by name or it would ship no icon at
+     * all. `apple` is the same image — iOS uses it when the shop is saved to a
+     * home screen.
+     *
+     * Note the upload can still be declined: `getFaviconUrl` returns null for a
+     * PNG whose sides differ by more than 1.6× (a wide logo makes an unreadable
+     * 16px tab icon). If an upload appears to do nothing, that is now the first
+     * thing to check — crop it square.
+     */
     icons: favicon
       ? { icon: favicon, shortcut: favicon, apple: favicon }
-      : undefined,
+      : { icon: "/icon.png", shortcut: "/favicon.ico", apple: "/apple-icon.png" },
     // No canonical here, deliberately.
     //
     // Metadata set in a layout is *inherited* by every page under it that does
@@ -109,7 +137,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media
@@ -125,12 +153,29 @@ export default async function RootLayout({
            ignore preconnect hints.
 
            The host is derived from WP_API_URL rather than typed, so it cannot
-           drift away from where the images actually live. */}
+           drift away from where the images actually live.
+
+           ---- Why there is no <head> element around these ----
+
+           There used to be, and it is what broke the favicon.
+
+           A root layout must not render its own `<head>`: the App Router owns
+           that element and injects into it everything the Metadata API and the
+           `app/` file conventions produce — which includes the icon links
+           generated from `favicon.ico`, `icon.png` and `apple-icon.png`. Adding
+           an explicit `<head>` hands React a head of our own, and the generated
+           icon links stopped being emitted with it. The files were all present
+           and valid the whole time; nothing was ever pointing at them.
+
+           These two hints do not need a wrapper anyway. React hoists `<link>`
+           into the document head from wherever it is rendered, so they land in
+           exactly the same place — alongside the metadata rather than instead of
+           it. */}
       {mediaOrigin && (
-        <head>
+        <>
           <link rel="preconnect" href={mediaOrigin} crossOrigin="" />
           <link rel="dns-prefetch" href={mediaOrigin} />
-        </head>
+        </>
       )}
       {/* `bg-background`, not `bg-white`. Hard-coding white here painted over
           the `--background` token on every page, which is why changing that
@@ -174,6 +219,25 @@ export default async function RootLayout({
             </ToastProvider>
           </CartProvider>
         </CustomerSessionProvider>
+
+        {/* ---- Vercel Analytics and Speed Insights ----
+             Page views and real-user performance, both first-party.
+
+             They are last in the body deliberately: neither is needed to render
+             the shop, and anything above them in the tree paints first.
+             Analytics counts visits; Speed Insights reports the Core Web Vitals
+             actual shoppers experience on actual Ugandan connections, which is
+             the only measurement of this site's speed that means anything — a
+             lab score on a fast laptop has never been the problem.
+
+             Nothing needed adding to the Content-Security-Policy in
+             next.config.ts, which is worth recording because it looks like it
+             should have. Both scripts are served from `/_vercel/…` on this
+             origin and beacon back to the same place, so the existing
+             `script-src 'self'` and `connect-src 'self'` already permit them.
+             No third-party host is contacted and no cookie is set. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

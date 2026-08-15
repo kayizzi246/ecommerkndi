@@ -148,7 +148,12 @@ export default function CartPage() {
                     href={`/products/${item.productId}`}
                     className="relative h-[112px] w-24 shrink-0 overflow-hidden rounded-xl bg-shop-surface"
                   >
-                    <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
+                    {/* Guarded: an imageless product stores "" here, and
+                        `next/image` treats an empty src as a request for the
+                        current page. */}
+                    {item.image && (
+                      <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
+                    )}
                   </Link>
 
                   <div className="flex min-w-0 flex-1 flex-col">
