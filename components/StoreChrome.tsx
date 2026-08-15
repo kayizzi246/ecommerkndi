@@ -10,6 +10,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import ShopperOnboarding from "@/components/ShopperOnboarding";
 import CartDrawer from "@/components/CartDrawer";
 import CookieNotice from "@/components/CookieNotice";
+import ContactRail from "@/components/ContactRail";
 
 /**
  * The Seller Centre and the owner's product manager are separate application
@@ -68,6 +69,11 @@ export default function StoreChrome({
     <>
       <Header departments={departments} settings={settings} />
       <div className="flex-1">{children}</div>
+      {/* Mounted here rather than in the layout so it inherits this component's
+          one rule about where chrome belongs: the Seller Centre, admin and
+          checkout return early above, and none of them should carry a shopper
+          support rail over their own interface. */}
+      <ContactRail support={settings.support} />
       <CartDrawer />
       <Footer settings={settings} departments={departments} />
       {/* The sliding "Create account" bar that used to sit here is gone with the

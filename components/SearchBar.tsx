@@ -32,6 +32,43 @@ function highlight(label: string, term: string) {
   );
 }
 
+/**
+ * The prompts that cycle through the empty search box.
+ *
+ * Written as things somebody would actually type into this shop rather than as
+ * slogans — a rotating placeholder is only worth the movement if it teaches the
+ * reader what the catalogue holds. Every one of these returns results today.
+ */
+const SEARCH_PROMPTS = [
+  "Men's leather belts",
+  "Football boots",
+  "Shoe rack organiser",
+  "Portable wardrobe",
+  "Curtains for the sitting room",
+  "Crossbody bag",
+  "Air pump for a mattress",
+];
+
+/** How long each prompt holds before the next slides up. */
+const PROMPT_INTERVAL_MS = 2600;
+
+/**
+ * The departments the search can be narrowed to.
+ *
+ * Written by hand against the same words the main nav uses rather than fetched:
+ * this control sits in the masthead on every page, and a select whose options
+ * arrive after a round trip is a select that changes shape while somebody is
+ * reaching for it. The slugs are the real WooCommerce categories — `/search`
+ * resolves an unknown one by ignoring it, so a renamed category degrades to an
+ * unscoped search rather than an empty result page.
+ */
+const SCOPES = [
+  { label: "Men", slug: "men" },
+  { label: "Women", slug: "women" },
+  { label: "Kids", slug: "kids" },
+  { label: "Home", slug: "home-decor" },
+];
+
 export default function SearchBar() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -40,11 +77,37 @@ export default function SearchBar() {
   const [focused, setFocused] = useState(false);
   /** Keyboard cursor into the suggestion list; -1 means "no row selected". */
   const [cursor, setCursor] = useState(-1);
+  /** Which prompt the empty box is currently showing. */
+  const [prompt, setPrompt] = useState(0);
+  /** Category slug the query is limited to; "" means the whole catalogue. */
+  const [scope, setScope] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const term = query.trim();
+
+  /**
+   * The empty box shows a prompt only when it is genuinely empty and unfocused.
+   *
+   * Both conditions matter. Text sliding under a cursor somebody is typing into
+   * is the reason animated placeholders are usually a mistake, and the moment a
+   * shopper focuses the field they have their own idea — the suggestion has done
+   * its job or it has not.
+   */
+  const showPrompt = !query && !focused;
+
+  // Advance the prompt on a timer, and only while one is on screen: a rotation
+  // running behind a focused field is work nobody can see, and it would resume
+  // mid-cycle when the field empties instead of showing a fresh line.
+  useEffect(() => {
+    if (!showPrompt) return;
+    const timer = setInterval(
+      () => setPrompt((current) => (current + 1) % SEARCH_PROMPTS.length),
+      PROMPT_INTERVAL_MS
+    );
+    return () => clearInterval(timer);
+  }, [showPrompt]);
 
   // Debounced suggestion fetch. Every state update happens inside the timer or
   // the response handler, never synchronously in the effect body.
@@ -85,7 +148,10 @@ export default function SearchBar() {
     setOpen(false);
     setCursor(-1);
     inputRef.current?.blur();
-    router.push(`/search?q=${encodeURIComponent(value)}`);
+    // The scope rides along only when one is chosen, so an unscoped search
+    // keeps producing the same clean /search?q=… URL it always has.
+    const scoped = scope ? `&category=${encodeURIComponent(scope)}` : "";
+    router.push(`/search?q=${encodeURIComponent(value)}${scoped}`);
   };
 
   const goToProduct = (id: number) => {
@@ -137,6 +203,38 @@ export default function SearchBar() {
             focused ? "border-shop-flame" : "border-shop-line hover:border-shop-flame/50"
           }`}
         >
+          {/* ---- Scope ----
+               The dropdown the reference puts at the head of its search field.
+               It is a real control, not a decoration: picking a department
+               limits the query to that category, which is the difference between
+               "shoes" returning the whole catalogue's shoes and returning the
+               men's ones.
+
+               A native `<select>` rather than a custom menu. It carries its own
+               keyboard handling, its own mobile picker and its own accessibility
+               for free, and this is a control that has to work on a cheap
+               Android browser first and look considered second. */}
+          <label className="sr-only" htmlFor="search-scope">
+            Search within
+          </label>
+          <select
+            id="search-scope"
+            value={scope}
+            onChange={(event) => setScope(event.target.value)}
+            className="hidden max-w-[130px] shrink-0 cursor-pointer truncate border-r border-shop-line bg-transparent py-2.5 pr-2 text-[14px] font-semibold text-shop-ink focus:outline-none sm:block"
+          >
+            <option value="">All</option>
+            {SCOPES.map((entry) => (
+              <option key={entry.slug} value={entry.slug}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+
+          {/* The input and its animated prompt share a positioned box, so the
+              prompt lands exactly on the placeholder rather than against the
+              outer field — which starts 16px further left, before the padding. */}
+          <div className="relative min-w-0 flex-1">
           <input
             ref={inputRef}
             type="text"
@@ -157,9 +255,45 @@ export default function SearchBar() {
             }}
             onBlur={() => setFocused(false)}
             onKeyDown={onKeyDown}
+            /* The static placeholder is still set, and still carries the real
+               instruction. The animated line below sits on top of it and is
+               `aria-hidden`, so a screen reader hears one stable prompt rather
+               than a field whose label changes every 2.6 seconds. It is also
+               what shows if JavaScript never runs. */
             placeholder="Search for products, brands and more"
-            className="w-full bg-transparent py-2.5 text-[15px] placeholder:text-shop-muted focus:outline-none"
+            className={`w-full bg-transparent py-2.5 text-[15px] focus:outline-none ${
+              // Hide the real placeholder only while the animated one is
+              // covering it, so the two can never be legible at once.
+              showPrompt ? "placeholder:text-transparent" : "placeholder:text-shop-muted"
+            }`}
           />
+
+          {/* ---- The rotating prompt ----
+               A suggestion sliding up out of the field every few seconds, the
+               way the large marketplaces prompt an empty search box. It is
+               advertising the catalogue, not labelling the input — which is why
+               it is decoration to assistive tech and why it disappears the
+               instant the field is focused or typed into.
+
+               `pointer-events-none` so it cannot intercept the click that would
+               have focused the input underneath it. */}
+          {showPrompt && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden"
+            >
+              <span
+                // Keyed on the index so React remounts the span each time,
+                // which is what replays the animation — a CSS animation on a
+                // persistent node only ever runs once.
+                key={prompt}
+                className="ticker-line block truncate text-[15px] text-shop-muted"
+              >
+                {SEARCH_PROMPTS[prompt]}
+              </span>
+            </span>
+          )}
+          </div>
 
           {query && (
             <button

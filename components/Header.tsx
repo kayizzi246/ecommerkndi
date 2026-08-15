@@ -178,12 +178,21 @@ export default function Header({
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
             // not necessarily in `next.config` remotePatterns.
-            // Stepped up from 40px tall / 190px wide. The wordmark is the one
-            // thing in the masthead that has to be recognised rather than read,
-            // and at 40px it was losing that contest to the search field beside
-            // it. `w-auto` with a max width means a wide logo grows into the
-            // room rather than distorting, and the intrinsic size is raised to
-            // match so the file is not upscaled.
+            // Back down to 36/40px, from 48/56.
+            //
+            // It was raised on the argument that the wordmark has to be
+            // recognised rather than read, and was losing that contest to the
+            // search field. The contest was the mistake: on a marketplace
+            // masthead the search field is *supposed* to win. Tmall, Taobao and
+            // AliExpress all set their logo at roughly a third the height of
+            // their search bar, because a shopper who has arrived already knows
+            // whose site they are on and what they came to do is type. A large
+            // logo also pushes the field narrower on precisely the laptop widths
+            // where the query needs the room.
+            //
+            // `w-auto` with a max width means a wide logo grows into the space
+            // rather than distorting, and the intrinsic size stays generous so
+            // the file is never upscaled.
             <Image
               src={settings.brand.logo_url}
               alt={brandName(settings)}
@@ -191,7 +200,7 @@ export default function Header({
               height={60}
               unoptimized
               priority
-              className="h-12 w-auto max-w-[220px] object-contain md:h-14 md:max-w-[260px]"
+              className="h-9 w-auto max-w-[150px] object-contain md:h-10 md:max-w-[180px]"
             />
           ) : (
             <>
@@ -201,7 +210,9 @@ export default function Header({
                   it stays crisp at any size and costs no extra request. */}
               <span className="flex items-center gap-1">
                 <svg
-                  className="h-11 w-11 md:h-12 md:w-12"
+                  // Scaled down with the uploaded-logo branch above, so a shop
+                  // that has not uploaded one gets the same masthead proportions.
+                  className="h-9 w-9 md:h-10 md:w-10"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -240,7 +251,7 @@ export default function Header({
                   />
                 </svg>
               </span>
-              <span className="font-heading text-[28px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[32px]">
+              <span className="font-heading text-[21px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[24px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>

@@ -147,21 +147,38 @@ export default function ProductCard({
    */
 
   return (
-    // Corners are 3px, not 8px, and the tile's own padding is gone below sm.
+    // Corners are 10px, up from 3.
     //
-    // A rounded photograph reads as a card floating on the page; a nearly
-    // square one reads as the product itself, which is the whole argument of a
-    // chrome-free tile. At 2.5 tiles per phone screen the 8px radius was also
-    // eating a visible bite out of a 150px image on all four corners.
-    <article className="group relative flex h-full flex-col rounded-[3px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line">
+    // This reverses an earlier decision, and the earlier reasoning was sound on
+    // its own terms: a nearly square photograph reads as the product itself
+    // rather than as a card floating on the page, and at 2.5 tiles per phone
+    // screen a large radius eats a visible bite out of a 150px image.
+    //
+    // What it missed is that a radius is what makes a tile look *made*. Taobao,
+    // Temu and AliExpress all round their tiles at roughly this much, and the
+    // grid reads as a set of objects rather than as photographs abutting each
+    // other. 10px is the size that survives at both extremes — big enough to be
+    // seen on a 150px phone tile, small enough that a 300px desktop tile does
+    // not turn into a lozenge.
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-[10px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
-          {/* 4:5 rather than square. Clothes and shoes are photographed
-              standing up, and a square crop of a portrait shot spends its
-              height on floor and ceiling — the extra 25% goes to the garment,
-              which on a phone is most of what the shopper can see at all. */}
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] bg-shop-hairline">
+          {/* Square, down from 4:5 — a quarter shorter.
+
+              The 4:5 crop was argued for on the grounds that clothes and shoes
+              are photographed standing up, so the extra height goes to the
+              garment rather than to floor and ceiling. That is true of a
+              fashion catalogue and false of this one: the shop sells wardrobes,
+              shoe racks, air pumps, curtains and milk, most of it photographed
+              square by the supplier, and a 4:5 frame around a square photograph
+              is 25% empty space by construction.
+
+              Square is also what every marketplace tile this grid is modelled
+              on uses, and the reason is arithmetic rather than taste: a shorter
+              tile puts more rows on a screen, and on a page whose job is to
+              show a catalogue, rows are the product. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

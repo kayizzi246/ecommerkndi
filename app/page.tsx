@@ -280,13 +280,21 @@ export default async function Home() {
          * into Google. Every figure in it comes from the shop's own settings,
          * so it cannot drift away from what the checkout does.
          */}
+        {/* Left-aligned and full width, rather than centred in a 68ch column.
+            This is the treatment the large marketplaces give their closing
+            copy: it is reference text at the bottom of a long page, not a
+            statement — centring it and setting it at 15px made it look like a
+            mission statement demanding to be read, which is exactly what a
+            shopper who has scrolled this far will not do. Dense, ranged left
+            and a step smaller, it reads as the footnote it is, and the crawler
+            gets the same words either way. */}
         <section
           aria-labelledby="about-kandi"
-          className="mt-4 border-t border-shop-line px-4 pt-10 text-center md:px-8"
+          className="mt-4 border-t border-shop-line px-4 pt-8 md:px-8"
         >
           <h1
             id="about-kandi"
-            className="mx-auto max-w-[62ch] text-[17px] leading-snug text-shop-body md:text-[19px]"
+            className="text-[15px] leading-snug text-shop-body md:text-[16px]"
           >
             {/* The registered name and the name people type, in the one
                 element Google weighs most heavily on the page.
@@ -298,22 +306,24 @@ export default async function Home() {
                 is the answer to "kandi ug" and Google having only a JSON-LD
                 alias to go on. Set lighter than the registered name so the
                 brand still reads as one wordmark rather than two. */}
-            <span className="heading-black block text-[20px] text-shop-ink md:text-[24px]">
+            {/* "Kandi For Less | KandiUg" on one line, the way the reference
+                heads its own closing block with the store's two names. Both are
+                this shop: one is registered, the other is what people type. */}
+            <span className="block text-[17px] font-bold text-shop-ink md:text-[18px]">
               {brandName(settings)}
-            </span>
-            <span className="mt-0.5 block text-[14px] font-semibold text-shop-muted md:text-[15px]">
+              <span className="mx-1.5 font-normal text-shop-faint">|</span>
               KandiUg
             </span>
-            <span className="mt-1.5 block">
+            <span className="mt-1 block">
               {"Online shopping in Uganda. "}
-              <span className="font-bold text-shop-ink">
+              <span className="font-semibold text-shop-ink">
                 Fast delivery, pay on delivery
               </span>
               {` and ${settings.commerce.returns_days}-day returns.`}
             </span>
           </h1>
 
-          <div className="mx-auto mt-5 max-w-[68ch] space-y-3.5 text-[15px] leading-relaxed text-shop-body">
+          <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-shop-body">
             <p>
               {brand} — also known as <strong className="font-semibold text-shop-ink">KandiUg</strong>,
               after the kandiug.com address — is a Ugandan online marketplace

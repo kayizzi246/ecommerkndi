@@ -28,6 +28,8 @@ type Search = {
   q?: string;
   page?: string;
   sort?: string;
+  /** Department the query is limited to, from the scope select in the masthead. */
+  category?: string;
   min_price?: string;
   max_price?: string;
   stock?: string;
@@ -41,9 +43,19 @@ export default async function SearchPage({
   searchParams: Promise<Search>;
 }) {
   const search = await searchParams;
-  const { q = "", page: pageParam, sort } = search;
+  const { q = "", page: pageParam, sort, category } = search;
   const page = Math.max(1, Number(pageParam) || 1);
   const query = q.trim();
+
+  /**
+   * The department the masthead's scope select was set to, if any.
+   *
+   * Passed straight through to WooCommerce as a slug. An unknown slug returns
+   * nothing rather than erroring, so a category renamed in wp-admin degrades to
+   * an empty result page rather than a crash — and the select only ever offers
+   * the four departments the shop actually has.
+   */
+  const scope = category?.trim() || undefined;
 
   // Sorting and the price/stock filters go to WordPress, so they apply to the
   // whole result set rather than to whichever 24 rows this page happened to
@@ -54,6 +66,7 @@ export default async function SearchPage({
         search: query,
         page,
         per_page: 24,
+        ...(scope ? { category: scope } : {}),
         ...toProductQuery(search),
       })
     : { products: [], total: 0, total_pages: 0 };
