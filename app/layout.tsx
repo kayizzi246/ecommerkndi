@@ -8,6 +8,7 @@ import { CustomerSessionProvider } from "@/lib/customer-session";
 import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
+import { Analytics } from "@vercel/analytics/next";
 
 /**
  * Plus Jakarta Sans carries the whole store — headings, navigation, product
@@ -174,6 +175,7 @@ export default async function RootLayout({
             </ToastProvider>
           </CartProvider>
         </CustomerSessionProvider>
+        <Analytics />
       </body>
     </html>
   );
