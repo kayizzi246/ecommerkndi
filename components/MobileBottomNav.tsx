@@ -9,7 +9,7 @@ const NAV_ITEMS = [
     label: "Home",
     href: "/",
     icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
+      <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "2"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
       </svg>
     ),
@@ -20,7 +20,7 @@ const NAV_ITEMS = [
        nothing at all when tapped. It now goes to the real departments page. */
     href: "/categories",
     icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
+      <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "2"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
       </svg>
     ),
@@ -29,7 +29,7 @@ const NAV_ITEMS = [
     label: "Cart",
     href: "/cart",
     icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
+      <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "2"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
       </svg>
     ),
@@ -40,7 +40,7 @@ const NAV_ITEMS = [
     // shopper out to the WordPress my-account page.
     href: "/account",
     icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "1.5"} viewBox="0 0 24 24">
+      <svg className="w-6 h-6" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "0" : "2"} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
       </svg>
     ),
@@ -76,7 +76,16 @@ export default function MobileBottomNav() {
      * gap below it.
      */
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-      <div className="flex h-[60px] items-stretch justify-around">
+      {/* 64px, up from 60 — the icons inside went from 20px to 24px and from a
+          1.5 to a 2 stroke, and the row needed the four pixels back so the
+          label underneath does not crowd them.
+
+          The weight matters more than the size here. At 1.5 these were the
+          faintest marks on a phone screen, competing with product photography
+          directly above them; at 2 they read as controls. The active state
+          still switches to a solid fill rather than a heavier stroke, so which
+          tab is current stays obvious at a glance. */}
+      <div className="flex h-16 items-stretch justify-around">
         {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/"
@@ -90,7 +99,7 @@ export default function MobileBottomNav() {
               aria-current={isActive ? "page" : undefined}
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className={`relative flex w-full flex-col items-center justify-center gap-1 pt-1 text-[10.5px] transition-colors ${
+              className={`relative flex w-full flex-col items-center justify-center gap-0.5 pt-1 text-[10.5px] font-semibold transition-colors ${
                 isActive
                   ? "font-bold text-shop-primary"
                   : "font-medium text-shop-muted active:text-shop-ink"

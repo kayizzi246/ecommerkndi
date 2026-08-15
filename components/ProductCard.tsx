@@ -347,9 +347,31 @@ export default function ProductCard({
             meant to do that. 15 still reads first among the text — it is bold,
             near-black and sits under a 14px name — without shouting over the
             product it belongs to. */}
+        {/* ---- Money ----
+             What it costs, what it cost, and the reduction.
+
+             ---- The clipping bug this fixes ----
+
+             The row is a fixed height, which is what keeps every tile in a rail
+             the same size. On a 382px phone showing 2.5 tiles, a tile is about
+             150px wide and the three figures — "UGX 120,000  UGX 300,000  −10%"
+             — need roughly double that. Nothing here said they could not wrap,
+             so the price broke onto a second line and the fixed height cut it in
+             half: shoppers saw "UGX" above a sliced row of digits.
+
+             Two changes, and both are needed. `whitespace-nowrap` stops a price
+             ever breaking mid-number, because a price split across two lines is
+             unreadable whatever height the row is. And below `sm` the
+             struck-through original and the percentage are dropped entirely
+             rather than squeezed: the discount is already on the photograph as
+             a corner flag, so nothing is lost, and the resting price gets the
+             whole width to itself.
+
+             The price is a step smaller on a phone as well — 13px against 15 —
+             which is the size it needs to be to sit comfortably in 150px. */}
         <p className="flex h-5 items-baseline gap-x-1.5 overflow-hidden">
           <span
-            className={`price text-[15px] leading-none ${
+            className={`price whitespace-nowrap text-[13px] leading-none sm:text-[15px] ${
               discount > 0 ? "text-shop-sale" : "text-shop-ink"
             }`}
           >
@@ -357,10 +379,10 @@ export default function ProductCard({
           </span>
           {discount > 0 && (
             <>
-              <span className="text-[11.5px] leading-none text-shop-faint line-through">
+              <span className="hidden whitespace-nowrap text-[11.5px] leading-none text-shop-faint line-through sm:inline">
                 {formatPrice(product.regular_price)}
               </span>
-              <span className="text-[11.5px] font-bold leading-none text-shop-sale">
+              <span className="hidden whitespace-nowrap text-[11.5px] font-bold leading-none text-shop-sale sm:inline">
                 −{discount}%
               </span>
             </>
@@ -393,12 +415,17 @@ export default function ProductCard({
         {/* The delivery promise, and the last row on every tile. `truncate` so a
             long stock message cannot wrap into a second line and undo the
             matching heights above it. */}
-        <p className="flex h-4 items-center truncate text-[11.5px] font-medium text-shop-success">
+        {/* A block rather than a flex row, which is what makes `truncate` work.
+            `text-overflow: ellipsis` has no effect on a flex container — the
+            text was being sliced mid-word with no ellipsis to show for it
+            ("Fastest delivery: 1 business d"). The low-stock variant keeps its
+            dot by being an inline-flex span *inside* the block. */}
+        <p className="h-4 truncate text-[11.5px] font-medium leading-4 text-shop-success">
           {soldOut ? (
             "Back in stock soon"
           ) : lowStock ? (
-            <span className="flex items-center gap-1.5 text-shop-sale">
-              <span className="live-dot h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 align-top text-shop-sale">
+              <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-sale" aria-hidden />
               Only {product.stock_quantity} left
             </span>
           ) : (

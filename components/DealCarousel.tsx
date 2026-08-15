@@ -33,13 +33,21 @@ export default function DealCarousel({
    * to swipe it. The tile sliced by the right edge is the affordance — it is
    * the only thing that says there is more this way.
    *
-   * It showed 3.7 before, then 2.8. At 3.7 a product photograph on a 390px
-   * screen was about 100px wide — a thumbnail of a product rather than a
-   * product. At 2.5 it is ~150px, which is where the price, the struck-through
-   * original and the discount are all legible without a second look, and that
-   * is what a rail has to do in the second a thumb gives it.
+   * It showed 3.7 before, then 2.8, then 2.5. At 3.7 a product photograph on a
+   * 390px screen was about 100px wide — a thumbnail of a product rather than a
+   * product.
+   *
+   * 2.2 now (`44%`), because 2.5 was still not enough. A 150px tile could not
+   * fit "UGX 120,000" beside a struck-through original without the row
+   * overflowing, and the half-tile hanging off the right edge was cut through
+   * the middle of its price rather than through its photograph — which reads as
+   * a broken layout rather than as an invitation to swipe.
+   *
+   * At 44% a tile is ~168px and the third one is cut across its image, which is
+   * the shape a peek is supposed to have: obviously more to the right, nothing
+   * that looks damaged.
    */
-  itemWidth = "w-[40%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
+  itemWidth = "w-[44%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
   priority = false,
   viewAll,
 }: {
