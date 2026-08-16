@@ -78,6 +78,7 @@ export default async function Home() {
   const {
     settings,
     trending,
+    sellerArrivals,
     promoProducts,
     deals,
     dailyDeals,
@@ -147,6 +148,41 @@ export default async function Home() {
                 paint. Its leading tiles load eagerly; every rail below stays
                 lazy. */}
             <DealCarousel products={trending} priority />
+          </section>
+        )}
+
+        {/* ---- New in ----
+             The newest listings from the shop's independent sellers, in the
+             slot directly under Trending.
+
+             Placed this high on purpose. A marketplace only works if sellers
+             believe that listing here gets their goods in front of people, and
+             the second rail on the front page is the most concrete form that
+             promise can take: put something up, and it is on the homepage.
+             Nobody has to merchandise it — the rail refreshes itself every time
+             anyone lists anything.
+
+             It is not the same as "New arrivals" further down, despite the
+             similar name. That rail is the newest stock from any source, most
+             of it the shop's own; this one is filtered on `product.seller`, so
+             it is only ever marketplace listings. A shop trading with no
+             sellers yet renders nothing here rather than an empty heading.
+
+             "Sold by independent sellers on KandiUg" as the subtitle rather
+             than something about freshness: the rail's real news to a shopper
+             is that this shop is a marketplace with other people's shops in it,
+             which is the thing that makes them come back to browse rather than
+             to buy one item. */}
+        {sellerArrivals.length >= MIN_RAIL && (
+          <section aria-labelledby="new-in-heading">
+            <SectionHeader
+              id="new-in-heading"
+              title="New in"
+              subtitle="Just listed by sellers on KandiUg"
+              href="/sellers"
+              linkLabel="All stores"
+            />
+            <DealCarousel products={sellerArrivals} />
           </section>
         )}
 

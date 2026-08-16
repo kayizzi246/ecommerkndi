@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
@@ -63,6 +63,35 @@ export default function Header({
    */
   const [searchOpen, setSearchOpen] = useState(false);
 
+  /**
+   * Whether the masthead is currently slid up out of the way.
+   *
+   * The behaviour every large marketplace has converged on: scrolling DOWN
+   * takes the header away, scrolling UP brings it straight back. It is worth
+   * being precise about why, because "sticky" and this are not the same idea.
+   *
+   * A permanently pinned masthead is a tax paid on every screen of a catalogue.
+   * On a phone the compact row is still ~56px of a ~700px viewport — eight per
+   * cent of the screen spent, on every scroll, on chrome the shopper is not
+   * using while they are reading a grid. But removing it outright is worse,
+   * because the moment they DO want it they want it immediately, and a
+   * scroll-to-top is a long way from the bottom of an endless product grid.
+   *
+   * Direction is the signal that resolves that. Scrolling down means "show me
+   * more products"; scrolling up means, near enough always, "I want to get
+   * back to something" — and the masthead is what they are reaching for.
+   */
+  const [hidden, setHidden] = useState(false);
+
+  /**
+   * The scroll position the last decision was made at.
+   *
+   * A ref, not state: it changes on every frame of every scroll and nothing
+   * renders from it, so putting it in state would re-render the whole masthead
+   * a hundred times a second to store a number.
+   */
+  const lastY = useRef(0);
+
   useEffect(() => {
     // Reading scrollY in the handler and acting in a frame keeps this off the
     // scroll thread; the listener is passive so it can never block one.
@@ -71,16 +100,40 @@ export default function Header({
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
+
+        /* Clamped at zero because iOS rubber-band scrolling reports negative
+           positions at the top of the page and beyond the bottom. Left raw,
+           the bounce at the end of a long grid reads as a direction change and
+           the header flaps. */
+        const y = Math.max(0, window.scrollY);
+
         // Hysteresis: collapsing and expanding at the same pixel makes the row
         // flicker for anyone resting at the boundary.
         setScrolled((current) => {
-          const next = current ? window.scrollY > 60 : window.scrollY > 120;
+          const next = current ? y > 60 : y > 120;
           // Scrolling pins the field on its own; the hand-opened state has
           // nothing left to do and would otherwise keep the icon hidden after
           // the shopper returned to the top.
           if (next) setSearchOpen(false);
           return next;
         });
+
+        /* ---- Direction ----
+           Only acted on past a few pixels of travel. A thumb resting on a phone
+           screen produces a continuous dribble of one-pixel scroll events in
+           both directions, and a header that answered every one of them would
+           shudder rather than slide. 8px is below what anyone would call a
+           deliberate scroll and well above that noise. */
+        const travelled = y - lastY.current;
+        if (Math.abs(travelled) < 8) return;
+        lastY.current = y;
+
+        /* Never hidden in the top stretch of the page, whatever the direction.
+           The header has not had time to be in the way yet, and hiding it there
+           makes the shop feel like it is flinching away from the shopper. 140px
+           is past the announcement strip and the logo row, so the first thing
+           this can do is get out of the way of the products. */
+        setHidden(travelled > 0 && y > 140);
       });
     };
     onScroll();
@@ -91,13 +144,23 @@ export default function Header({
     };
   }, []);
 
+  /* An open menu pins the header down.
+     Sliding the masthead away while its own dropdown is open would take the
+     dropdown with it, and the shopper did not scroll — they opened a menu and
+     then moved the page under it. */
+  const slidUp = hidden && !menuOpen;
+
   const threshold = settings.commerce.free_delivery_from;
   const awayFromFreeDelivery = Math.max(0, threshold - subtotal);
 
   return (
     // Once the department bar folds away there is no rule between the masthead
     // and the grid scrolling under it, so a shadow takes over that job.
-    <header className={`sticky top-0 z-40 bg-white ${scrolled ? "shadow-sm md:shadow-none" : ""}`}>
+    <header
+      className={`sticky top-0 z-40 bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        scrolled ? "shadow-sm md:shadow-none" : ""
+      } ${slidUp ? "-translate-y-full" : "translate-y-0"}`}
+    >
       {/* ---- Announcement strip ----
            A yellow rule across the top, carrying the shop's three strongest
            promises — pay on delivery, free returns, the sale. It was white on
@@ -119,9 +182,19 @@ export default function Header({
            live free-delivery progress, which is the more useful message. Every
            figure is real: the threshold from settings, the shopper's own
            subtotal, the payment methods actually accepted at checkout. */}
-      <div
-        className={`bg-bfl-yellow text-bfl-black/80 ${scrolled ? "hidden md:block" : ""}`}
-      >
+      {/* ---- Once it is gone, it stays gone ----
+           This was `hidden md:block` when scrolled, so the strip folded away on
+           a phone and stayed put on a desktop. It is now hidden at every width
+           past the first scroll, and that matters more than it did before the
+           masthead started sliding.
+
+           The strip is an opening statement — the promises a shopper reads once
+           on arrival and does not need again. When the header slides back in on
+           a scroll up, it is answering a specific reach for search or the cart,
+           and bringing 32px of rotating marketing back with it would push the
+           thing they actually reached for further down the screen. What returns
+           is the working row and nothing else. */}
+      <div className={`bg-bfl-yellow text-bfl-black/80 ${scrolled ? "hidden" : ""}`}>
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button

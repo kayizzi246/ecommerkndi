@@ -118,6 +118,15 @@ export type HomeFeed = {
   storeCount: number;
   /** The shop's own picks, or the newest stock when nothing is flagged. */
   trending: Product[];
+  /**
+   * "New in" — the newest listings from independent sellers, newest first.
+   *
+   * Distinct from `newArrivals`, which is the newest stock from any source. This
+   * one is filtered on `product.seller`, so it is only ever marketplace
+   * listings. Empty on a shop with no sellers, in which case the rail does not
+   * render at all.
+   */
+  sellerArrivals: Product[];
   /** Deepest discounts, the top slice. */
   promoProducts: Product[];
   /** The middle slice of the discount pool. */
@@ -278,6 +287,35 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     .sort((a, b) => b.total_sales - a.total_sales)
     .slice(0, 12);
 
+  /**
+   * "New in" — the most recently listed products that came from a SELLER.
+   *
+   * The distinction from "New arrivals" directly below it on the page is the
+   * whole reason this rail exists, and it is worth stating plainly because the
+   * two titles sound alike. New arrivals is the newest stock in the shop from
+   * any source, most of which is the shop's own. This is the newest stock put up
+   * by the independent sellers trading on the marketplace — `product.seller` is
+   * set only on those, by WooCommerce, so the filter is a fact rather than a
+   * heuristic.
+   *
+   * Why it earns a place near the top of the homepage: a marketplace lives or
+   * dies on sellers believing that listing here gets their goods seen. A rail
+   * that shows the newest seller listings, in the second slot on the front page,
+   * is the most visible possible answer to that — and it refreshes itself every
+   * time anybody lists anything, with no merchandising work at all.
+   *
+   * Sorted newest first on `date_created`, which is when the listing was
+   * created rather than when its stock last changed, so a seller editing an old
+   * product cannot push it back to the top of the page.
+   */
+  const sellerArrivals = [...latest.products]
+    .filter((product) => product.seller && product.date_created)
+    .sort(
+      (a, b) =>
+        new Date(b.date_created!).getTime() - new Date(a.date_created!).getTime()
+    )
+    .slice(0, 12);
+
   // Trending is the shop's own picks where any are flagged, newest otherwise.
   const trendingPool =
     featured.products.length > 0 ? featured.products : latest.products;
@@ -286,8 +324,8 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * Rails are filled in the order they appear on the page, not the order this
    * object lists them in — see `app/page.tsx`:
    *
-   *   trending → Daily Deals → promotions → new arrivals → best sellers →
-   *   department rails → Super Deals → the endless grid
+   *   trending → New in → Daily Deals → promotions → new arrivals →
+   *   best sellers → department rails → Super Deals → the endless grid
    *
    * Order is the whole mechanism. Whatever is claimed first gets the strongest
    * stock, so the sequence here is a merchandising decision and has to track
@@ -296,6 +334,18 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
   const ledger = new Ledger();
 
   const trending = ledger.claim(trendingPool, 12);
+
+  /**
+   * Claimed second, because it renders second.
+   *
+   * Deliberately ahead of the discount rails. A seller's brand-new listing has
+   * no sales history and usually no discount, so it loses every other contest on
+   * this page — left further down the order it would be picked over by Daily
+   * Deals and Promotions and reliably fail its minimum, and the rail would
+   * simply never appear. Claiming here is what makes the promise to sellers
+   * real rather than nominal.
+   */
+  const sellerArrivalsRail = ledger.claim(sellerArrivals, 12);
 
   /**
    * Daily Deals is filled before Promotions because it sits above it, and it
@@ -363,6 +413,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     departments,
     storeCount: stores.length,
     trending,
+    sellerArrivals: sellerArrivalsRail,
     promoProducts,
     deals,
     dailyDeals,

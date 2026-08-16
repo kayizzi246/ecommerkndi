@@ -95,6 +95,22 @@ export async function GET(request: Request) {
 
   const rails = [
     rail("trending", "Trending now", null, "/search?sort=popular", feed.trending),
+    // "New in" — the newest seller listings, second here exactly as it is second
+    // on the website. The rails are composed by hand rather than derived from
+    // the feed object, so a section added to the web homepage does NOT reach the
+    // app until it is added here; this list and `app/page.tsx` are the two
+    // halves of one running order and have to be edited together.
+    //
+    // Title, subtitle and link are copied verbatim from the web component for
+    // the same reason the Daily Deals casing is: a shopper moving between the
+    // site and the app should not be able to tell that two people wrote them.
+    rail(
+      "new-in",
+      "New in",
+      "Just listed by sellers on KandiUg",
+      "/sellers",
+      feed.sellerArrivals
+    ),
     // "Daily Deals" with the capital D, matching the heading the web component
     // prints verbatim. Casing is exactly the kind of detail that makes two
     // storefronts look like two different products.
