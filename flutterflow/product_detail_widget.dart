@@ -72,20 +72,48 @@ import 'package:http/http.dart' as http;
 //
 //  SETUP  (FlutterFlow)
 //  -----------------------------------------------------------
-//  • Custom Widget name:  ProductDetailWidget
+//  • Custom Widget name:  ProductDetailPage   (must match the class)
 //  • Dependencies (Settings ▸ Pubspec):
 //        http: ^1.2.0
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
 //  • Parameters:
-//        productId   String   REQUIRED — the slug or numeric id
-//        cartRoute   String   optional
-//        searchRoute String   optional
+//        productId     String   REQUIRED — the slug or numeric id
+//        onBackTap     Action   optional
+//        onCartTap     Action   optional
+//        onProductTap  Action   optional — receives productId, slug
+//        onAddToCart   Action   optional — receives id, name, price
 //
 //    `productId` is a STRING even though WooCommerce ids are
 //    numbers, and that is deliberate: the home and category
 //    screens pass a slug when they have one, because a slug is
 //    what the website's own URLs use. The endpoint accepts either.
+//
+//  NAVIGATION IS ACTIONS, NOT PAGE NAMES
+//  -----------------------------------------------------------
+//  Every tap that leaves this screen is an ACTION parameter you
+//  wire in FlutterFlow's action editor, not a page name typed as
+//  a String.
+//
+//  That is a deliberate reversal of the earlier approach and it
+//  is the better one for three reasons:
+//
+//    • FlutterFlow does the navigating, so it knows whether a
+//      page takes its parameters as path or query. Passing page
+//      names meant this file had to guess — it tried query
+//      parameters, caught the throw, then tried path parameters —
+//      and a page that took neither shape failed silently.
+//    • Page names are typed strings with no validation. Rename a
+//      page in FlutterFlow and a String parameter still holds the
+//      old name; the tap goes dead and nothing says why. An
+//      Action is a real reference and moves with the page.
+//    • An Action can do more than navigate. "Add to cart" can
+//      update App State, show a custom dialog or call an API
+//      before it moves, and none of that is expressible as a
+//      route name.
+//
+//  Every Action is optional. Leave one unwired and that control
+//  simply does nothing — visible in testing rather than a crash.
 //
 //  NOTE ON THE SUPABASE IMPORT ABOVE: FlutterFlow writes that
 //  header itself and rewrites it on every save, so it stays.
@@ -99,9 +127,8 @@ import 'package:http/http.dart' as http;
 /// The live storefront origin. No trailing slash.
 const String _kApiBaseUrl = 'https://kandiug.com';
 
-/// FlutterFlow page names. Empty string disables that tap.
-const String _kCartRoute = 'Cart';
-const String _kProductRoute = 'ProductDetail';
+// No page-name constants. Every destination is an Action parameter — see the
+// NAVIGATION note in the header.
 
 // ============================================================
 // BRAND — matched to app/globals.css
@@ -443,13 +470,26 @@ class _PressState extends State<_Press> {
 // WIDGET
 // ============================================================
 
-class ProductDetailWidget extends StatefulWidget {
-  const ProductDetailWidget({
+/// The class name is `ProductDetailPage`, and it must stay that.
+///
+/// FlutterFlow generates the call site from the Custom Widget's NAME —
+/// `custom_widgets.ProductDetailPage(...)` — so the class in this file has to
+/// match the name in the FlutterFlow panel exactly. Renaming it here without
+/// renaming it there produces:
+///
+///     Error: Method not found: 'ProductDetailPage'.
+///
+/// which is a compile failure of the whole web build, not a runtime problem, so
+/// it takes the entire app down rather than one screen.
+class ProductDetailPage extends StatefulWidget {
+  const ProductDetailPage({
     super.key,
     this.width,
     this.height,
     required this.productId,
-    this.cartRoute,
+    this.onBackTap,
+    this.onCartTap,
+    this.onProductTap,
     this.onAddToCart,
   });
 
@@ -459,8 +499,20 @@ class ProductDetailWidget extends StatefulWidget {
   /// The slug or the numeric id. Both work — see the header note.
   final String productId;
 
-  /// Where the cart icon goes. Falls back to the constant above.
-  final String? cartRoute;
+  /// Leaving this screen. Unset, the back control pops the navigator itself,
+  /// which is right in almost every case — the Action exists for the projects
+  /// that need to do something else first.
+  final Future Function()? onBackTap;
+
+  /// Opening the cart.
+  final Future Function()? onCartTap;
+
+  /// Opening another product from the "You may also like" rail.
+  ///
+  /// Receives the slug (preferred, because it is what the website's own URLs
+  /// use) and the numeric id, so the FlutterFlow action can pass whichever the
+  /// destination page declares.
+  final Future Function(String productId, String slug)? onProductTap;
 
   /// Called when "Add to cart" is tapped.
   ///
@@ -477,10 +529,10 @@ class ProductDetailWidget extends StatefulWidget {
       onAddToCart;
 
   @override
-  State<ProductDetailWidget> createState() => _ProductDetailWidgetState();
+  State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
-class _ProductDetailWidgetState extends State<ProductDetailWidget> {
+class _ProductDetailPageState extends State<ProductDetailPage> {
   static const double _pad = 16.0;
   static const double _radius = 10.0;
 
@@ -568,42 +620,37 @@ class _ProductDetailWidgetState extends State<ProductDetailWidget> {
     }
   }
 
-  void _go(String routeName, {Map<String, String> params = const {}}) {
-    if (routeName.isEmpty) return;
+  /// Runs one of the navigation Actions.
+  ///
+  /// The whole of this widget's navigation, in four lines. It replaced a
+  /// `pushNamed` that had to try query parameters, catch the throw, and then
+  /// try path parameters, because a page name gives no way to know which shape
+  /// the destination declared. FlutterFlow knows, so FlutterFlow does it.
+  ///
+  /// A null Action is a control the project chose not to wire, and does
+  /// nothing — deliberately silent rather than a crash, and visible the first
+  /// time it is tapped in testing.
+  void _run(Future Function()? action) {
+    if (action == null) return;
     HapticFeedback.lightImpact();
-
-    // Query first, then path — FlutterFlow declares page parameters either way
-    // and `pushNamed` throws on the wrong kind. Same guard as the other two
-    // widgets; see the note there.
-    try {
-      context.pushNamed(routeName, queryParameters: params);
-      return;
-    } catch (_) {}
-
-    try {
-      context.pushNamed(routeName, pathParameters: params);
-    } catch (e) {
-      debugPrint('Kandi: could not open page "$routeName" ($e)');
-    }
+    action();
   }
 
-  String get _cartRoute =>
-      (widget.cartRoute != null && widget.cartRoute!.trim().isNotEmpty)
-          ? widget.cartRoute!.trim()
-          : _kCartRoute;
+  /// Opening the cart.
+  void _openCart() => _run(widget.onCartTap);
 
-  /// Opens another product on this same screen.
+  /// Opens another product from the related rail.
   ///
-  /// `pushNamed` onto the same route rather than replacing it, so the back
-  /// button walks a shopper back through the products they looked at — which is
-  /// how they expect to return to the one they were comparing against.
-  void _openRelated(_Related r) => _go(
-        _kProductRoute,
-        params: {
-          'productId': r.slug.isNotEmpty ? r.slug : r.id.toString(),
-          'slug': r.slug,
-        },
-      );
+  /// The slug is passed as `productId` when there is one, because that is what
+  /// this screen's own `productId` parameter accepts and what the website's
+  /// URLs use; the raw slug goes across as well so a destination page that
+  /// declares both can take either.
+  void _openRelated(_Related r) {
+    final action = widget.onProductTap;
+    if (action == null) return;
+    HapticFeedback.lightImpact();
+    action(r.slug.isNotEmpty ? r.slug : r.id.toString(), r.slug);
+  }
 
   void _addToCart(_Detail d) {
     HapticFeedback.mediumImpact();
@@ -624,7 +671,7 @@ class _ProductDetailWidgetState extends State<ProductDetailWidget> {
         action: SnackBarAction(
           label: 'View cart',
           textColor: _kPrimary,
-          onPressed: () => _go(_cartRoute),
+          onPressed: _openCart,
         ),
       ),
     );
@@ -819,7 +866,7 @@ class _ProductDetailWidgetState extends State<ProductDetailWidget> {
                 tint: _wishlisted ? _kSale : _kInk,
               ),
               const SizedBox(width: 8),
-              _circle(Icons.shopping_bag_outlined, () => _go(_cartRoute)),
+              _circle(Icons.shopping_bag_outlined, _openCart),
             ],
           ),
         ),
@@ -849,7 +896,7 @@ class _ProductDetailWidgetState extends State<ProductDetailWidget> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _circle(Icons.shopping_bag_outlined, () => _go(_cartRoute)),
+                _circle(Icons.shopping_bag_outlined, _openCart),
               ],
             ),
           ),
@@ -871,8 +918,20 @@ class _ProductDetailWidgetState extends State<ProductDetailWidget> {
         ),
       );
 
+  /// Leaving the screen.
+  ///
+  /// Falls back to popping the navigator when no Action is wired, which is the
+  /// right default and the one case where a null Action must NOT be a no-op —
+  /// a back button that does nothing traps the shopper on the page.
   void _back() {
     HapticFeedback.lightImpact();
+
+    final action = widget.onBackTap;
+    if (action != null) {
+      action();
+      return;
+    }
+
     Navigator.of(context).maybePop();
   }
 
