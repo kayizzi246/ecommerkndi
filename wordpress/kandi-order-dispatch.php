@@ -171,6 +171,11 @@ function kandi_dispatch_accept( $order, $seller_id ) {
 
 		$order->update_status( 'completed', 'All sellers accepted; order dispatched.' );
 		$completed = true;
+
+		// Told here rather than by the caller, so every route into acceptance —
+		// the emailed link, the Seller Centre dashboard, anything added later —
+		// notifies the shopper without having to remember to.
+		kandi_dispatch_notify_buyer_dispatched( $order );
 	}
 
 	return array(
@@ -240,10 +245,6 @@ add_action( 'rest_api_init', function () {
 			}
 
 			$result = kandi_dispatch_accept( $order, $seller_id );
-
-			if ( $result['completed'] ) {
-				kandi_dispatch_notify_buyer_dispatched( $order );
-			}
 
 			if ( $result['already'] ) {
 				$message = 'You had already accepted this one. Nothing has changed.';

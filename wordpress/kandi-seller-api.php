@@ -2535,8 +2535,49 @@ add_action( 'rest_api_init', function () {
 				}
 			}
 
+			/**
+			 * ---- Two bugs lived in the four lines this replaced ----
+			 *
+			 * They read:
+			 *
+			 *   if ( empty( $outstanding )
+			 *        && in_array( $order->get_status(), array( 'pending', 'on-hold' ), true ) ) {
+			 *       $order->update_status( 'processing', … );
+			 *   }
+			 *
+			 * The first is the status list. An order paid through Pesapal is
+			 * ALREADY `processing` by the time the seller sees it — payment sets
+			 * that, not acceptance — so the guard was false for every prepaid
+			 * order and accepting one changed nothing whatsoever. The Seller
+			 * Centre showed "Accepted" beside "Processing" indefinitely, which is
+			 * exactly what it looked like, and the accept button appeared to be
+			 * decorative. Only cash-on-delivery orders, which do start at
+			 * pending, ever moved.
+			 *
+			 * The second is the target. Acceptance now completes the order.
+			 *
+			 * Delegated to Kandi Order Dispatch rather than reimplemented, so the
+			 * emailed one-click link and this button cannot drift apart — that
+			 * plugin also stamps `_kandi_dispatched_at` and tells the shopper the
+			 * order is on its way, and neither should depend on which route the
+			 * seller happened to use.
+			 *
+			 * `kandi_dispatch_accept` is idempotent and re-derives the accepted
+			 * list from the order, so calling it after the block above has
+			 * already recorded this seller is safe: it finds nothing new to add
+			 * and goes straight to the completion check.
+			 *
+			 * The fallback keeps this endpoint working on an install without the
+			 * dispatch plugin — with the status list corrected, but still only
+			 * to `processing`, because completing an order without the shopper
+			 * being told it has shipped is worse than leaving it where it is.
+			 */
 			$outstanding = array_diff( array_keys( $sellers_in_order ), $accepted );
-			if ( empty( $outstanding ) && in_array( $order->get_status(), array( 'pending', 'on-hold' ), true ) ) {
+
+			if ( function_exists( 'kandi_dispatch_accept' ) ) {
+				kandi_dispatch_accept( $order, $seller_id );
+			} elseif ( empty( $outstanding )
+				&& in_array( $order->get_status(), array( 'pending', 'on-hold' ), true ) ) {
 				$order->update_status( 'processing', 'All sellers accepted their part of the order.' );
 			}
 
