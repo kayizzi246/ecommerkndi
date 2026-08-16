@@ -139,9 +139,9 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Open Sans, everywhere ----
+/* ---- The type: Inter, everywhere ----
  *
- * `--font-open-sans` is set by `next/font` in `app/layout.tsx`, where the
+ * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the
  * reasoning for the face is written out in full. This is the other half: the
  * stack behind it, and the scale it is set at.
  *
@@ -174,18 +174,18 @@
  * headings in something else is one line here rather than a search through the
  * components. */
 :root {
-  /* Open Sans first, then the metric-matched fallback Next generates for it,
+  /* Inter first, then the metric-matched fallback Next generates for it,
      then the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Open Sans, so that face is what a shopper on a
+   * screen in whatever is behind Inter, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
    * and SF on iOS, all of which are humanist sans faces close enough in
    * proportion that the swap is a refinement rather than a jolt. The named
    * faces behind it cover the browsers that never implemented the keyword. */
   --font-ui:
-    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
@@ -315,7 +315,7 @@ h6,
   font-family: var(--font-display);
   /* Bold, not semibold. The price is the number a shopper scans a grid for, and
      at 600 it sat at the same weight as the product name beside it; 700 makes
-     it the first thing read in the tile. Open Sans is variable across 300–800,
+     it the first thing read in the tile. Inter is variable across 100–900,
      so nothing is synthesised. */
   font-weight: 700;
   font-size: 18px;
@@ -393,7 +393,7 @@ h6,
  * Fluid between the two ends of the spec rather than fixed at either: 32px is
  * the size that fits a phone without wrapping a three-word headline onto three
  * lines, 48px is what fills a desktop banner, and `clamp` walks between them
- * without a breakpoint. 800 is the top of Open Sans's axis, so the heaviest
+ * without a breakpoint. 800 is well inside Inter's 100–900 axis, so the heaviest
  * step here is still a real weight. */
 .hero-display {
   font-family: var(--font-display);

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Open_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,19 +13,40 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: Open Sans, self-hosted ----
+ * ---- The shop's type: Inter, self-hosted ----
  *
- * The shop is set in Open Sans, on the AliExpress model, to a scale written out
- * in full at the head of the type block in `globals.css`.
+ * The face is Inter. The SCALE — which element is set at which weight and size —
+ * is the AliExpress-style spec written out in full at the head of the type block
+ * in `globals.css`, and it is unchanged. Those are two separate decisions and
+ * only the first one moved.
  *
- * This replaces a brief run on Inter, which was chosen to approximate what
- * Amazon and eBay ship (Amazon Ember and Market Sans — both Dalton Maag, both
- * unlicensable). Open Sans is a deliberate move to the other reference point in
- * this market: AliExpress, Temu and the Chinese marketplaces most Ugandan
- * shoppers have already been trained by. It is a humanist sans with a large
- * x-height and open apertures, which is the same reason the others work at
- * 12–14px in a dense grid, and it is the most widely rendered webfont there is
- * — a face a shopper's browser may well already have cached from another site.
+ * ---- Why Inter and not Open Sans ----
+ *
+ * This shop has been through the system stack, Inter, Open Sans and back, so the
+ * reasoning is worth pinning down in terms of the thing being sold rather than
+ * taste. Three arguments, all about the product grid:
+ *
+ * 1. WIDTH. Open Sans sets wider per character. The product name row is a fixed
+ *    two lines in a tile about 150px across on a phone, so a wider face fits
+ *    fewer characters before the ellipsis — and a supplier's 90-character title
+ *    truncating a word or two earlier, on every tile, is the most direct way
+ *    type makes a catalogue look worse.
+ *
+ * 2. FIGURES. `.price` asks for `tabular-nums`. Inter draws a real tabular set;
+ *    Open Sans approximates one. In a grid of prices that is the difference
+ *    between a column that lines up and one that very slightly does not — and
+ *    price is the number every other decision on the tile is in service of.
+ *
+ * 3. INTENT. Inter was drawn for interface text at 12–14px, which is exactly
+ *    where this grid lives. Open Sans (2011) was drawn for web body copy and is
+ *    doing a job next to the one it was made for.
+ *
+ * What Open Sans had going for it — humanist, large x-height, open apertures,
+ * legible small — Inter has too. It is not a downgrade on any of those.
+ *
+ * The commissioned faces the big marketplaces actually ship (Amazon Ember,
+ * eBay's Market Sans — both Dalton Maag) are not licensable, and Inter is the
+ * closest open equivalent to both.
  *
  * The engineering that made a webfont affordable here is unchanged:
  *
@@ -33,33 +54,31 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  *     this origin. No request reaches Google from a shopper's browser, so there
  *     is no third-party DNS lookup or handshake on the critical path, and
  *     nothing to add to the CSP in next.config.ts.
- *   • One variable file covers the whole scale. Open Sans is variable across
- *     300–800, and the spec runs 400 to 800, so every weight the stylesheet
- *     asks for is real rather than synthesised — and it is one download, not
- *     five.
+ *   • One variable file covers the whole scale. Inter is variable across
+ *     100–900 and the spec runs 400 to 800, so every weight the stylesheet asks
+ *     for is real rather than synthesised — and it is one download, not five.
  *   • `display: "swap"` means text paints immediately in the fallback and is
- *     repainted in Open Sans when it lands. A Ugandan mobile connection never
- *     sees a blank page waiting on a font.
+ *     repainted in Inter when it lands. A Ugandan mobile connection never sees
+ *     a blank page waiting on a font.
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
  *     `@font-face`, so the swap does not reflow a single price or product name.
  *
  * `variable` rather than `className`: the family is handed to CSS as
- * `--font-open-sans`, which `globals.css` puts at the head of `--font-ui` with
- * the system stack still behind it as the fallback.
+ * `--font-inter`, which `globals.css` puts at the head of `--font-ui` with the
+ * system stack still behind it as the fallback.
  */
-const openSans = Open_Sans({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-open-sans",
+  variable: "--font-inter",
   /**
-   * Weight only.
+   * The optical-size axis, pinned by its own range to the 14px default.
    *
-   * Open Sans also carries a `wdth` axis (75–100). It is deliberately not
-   * requested: shipping a second axis enlarges the font file for every shopper,
-   * and nothing in this shop's scale condenses the face — the whole spec moves
-   * on weight and size. Omitting it pins width at its 100 default.
+   * Inter's `opsz` retunes the letterforms for the size they are set at, and
+   * 14px is the workhorse of this grid — product names, navigation, category
+   * labels and the search field are all at or near it.
    */
-  axes: [],
+  axes: ["opsz"],
 });
 
 /**
@@ -199,12 +218,12 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `openSans.variable` defines `--font-open-sans` on the root element,
+      // `inter.variable` defines `--font-inter` on the root element,
       // where every rule in globals.css can reach it. The class carries no
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
-      className={`${openSans.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

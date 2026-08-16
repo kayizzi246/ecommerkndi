@@ -50,7 +50,7 @@ import 'package:http/http.dart' as http;
 //     thing you have to remember to do twice.
 //
 //  3. BRAND. v3 was AliExpress red (#FF0033) with Poppins/Inter.
-//     The storefront is orange (#ff6a00) with Open Sans,
+//     The storefront is orange (#ff6a00) with Inter,
 //     and reserves red strictly for discounts. Matched here, so
 //     the two read as one shop.
 //
@@ -227,10 +227,10 @@ const double _kCardTextHeight = _kCardGap +
     _kCardSlack;
 
 // ============================================================
-// TYPE — Open Sans, one face for everything
+// TYPE — Inter, one face for everything
 // ============================================================
 //
-// Follows the website, which is set in Open Sans on the AliExpress model —
+// Follows the website, which is set in Inter on the AliExpress scale —
 // see the type scale written out at the head of `app/globals.css`. (This
 // file has been through Plus Jakarta Sans and a brief run on Inter to get
 // here; the face is whatever the storefront's is, and that is the only rule
@@ -241,7 +241,7 @@ const double _kCardTextHeight = _kCardGap +
 // products, the same orange and the same photographs; type is the one
 // remaining thing that would tell them they had arrived somewhere else.
 //
-// `_price` asks for tabular figures, which Open Sans genuinely ships — so a
+// `_price` asks for tabular figures, which Inter genuinely ships — so a
 // column of prices lines up on the decimal rather than being faked by the
 // renderer.
 
@@ -255,7 +255,7 @@ TextStyle _heading({
   FontWeight weight = FontWeight.w800,
   double? height,
 }) =>
-    GoogleFonts.openSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -272,7 +272,7 @@ TextStyle _text({
   TextDecoration? decoration,
   Color? decorationColor,
 }) =>
-    GoogleFonts.openSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -287,7 +287,7 @@ TextStyle _text({
 /// This is the treatment added to the website: at 400 in the muted grey these
 /// lines were the faintest text on a page full of photography, so they read as
 /// captions the eye skips. They are in fact the line doing the selling.
-TextStyle _subtitle({double size = 13.5}) => GoogleFonts.openSans(
+TextStyle _subtitle({double size = 13.5}) => GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w600,
       color: _kBody,
@@ -297,7 +297,7 @@ TextStyle _subtitle({double size = 13.5}) => GoogleFonts.openSans(
 
 /// Prices. Bold, barely tightened, tabular so digits line up in a grid.
 TextStyle _price({double size = 15, Color color = _kInk}) =>
-    GoogleFonts.openSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w700,
       color: color,
@@ -307,7 +307,7 @@ TextStyle _price({double size = 15, Color color = _kInk}) =>
     );
 
 /// The struck-through was-price.
-TextStyle _struck({double size = 12}) => GoogleFonts.openSans(
+TextStyle _struck({double size = 12}) => GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w500,
       color: _kFaint,
@@ -323,7 +323,7 @@ TextStyle _label({
   FontWeight weight = FontWeight.w600,
   double spacing = 0.2,
 }) =>
-    GoogleFonts.openSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
