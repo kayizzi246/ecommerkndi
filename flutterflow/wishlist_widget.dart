@@ -16,6 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
 //  KANDI — SAVED ITEMS  (v3)
@@ -24,12 +25,29 @@ import 'package:http/http.dart' as http;
 //  category_navigation_menu.dart, product_detail_widget.dart and
 //  cart_widget.dart.
 //
-//  PASTE cart_widget.dart INTO FLUTTERFLOW FIRST. This file uses
-//  `KandiWishlist`, `KandiCart`, `kandiUgx`, `kandiOpenProduct`
-//  and `kandiOpenShop`, all declared there. They live in one file
-//  on purpose: two copies of a saved-items list is two lists, and
-//  the heart on the product page would then disagree with this
-//  screen about what is saved.
+//  THIS FILE OWNS THE SAVED-ITEMS STORE, and every other screen
+//  reaches it through statics on `WishlistPage` —
+//  `WishlistPage.toggleSaved(...)`, `.savedIds()`, `.saveItem(...)`.
+//
+//  It has to work that way. FlutterFlow generates
+//  custom_code/widgets/index.dart as one line per widget:
+//
+//      export 'wishlist_page.dart' show WishlistPage;
+//
+//  and that `show` is exhaustive — the widget class is the only
+//  symbol that crosses a file boundary. An earlier version kept
+//  the store as a top-level `KandiWishlist` in cart_widget.dart
+//  and the whole web build failed with a page of
+//
+//      Error: Type 'KandiWishlistItem' not found.
+//
+//  because no sibling file could see it. One store, private, with
+//  a public face on the exported class is the arrangement that
+//  compiles — and it still means one saved list rather than five,
+//  since all of them read the same device storage key.
+//
+//  Paste order no longer matters: this file refers to the basket
+//  only as `ShoppingCartPage.addToCart(...)`.
 //
 //  WHAT CHANGED FROM v2, AND WHY
 //  -----------------------------------------------------------
@@ -184,6 +202,165 @@ TextStyle _label({
     );
 
 // ============================================================
+// MONEY
+// ============================================================
+
+/// `UGX 1,234`, matching lib/currency.ts.
+///
+/// Duplicated from the cart file rather than shared, and this one genuinely
+/// has to be: a top-level function does not cross a FlutterFlow file boundary
+/// (see the note on `WishlistPage`'s statics). It is eight lines of arithmetic
+/// with no state, which is the one kind of thing worth copying.
+String _ugx(double amount) {
+  final digits = amount.round().abs().toString();
+  final out = StringBuffer(amount < 0 ? '-' : '');
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
+    out.write(digits[i]);
+  }
+  return 'UGX $out';
+}
+
+// ============================================================
+// THE SAVED-ITEMS STORE
+// ============================================================
+
+/// One saved product. The website's `WishlistItem`, field for field.
+class _WishlistItem {
+  final int productId;
+  String name;
+  String image;
+  double price;
+  String slug;
+
+  _WishlistItem({
+    required this.productId,
+    required this.name,
+    this.image = '',
+    this.price = 0,
+    this.slug = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'productId': productId,
+        'name': name,
+        'image': image,
+        'price': price,
+        'slug': slug,
+      };
+
+  static _WishlistItem? fromJson(Map<String, dynamic> j) {
+    final id = j['productId'] is num
+        ? (j['productId'] as num).toInt()
+        : int.tryParse('${j['productId'] ?? j['product_id'] ?? ''}');
+    if (id == null || id <= 0) return null;
+    return _WishlistItem(
+      productId: id,
+      name: (j['name'] ?? j['product_name'] ?? 'Product').toString(),
+      image: (j['image'] ?? j['product_image'] ?? '').toString(),
+      price: j['price'] is num
+          ? (j['price'] as num).toDouble()
+          : double.tryParse('${j['price']}') ?? 0,
+      slug: (j['slug'] ?? '').toString(),
+    );
+  }
+}
+
+/// Saved items, per device.
+///
+/// Per device and not per account, because that is what the website does —
+/// `lib/wishlist.ts` keeps `kandi-wishlist-v1` in localStorage and asks nobody
+/// to log in. v2 of these screens put the wishlist in a Supabase table behind a
+/// sign-in wall, which meant the app refused to save what the site saved
+/// freely.
+///
+/// Private, and reached from the other screens through the statics on
+/// [WishlistPage] — a top-level class is invisible across a FlutterFlow file
+/// boundary, which is what took the whole web build down when this was
+/// `_Wishlist` in the cart file.
+class _Wishlist {
+  _Wishlist._();
+
+  /// The website's key, deliberately.
+  static const String storageKey = 'kandi-wishlist-v1';
+
+  static final ValueNotifier<int> count = ValueNotifier<int>(0);
+
+  static List<_WishlistItem> _items = <_WishlistItem>[];
+  static bool _loaded = false;
+
+  static List<_WishlistItem> get items => List.unmodifiable(_items);
+
+  static Future<List<_WishlistItem>> load({bool force = false}) async {
+    if (_loaded && !force) return items;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(storageKey);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          _items = decoded
+              .whereType<Map>()
+              .map((e) => _WishlistItem.fromJson(Map<String, dynamic>.from(e)))
+              .whereType<_WishlistItem>()
+              .toList();
+        }
+      }
+    } catch (e) {
+      // A corrupted list is emptied rather than crashed on.
+      debugPrint('Kandi wishlist load: $e');
+      _items = <_WishlistItem>[];
+    }
+    _loaded = true;
+    count.value = _items.length;
+    return items;
+  }
+
+  static bool isSaved(int productId) =>
+      _items.any((i) => i.productId == productId);
+
+  /// Writes the list out as it stands. Public within this file because the
+  /// screen holds these very objects and corrects a renamed product on them.
+  static Future<void> persist() async {
+    count.value = _items.length;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        storageKey,
+        jsonEncode(_items.map((i) => i.toJson()).toList()),
+      );
+    } catch (e) {
+      debugPrint('Kandi wishlist persist: $e');
+    }
+  }
+
+  /// Newest first, matching the site.
+  static Future<void> add(_WishlistItem item, {int? at}) async {
+    await load();
+    if (isSaved(item.productId)) return;
+    _items.insert((at ?? 0).clamp(0, _items.length), item);
+    await persist();
+  }
+
+  static Future<void> remove(int productId) async {
+    await load();
+    _items.removeWhere((i) => i.productId == productId);
+    await persist();
+  }
+
+  /// Returns true when the product is saved afterwards.
+  static Future<bool> toggle(_WishlistItem item) async {
+    await load();
+    if (isSaved(item.productId)) {
+      await remove(item.productId);
+      return false;
+    }
+    await add(item);
+    return true;
+  }
+}
+
+// ============================================================
 // LIVE PRODUCT FACTS
 // ============================================================
 
@@ -303,6 +480,72 @@ class WishlistPage extends StatefulWidget {
     this.onProfileTap,
   });
 
+  // ==========================================================
+  // SAVED ITEMS, FOR EVERY OTHER SCREEN
+  // ==========================================================
+  //
+  // Statics on the widget class, for the reason written out at length on
+  // `ShoppingCartPage`: FlutterFlow's generated index.dart exports each widget
+  // file with `show <WidgetName>`, so the widget class is the only symbol that
+  // crosses a file boundary. The store behind these is `_Wishlist`, private,
+  // and nothing in these signatures is a type that cannot cross.
+
+  /// Opens the saved-items screen.
+  static Future<void> open(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const WishlistPage()),
+    );
+  }
+
+  /// Saves a product if it is not already saved.
+  ///
+  /// What the basket's "Save for later" calls.
+  static Future<void> saveItem({
+    required int productId,
+    required String name,
+    String image = '',
+    double price = 0,
+    String slug = '',
+  }) =>
+      _Wishlist.add(_WishlistItem(
+        productId: productId,
+        name: name,
+        image: image,
+        price: price,
+        slug: slug,
+      ));
+
+  /// Saves or unsaves. Returns true when the product is saved afterwards.
+  ///
+  /// What every heart on every tile calls.
+  static Future<bool> toggleSaved({
+    required int productId,
+    required String name,
+    String image = '',
+    double price = 0,
+    String slug = '',
+  }) =>
+      _Wishlist.toggle(_WishlistItem(
+        productId: productId,
+        name: name,
+        image: image,
+        price: price,
+        slug: slug,
+      ));
+
+  /// The ids currently saved, read from storage.
+  ///
+  /// A `Set<int>` rather than the items themselves, because a screen drawing
+  /// hearts only needs to know which ones are filled — and because
+  /// `_WishlistItem` is private and could not cross this boundary anyway.
+  static Future<Set<int>> savedIds() async {
+    final items = await _Wishlist.load(force: true);
+    return items.map((i) => i.productId).toSet();
+  }
+
+  /// The live saved count, for a badge.
+  static ValueListenable<int> get countListenable => _Wishlist.count;
+
   final double? width;
   final double? height;
 
@@ -321,7 +564,7 @@ class _WishlistPageState extends State<WishlistPage> {
   static const double _pad = 16.0;
   static const double _radius = 10.0;
 
-  List<KandiWishlistItem> _items = <KandiWishlistItem>[];
+  List<_WishlistItem> _items = <_WishlistItem>[];
 
   /// Live facts per productId. A row with no entry is one the shop could not be
   /// asked about, and is shown from storage rather than hidden — a weak
@@ -343,10 +586,10 @@ class _WishlistPageState extends State<WishlistPage> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    final items = await KandiWishlist.load(force: true);
+    final items = await _Wishlist.load(force: true);
     if (!mounted) return;
     setState(() {
-      _items = List<KandiWishlistItem>.from(items);
+      _items = List<_WishlistItem>.from(items);
       _loading = false;
     });
 
@@ -401,7 +644,7 @@ class _WishlistPageState extends State<WishlistPage> {
     // The items in `_items` are the store's own objects — the list was copied,
     // not the items — so the corrections above are already in the saved list
     // every other screen reads. This is what writes them to the device.
-    if (changed) await KandiWishlist.persist();
+    if (changed) await _Wishlist.persist();
 
     if (!mounted) return;
     setState(() => _refreshing = false);
@@ -409,13 +652,13 @@ class _WishlistPageState extends State<WishlistPage> {
 
   // ---------- Actions ----------
 
-  Future<void> _remove(KandiWishlistItem item) async {
+  Future<void> _remove(_WishlistItem item) async {
     HapticFeedback.mediumImpact();
     final index = _items.indexWhere((i) => i.productId == item.productId);
     if (index < 0) return;
 
     setState(() => _items.removeAt(index));
-    await KandiWishlist.remove(item.productId);
+    await _Wishlist.remove(item.productId);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -438,7 +681,7 @@ class _WishlistPageState extends State<WishlistPage> {
             label: 'Undo',
             textColor: _kPrimary,
             onPressed: () async {
-              await KandiWishlist.add(item, at: index);
+              await _Wishlist.add(item, at: index);
               if (!mounted) return;
               setState(() =>
                   _items.insert(index.clamp(0, _items.length), item));
@@ -453,13 +696,13 @@ class _WishlistPageState extends State<WishlistPage> {
   /// The stored price is never the one that travels: it is a souvenir of when
   /// the heart was tapped, and a basket built from souvenirs is a basket the
   /// checkout will argue with.
-  Future<void> _moveToCart(KandiWishlistItem item) async {
+  Future<void> _moveToCart(_WishlistItem item) async {
     final live = _live[item.productId];
     if (live != null && !live.inStock) return;
 
     HapticFeedback.mediumImpact();
 
-    await KandiCart.add(
+    await ShoppingCartPage.addToCart(
       productId: item.productId,
       name: live?.name.isNotEmpty == true ? live!.name : item.name,
       price: (live?.price ?? 0) > 0 ? live!.price : item.price,
@@ -469,7 +712,7 @@ class _WishlistPageState extends State<WishlistPage> {
 
     // Saved items are moved, not copied — a row that is now in the basket and
     // still on this list is the same product asking to be bought twice.
-    await KandiWishlist.remove(item.productId);
+    await _Wishlist.remove(item.productId);
     if (!mounted) return;
     setState(() =>
         _items.removeWhere((i) => i.productId == item.productId));
@@ -597,7 +840,7 @@ class _WishlistPageState extends State<WishlistPage> {
         ),
       );
 
-  Widget _row(KandiWishlistItem item) {
+  Widget _row(_WishlistItem item) {
     final live = _live[item.productId];
     final soldOut = live != null && !live.inStock;
     final stock = live?.stockQuantity;
@@ -632,7 +875,7 @@ class _WishlistPageState extends State<WishlistPage> {
         // In code. `kandiOpenProduct` lives in cart_widget.dart and pushes the
         // product page directly, wiring its related rail and its cart icon on
         // the way — no id crosses a FlutterFlow parameter.
-        onTap: () => kandiOpenProduct(
+        onTap: () => ProductDetailPage.open(
           context,
           item.slug.isNotEmpty ? item.slug : item.productId.toString(),
         ),
@@ -748,7 +991,7 @@ class _WishlistPageState extends State<WishlistPage> {
                         Text(
                           live?.priceLabel.isNotEmpty == true
                               ? live!.priceLabel
-                              : kandiUgx(currentPrice),
+                              : _ugx(currentPrice),
                           style: _price(
                             size: 16,
                             color: soldOut
@@ -771,7 +1014,7 @@ class _WishlistPageState extends State<WishlistPage> {
                     if (dropped && !soldOut) ...[
                       const SizedBox(height: 4),
                       _flag(
-                        '${kandiUgx(dropAmount)} cheaper than when you saved it',
+                        '${_ugx(dropAmount)} cheaper than when you saved it',
                         _kSuccess,
                         Icons.trending_down_rounded,
                         background: _kSuccessBg,
@@ -888,7 +1131,7 @@ class _WishlistPageState extends State<WishlistPage> {
               ),
               const SizedBox(height: 18),
               _Press(
-                onTap: () => kandiOpenShop(context),
+                onTap: () => CategoryNavigationMenu.openFiltered(context),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
@@ -979,7 +1222,7 @@ class _WishlistPageState extends State<WishlistPage> {
                   // better failure.
                   () => widget.onShopTap != null
                       ? _run(widget.onShopTap)
-                      : kandiOpenShop(context),
+                      : CategoryNavigationMenu.openFiltered(context),
                 ),
                 _navItem(Icons.favorite_border_rounded, Icons.favorite_rounded,
                     'Saved', true, () {}),
@@ -1012,7 +1255,7 @@ class _WishlistPageState extends State<WishlistPage> {
               // actually in the basket.
               label == 'Cart'
                   ? ValueListenableBuilder<int>(
-                      valueListenable: KandiCart.count,
+                      valueListenable: ShoppingCartPage.countListenable,
                       builder: (_, count, __) => _iconWithBadge(
                         selected ? activeIcon : icon,
                         selected,

@@ -93,9 +93,16 @@ import 'package:http/http.dart' as http;
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
 //        shared_preferences: ^2.2.2
-//  • Paste cart_widget.dart into FlutterFlow FIRST. This screen
-//    uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`,
-//    which are declared there.
+//  • Paste order does not matter. This screen reaches the basket
+//    and the saved list through STATICS ON THE OTHER WIDGET
+//    CLASSES — `ShoppingCartPage.loadCount()`,
+//    `WishlistPage.toggleSaved(...)`, `ProductDetailPage.open(...)`
+//    — because FlutterFlow's generated index.dart exports each
+//    custom widget file with `show <WidgetName>`, making the
+//    widget class the only symbol that crosses a file boundary.
+//    An earlier version called top-level `KandiCart` /
+//    `kandiOpenProduct` helpers declared in the cart file and the
+//    whole web build failed with "isn't defined for the type".
 //  • Parameters (all optional Actions):
 //        onSearchTap   onShopTap   onCartTap
 //        onWishlistTap onProfileTap onDeliverToTap
@@ -968,13 +975,13 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// storage key.
   Future<void> _toggleWishlist(_Product p) async {
     HapticFeedback.lightImpact();
-    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+    final nowSaved = await WishlistPage.toggleSaved(
       productId: p.id,
       name: p.name,
       image: p.image,
       price: p.price,
       slug: p.slug,
-    ));
+    );
     if (!mounted) return;
     setState(() {
       if (nowSaved) {
@@ -990,13 +997,19 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// Run on open and again every time this screen comes back from one of them,
   /// since both can change while it is off screen — and a badge that is one
   /// behind is the visible half of the bug this replaces.
+  ///
+  /// Both go through statics on the other widgets rather than through a store
+  /// class: FlutterFlow exports each custom widget file with
+  /// `show <WidgetName>`, so the widget class is the only symbol that crosses
+  /// a file boundary — the reason an earlier `KandiCart.load()` here failed the
+  /// whole web build.
   Future<void> _syncStores() async {
-    final saved = await KandiWishlist.load(force: true);
-    await KandiCart.load(force: true);
+    final saved = await WishlistPage.savedIds();
+    final count = await ShoppingCartPage.loadCount();
     if (!mounted) return;
     setState(() {
-      _wishlisted = saved.map((i) => i.productId).toSet();
-      _cartCount = KandiCart.itemCount;
+      _wishlisted = saved;
+      _cartCount = count;
     });
   }
 
@@ -1013,7 +1026,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// rather than a compile error.
   void _openProduct(_Product p) {
     HapticFeedback.lightImpact();
-    kandiOpenProduct(context, p.slug.isNotEmpty ? p.slug : p.id.toString());
+    ProductDetailPage.open(context, p.slug.isNotEmpty ? p.slug : p.id.toString());
   }
 
   /// Opens a department, with its own name at the top of the page.

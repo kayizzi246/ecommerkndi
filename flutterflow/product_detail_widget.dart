@@ -78,9 +78,13 @@ import 'package:http/http.dart' as http;
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
 //        shared_preferences: ^2.2.2
-//  • Paste cart_widget.dart into FlutterFlow FIRST — this screen
-//    uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`,
-//    which are declared there.
+//  • Paste order does not matter. The basket and the saved list
+//    are reached through statics on the other widget classes —
+//    `ShoppingCartPage.addToCart(...)`,
+//    `WishlistPage.toggleSaved(...)` — because FlutterFlow's
+//    index.dart exports each custom widget file with
+//    `show <WidgetName>`, so the widget class is the only symbol
+//    that crosses a file boundary.
 //  • Parameters:
 //        productId     String   REQUIRED — the slug or numeric id
 //        onBackTap     Action   optional
@@ -526,6 +530,33 @@ class ProductDetailPage extends StatefulWidget {
     this.onAddToCart,
   });
 
+  /// Opens a product page.
+  ///
+  /// ---- Why this is a static on the widget class ----
+  ///
+  /// It used to be a top-level `kandiOpenProduct(context, id)` in the cart
+  /// file, and every other screen called it. That failed the whole web build:
+  ///
+  ///     Error: The method 'kandiOpenProduct' isn't defined for the type
+  ///     '_HomeSectionsWidgetState'.
+  ///
+  /// FlutterFlow generates custom_code/widgets/index.dart with one line per
+  /// widget — `export 'product_detail_page.dart' show ProductDetailPage;` —
+  /// and that `show` clause is exhaustive. The widget class is the only symbol
+  /// that crosses a file boundary, so anything the other screens need has to
+  /// hang off it.
+  ///
+  /// Takes the slug when there is one, because that is what the website's own
+  /// URLs use; the endpoint accepts either.
+  static Future<void> open(BuildContext context, String idOrSlug) {
+    if (idOrSlug.isEmpty) return Future<void>.value();
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProductDetailPage(productId: idOrSlug),
+      ),
+    );
+  }
+
   final double? width;
   final double? height;
 
@@ -655,15 +686,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final detail = _Detail.fromJson(Map<String, dynamic>.from(decoded));
 
       // The shared stores, read once the product is known — the heart cannot be
-      // resolved before there is an id to look up.
-      await KandiWishlist.load();
-      await KandiCart.load();
+      // resolved before there is an id to look up. Through the other widget
+      // classes, which are the only symbols that cross a FlutterFlow file
+      // boundary.
+      final saved = await WishlistPage.savedIds();
+      final count = await ShoppingCartPage.loadCount();
 
       if (!mounted) return;
       setState(() {
         _detail = detail;
-        _wishlisted = KandiWishlist.isSaved(detail.id);
-        _cartCount = KandiCart.itemCount;
+        _wishlisted = saved.contains(detail.id);
+        _cartCount = count;
         _loading = false;
       });
     } catch (e) {
@@ -719,18 +752,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       action(id, r.slug);
       return;
     }
-    kandiOpenProduct(context, id).then((_) => _syncStores());
+    ProductDetailPage.open(context, id).then((_) => _syncStores());
   }
 
   /// Reads the shared basket and saved list, so the header count and the heart
   /// are right on open and right again after coming back from the cart.
   Future<void> _syncStores() async {
-    await KandiWishlist.load(force: true);
-    await KandiCart.load(force: true);
+    final saved = await WishlistPage.savedIds();
+    final count = await ShoppingCartPage.loadCount();
     if (!mounted) return;
     setState(() {
-      _wishlisted = KandiWishlist.isSaved(_detail?.id ?? 0);
-      _cartCount = KandiCart.itemCount;
+      _wishlisted = saved.contains(_detail?.id ?? 0);
+      _cartCount = count;
     });
   }
 
@@ -742,17 +775,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Future<void> _addToCart(_Detail d, {bool silent = false}) async {
     HapticFeedback.mediumImpact();
 
-    await KandiCart.add(
+    await ShoppingCartPage.addToCart(
       productId: d.id,
       name: d.name,
-      price: kandiPriceFromLabel(d.priceLabel),
+      price: ShoppingCartPage.priceFromLabel(d.priceLabel),
       image: d.images.isNotEmpty ? d.images.first : '',
       slug: d.slug,
     );
     widget.onAddToCart?.call(d.id, d.name, d.priceLabel);
 
+    final count = await ShoppingCartPage.loadCount();
     if (!mounted) return;
-    setState(() => _cartCount = KandiCart.itemCount);
+    setState(() => _cartCount = count);
     if (silent) return;
 
     ScaffoldMessenger.of(context)
@@ -794,13 +828,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// Saves or unsaves, in the list the whole app shares.
   Future<void> _toggleWishlist(_Detail d) async {
     HapticFeedback.lightImpact();
-    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+    final nowSaved = await WishlistPage.toggleSaved(
       productId: d.id,
       name: d.name,
       image: d.images.isNotEmpty ? d.images.first : '',
-      price: kandiPriceFromLabel(d.priceLabel),
+      price: ShoppingCartPage.priceFromLabel(d.priceLabel),
       slug: d.slug,
-    ));
+    );
     if (!mounted) return;
     setState(() => _wishlisted = nowSaved);
   }

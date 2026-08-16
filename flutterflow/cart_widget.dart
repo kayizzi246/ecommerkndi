@@ -26,13 +26,37 @@ import 'package:shared_preferences/shared_preferences.dart';
 //  category_navigation_menu.dart and product_detail_widget.dart.
 //  Same brand, same type, same API, same conventions.
 //
-//  THIS FILE ALSO OWNS THE TWO STORES — `KandiCart` and
-//  `KandiWishlist` — that the wishlist widget reads. Paste this
-//  widget into FlutterFlow BEFORE the wishlist one, or the
-//  wishlist will not compile: it refers to classes declared here.
-//  They live in one file because two copies of a basket are two
-//  baskets, and the app would then disagree with itself about
-//  what is in it.
+//  HOW THE SCREENS SHARE THE BASKET
+//  -----------------------------------------------------------
+//  Through STATICS ON THIS WIDGET CLASS, and that is not a
+//  stylistic choice — it is the only thing FlutterFlow allows.
+//
+//  FlutterFlow generates custom_code/widgets/index.dart as one
+//  line per widget:
+//
+//      export 'shopping_cart_page.dart' show ShoppingCartPage;
+//
+//  That `show` clause is exhaustive. The widget class is the ONLY
+//  symbol that crosses a file boundary; a top-level class or
+//  function beside it — however public it looks — is invisible to
+//  every sibling. An earlier version of this file declared
+//  `KandiCart` and `KandiWishlist` at top level and the whole web
+//  build failed with a page of
+//
+//      Error: The getter 'KandiCart' isn't defined for the type
+//      '_HomeSectionsWidgetState'.
+//
+//  So the store itself is `_Cart`, private, and its public face
+//  is a handful of statics on `ShoppingCartPage` — see them
+//  below. No signature mentions a type that cannot cross: ints,
+//  Strings, doubles and Flutter's own types only.
+//
+//  The saved-items store lives in wishlist_widget.dart under the
+//  same arrangement, and this file reaches it through
+//  `WishlistPage.saveItem(...)`.
+//
+//  Paste order does not matter any more. Every file refers to the
+//  others only by widget class name.
 //
 //  WHAT CHANGED FROM v2 (GOLDLINE), AND WHY
 //  -----------------------------------------------------------
@@ -97,7 +121,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 //    If FlutterFlow reports "Field cartitems has an update value
 //    that is not properly set in Update App State action for
 //    ShoppingCartPage", delete that action. The basket is not App
-//    State any more — it is `KandiCart`, on the device, read by
+//    State any more — it is `_Cart`, on the device, read by
 //    every screen. A copy in App State beside it is a second
 //    basket, and the two will disagree.
 //
@@ -235,7 +259,7 @@ TextStyle _label({
 /// from the API arrives pre-formatted precisely so the two cannot disagree —
 /// but a line total is quantity × price, an arithmetic the server was never
 /// asked to do, so it has to be formatted here.
-String kandiUgx(double amount) {
+String _ugx(double amount) {
   final digits = amount.round().abs().toString();
   final out = StringBuffer(amount < 0 ? '-' : '');
   for (var i = 0; i < digits.length; i++) {
@@ -251,7 +275,7 @@ String kandiUgx(double amount) {
 /// a `priceLabel` rather than a number. Rather than widen that widget's
 /// signature, the digits are read back here; the line is then re-priced from
 /// the API the next time the basket is opened, so a misread cannot survive.
-double kandiPriceFromLabel(String label) {
+double _priceFromLabel(String label) {
   final digits = label.replaceAll(RegExp(r'[^0-9]'), '');
   return digits.isEmpty ? 0 : (double.tryParse(digits) ?? 0);
 }
@@ -266,7 +290,7 @@ double kandiPriceFromLabel(String label) {
 /// exactly this shape into localStorage under `kandi-cart-v2`. Keeping them
 /// identical is what lets a wrapped webview and these native screens read one
 /// basket instead of two.
-class KandiCartLine {
+class _CartLine {
   /// productId plus the chosen options — the same composite key the site uses,
   /// so "Blue, 42" and "Blue, 44" are two lines and not one line of two.
   final String key;
@@ -278,7 +302,7 @@ class KandiCartLine {
   int quantity;
   final Map<String, String> options;
 
-  KandiCartLine({
+  _CartLine({
     required this.key,
     required this.productId,
     required this.name,
@@ -305,7 +329,7 @@ class KandiCartLine {
   /// Read defensively: one malformed line must not cost the shopper the whole
   /// basket, so anything unreadable is dropped by the caller instead of
   /// throwing.
-  static KandiCartLine? fromJson(Map<String, dynamic> j) {
+  static _CartLine? fromJson(Map<String, dynamic> j) {
     final id = j['productId'] is num
         ? (j['productId'] as num).toInt()
         : int.tryParse('${j['productId'] ?? j['product_id'] ?? ''}');
@@ -324,8 +348,8 @@ class KandiCartLine {
         ? (j['quantity'] as num).toInt()
         : int.tryParse('${j['quantity']}') ?? 1;
 
-    return KandiCartLine(
-      key: (j['key'] ?? KandiCart.lineKey(id, options)).toString(),
+    return _CartLine(
+      key: (j['key'] ?? _Cart.lineKey(id, options)).toString(),
       productId: id,
       name: (j['name'] ?? j['product_name'] ?? 'Product').toString(),
       price: price,
@@ -346,18 +370,18 @@ class KandiCartLine {
 ///
 /// `count` is a [ValueNotifier] so any screen can wrap its badge in a
 /// [ValueListenableBuilder] and stay right without being told to refresh.
-class KandiCart {
-  KandiCart._();
+class _Cart {
+  _Cart._();
 
   /// The website's key, deliberately.
   static const String storageKey = 'kandi-cart-v2';
 
   static final ValueNotifier<int> count = ValueNotifier<int>(0);
 
-  static List<KandiCartLine> _lines = <KandiCartLine>[];
+  static List<_CartLine> _lines = <_CartLine>[];
   static bool _loaded = false;
 
-  static List<KandiCartLine> get lines => List.unmodifiable(_lines);
+  static List<_CartLine> get lines => List.unmodifiable(_lines);
 
   static double get subtotal =>
       _lines.fold<double>(0, (sum, line) => sum + line.lineTotal);
@@ -373,7 +397,7 @@ class KandiCart {
     return '$productId|${parts.map((e) => '${e.key}=${e.value}').join('|')}';
   }
 
-  static Future<List<KandiCartLine>> load({bool force = false}) async {
+  static Future<List<_CartLine>> load({bool force = false}) async {
     if (_loaded && !force) return lines;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -383,16 +407,16 @@ class KandiCart {
         if (decoded is List) {
           _lines = decoded
               .whereType<Map>()
-              .map((e) => KandiCartLine.fromJson(Map<String, dynamic>.from(e)))
-              .whereType<KandiCartLine>()
+              .map((e) => _CartLine.fromJson(Map<String, dynamic>.from(e)))
+              .whereType<_CartLine>()
               .toList();
         }
       }
     } catch (e) {
       // A corrupted basket is emptied rather than crashed on. The shopper
       // loses a basket; they would otherwise lose the app.
-      debugPrint('KandiCart.load: $e');
-      _lines = <KandiCartLine>[];
+      debugPrint('_Cart.load: $e');
+      _lines = <_CartLine>[];
     }
     _loaded = true;
     count.value = itemCount;
@@ -414,7 +438,7 @@ class KandiCart {
         jsonEncode(_lines.map((l) => l.toJson()).toList()),
       );
     } catch (e) {
-      debugPrint('KandiCart.persist: $e');
+      debugPrint('_Cart.persist: $e');
     }
   }
 
@@ -442,7 +466,7 @@ class KandiCart {
       if (image.isNotEmpty) _lines[index].image = image;
       if (price > 0) _lines[index].price = price;
     } else {
-      _lines.add(KandiCartLine(
+      _lines.add(_CartLine(
         key: key,
         productId: productId,
         name: name,
@@ -475,161 +499,30 @@ class KandiCart {
   }
 
   /// Puts a removed line back where it was — what UNDO calls.
-  static Future<void> restore(KandiCartLine line, int index) async {
+  static Future<void> restore(_CartLine line, int index) async {
     await load();
     _lines.insert(index.clamp(0, _lines.length), line);
     await _persist();
   }
 
   static Future<void> clear() async {
-    _lines = <KandiCartLine>[];
+    _lines = <_CartLine>[];
     await _persist();
   }
 }
 
-// ============================================================
-// THE WISHLIST
-// ============================================================
-
-/// One saved product. The website's `WishlistItem`, field for field.
-class KandiWishlistItem {
-  final int productId;
-  String name;
-  String image;
-  double price;
-  String slug;
-
-  KandiWishlistItem({
-    required this.productId,
-    required this.name,
-    this.image = '',
-    this.price = 0,
-    this.slug = '',
-  });
-
-  Map<String, dynamic> toJson() => {
-        'productId': productId,
-        'name': name,
-        'image': image,
-        'price': price,
-        'slug': slug,
-      };
-
-  static KandiWishlistItem? fromJson(Map<String, dynamic> j) {
-    final id = j['productId'] is num
-        ? (j['productId'] as num).toInt()
-        : int.tryParse('${j['productId'] ?? j['product_id'] ?? ''}');
-    if (id == null || id <= 0) return null;
-    return KandiWishlistItem(
-      productId: id,
-      name: (j['name'] ?? j['product_name'] ?? 'Product').toString(),
-      image: (j['image'] ?? j['product_image'] ?? '').toString(),
-      price: j['price'] is num
-          ? (j['price'] as num).toDouble()
-          : double.tryParse('${j['price']}') ?? 0,
-      slug: (j['slug'] ?? '').toString(),
-    );
-  }
-}
-
-/// Saved items, per device.
-///
-/// Per device and not per account, because that is what the website does —
-/// `lib/wishlist.ts` keeps `kandi-wishlist-v1` in localStorage and asks nobody
-/// to log in. v2 of these screens put the wishlist in a Supabase table and put
-/// a sign-in wall in front of it, which meant the app refused to save what the
-/// site saved freely.
-class KandiWishlist {
-  KandiWishlist._();
-
-  static const String storageKey = 'kandi-wishlist-v1';
-
-  static final ValueNotifier<int> count = ValueNotifier<int>(0);
-
-  static List<KandiWishlistItem> _items = <KandiWishlistItem>[];
-  static bool _loaded = false;
-
-  static List<KandiWishlistItem> get items => List.unmodifiable(_items);
-
-  static Future<List<KandiWishlistItem>> load({bool force = false}) async {
-    if (_loaded && !force) return items;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(storageKey);
-      if (raw != null && raw.isNotEmpty) {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          _items = decoded
-              .whereType<Map>()
-              .map((e) =>
-                  KandiWishlistItem.fromJson(Map<String, dynamic>.from(e)))
-              .whereType<KandiWishlistItem>()
-              .toList();
-        }
-      }
-    } catch (e) {
-      debugPrint('KandiWishlist.load: $e');
-      _items = <KandiWishlistItem>[];
-    }
-    _loaded = true;
-    count.value = _items.length;
-    return items;
-  }
-
-  static bool isSaved(int productId) =>
-      _items.any((i) => i.productId == productId);
-
-  /// Writes the list out as it stands. Public for the same reason
-  /// [KandiCart.persist] is: the saved-items screen holds these very objects
-  /// and corrects a renamed product on them directly.
-  static Future<void> persist() async {
-    count.value = _items.length;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        storageKey,
-        jsonEncode(_items.map((i) => i.toJson()).toList()),
-      );
-    } catch (e) {
-      debugPrint('KandiWishlist.persist: $e');
-    }
-  }
-
-  static Future<void> _persist() => persist();
-
-  /// Newest first, matching the site.
-  static Future<void> add(KandiWishlistItem item, {int? at}) async {
-    await load();
-    if (isSaved(item.productId)) return;
-    _items.insert((at ?? 0).clamp(0, _items.length), item);
-    await _persist();
-  }
-
-  static Future<void> remove(int productId) async {
-    await load();
-    _items.removeWhere((i) => i.productId == productId);
-    await _persist();
-  }
-
-  /// Returns true when the product is saved afterwards.
-  static Future<bool> toggle(KandiWishlistItem item) async {
-    await load();
-    if (isSaved(item.productId)) {
-      await remove(item.productId);
-      return false;
-    }
-    await add(item);
-    return true;
-  }
-}
+// The saved-items store has moved to wishlist_widget.dart, beside the screen
+// that owns it. Reach it from here through `WishlistPage.saveItem(...)` — see
+// the note at the head of this file on why a static on the widget class is the
+// only thing that crosses a FlutterFlow file boundary.
 
 // ============================================================
 // THE DELIVERY ADDRESS
 // ============================================================
 
 /// What the shopper typed, and the quote the shop gave for it.
-class KandiDelivery {
-  KandiDelivery._();
+class _Delivery {
+  _Delivery._();
 
   static const String storageKey = 'kandi_delivery_address';
 
@@ -731,7 +624,7 @@ class _Live {
       slug: (product['slug'] ?? '').toString(),
       price: (product['price'] is num)
           ? (product['price'] as num).toDouble()
-          : kandiPriceFromLabel((product['priceLabel'] ?? '').toString()),
+          : _priceFromLabel((product['priceLabel'] ?? '').toString()),
       priceLabel: (product['priceLabel'] ?? '').toString(),
       wasPriceLabel: product['wasPriceLabel']?.toString(),
       inStock: product['inStock'] != false,
@@ -747,52 +640,15 @@ class _Live {
   }
 }
 
-// ============================================================
-// NAVIGATION — in code, not through parameters
-// ============================================================
-
-/// Opens the product page.
-///
-/// A direct push rather than a FlutterFlow Action taking an id. The id is a
-/// typed Dart argument here; as a parameter it would have to be declared on the
-/// destination page, spelled identically in the action editor and kept in step
-/// with this file — and when it drifts the result is a blank product page
-/// rather than a compile error.
-///
-/// The pushed page is handed its own in-code handlers so the rail at its foot
-/// keeps working: tapping a related product opens another product page, and its
-/// cart icon comes back here rather than opening a second basket.
-Future<void> kandiOpenProduct(BuildContext context, String idOrSlug) {
-  if (idOrSlug.isEmpty) return Future<void>.value();
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (routeContext) => ProductDetailPage(
-        productId: idOrSlug,
-        onProductTap: (productId, slug) =>
-            kandiOpenProduct(routeContext, slug.isNotEmpty ? slug : productId),
-        onCartTap: () async => Navigator.of(routeContext).maybePop(),
-        // The line lands with the label's digits for a price and no picture.
-        // Both are corrected the moment the basket is opened, because every
-        // line is re-read from the product endpoint there.
-        onAddToCart: (productId, name, priceLabel) => KandiCart.add(
-          productId: productId,
-          name: name,
-          price: kandiPriceFromLabel(priceLabel),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Opens the department browser. Also in code, and for the same reason.
-///
-/// `openFiltered` with no filter rather than a constructor call: FlutterFlow
-/// turns every public constructor parameter into a panel row that every
-/// instance must supply a value for, so passing arguments this way is what
-/// keeps that widget's panel down to the bottom tabs.
-Future<void> kandiOpenShop(BuildContext context) {
-  return CategoryNavigationMenu.openFiltered(context);
-}
+// The two top-level `kandiOpen…` helpers that used to live here have gone.
+//
+// They were the second half of the same mistake as the shared stores: a
+// top-level function in this file is not visible to any other custom widget,
+// so `kandiOpenProduct(...)` compiled here and failed everywhere else with
+// "the method isn't defined for the type". Their replacements are statics on
+// the widget classes themselves — `ProductDetailPage.open(context, id)` and
+// `CategoryNavigationMenu.openFiltered(context)` — which every file can reach,
+// because the widget class is the one thing FlutterFlow exports.
 
 // ============================================================
 // PRESS
@@ -854,6 +710,85 @@ class ShoppingCartPage extends StatefulWidget {
     this.onCheckout,
   });
 
+  // ==========================================================
+  // THE BASKET, FOR EVERY OTHER SCREEN
+  // ==========================================================
+  //
+  // ---- Why these are statics on the widget class ----
+  //
+  // The store used to be a top-level `KandiCart` class in this file, and every
+  // other screen called it directly. That compiled here and failed everywhere
+  // else:
+  //
+  //     Error: The getter 'KandiCart' isn't defined for the type
+  //     '_HomeSectionsWidgetState'.
+  //
+  // FlutterFlow generates `custom_code/widgets/index.dart` with one line per
+  // widget — `export 'shopping_cart_page.dart' show ShoppingCartPage;` — and
+  // that `show` clause is exhaustive. The WIDGET CLASS is the only thing that
+  // crosses a file boundary. A top-level class, function or constant in the
+  // same file is invisible to every sibling, however public it looks.
+  //
+  // So the basket's public API hangs off the exported class. `_Cart` behind it
+  // stays private, and no signature here mentions a type that cannot cross —
+  // ints, Strings, doubles and Flutter's own types only.
+  //
+  // The alternative was to paste the store into all five files. That is five
+  // in-memory copies of one basket, and the first screen to add a line would
+  // have been the only one that knew about it until the others happened to
+  // reload.
+
+  /// Opens the basket.
+  static Future<void> open(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const ShoppingCartPage()),
+    );
+  }
+
+  /// Adds one product, merging into an existing line for the same options.
+  ///
+  /// The single way anything outside this file writes to the basket.
+  static Future<void> addToCart({
+    required int productId,
+    required String name,
+    required double price,
+    String image = '',
+    String slug = '',
+    int quantity = 1,
+  }) =>
+      _Cart.add(
+        productId: productId,
+        name: name,
+        price: price,
+        image: image,
+        slug: slug,
+        quantity: quantity,
+      );
+
+  /// How many items are in the basket, from storage.
+  static Future<int> loadCount() async {
+    await _Cart.load(force: true);
+    return _Cart.itemCount;
+  }
+
+  /// The live count, for a badge.
+  ///
+  /// Wrap a badge in a `ValueListenableBuilder` on this and it cannot drift
+  /// from the basket: every write goes through `_Cart`, and `_Cart` sets it.
+  static ValueListenable<int> get countListenable => _Cart.count;
+
+  /// Reads the label a price arrived formatted as — "UGX 55,000" → 55000.
+  ///
+  /// Public because the tiles on the other screens carry only the formatted
+  /// label (every figure is formatted server-side so the app and the site
+  /// cannot disagree about a separator), and they need a number to put in the
+  /// basket. Shared rather than copied five times so one reading of a label
+  /// cannot differ from another.
+  static double priceFromLabel(String label) => _priceFromLabel(label);
+
+  /// Formats shillings the way the server does — `UGX 1,234`.
+  static String formatUgx(double amount) => _ugx(amount);
+
   final double? width;
   final double? height;
 
@@ -883,7 +818,7 @@ class ShoppingCartPage extends StatefulWidget {
   /// action is still wired behind this, delete it. That is what
   /// "Field cartitems has an update value that is not properly set" is
   /// complaining about, and the basket no longer lives in App State — it is
-  /// `KandiCart`, on the device, shared by every screen. An App State copy
+  /// `_Cart`, on the device, shared by every screen. An App State copy
   /// beside it is a second basket that will disagree with the first.
   final Future Function(double total, int itemCount, double deliveryFee)?
       onCheckout;
@@ -896,7 +831,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   static const double _pad = 16.0;
   static const double _radius = 10.0;
 
-  List<KandiCartLine> _lines = <KandiCartLine>[];
+  List<_CartLine> _lines = <_CartLine>[];
 
   /// Live facts per productId, absent for a line the shop could not be asked
   /// about — a line with no entry is shown from storage and left alone rather
@@ -936,12 +871,12 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    final lines = await KandiCart.load(force: true);
-    _address = await KandiDelivery.savedAddress();
+    final lines = await _Cart.load(force: true);
+    _address = await _Delivery.savedAddress();
 
     if (!mounted) return;
     setState(() {
-      _lines = List<KandiCartLine>.from(lines);
+      _lines = List<_CartLine>.from(lines);
       _loading = false;
     });
 
@@ -1012,7 +947,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     // The line objects in `_lines` are the store's own — the list was copied,
     // not the lines — so the corrections above are already in the basket every
     // other screen reads. This is what writes them to the device.
-    if (changed) await KandiCart.persist();
+    if (changed) await _Cart.persist();
 
     if (!mounted) return;
     setState(() => _refreshing = false);
@@ -1108,7 +1043,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   double get _total => _subtotal + (_deliveryFee ?? 0);
 
   /// Lines the shop says cannot be bought right now.
-  List<KandiCartLine> get _unavailable => _lines
+  List<_CartLine> get _unavailable => _lines
       .where((l) => _live[l.productId] != null && !_live[l.productId]!.inStock)
       .toList();
 
@@ -1120,20 +1055,20 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   // ---------- Mutations ----------
 
-  Future<void> _setQuantity(KandiCartLine line, int quantity) async {
+  Future<void> _setQuantity(_CartLine line, int quantity) async {
     HapticFeedback.selectionClick();
     setState(() => line.quantity = quantity);
-    await KandiCart.setQuantity(line.key, quantity);
+    await _Cart.setQuantity(line.key, quantity);
     _requestQuote();
   }
 
-  Future<void> _remove(KandiCartLine line) async {
+  Future<void> _remove(_CartLine line) async {
     HapticFeedback.mediumImpact();
     final index = _lines.indexWhere((l) => l.key == line.key);
     if (index < 0) return;
 
     setState(() => _lines.removeAt(index));
-    await KandiCart.remove(line.key);
+    await _Cart.remove(line.key);
     _requestQuote();
 
     if (!mounted) return;
@@ -1158,7 +1093,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             label: 'Undo',
             textColor: _kPrimary,
             onPressed: () async {
-              await KandiCart.restore(line, index);
+              await _Cart.restore(line, index);
               if (!mounted) return;
               setState(() => _lines.insert(
                     index.clamp(0, _lines.length),
@@ -1171,15 +1106,17 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       );
   }
 
-  Future<void> _saveForLater(KandiCartLine line) async {
+  Future<void> _saveForLater(_CartLine line) async {
     HapticFeedback.lightImpact();
-    await KandiWishlist.add(KandiWishlistItem(
+    // Through the widget class, because the saved-items store lives in the
+    // other file and only the widget class crosses the boundary.
+    await WishlistPage.saveItem(
       productId: line.productId,
       name: line.name,
       image: line.image,
       price: line.price,
       slug: line.slug,
-    ));
+    );
     await _remove(line);
   }
 
@@ -1285,7 +1222,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     );
 
     if (typed == null || typed.isEmpty) return;
-    await KandiDelivery.saveAddress(typed);
+    await _Delivery.saveAddress(typed);
     if (!mounted) return;
     setState(() => _address = typed);
     _requestQuote(immediate: true);
@@ -1495,7 +1432,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                       ? quote.label
                                       : quote.free
                                           ? '${quote.label} · free delivery'
-                                          : '${quote.label} · ${kandiUgx(quote.fee)}'),
+                                          : '${quote.label} · ${_ugx(quote.fee)}'),
                       style: _label(
                         size: 12,
                         color: _quoteError != null ||
@@ -1550,7 +1487,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                 child: Text(
                   unlocked
                       ? 'Your order qualifies for free delivery'
-                      : 'Add ${kandiUgx(remaining)} more for free delivery',
+                      : 'Add ${_ugx(remaining)} more for free delivery',
                   style: _text(
                     size: 12.5,
                     color: unlocked ? _kSuccess : _kBody,
@@ -1585,7 +1522,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   // ---------- Lines ----------
 
-  Widget _lineTile(KandiCartLine line) {
+  Widget _lineTile(_CartLine line) {
     final live = _live[line.productId];
     final soldOut = live != null && !live.inStock;
     final stock = live?.stockQuantity;
@@ -1608,7 +1545,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
             color: _kSale, size: 21),
       ),
       child: _Press(
-        onTap: () => kandiOpenProduct(
+        onTap: () => ProductDetailPage.open(
           context,
           line.slug.isNotEmpty ? line.slug : line.productId.toString(),
         ),
@@ -1726,7 +1663,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                kandiUgx(line.lineTotal),
+                                _ugx(line.lineTotal),
                                 style: _price(
                                   size: 15.5,
                                   color: soldOut ? _kMuted : _kInk,
@@ -1736,7 +1673,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                               ),
                               if (line.quantity > 1)
                                 Text(
-                                  '${kandiUgx(line.price)} each',
+                                  '${_ugx(line.price)} each',
                                   style: _label(size: 11),
                                 ),
                             ],
@@ -1790,7 +1727,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   /// The "+" stops at the stock ceiling rather than accepting a number the
   /// checkout will reject.
-  Widget _stepper(KandiCartLine line, bool atCeiling) => Container(
+  Widget _stepper(_CartLine line, bool atCeiling) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _kLine),
@@ -1845,7 +1782,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
           children: [
             _summaryRow(
               'Subtotal',
-              kandiUgx(_subtotal),
+              _ugx(_subtotal),
               muted: false,
             ),
             const SizedBox(height: 8),
@@ -1857,7 +1794,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                       ? 'Unavailable'
                       : _quote!.free
                           ? 'Free'
-                          : kandiUgx(_quote!.fee),
+                          : _ugx(_quote!.fee),
               muted: _quote == null || !_quote!.deliverable,
               accent: _quote?.free == true ? _kSuccess : null,
             ),
@@ -1871,7 +1808,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                 Text('Total',
                     style: _text(
                         size: 14, color: _kInk, weight: FontWeight.w700)),
-                Text(kandiUgx(_total), style: _price(size: 20)),
+                Text(_ugx(_total), style: _price(size: 20)),
               ],
             ),
             if (_deliveryFee == null) ...[
@@ -1923,7 +1860,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                 ? 'We cannot deliver there'
                 : _quote == null
                     ? (_quoting ? 'Pricing delivery…' : 'Price delivery')
-                    : 'Checkout · ${kandiUgx(_total)}';
+                    : 'Checkout · ${_ugx(_total)}';
 
     final enabled = !blockedByStock && !undeliverable;
     final onTap = blockedByStock
@@ -1992,7 +1929,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
               _Press(
                 // In code, not an Action: this goes to a screen that lives in
                 // this same project and needs nothing from FlutterFlow.
-                onTap: () => kandiOpenShop(context),
+                onTap: () => CategoryNavigationMenu.openFiltered(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 26, vertical: 12),

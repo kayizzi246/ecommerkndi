@@ -100,7 +100,7 @@ import 'package:http/http.dart' as http;
 //    a separate declaration that knows nothing about the default.
 //
 //    The opening filter arrives another way now — see
-//    `KandiShopFilter` and `CategoryNavigationMenu.openFiltered`,
+//    `_ShopFilter` and `CategoryNavigationMenu.openFiltered`,
 //    which is what the home screen's quick picks and department
 //    cards call. Same typed arguments, checked by the compiler,
 //    with nothing crossing the FlutterFlow boundary.
@@ -109,12 +109,17 @@ import 'package:http/http.dart' as http;
 //  header itself and rewrites it on every save, so it stays.
 //  Nothing in this file uses Supabase any more.
 //
-//  NOTE ON THE WISHLIST: no longer session-only. It is the shared
-//  `KandiWishlist` from cart_widget.dart, on the same per-device
-//  key the website's own wishlist uses — so a heart tapped here
-//  survives leaving the screen and agrees with the saved-items
-//  page. Paste cart_widget.dart into FlutterFlow FIRST; this file
-//  uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`.
+//  NOTE ON THE WISHLIST: no longer session-only. A heart tapped
+//  here survives leaving the screen and agrees with the saved-items
+//  page, because both write the same per-device key the website's
+//  own wishlist uses.
+//
+//  It is reached through `WishlistPage.toggleSaved(...)` and
+//  `WishlistPage.savedIds()` — statics on the widget class, which
+//  is the only symbol FlutterFlow lets cross a custom-widget file
+//  boundary (its index.dart exports each file with
+//  `show <WidgetName>`). The basket is the same arrangement:
+//  `ShoppingCartPage.loadCount()`. Paste order does not matter.
 // ============================================================
 
 // ============================================================
@@ -582,7 +587,7 @@ class _PressState extends State<_Press> {
 /// One static field rather than a queue, because there is exactly one route
 /// being pushed at the moment it is read: `_take()` runs in the `initState` of
 /// the widget the very push created, on the same synchronous turn.
-class KandiShopFilter {
+class _ShopFilter {
   /// Department slug. Empty means the whole catalogue.
   final String? department;
 
@@ -602,7 +607,7 @@ class KandiShopFilter {
   /// What to call this view at the top of the screen.
   final String? title;
 
-  const KandiShopFilter({
+  const _ShopFilter({
     this.department,
     this.sort,
     this.saleOnly = false,
@@ -611,13 +616,13 @@ class KandiShopFilter {
     this.title,
   });
 
-  static KandiShopFilter? _pending;
+  static _ShopFilter? _pending;
 
   /// Arms the next `CategoryNavigationMenu` to open with this filter.
-  static void arm(KandiShopFilter filter) => _pending = filter;
+  static void arm(_ShopFilter filter) => _pending = filter;
 
   /// Reads and clears it, so a later plain push is not filtered by a leftover.
-  static KandiShopFilter? take() {
+  static _ShopFilter? take() {
     final filter = _pending;
     _pending = null;
     return filter;
@@ -636,7 +641,7 @@ class CategoryNavigationMenu extends StatefulWidget {
   /// filter argument used by one caller becomes a required field on every
   /// screen that places this widget — and a missing one is a build error, not a
   /// default. The opening filter therefore arrives through
-  /// [KandiShopFilter.arm] instead; see `openFiltered`.
+  /// [_ShopFilter.arm] instead; see `openFiltered`.
   ///
   /// Products are opened by this file, in code. A null Action is a tab the
   /// project chose not to wire, and Cart and Saved fall back to pushing this
@@ -654,7 +659,7 @@ class CategoryNavigationMenu extends StatefulWidget {
 
   /// Opens the shop with a filter already applied.
   ///
-  /// The one supported way in from another screen. `KandiShopFilter` is armed
+  /// The one supported way in from another screen. `_ShopFilter` is armed
   /// and the route pushed on the same turn, so the state this creates reads it
   /// in `initState` before anything else can.
   ///
@@ -670,7 +675,7 @@ class CategoryNavigationMenu extends StatefulWidget {
     int? minDiscount,
     String? title,
   }) {
-    KandiShopFilter.arm(KandiShopFilter(
+    _ShopFilter.arm(_ShopFilter(
       department: department,
       sort: sort,
       saleOnly: saleOnly,
@@ -750,7 +755,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   /// What this screen was opened as, when it was opened as something. Held so
   /// the title and the banner can say it, and so clearing the filter can tell
   /// which of them was the shopper's doing.
-  KandiShopFilter? _filter;
+  _ShopFilter? _filter;
 
   int _page = 1;
   final List<_Product> _products = [];
@@ -783,7 +788,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     // Applied before the first fetch so the screen never shows the whole
     // catalogue for a frame and then narrows, which reads as the filter having
     // failed and then caught up.
-    _filter = KandiShopFilter.take();
+    _filter = _ShopFilter.take();
     final filter = _filter;
     if (filter != null) {
       final department = filter.department;
@@ -929,7 +934,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       params['max_price'] = _maxPrice!.round().toString();
     }
     // Not the same as `sale=1`, and deliberately so — see
-    // `KandiShopFilter.minDiscount`.
+    // `_ShopFilter.minDiscount`.
     if (_minDiscount != null && _minDiscount! > 0) {
       params['min_discount'] = '${_minDiscount!}';
     }
@@ -1045,7 +1050,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   /// and the failure mode is a blank product page rather than a compile error.
   void _openProduct(_Product p) {
     HapticFeedback.lightImpact();
-    kandiOpenProduct(context, p.slug.isNotEmpty ? p.slug : p.id.toString())
+    ProductDetailPage.open(context, p.slug.isNotEmpty ? p.slug : p.id.toString())
         .then((_) => _syncStores());
   }
 
@@ -1080,18 +1085,20 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   /// heart or badge is the visible half of the bug that had this screen
   /// keeping its own private wishlist.
   Future<void> _syncStores() async {
-    final saved = await KandiWishlist.load(force: true);
-    await KandiCart.load(force: true);
+    // Through the two widget classes, which are the only symbols FlutterFlow
+    // lets cross a custom-widget file boundary — see the note in the header.
+    final saved = await WishlistPage.savedIds();
+    final count = await ShoppingCartPage.loadCount();
     if (!mounted) return;
     setState(() {
-      _wishlisted = saved.map((i) => i.productId).toSet();
-      _cartCount = KandiCart.itemCount;
+      _wishlisted = saved;
+      _cartCount = count;
     });
   }
 
   Future<void> _toggleWishlist(_Product p) async {
     HapticFeedback.lightImpact();
-    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+    final nowSaved = await WishlistPage.toggleSaved(
       productId: p.id,
       name: p.name,
       image: p.image,
@@ -1099,9 +1106,9 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       // screen is formatted server-side so the app and the site cannot disagree
       // about a separator — so the digits are read back out of it. The saved
       // list re-prices itself from the shop on open in any case.
-      price: kandiPriceFromLabel(p.priceLabel),
+      price: ShoppingCartPage.priceFromLabel(p.priceLabel),
       slug: p.slug,
-    ));
+    );
     if (!mounted) return;
     setState(() {
       if (nowSaved) {
