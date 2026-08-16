@@ -139,31 +139,54 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Inter, everywhere ----
+/* ---- The type: Open Sans, everywhere ----
  *
- * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the reasoning
- * for the face — and for choosing it over the system stack the shop ran on
- * before — is written out in full. This is the other half: the stack behind it.
+ * `--font-open-sans` is set by `next/font` in `app/layout.tsx`, where the
+ * reasoning for the face is written out in full. This is the other half: the
+ * stack behind it, and the scale it is set at.
+ *
+ * ---- THE SCALE ----
+ *
+ * The shop's typography spec, on the AliExpress model. Every rule in this file
+ * and every `text-*` utility in the components is meant to land on one of these
+ * rows. When they disagree, this table is right.
+ *
+ *   Element             Weight     Size
+ *   ------------------- ---------- ---------
+ *   Product names       400–600    14px
+ *   Product prices      700        18px
+ *   Old price           400        12px
+ *   Reviews / sold      400        12px
+ *   Navigation          600        14px
+ *   Search bar          400        14px
+ *   Category names      500        14px
+ *   Section headings    700        20–24px
+ *   Hero promotions     700–800    32–48px
+ *
+ * Each row below is expressed as a named class — `.price`, `.was-price`,
+ * `.nav-label`, `.category-name`, `.section-title`, `.hero-display` — rather
+ * than left to be retyped as utilities at each of several hundred call sites,
+ * which is how a scale drifts out of a shop one component at a time.
  *
  * The `--font-display` / `--font-ui` distinction is kept even though both
- * resolve to the same family: display type is set heavy and tight, UI type at
- * 400–500 and spaced for reading, and every rule below still refers to them.
- * Keeping the two names means a future decision to set headings in something
- * else is one line here rather than a search through the components. */
+ * resolve to the same family: display type is set heavy, UI type at 400–500 and
+ * spaced for reading. Keeping the two names means a future decision to set
+ * headings in something else is one line here rather than a search through the
+ * components. */
 :root {
-  /* Inter first, then the metric-matched fallback Next generates for it, then
-     the system stack this shop used to run on outright.
+  /* Open Sans first, then the metric-matched fallback Next generates for it,
+     then the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Inter, so that face is what a shopper on a
+   * screen in whatever is behind Open Sans, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
-   * and SF on iOS, all of which are close enough to Inter's proportions that
-   * the swap is a refinement rather than a jolt. The named faces behind it
-   * cover the browsers that never implemented the keyword. */
+   * and SF on iOS, all of which are humanist sans faces close enough in
+   * proportion that the swap is a refinement rather than a jolt. The named
+   * faces behind it cover the browsers that never implemented the keyword. */
   --font-ui:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
   --font-tabular: var(--font-ui);
@@ -279,20 +302,107 @@ h6,
   letter-spacing: -0.012em;
 }
 
-/* Prices are display type wherever they appear — that is the number the whole
-   page is built around, and it should never be set in the body face. */
+/* ---------- Product prices — 700, 18px ----------
+ * The scale's price row. That is the number the whole page is built around, and
+ * it should never be set in the body face.
+ *
+ * The size is set HERE rather than at the call sites, which is the change: the
+ * tiles used to each pick their own (13px on a phone, 15px above it) and the
+ * product page ran at 30px. Anything that genuinely needs a different size —
+ * the PDP, where the price is the page rather than one of forty — overrides it
+ * with a utility and says why. */
 .price {
   font-family: var(--font-display);
   /* Bold, not semibold. The price is the number a shopper scans a grid for, and
      at 600 it sat at the same weight as the product name beside it; 700 makes
-     it the first thing read in the tile. The variable axis covers it, so
-     nothing is synthesised. */
+     it the first thing read in the tile. Open Sans is variable across 300–800,
+     so nothing is synthesised. */
   font-weight: 700;
+  font-size: 18px;
+  /* 1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
+     the descender on a comma, and UGX prices are full of them. */
+  line-height: 1.1;
   /* Barely tightened. A price is read digit by digit — UGX 145,854 is not a
      word the eye takes in whole — so the space between figures has to stay open
      enough to count them. */
   letter-spacing: -0.008em;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Old price — 400, 12px ----------
+ * The struck-through original beside a discounted price. Deliberately the
+ * lightest thing in the money row: it is context for the number next to it, and
+ * a was-price set anywhere near the weight of the real one makes a shopper stop
+ * to work out which is which. */
+.was-price {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--color-shop-faint);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Reviews / sold — 400, 12px ----------
+ * Ratings, review counts and "2.2K sold". The quietest row on a tile: it is
+ * corroboration, read after the shopper has already decided the price is worth
+ * considering. */
+.meta-note {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* ---------- Navigation — 600, 14px ----------
+ * Masthead links, department names in the mega menu, the bottom nav on a phone.
+ * 600 rather than 500: navigation is scanned, not read, and the extra weight is
+ * what lets a label be found without being focused on. */
+.nav-label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* ---------- Search bar — 400, 14px ----------
+ * Both the placeholder and what the shopper types. Plain weight on purpose: a
+ * bold search field reads as a filled-in answer rather than an empty question. */
+.search-input {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* ---------- Category names — 500, 14px ----------
+ * The labels under the round category tiles and along the department rails. A
+ * step above body text and a step below navigation: these are content the
+ * shopper browses rather than chrome they navigate by. */
+.category-name {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* ---------- Hero promotions — 700–800, 32–48px ----------
+ * Banner headlines and campaign cards, and the only type in the shop set at
+ * poster scale.
+ *
+ * Fluid between the two ends of the spec rather than fixed at either: 32px is
+ * the size that fits a phone without wrapping a three-word headline onto three
+ * lines, 48px is what fills a desktop banner, and `clamp` walks between them
+ * without a breakpoint. 800 is the top of Open Sans's axis, so the heaviest
+ * step here is still a real weight. */
+.hero-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.1;
+  /* Tighter than the headings below it. At 32px and up the letterforms already
+     crowd, and display type set at reading tracking looks slack. */
+  letter-spacing: -0.02em;
 }
 
 /* The escape hatch: a product name set as an <h1> on the product page is a name,
@@ -322,6 +432,7 @@ h6,
  * one labels them and gets out of the way. Applied as one class instead of
  * four utilities repeated at every call site.
  */
+/* ---------- Section headings — 700, 20–24px ---------- */
 .section-title {
   font-family: var(--font-display);
   /* 700, not 600. At 600 a section title sat only one step above the product
@@ -330,6 +441,11 @@ h6,
      its content has to be visible at a glance or it is not doing the job of a
      heading. */
   font-weight: 700;
+  /* The scale's 20–24px, fluid between the two rather than fixed at either, so
+     a rail title is 20 on a phone and 24 on a desktop without a breakpoint.
+     Call sites that set their own `text-[Npx]` still win — this is the default
+     for the ones that do not. */
+  font-size: clamp(20px, 1.6vw, 24px);
   letter-spacing: -0.015em;
   /* 1.1 clipped the descenders of a title that wrapped onto a second line. */
   line-height: 1.2;
@@ -376,7 +492,12 @@ h6,
  * already crowd, and default spacing makes the word look loose against it. */
 .heading-black {
   font-family: var(--font-display);
-  font-weight: 800;
+  /* 700, down from 800, to land on the scale's "section headings" row.
+     The 800 step has not been lost — it has moved to `.hero-display`, which is
+     where the spec puts it: 700–800 at 32–48px, for banner and campaign type.
+     At the 18–24px these headings actually run, 800 was heavier than the table
+     allows and closed the counters up besides. */
+  font-weight: 700;
   /* -0.04em here was the tightest type on the site and the hardest to read:
      the two effects compound, because a heavier weight has already eaten the
      space between the letters before the tracking takes any more. */

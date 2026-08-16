@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,52 +13,53 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: Inter, self-hosted ----
+ * ---- The shop's type: Open Sans, self-hosted ----
  *
- * Why a webfont at all, after four settings that ended on the system stack.
+ * The shop is set in Open Sans, on the AliExpress model, to a scale written out
+ * in full at the head of the type block in `globals.css`.
  *
- * The premise the system stack was chosen on was that the big marketplaces all
- * resolve to the reader's own interface font. That is not what Amazon and eBay
- * actually do. Amazon ships **Amazon Ember**, eBay ships **Market Sans** — both
- * commissioned from Dalton Maag, both humanist grotesques with a tall x-height
- * and open apertures, and both loaded as webfonts on every page of the world's
- * two largest storefronts. They pay the download because a marketplace grid is
- * read at 12–14px in a hurry, and a face drawn for that is worth the bytes.
+ * This replaces a brief run on Inter, which was chosen to approximate what
+ * Amazon and eBay ship (Amazon Ember and Market Sans — both Dalton Maag, both
+ * unlicensable). Open Sans is a deliberate move to the other reference point in
+ * this market: AliExpress, Temu and the Chinese marketplaces most Ugandan
+ * shoppers have already been trained by. It is a humanist sans with a large
+ * x-height and open apertures, which is the same reason the others work at
+ * 12–14px in a dense grid, and it is the most widely rendered webfont there is
+ * — a face a shopper's browser may well already have cached from another site.
  *
- * Neither is licensable, so this is the nearest open equivalent rather than a
- * copy: **Inter**, which was drawn for exactly the same job — interface text at
- * small sizes — and shares the tall x-height and open counters that make Ember
- * and Market Sans legible in a dense listing. Practically it also brings real
- * tabular figures, which `.price` in `globals.css` already asks for and the
- * system stack could only approximate.
- *
- * What the earlier reasoning got right is kept intact:
+ * The engineering that made a webfont affordable here is unchanged:
  *
  *   • `next/font/google` downloads the file at BUILD time and serves it from
  *     this origin. No request reaches Google from a shopper's browser, so there
  *     is no third-party DNS lookup or handshake on the critical path, and
  *     nothing to add to the CSP in next.config.ts.
- *   • One variable file covers 400 through 800 — every weight the stylesheet
- *     asks for — instead of five static downloads.
+ *   • One variable file covers the whole scale. Open Sans is variable across
+ *     300–800, and the spec runs 400 to 800, so every weight the stylesheet
+ *     asks for is real rather than synthesised — and it is one download, not
+ *     five.
  *   • `display: "swap"` means text paints immediately in the fallback and is
- *     repainted in Inter when it lands. A Ugandan mobile connection never sees
- *     a blank page waiting on a font.
+ *     repainted in Open Sans when it lands. A Ugandan mobile connection never
+ *     sees a blank page waiting on a font.
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
  *     `@font-face`, so the swap does not reflow a single price or product name.
- *     That was the real cost of a webfont, and it is the part Next removes.
  *
  * `variable` rather than `className`: the family is handed to CSS as
- * `--font-inter`, which `globals.css` puts at the head of `--font-ui` with the
- * old system stack still behind it as the fallback.
+ * `--font-open-sans`, which `globals.css` puts at the head of `--font-ui` with
+ * the system stack still behind it as the fallback.
  */
-const inter = Inter({
+const openSans = Open_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
-  // Inter's optical-size axis is set to its 14px default by the `opsz` range;
-  // the weight axis is what this shop moves, from body copy at 400 to the
-  // homepage section headings at 800.
-  axes: ["opsz"],
+  variable: "--font-open-sans",
+  /**
+   * Weight only.
+   *
+   * Open Sans also carries a `wdth` axis (75–100). It is deliberately not
+   * requested: shipping a second axis enlarges the font file for every shopper,
+   * and nothing in this shop's scale condenses the face — the whole spec moves
+   * on weight and size. Omitting it pins width at its 100 default.
+   */
+  axes: [],
 });
 
 /**
@@ -182,11 +183,12 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `inter.variable` defines `--font-inter` on the root element, where every
-      // rule in globals.css can reach it. The class carries no `font-family` of
-      // its own — the stylesheet decides what uses the face — which is why the
-      // Seller Centre and admin shells pick it up too without being touched.
-      className={`${inter.variable} h-full antialiased`}
+      // `openSans.variable` defines `--font-open-sans` on the root element,
+      // where every rule in globals.css can reach it. The class carries no
+      // `font-family` of its own — the stylesheet decides what uses the face —
+      // which is why the Seller Centre and admin shells pick it up too without
+      // being touched.
+      className={`${openSans.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

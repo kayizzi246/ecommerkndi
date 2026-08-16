@@ -72,7 +72,7 @@ import 'package:http/http.dart' as http;
 //
 //  5. BRAND. v2 mixed the brand orange with Poppins/Inter, a grey
 //     page and a red `_goldDeep`. Matched to the storefront:
-//     Inter, white page, orange #ff6a00, and red
+//     Open Sans, white page, orange #ff6a00, and red
 //     reserved strictly for discounts.
 //
 //  SETUP  (FlutterFlow)
@@ -193,7 +193,7 @@ const double _kCardTextHeight = _kCardGap +
     _kCardSlack;
 
 // ============================================================
-// TYPE — Inter, matching the website (see home_sections_widget.dart)
+// TYPE — Open Sans, matching the website (see home_sections_widget.dart)
 // ============================================================
 
 TextStyle _heading({
@@ -202,7 +202,7 @@ TextStyle _heading({
   FontWeight weight = FontWeight.w800,
   double? height,
 }) =>
-    GoogleFonts.inter(
+    GoogleFonts.openSans(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -218,7 +218,7 @@ TextStyle _text({
   TextDecoration? decoration,
   Color? decorationColor,
 }) =>
-    GoogleFonts.inter(
+    GoogleFonts.openSans(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -229,7 +229,7 @@ TextStyle _text({
     );
 
 /// Section subtitle — 600 in the body colour, matching the website.
-TextStyle _subtitle({double size = 13.5}) => GoogleFonts.inter(
+TextStyle _subtitle({double size = 13.5}) => GoogleFonts.openSans(
       fontSize: size,
       fontWeight: FontWeight.w600,
       color: _kBody,
@@ -238,7 +238,7 @@ TextStyle _subtitle({double size = 13.5}) => GoogleFonts.inter(
     );
 
 TextStyle _price({double size = 15, Color color = _kInk}) =>
-    GoogleFonts.inter(
+    GoogleFonts.openSans(
       fontSize: size,
       fontWeight: FontWeight.w700,
       color: color,
@@ -247,7 +247,7 @@ TextStyle _price({double size = 15, Color color = _kInk}) =>
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
-TextStyle _struck({double size = 12}) => GoogleFonts.inter(
+TextStyle _struck({double size = 12}) => GoogleFonts.openSans(
       fontSize: size,
       fontWeight: FontWeight.w500,
       color: _kFaint,
@@ -262,7 +262,7 @@ TextStyle _label({
   FontWeight weight = FontWeight.w600,
   double spacing = 0.2,
 }) =>
-    GoogleFonts.inter(
+    GoogleFonts.openSans(
       fontSize: size,
       fontWeight: weight,
       color: color,

@@ -261,7 +261,9 @@ export default function SearchBar() {
                than a field whose label changes every 2.6 seconds. It is also
                what shows if JavaScript never runs. */
             placeholder="Search for products, brands and more"
-            className={`w-full bg-transparent py-2.5 text-[15px] focus:outline-none ${
+            /* `.search-input` is the scale's search row — 400 at 14px — rather
+               than the 15px this had picked up on its own. */
+            className={`search-input w-full bg-transparent py-2.5 focus:outline-none ${
               // Hide the real placeholder only while the animated one is
               // covering it, so the two can never be legible at once.
               showPrompt ? "placeholder:text-transparent" : "placeholder:text-shop-muted"

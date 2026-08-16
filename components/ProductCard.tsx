@@ -369,9 +369,15 @@ export default function ProductCard({
 
              The price is a step smaller on a phone as well — 13px against 15 —
              which is the size it needs to be to sit comfortably in 150px. */}
-        <p className="flex h-5 items-baseline gap-x-1.5 overflow-hidden">
+        {/* The sizes are gone from this row.
+             `.price` and `.was-price` carry them now — 18px/700 and 12px/400,
+             the shop's type scale — so a tile cannot drift away from the rest
+             of the store the way this did when it kept its own 13/15px. The row
+             is 22px rather than 20 to fit the taller price without clipping the
+             comma in "UGX 145,854". */}
+        <p className="flex h-[22px] items-baseline gap-x-1.5 overflow-hidden">
           <span
-            className={`price whitespace-nowrap text-[13px] leading-none sm:text-[15px] ${
+            className={`price whitespace-nowrap ${
               discount > 0 ? "text-shop-sale" : "text-shop-ink"
             }`}
           >
@@ -379,10 +385,10 @@ export default function ProductCard({
           </span>
           {discount > 0 && (
             <>
-              <span className="hidden whitespace-nowrap text-[11.5px] leading-none text-shop-faint line-through sm:inline">
+              <span className="was-price hidden whitespace-nowrap sm:inline">
                 {formatPrice(product.regular_price)}
               </span>
-              <span className="hidden whitespace-nowrap text-[11.5px] font-bold leading-none text-shop-sale sm:inline">
+              <span className="hidden whitespace-nowrap text-[12px] font-bold leading-none text-shop-sale sm:inline">
                 −{discount}%
               </span>
             </>
@@ -396,17 +402,20 @@ export default function ProductCard({
             reviews and no sales is exactly the one that would otherwise render a
             shorter tile than its neighbours, and an empty 16px box costs less
             than the row of ragged baselines that hiding it caused. */}
+        {/* "Reviews / sold" on the scale — 12px at the plain weight, via
+             `.meta-note`. This row was 11.5px semibold, which made corroboration
+             compete with the price above it. */}
         <div className="flex h-4 items-center gap-x-2 overflow-hidden">
           {product.rating_count > 0 && (
             <span className="flex items-center gap-1">
               <Stars rating={product.average_rating} />
-              <span className="text-[11.5px] font-semibold text-shop-body">
+              <span className="meta-note text-shop-body">
                 {product.average_rating.toFixed(1)}
               </span>
             </span>
           )}
           {product.total_sales > 0 && (
-            <span className="text-[11.5px] font-medium text-shop-muted">
+            <span className="meta-note text-shop-muted">
               {compactSold(product.total_sales)} sold
             </span>
           )}
@@ -420,7 +429,7 @@ export default function ProductCard({
             text was being sliced mid-word with no ellipsis to show for it
             ("Fastest delivery: 1 business d"). The low-stock variant keeps its
             dot by being an inline-flex span *inside* the block. */}
-        <p className="h-4 truncate text-[11.5px] font-medium leading-4 text-shop-success">
+        <p className="h-4 truncate text-[12px] font-medium leading-4 text-shop-success">
           {soldOut ? (
             "Back in stock soon"
           ) : lowStock ? (
