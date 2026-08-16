@@ -14,6 +14,18 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
+// `ValueListenable` is NOT one of the names `package:flutter/material.dart`
+// gives you. material re-exports widgets.dart, which re-exports foundation.dart
+// behind a `show` list — `Listenable`, `ValueNotifier` and `ValueChanged` are on
+// it, `ValueListenable` is not. So the read-only type used by `countListenable`
+// below has to be imported by name, or the build fails with
+//
+//     Error: Type 'ValueListenable' not found.
+//
+// The alternative was to hand back the `ValueNotifier` itself, which is
+// exported — and which would let any screen write to the count without touching
+// the basket it is supposed to be counting.
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;

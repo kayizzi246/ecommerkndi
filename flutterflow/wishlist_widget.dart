@@ -13,6 +13,12 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
+// Imported by name because `material.dart` does not give you this one: it
+// re-exports widgets.dart, which re-exports foundation.dart behind a `show`
+// list that includes `Listenable` and `ValueNotifier` but not
+// `ValueListenable`. Without this line the build fails with
+// "Type 'ValueListenable' not found" on `countListenable` below.
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
