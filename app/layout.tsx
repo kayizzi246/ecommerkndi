@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -11,28 +12,53 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * There is no webfont, and no `next/font` call.
+ * ---- The shop's type: Inter, self-hosted ----
  *
- * The shop has now been through four settings: a Poppins/Inter pair, Plus
- * Jakarta Sans, the system stack, a brief run on self-hosted Geist, and back to
- * the system stack — which is where it stays, matched deliberately to
- * brandsforless.com, whose type is `system-ui, -apple-system, …` and nothing
- * else. The stack itself lives in `globals.css`, with the reasoning.
+ * Why a webfont at all, after four settings that ended on the system stack.
  *
- * What it buys is the whole point. A webfont is a file that must arrive before a
- * word can be painted in its intended shape, and it sits on the critical path in
- * front of the product photographs that are the only reason anybody opened the
- * page. The system face is already resident on the device, so the first paint is
- * the final paint — no download, no swap, no reflow of every price and product
- * name a second into the page's life.
+ * The premise the system stack was chosen on was that the big marketplaces all
+ * resolve to the reader's own interface font. That is not what Amazon and eBay
+ * actually do. Amazon ships **Amazon Ember**, eBay ships **Market Sans** — both
+ * commissioned from Dalton Maag, both humanist grotesques with a tall x-height
+ * and open apertures, and both loaded as webfonts on every page of the world's
+ * two largest storefronts. They pay the download because a marketplace grid is
+ * read at 12–14px in a hurry, and a face drawn for that is worth the bytes.
  *
- * The cost is real and worth stating: the shop renders in Segoe UI on Windows,
- * Roboto on Android and SF on iOS, so no two shoppers see quite the same letter
- * shapes. That is the trade every large marketplace has made — Temu, Amazon,
- * AliExpress and Brands For Less all resolve to the reader's own interface font.
- * This shop's identity lives in its logo, its orange and its photography, none
- * of which is type.
+ * Neither is licensable, so this is the nearest open equivalent rather than a
+ * copy: **Inter**, which was drawn for exactly the same job — interface text at
+ * small sizes — and shares the tall x-height and open counters that make Ember
+ * and Market Sans legible in a dense listing. Practically it also brings real
+ * tabular figures, which `.price` in `globals.css` already asks for and the
+ * system stack could only approximate.
+ *
+ * What the earlier reasoning got right is kept intact:
+ *
+ *   • `next/font/google` downloads the file at BUILD time and serves it from
+ *     this origin. No request reaches Google from a shopper's browser, so there
+ *     is no third-party DNS lookup or handshake on the critical path, and
+ *     nothing to add to the CSP in next.config.ts.
+ *   • One variable file covers 400 through 800 — every weight the stylesheet
+ *     asks for — instead of five static downloads.
+ *   • `display: "swap"` means text paints immediately in the fallback and is
+ *     repainted in Inter when it lands. A Ugandan mobile connection never sees
+ *     a blank page waiting on a font.
+ *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
+ *     `@font-face`, so the swap does not reflow a single price or product name.
+ *     That was the real cost of a webfont, and it is the part Next removes.
+ *
+ * `variable` rather than `className`: the family is handed to CSS as
+ * `--font-inter`, which `globals.css` puts at the head of `--font-ui` with the
+ * old system stack still behind it as the fallback.
  */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+  // Inter's optical-size axis is set to its 14px default by the `opsz` range;
+  // the weight axis is what this shop moves, from body copy at 400 to the
+  // homepage section headings at 800.
+  axes: ["opsz"],
+});
 
 /**
  * Site-wide metadata, read from wp-admin.
@@ -137,7 +163,11 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      // `inter.variable` defines `--font-inter` on the root element, where every
+      // rule in globals.css can reach it. The class carries no `font-family` of
+      // its own — the stylesheet decides what uses the face — which is why the
+      // Seller Centre and admin shells pick it up too without being touched.
+      className={`${inter.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

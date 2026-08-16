@@ -139,13 +139,11 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Geist, everywhere ----
+/* ---- The type: Inter, everywhere ----
  *
- * `--font-geist` is set by `next/font` in `app/layout.tsx`, where the reasoning
- * for the face and for self-hosting it is written out. This is the other half:
- * the system stack stays behind it as a fallback, so a request that somehow
- * arrives before the font file does still paints in a sans face rather than in
- * the browser's default serif.
+ * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the reasoning
+ * for the face — and for choosing it over the system stack the shop ran on
+ * before — is written out in full. This is the other half: the stack behind it.
  *
  * The `--font-display` / `--font-ui` distinction is kept even though both
  * resolve to the same family: display type is set heavy and tight, UI type at
@@ -153,15 +151,19 @@
  * Keeping the two names means a future decision to set headings in something
  * else is one line here rather than a search through the components. */
 :root {
-  /* `system-ui` leads, which is the one difference from the stack this shop ran
-     before. It resolves to whatever the device calls its own interface face —
-     Segoe UI Variable on Windows 11, Roboto on Android, SF on iOS — rather than
-     naming those faces one at a time and hoping the list covers the device. The
-     named fallbacks stay behind it for the browsers that never implemented the
-     keyword. This is the same stack brandsforless.com sets its type in. */
+  /* Inter first, then the metric-matched fallback Next generates for it, then
+     the system stack this shop used to run on outright.
+   *
+   * The fallback list is not decoration. `display: swap` paints the first
+   * screen in whatever is behind Inter, so that face is what a shopper on a
+   * slow connection actually reads for the first few hundred milliseconds —
+   * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
+   * and SF on iOS, all of which are close enough to Inter's proportions that
+   * the swap is a refinement rather than a jolt. The named faces behind it
+   * cover the browsers that never implemented the keyword. */
   --font-ui:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
   --font-tabular: var(--font-ui);
@@ -209,9 +211,9 @@ body {
      letterspaced. */
   letter-spacing: 0.004em;
   -webkit-font-smoothing: antialiased;
-  /* Both faces ship every weight the store asks for, so a synthesised bold would
-     only ever be the browser smearing a real one — turn it off and any weight
-     that renders is a weight that genuinely exists in the file. */
+  /* Inter's variable file ships every weight the store asks for, so a
+     synthesised bold would only ever be the browser smearing a real one — turn
+     it off and any weight that renders genuinely exists in the file. */
   font-synthesis-weight: none;
 }
 
@@ -263,13 +265,13 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. Geist is variable across 100–900,
+     it that the eye had to stop and check. Inter is variable across 100–900,
      so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
 
-     This was -0.03em, which on a geometric face whose round letters
-     already sit close — pushed "Daily Deals" and "Trending now" into a solid
+     This was -0.03em, which on a face whose counters are already drawn
+     tight for interface use — pushed "Daily Deals" and "Trending now" into a solid
      block that has to be decoded rather than read. Tracking that tight is a
      poster technique: it works on three words at 60px and fails on a sentence
      at 18px. -0.012em keeps a heading looking deliberate without closing the
@@ -364,7 +366,7 @@ h6,
 
 /* The heaviest step, for the section headings that anchor the homepage.
  *
- * 800 rather than 900, by choice rather than by limit. Geist's variable axis
+ * 800 rather than 900, by choice rather than by limit. Inter's variable axis
  * does reach 900, but at the sizes these headings run — 18 to 24px, not poster
  * scale — 900 closes the counters up and the word turns into a black bar. 800
  * is the heaviest step that still reads as letters.
