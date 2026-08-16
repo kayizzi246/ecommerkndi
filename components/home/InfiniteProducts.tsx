@@ -114,11 +114,21 @@ export default function InfiniteProducts({
           tight on purpose, and tighter still on a phone: a dense grid reads as
           a catalogue with depth, and 6px between two columns is all it takes to
           tell them apart on a 390px screen. */}
-      {/* 1px in both directions on a phone. Cards carry their own white
-          background, so the hairline reads as a grid line rather than a gap,
-          and every pixel saved goes into the photograph — which is the thing
-          that actually sells. Vertical breathing room returns at sm. */}
-      <ul className="grid grid-cols-2 gap-px sm:gap-y-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+      {/* 8px between columns, 16px between rows, opening to 12/24 from sm.
+
+          This was 1px in both directions, on the reasoning that a card carrying
+          its own white background turns the gap into a grid line and every
+          pixel saved goes into the photograph. The first half of that was never
+          true: the page is white too, so a 1px white gap between two white
+          tiles drew nothing at all — the tiles simply touched, and a row of
+          four products read as one wide picture with words under it.
+
+          The rows get more air than the columns on purpose. A grid is scanned
+          down, so the horizontal gap only has to say "these are two products"
+          while the vertical one has to separate a tile's last line of text from
+          the next tile's photograph — which is the join that was actually
+          failing. */}
+      <ul className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

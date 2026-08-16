@@ -114,7 +114,15 @@ export default function DealCarousel({
       <div
         ref={attach}
         onScroll={sync}
-        className="flex snap-x snap-mandatory gap-px overflow-x-auto scroll-smooth pb-1 no-scrollbar"
+        // 8px between tiles, 12px from sm — matching the product grids.
+        //
+        // It was 1px, which on a white page between two white tiles is nothing
+        // at all: a rail read as one long photograph strip and the snap points
+        // landed with no visible seam to explain them. The gap does not change
+        // what `itemWidth` measures, so the `sizes` attribute below stays
+        // accurate — the two only have to move together when the tile width
+        // does.
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-3"
       >
         {products.map((product, index) => (
           <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>

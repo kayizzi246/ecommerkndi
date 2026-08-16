@@ -39,7 +39,9 @@ export default function HomeLoading() {
             <div className="shimmer h-6 w-28 rounded-full" />
             <div className="shimmer h-7 w-36 rounded-lg" />
           </div>
-          <div className="flex gap-px overflow-hidden">
+          {/* Matches DealCarousel's gap. A skeleton whose gaps differ from the
+              real rail's is a layout shift the moment the products land. */}
+          <div className="flex gap-2 overflow-hidden sm:gap-3">
             {Array.from({ length: 6 }, (_, i) => (
               <div
                 key={i}
@@ -69,7 +71,8 @@ export default function HomeLoading() {
           <div className="mb-3.5 px-3 md:px-0">
             <div className="shimmer h-5 w-36 rounded md:h-6 md:w-44" />
           </div>
-          <div className="grid grid-cols-2 gap-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {/* The shared product-grid rhythm, for the same reason. */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 12 }, (_, i) => (
               <ProductCardSkeleton key={i} />
             ))}

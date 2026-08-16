@@ -128,6 +128,20 @@ export async function generateMetadata(): Promise<Metadata> {
      * bare request browsers and crawlers make by habit, while the only icon
      * *declared* in the head is the one this function chooses.
      *
+     * `apple-icon.png` has now followed them, and for the third time this file
+     * has to record the same lesson. It stayed in `app/` after the other two
+     * left, which is still a Next file convention, so every page shipped
+     *
+     *   <link rel="apple-touch-icon" href="/apple-icon.png?…" sizes="…">
+     *
+     * alongside the `apple` link this function declares — two apple icons, one
+     * of them the bundled image that never changes. That is the same "faced
+     * with two, something else picks one" bug as before, and it is not only an
+     * iOS concern: Google's favicon crawler reads apple-touch-icon as a
+     * candidate too, so a stale one is a stale icon in search results. It lives
+     * in `public/` now, still answers `/apple-icon.png` for the fallback branch
+     * below, and is no longer advertised on its own.
+     *
      * The fallback is explicit for the same reason: with nothing in `app/` there
      * is no automatic icon behind us any more, so a shop that has not uploaded
      * one must be given the bundled image by name or it would ship no icon at

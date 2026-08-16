@@ -47,11 +47,18 @@ export function ProductRailSkeleton({
   return (
     <section>
       <SectionHeaderSkeleton withSubtitle={withSubtitle} />
-      <div className="flex gap-px overflow-hidden">
+      {/* Matches DealCarousel's gap, so the rail does not jump when the real
+          tiles replace these. */}
+      <div className="flex gap-2 overflow-hidden sm:gap-3">
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
-            className="w-[40%] shrink-0sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            // `shrink-0sm:w-[31%]` — a missing space that made one unparseable
+            // class out of two, so these placeholders were free to shrink and
+            // never took their tablet width. The rail they stand in for is
+            // `shrink-0` at fixed widths, and a skeleton that is not laid out
+            // like the thing it precedes is a guaranteed shift.
+            className="w-[40%] shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>

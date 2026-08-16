@@ -152,7 +152,10 @@ export default async function SalePage({
               has a couple of hundred pixels more to spend than search or a
               category — and on a page of markdowns the shopper is comparing,
               which means seeing as many at once as stay legible. */}
-          <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:grid-cols-3 sm:gap-y-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+          {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
+              See the note in the category grid for why the old 1px gaps drew
+              nothing on a white page. */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

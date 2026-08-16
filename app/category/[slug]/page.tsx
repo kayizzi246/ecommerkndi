@@ -236,7 +236,17 @@ export default async function CategoryPage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:gap-y-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+              {/* 8px between columns, 16px between rows, opening to 12/24 from
+                  sm — the same figures as every other product grid on the site,
+                  and they are meant to stay the same.
+
+                  This was 1px across and 4px down. Both the tiles and the page
+                  are white, so those gaps drew nothing: each row arrived as one
+                  wide band of photographs rather than four products. Rows get
+                  more air than columns because a grid is scanned downwards, so
+                  the join that was actually failing was a tile's last line of
+                  text against the next tile's picture. */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

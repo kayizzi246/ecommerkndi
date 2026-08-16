@@ -206,7 +206,9 @@ export default async function StorePage({ params }: Params) {
               row that reads as a catalogue rather than a shelf: more of the
               store is above the fold, which on a page whose entire job is
               "here is everything this seller has" is the whole point. */}
-          <div className="grid grid-cols-2 gap-x-px gap-y-1 sm:grid-cols-3 sm:gap-y-2 lg:grid-cols-5 xl:grid-cols-7">
+          {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
+              See the note in the category grid. */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-5 xl:grid-cols-7">
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends
