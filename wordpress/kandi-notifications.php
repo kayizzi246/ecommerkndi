@@ -601,6 +601,23 @@ function kandi_mail_order_status( $order_id, $from_status, $to_status ) {
 		if ( kandi_wc_email_enabled( 'WC_Email_Customer_Completed_Order' ) ) {
 			return;
 		}
+
+		/**
+		 * Someone else may already have told the shopper.
+		 *
+		 * This message is written for an order that has ARRIVED. Kandi Order
+		 * Dispatch redefines `completed` to mean "every seller has accepted and
+		 * it is on its way", and sends its own dispatch notice at that moment —
+		 * so with both plugins active and no guard here the shopper is told
+		 * their parcel is on its way and has been delivered, in the same minute,
+		 * by the same shop.
+		 *
+		 * A filter rather than a hard-coded check on that plugin's meta, so this
+		 * file does not have to know it exists.
+		 */
+		if ( ! apply_filters( 'kandi_send_completed_email', true, $order ) ) {
+			return;
+		}
 		$brand = kandi_mail_brand();
 		kandi_send_mail(
 			$to,

@@ -989,8 +989,35 @@ function kandi_notify_sellers_of_order( $order_id ) {
 				esc_html( trim( $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2() ) ),
 				esc_html( $order->get_shipping_city() . ' · ' . $order->get_billing_phone() )
 			),
-			array( 'label' => 'Open the order', 'url' => kandi_seller_centre_url() )
+			/**
+			 * The button, filtered.
+			 *
+			 * Defaults to "Open the order", which is all this plugin can offer
+			 * on its own. Kandi Order Dispatch replaces it with a signed
+			 * one-click accept link, so the seller can accept from the email
+			 * without signing in. A filter rather than the link itself because
+			 * this file is already at the size where it cannot be saved through
+			 * Code Snippets — see that plugin's header.
+			 */
+			apply_filters(
+				'kandi_seller_order_cta',
+				array( 'label' => 'Open the order', 'url' => kandi_seller_centre_url() ),
+				$order,
+				$seller_id
+			)
 		);
+
+		/**
+		 * Everything else that wants to tell this seller about this order.
+		 *
+		 * Fired inside the same once-per-seller-per-order guard as the email
+		 * above, so anything hooked here inherits it — an order moving
+		 * on-hold → processing → completed passes through this function three
+		 * times and must not send three SMS. `$part` is handed over so a
+		 * listener does not have to re-walk the order to find out what belongs
+		 * to whom.
+		 */
+		do_action( 'kandi_seller_order_notified', $order, $seller_id, $part );
 
 		$already[] = $seller_id;
 	}
