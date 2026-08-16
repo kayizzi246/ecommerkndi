@@ -77,12 +77,38 @@ import 'package:http/http.dart' as http;
 //        http: ^1.2.0
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
+//        shared_preferences: ^2.2.2
+//  • Paste cart_widget.dart into FlutterFlow FIRST — this screen
+//    uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`,
+//    which are declared there.
 //  • Parameters:
 //        productId     String   REQUIRED — the slug or numeric id
 //        onBackTap     Action   optional
 //        onCartTap     Action   optional
 //        onProductTap  Action   optional — receives productId, slug
 //        onAddToCart   Action   optional — receives id, name, price
+//
+//    Only `productId` is needed. The other four now have working
+//    in-code behaviour behind them: back pops, the cart icon
+//    pushes ShoppingCartPage, the related rail pushes this page
+//    again, and "Add to cart" writes to KandiCart whether or not
+//    an Action is wired. `onAddToCart` fires ALONGSIDE that write
+//    rather than instead of it — v2 made it the only thing the
+//    button did, so an unwired project showed "Added to cart"
+//    over an empty basket.
+//
+//  THE BUY BAR: PRICE, ADD TO CART, BUY NOW
+//  -----------------------------------------------------------
+//  The pinned bar carries the price it is charging — on a page
+//  this long the buy box has scrolled away, and a button that
+//  commits a shopper to a number they can no longer see is the
+//  wrong way round. Beside it, two buttons: "Add to cart" for the
+//  shopper still browsing, "Buy now" for the one who has decided.
+//
+//  "Buy now" is the same basket write plus the navigation that
+//  shopper was about to do — deliberately NOT a separate express
+//  checkout, because a second path to an order is a second place
+//  for the delivery quote and the stock check to be got wrong.
 //
 //    `productId` is a STRING even though WooCommerce ids are
 //    numbers, and that is deliberate: the home and category
@@ -452,7 +478,14 @@ class _PressState extends State<_Press> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      // The press tick, on the way down and only for a live control — the same
+      // `selectionClick` the other four screens use, so a press feels identical
+      // across the app. Silent for a disabled button: a sold-out "Add to cart"
+      // that buzzes has told the finger it worked.
+      onTapDown: (_) {
+        if (widget.onTap != null) HapticFeedback.selectionClick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,
@@ -497,34 +530,43 @@ class ProductDetailPage extends StatefulWidget {
   final double? height;
 
   /// The slug or the numeric id. Both work — see the header note.
+  ///
+  /// The one parameter that carries data, and it cannot be avoided: this page
+  /// is *about* a product, so something has to say which. Every caller in this
+  /// project passes it as a typed Dart argument through `kandiOpenProduct`
+  /// rather than through a FlutterFlow panel row.
   final String productId;
 
-  /// Leaving this screen. Unset, the back control pops the navigator itself,
-  /// which is right in almost every case — the Action exists for the projects
-  /// that need to do something else first.
+  /// ---- These four are optional and mostly unnecessary now ----
+  ///
+  /// The page no longer needs any of them. Back pops the navigator, the cart
+  /// icon pushes `ShoppingCartPage`, the related rail pushes another
+  /// `ProductDetailPage`, and "Add to cart" writes to `KandiCart` — all in
+  /// code, all in this file's control.
+  ///
+  /// They stay because a project that wired them should not have them break,
+  /// and because `onAddToCart` is a genuine hook: an Action there can log an
+  /// event or update something in FlutterFlow *in addition to* the basket
+  /// write, which now always happens either way.
+  ///
+  /// What changed is that a null one is no longer a dead control. Every one of
+  /// them has a working in-code default behind it.
   final Future Function()? onBackTap;
 
-  /// Opening the cart.
+  /// Opening the cart. Falls back to pushing `ShoppingCartPage`.
   final Future Function()? onCartTap;
 
-  /// Opening another product from the "You may also like" rail.
-  ///
-  /// Receives the slug (preferred, because it is what the website's own URLs
-  /// use) and the numeric id, so the FlutterFlow action can pass whichever the
-  /// destination page declares.
+  /// Opening another product from the "You may also like" rail. Falls back to
+  /// pushing this page again for that product.
   final Future Function(String productId, String slug)? onProductTap;
 
-  /// Called when "Add to cart" is tapped.
+  /// Fired *in addition to* the basket write, not instead of it.
   ///
-  /// An Action rather than a cart implementation, because this widget has no
-  /// business owning one: the cart is state the whole app shares, and
-  /// FlutterFlow already has somewhere to keep it. v2 wrote to
-  /// SharedPreferences from inside the page, which meant the count in the
-  /// header could disagree with every other screen.
-  ///
-  /// Wire it in FlutterFlow to "Add to cart" / an App State update. Unset, the
-  /// button still gives its confirmation but nothing is stored — which is
-  /// visible in testing rather than silent.
+  /// v2 made this the only thing "Add to cart" did, which meant an unwired
+  /// project had a button that showed a confirmation and stored nothing. The
+  /// line now always goes into `KandiCart` — the basket every screen reads —
+  /// and this Action runs alongside for projects that want to hang something
+  /// else off the tap.
   final Future Function(int productId, String name, String priceLabel)?
       onAddToCart;
 
@@ -544,7 +586,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _error;
 
   int _imageIndex = 0;
+
+  /// Whether this product is in the shared saved-items list.
+  ///
+  /// It was a plain bool toggled in place, which meant the heart here and the
+  /// saved-items screen were two different opinions about the same product.
+  /// Read from `KandiWishlist` on load now, and written through it on tap.
   bool _wishlisted = false;
+
+  /// Badge on the cart icon, from the shared basket.
+  int _cartCount = 0;
+
   bool _descExpanded = false;
 
   /// True once the gallery has scrolled past, which is when the compact header
@@ -601,9 +653,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       if (decoded is! Map) throw const FormatException('Unexpected payload');
 
       final detail = _Detail.fromJson(Map<String, dynamic>.from(decoded));
+
+      // The shared stores, read once the product is known — the heart cannot be
+      // resolved before there is an id to look up.
+      await KandiWishlist.load();
+      await KandiCart.load();
+
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _wishlisted = KandiWishlist.isSaved(detail.id);
+        _cartCount = KandiCart.itemCount;
         _loading = false;
       });
     } catch (e) {
@@ -636,45 +696,113 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     action();
   }
 
-  /// Opening the cart.
-  void _openCart() => _run(widget.onCartTap);
-
-  /// Opens another product from the related rail.
-  ///
-  /// The slug is passed as `productId` when there is one, because that is what
-  /// this screen's own `productId` parameter accepts and what the website's
-  /// URLs use; the raw slug goes across as well so a destination page that
-  /// declares both can take either.
-  void _openRelated(_Related r) {
-    final action = widget.onProductTap;
-    if (action == null) return;
+  /// Opens the basket — the project's Action if it wired one, this app's own
+  /// cart screen otherwise.
+  void _openCart() {
     HapticFeedback.lightImpact();
-    action(r.slug.isNotEmpty ? r.slug : r.id.toString(), r.slug);
+    if (widget.onCartTap != null) {
+      widget.onCartTap!();
+      return;
+    }
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const ShoppingCartPage()))
+        .then((_) => _syncStores());
   }
 
-  void _addToCart(_Detail d) {
+  /// Opens another product from the related rail.
+  void _openRelated(_Related r) {
+    HapticFeedback.lightImpact();
+    final id = r.slug.isNotEmpty ? r.slug : r.id.toString();
+
+    final action = widget.onProductTap;
+    if (action != null) {
+      action(id, r.slug);
+      return;
+    }
+    kandiOpenProduct(context, id).then((_) => _syncStores());
+  }
+
+  /// Reads the shared basket and saved list, so the header count and the heart
+  /// are right on open and right again after coming back from the cart.
+  Future<void> _syncStores() async {
+    await KandiWishlist.load(force: true);
+    await KandiCart.load(force: true);
+    if (!mounted) return;
+    setState(() {
+      _wishlisted = KandiWishlist.isSaved(_detail?.id ?? 0);
+      _cartCount = KandiCart.itemCount;
+    });
+  }
+
+  /// Puts the line in the basket every screen reads.
+  ///
+  /// v2 called an Action and stored nothing itself, so an unwired project
+  /// showed "Added to cart" over an empty basket. The write happens here now,
+  /// and `onAddToCart` runs alongside it rather than instead of it.
+  Future<void> _addToCart(_Detail d, {bool silent = false}) async {
     HapticFeedback.mediumImpact();
+
+    await KandiCart.add(
+      productId: d.id,
+      name: d.name,
+      price: kandiPriceFromLabel(d.priceLabel),
+      image: d.images.isNotEmpty ? d.images.first : '',
+      slug: d.slug,
+    );
     widget.onAddToCart?.call(d.id, d.name, d.priceLabel);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Added to cart',
-          style: _text(size: 13.5, color: _kWhite, weight: FontWeight.w600),
+    if (!mounted) return;
+    setState(() => _cartCount = KandiCart.itemCount);
+    if (silent) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Added to cart',
+            style: _text(size: 13.5, color: _kWhite, weight: FontWeight.w600),
+          ),
+          backgroundColor: _kInk,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+          action: SnackBarAction(
+            label: 'View cart',
+            textColor: _kPrimary,
+            onPressed: _openCart,
+          ),
         ),
-        backgroundColor: _kInk,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_radius),
-        ),
-        action: SnackBarAction(
-          label: 'View cart',
-          textColor: _kPrimary,
-          onPressed: _openCart,
-        ),
-      ),
-    );
+      );
+  }
+
+  /// Add, then go straight to the basket.
+  ///
+  /// "Buy now" is the same write as "Add to cart" plus the navigation the
+  /// shopper was going to do next, and it is deliberately NOT a separate
+  /// express checkout: a second path to an order is a second place for the
+  /// delivery fee and the stock check to be got wrong. The confirmation
+  /// snackbar is suppressed because the basket appearing IS the confirmation.
+  Future<void> _buyNow(_Detail d) async {
+    await _addToCart(d, silent: true);
+    if (!mounted) return;
+    _openCart();
+  }
+
+  /// Saves or unsaves, in the list the whole app shares.
+  Future<void> _toggleWishlist(_Detail d) async {
+    HapticFeedback.lightImpact();
+    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+      productId: d.id,
+      name: d.name,
+      image: d.images.isNotEmpty ? d.images.first : '',
+      price: kandiPriceFromLabel(d.priceLabel),
+      slug: d.slug,
+    ));
+    if (!mounted) return;
+    setState(() => _wishlisted = nowSaved);
   }
 
   /// Five dark stars, filled to the rating — the website's treatment.
@@ -855,18 +983,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               _circle(Icons.arrow_back_ios_new_rounded, _back),
               const Spacer(),
+              // Saves to the shared list rather than to a local bool that the
+              // saved-items screen knows nothing about.
               _circle(
                 _wishlisted
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
                 () {
-                  HapticFeedback.lightImpact();
-                  setState(() => _wishlisted = !_wishlisted);
+                  final d = _detail;
+                  if (d != null) _toggleWishlist(d);
                 },
                 tint: _wishlisted ? _kSale : _kInk,
               ),
               const SizedBox(width: 8),
-              _circle(Icons.shopping_bag_outlined, _openCart),
+              _circle(
+                Icons.shopping_bag_outlined,
+                _openCart,
+                badge: _cartCount,
+              ),
             ],
           ),
         ),
@@ -896,25 +1030,67 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _circle(Icons.shopping_bag_outlined, _openCart),
+                _circle(
+                  Icons.shopping_bag_outlined,
+                  _openCart,
+                  badge: _cartCount,
+                ),
               ],
             ),
           ),
         ),
       );
 
-  Widget _circle(IconData icon, VoidCallback onTap, {Color tint = _kInk}) =>
+  Widget _circle(
+    IconData icon,
+    VoidCallback onTap, {
+    Color tint = _kInk,
+    int badge = 0,
+  }) =>
       _Press(
         onTap: onTap,
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: _kWhite.withOpacity(0.94),
-            shape: BoxShape.circle,
-            border: Border.all(color: _kLine),
-          ),
-          child: Icon(icon, size: 18, color: tint),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _kWhite.withOpacity(0.94),
+                shape: BoxShape.circle,
+                border: Border.all(color: _kLine),
+              ),
+              child: Icon(icon, size: 18, color: tint),
+            ),
+            // The live basket count, so adding a line here is visible without
+            // leaving the page — the same badge the home and shop screens draw,
+            // off the same store.
+            if (badge > 0)
+              Positioned(
+                right: -3,
+                top: -3,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  constraints:
+                      const BoxConstraints(minWidth: 17, minHeight: 17),
+                  decoration: BoxDecoration(
+                    color: _kPrimary,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: _kPage, width: 1.5),
+                  ),
+                  child: Text(
+                    badge > 99 ? '99+' : '$badge',
+                    textAlign: TextAlign.center,
+                    style: _label(
+                      size: 9.5,
+                      color: _kWhite,
+                      weight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       );
 
@@ -1402,8 +1578,91 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// at the bottom of a Column outside the scroll view, which is right; this
   /// keeps that and adds the state the button has to be able to express — a
   /// sold-out product must not offer a cart button that works.
+  /// ---- The price, then two buttons side by side ----
+  ///
+  /// The bar was a heart and one full-width "Add to cart". Two things were
+  /// wrong with that.
+  ///
+  /// The price had scrolled away. This bar is pinned, so on a long page — the
+  /// description, the specs, the reviews, the related rail — the shopper is
+  /// looking at a button that commits them to a number they can no longer see.
+  /// It now carries the figure it is charging, which is the same thing the
+  /// checkout bar in the basket does.
+  ///
+  /// And "Add to cart" alone serves the shopper who is still browsing while
+  /// making the one who has decided take an extra step: add, find the basket,
+  /// open it. "Buy now" is that shopper's button. It is deliberately not a
+  /// separate express checkout — it is the same basket write plus the
+  /// navigation they were about to do, because a second path to an order is a
+  /// second place for the delivery quote and the stock check to be got wrong.
+  ///
+  /// "Add to cart" is the outlined one and "Buy now" the filled one: the filled
+  /// button should be the one that ends the journey, and orange twice over
+  /// makes neither of them the answer.
   Widget _buyBar(_Detail d) {
     final soldOut = !d.inStock;
+
+    Widget button({
+      required String label,
+      required IconData icon,
+      required bool filled,
+      VoidCallback? onTap,
+    }) =>
+        Expanded(
+          child: _Press(
+            onTap: onTap,
+            child: Container(
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: onTap == null
+                    ? _kHairline
+                    : filled
+                        ? _kPrimary
+                        : _kWhite,
+                borderRadius: BorderRadius.circular(_radius),
+                border: Border.all(
+                  color: onTap == null
+                      ? _kHairline
+                      : filled
+                          ? _kPrimary
+                          : _kPrimary,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 17,
+                    color: onTap == null
+                        ? _kMuted
+                        : filled
+                            ? _kWhite
+                            : _kPrimaryInk,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _text(
+                        size: 14.5,
+                        color: onTap == null
+                            ? _kMuted
+                            : filled
+                                ? _kWhite
+                                : _kPrimaryInk,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
 
     return Container(
       decoration: const BoxDecoration(
@@ -1413,56 +1672,79 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(_pad, 10, _pad, 10),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(_pad, 8, _pad, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _Press(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() => _wishlisted = !_wishlisted);
-                },
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _kWhite,
-                    borderRadius: BorderRadius.circular(_radius),
-                    border: Border.all(
-                        color: _wishlisted ? _kSale : _kLine),
-                  ),
-                  child: Icon(
-                    _wishlisted
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    size: 21,
-                    color: _wishlisted ? _kSale : _kBody,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _Press(
-                  onTap: soldOut ? null : () => _addToCart(d),
-                  child: Container(
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      // Grey rather than orange when there is nothing to buy:
-                      // a full-colour primary button on a sold-out product is
-                      // an invitation to a dead end.
-                      color: soldOut ? _kHairline : _kPrimary,
-                      borderRadius: BorderRadius.circular(_radius),
+              // The price, beside the saving when there is one. The whole
+              // reason this row exists is that the buy box has scrolled away.
+              Row(
+                children: [
+                  Text(
+                    d.priceLabel,
+                    style: _price(
+                      size: 19,
+                      color: soldOut
+                          ? _kMuted
+                          : (d.discountPercent > 0 ? _kSale : _kInk),
                     ),
-                    child: Text(
-                      soldOut ? 'Out of stock' : 'Add to cart',
-                      style: _text(
-                        size: 15,
-                        color: soldOut ? _kMuted : _kWhite,
+                  ),
+                  if (!soldOut && d.wasPriceLabel != null) ...[
+                    const SizedBox(width: 7),
+                    Text(d.wasPriceLabel!, style: _struck(size: 13)),
+                  ],
+                  const Spacer(),
+                  if (!soldOut && d.savingLabel != null)
+                    Text(
+                      'You save ${d.savingLabel}',
+                      style: _label(
+                        size: 12,
+                        color: _kSuccess,
                         weight: FontWeight.w700,
                       ),
                     ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _Press(
+                    onTap: () => _toggleWishlist(d),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: _kWhite,
+                        borderRadius: BorderRadius.circular(_radius),
+                        border:
+                            Border.all(color: _wishlisted ? _kSale : _kLine),
+                      ),
+                      child: Icon(
+                        _wishlisted
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        size: 20,
+                        color: _wishlisted ? _kSale : _kBody,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  button(
+                    label: soldOut ? 'Out of stock' : 'Add to cart',
+                    icon: Icons.shopping_bag_outlined,
+                    filled: false,
+                    onTap: soldOut ? null : () => _addToCart(d),
+                  ),
+                  if (!soldOut) ...[
+                    const SizedBox(width: 8),
+                    button(
+                      label: 'Buy now',
+                      icon: Icons.bolt_rounded,
+                      filled: true,
+                      onTap: () => _buyNow(d),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

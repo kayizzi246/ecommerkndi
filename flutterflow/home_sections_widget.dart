@@ -1017,22 +1017,25 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   }
 
   /// Opens a department, with its own name at the top of the page.
+  ///
+  /// `openFiltered` rather than a constructor call: FlutterFlow turns every
+  /// public constructor parameter into a panel row that EVERY instance of the
+  /// widget must fill in, so a department argument here became "widget does not
+  /// specify value for parameter initialSaleOnly" on unrelated screens. The
+  /// filter travels beside the push now — same typed arguments, no panel rows.
   void _openDepartment(_Department d) {
     HapticFeedback.lightImpact();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CategoryNavigationMenu(
-          initialDepartment: d.slug,
-          initialTitle: d.name,
-        ),
-      ),
-    );
+    CategoryNavigationMenu.openFiltered(
+      context,
+      department: d.slug,
+      title: d.name,
+    ).then((_) => _syncStores());
   }
 
   /// Opens the whole shop, or one of the quick picks.
   ///
   /// Every argument here is checked by the compiler, which is the point: "50%
-  /// off" is `initialMinDiscount: 50` and not a query string assembled by hand
+  /// off" is `minDiscount: 50` and not a query string assembled by hand
   /// in two files that have to agree.
   void _openShop({
     String? sort,
@@ -1042,19 +1045,14 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     String? title,
   }) {
     HapticFeedback.lightImpact();
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => CategoryNavigationMenu(
-              initialSort: sort,
-              initialSaleOnly: saleOnly,
-              initialMaxPrice: maxPrice,
-              initialMinDiscount: minDiscount,
-              initialTitle: title,
-            ),
-          ),
-        )
-        .then((_) => _syncStores());
+    CategoryNavigationMenu.openFiltered(
+      context,
+      sort: sort,
+      saleOnly: saleOnly,
+      maxPrice: maxPrice,
+      minDiscount: minDiscount,
+      title: title,
+    ).then((_) => _syncStores());
   }
 
   /// Follows a rail's own "View all".
@@ -1071,16 +1069,11 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
       final slug = href.substring('/category/'.length).split('?').first;
       if (slug.isNotEmpty) {
         HapticFeedback.lightImpact();
-        Navigator.of(context)
-            .push(
-              MaterialPageRoute<void>(
-                builder: (_) => CategoryNavigationMenu(
-                  initialDepartment: slug,
-                  initialTitle: rail.title,
-                ),
-              ),
-            )
-            .then((_) => _syncStores());
+        CategoryNavigationMenu.openFiltered(
+          context,
+          department: slug,
+          title: rail.title,
+        ).then((_) => _syncStores());
         return;
       }
     }

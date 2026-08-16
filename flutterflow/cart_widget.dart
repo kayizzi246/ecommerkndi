@@ -85,12 +85,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
 //        shared_preferences: ^2.2.2
-//  • Parameters:
-//        onHomeTap     Action   optional
-//        onShopTap     Action   optional
-//        onWishlistTap Action   optional
-//        onProfileTap  Action   optional
-//        onCheckout    Action   optional — receives total, itemCount, deliveryFee
+//  • Parameters — ONE, and it is optional:
+//        onCheckout    Action   receives total, itemCount, deliveryFee
+//
+//    Delete every other parameter from this widget's panel. The
+//    four bottom-tab Actions have gone along with the tab bar
+//    itself: a basket is a step, not a destination, and four ways
+//    out of it sitting under the checkout button is a tap the
+//    thumb makes by accident.
+//
+//    If FlutterFlow reports "Field cartitems has an update value
+//    that is not properly set in Update App State action for
+//    ShoppingCartPage", delete that action. The basket is not App
+//    State any more — it is `KandiCart`, on the device, read by
+//    every screen. A copy in App State beside it is a second
+//    basket, and the two will disagree.
 //
 //  WHAT IS *NOT* A PARAMETER, AND WHY
 //  -----------------------------------------------------------
@@ -776,16 +785,13 @@ Future<void> kandiOpenProduct(BuildContext context, String idOrSlug) {
 }
 
 /// Opens the department browser. Also in code, and for the same reason.
+///
+/// `openFiltered` with no filter rather than a constructor call: FlutterFlow
+/// turns every public constructor parameter into a panel row that every
+/// instance must supply a value for, so passing arguments this way is what
+/// keeps that widget's panel down to the bottom tabs.
 Future<void> kandiOpenShop(BuildContext context) {
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (routeContext) => CategoryNavigationMenu(
-        onProductTap: (productId, slug) =>
-            kandiOpenProduct(routeContext, slug.isNotEmpty ? slug : productId),
-        onCartTap: () async => Navigator.of(routeContext).maybePop(),
-      ),
-    ),
-  );
+  return CategoryNavigationMenu.openFiltered(context);
 }
 
 // ============================================================
@@ -845,29 +851,40 @@ class ShoppingCartPage extends StatefulWidget {
     super.key,
     this.width,
     this.height,
-    this.onHomeTap,
-    this.onShopTap,
-    this.onWishlistTap,
-    this.onProfileTap,
     this.onCheckout,
   });
 
   final double? width;
   final double? height;
 
-  /// The bottom tabs. Parameterless Actions, because a tab carries no data and
-  /// each destination is a real FlutterFlow page with its own scaffold.
+  /// ---- No bottom tabs on this screen ----
   ///
-  /// `onShopTap` left unwired is not a dead control: it falls back to pushing
-  /// the department browser in code, which is where that tab goes anyway.
-  final Future Function()? onHomeTap;
-  final Future Function()? onShopTap;
-  final Future Function()? onWishlistTap;
-  final Future Function()? onProfileTap;
-
+  /// The four tab Actions have gone, and so has the bar they drove.
+  ///
+  /// A basket is not a destination a shopper browses from, it is a step they
+  /// are in the middle of. The tabs put four ways out of it directly under the
+  /// one control the screen exists to deliver — and the two are about 40px
+  /// apart on a phone, so the tap that leaves the basket sits under the thumb
+  /// that meant to check out. Every large shop drops its tab bar here for
+  /// exactly that reason.
+  ///
+  /// Nothing is lost: the header's back control returns wherever the shopper
+  /// came from, and the empty basket still offers the shop.
+  ///
   /// Handing the order over. Receives the total the shopper was shown, the
   /// number of items, and the delivery fee that was quoted — so the checkout
   /// starts from the same figures this screen ended on.
+  ///
+  /// The one remaining parameter, and it has to be one: the checkout is a
+  /// FlutterFlow page this file cannot see. Give me its widget name and its
+  /// constructor and this becomes an in-code push like everything else.
+  ///
+  /// NOTE FOR THE FLUTTERFLOW PROJECT: if an "Update App State ▸ cartitems"
+  /// action is still wired behind this, delete it. That is what
+  /// "Field cartitems has an update value that is not properly set" is
+  /// complaining about, and the basket no longer lives in App State — it is
+  /// `KandiCart`, on the device, shared by every screen. An App State copy
+  /// beside it is a second basket that will disagree with the first.
   final Future Function(double total, int itemCount, double deliveryFee)?
       onCheckout;
 
@@ -1294,8 +1311,10 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                     ? _empty()
                     : _content(),
           ),
+          // No tab bar under this. See the note on `onCheckout`: a basket is a
+          // step, not a destination, and four ways out of it sitting 40px under
+          // the checkout button is a tap the thumb makes by accident.
           if (!_loading && _lines.isNotEmpty) _checkoutBar(),
-          _bottomNav(),
         ],
       ),
     );
@@ -2045,82 +2064,8 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     );
   }
 
-  // ---------- Bottom navigation ----------
-
-  /// The only Actions on this widget, and the only things a tab needs: no data
-  /// crosses the boundary, so there is nothing to spell wrong.
-  Widget _bottomNav() => Container(
-        decoration: const BoxDecoration(
-          color: _kWhite,
-          border: Border(top: BorderSide(color: _kLine)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 58,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home_outlined, Icons.home_rounded, 'Home', false,
-                    () => _run(widget.onHomeTap)),
-                _navItem(
-                  Icons.grid_view_outlined,
-                  Icons.grid_view_rounded,
-                  'Shop',
-                  false,
-                  // Falls back to the in-code department browser, so the tab
-                  // works before anything is wired.
-                  () => widget.onShopTap != null
-                      ? _run(widget.onShopTap)
-                      : kandiOpenShop(context),
-                ),
-                _navItem(Icons.favorite_border_rounded, Icons.favorite_rounded,
-                    'Saved', false, () => _run(widget.onWishlistTap)),
-                _navItem(Icons.shopping_bag_outlined,
-                    Icons.shopping_bag_rounded, 'Cart', true, () {}),
-                _navItem(Icons.person_outline_rounded, Icons.person_rounded,
-                    'Account', false, () => _run(widget.onProfileTap)),
-              ],
-            ),
-          ),
-        ),
-      );
-
-  void _run(Future Function()? action) {
-    if (action == null) return;
-    HapticFeedback.lightImpact();
-    action();
-  }
-
-  Widget _navItem(IconData icon, IconData activeIcon, String label,
-          bool selected, VoidCallback onTap) =>
-      GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-        child: SizedBox(
-          width: 62,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                selected ? activeIcon : icon,
-                size: 21,
-                color: selected ? _kPrimaryInk : _kMuted,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: _label(
-                  size: 10,
-                  color: selected ? _kPrimaryInk : _kMuted,
-                  weight: selected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+  // The bottom tab bar that used to live here has been removed along with the
+  // four Actions that drove it — see the note on `onCheckout`. `_navItem` and
+  // `_run` went with it: nothing else on this screen used either, and a helper
+  // kept for a caller that no longer exists is the next person's confusion.
 }

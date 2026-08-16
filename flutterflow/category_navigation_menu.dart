@@ -82,15 +82,39 @@ import 'package:http/http.dart' as http;
 //        http: ^1.2.0
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
-//  • Parameters to add: NONE.
+//  • Parameters — the five bottom tabs, all optional Actions:
+//        onHomeTap  onSearchTap  onCartTap
+//        onWishlistTap  onProfileTap
+//
+//    DELETE ANY OTHER PARAMETER FROM THIS WIDGET'S PANEL. In
+//    particular `initialDepartment`, `initialSort`,
+//    `initialSaleOnly`, `initialMaxPrice`, `initialMinDiscount`,
+//    `initialTitle` and `onProductTap` — they were constructor
+//    arguments briefly and FlutterFlow turned each into a panel
+//    row that EVERY instance then had to fill in, which is where
+//
+//        CategoryNavigationMenu widget does not specify value
+//        for parameter initialSaleOnly.
+//
+//    comes from. A Dart default does not satisfy it: the panel is
+//    a separate declaration that knows nothing about the default.
+//
+//    The opening filter arrives another way now — see
+//    `KandiShopFilter` and `CategoryNavigationMenu.openFiltered`,
+//    which is what the home screen's quick picks and department
+//    cards call. Same typed arguments, checked by the compiler,
+//    with nothing crossing the FlutterFlow boundary.
 //
 //  NOTE ON THE SUPABASE IMPORT ABOVE: FlutterFlow writes that
 //  header itself and rewrites it on every save, so it stays.
 //  Nothing in this file uses Supabase any more.
 //
-//  NOTE ON THE WISHLIST: session-only, mirroring the website
-//  (whose wishlist is per-device localStorage, not a server
-//  record). Lift `_wishlisted` into FFAppState to persist it.
+//  NOTE ON THE WISHLIST: no longer session-only. It is the shared
+//  `KandiWishlist` from cart_widget.dart, on the same per-device
+//  key the website's own wishlist uses — so a heart tapped here
+//  survives leaving the screen and agrees with the saved-items
+//  page. Paste cart_widget.dart into FlutterFlow FIRST; this file
+//  uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`.
 // ============================================================
 
 // ============================================================
@@ -534,29 +558,93 @@ class _PressState extends State<_Press> {
 // WIDGET
 // ============================================================
 
+/// How this screen is opened with a filter already applied.
+///
+/// ---- Why this is not a set of constructor arguments ----
+///
+/// It was, and FlutterFlow rejected it. Every public parameter on a custom
+/// widget's constructor becomes a row in the Custom Widget panel, and FlutterFlow
+/// then insists that every widget instance supplies a value for each one —
+///
+///     CategoryNavigationMenu widget does not specify value for parameter
+///     initialSaleOnly.
+///
+/// — which is a build error on a screen that has nothing to do with the
+/// filtering. A default value in Dart does not satisfy it: the panel is a
+/// separate declaration and knows nothing about the Dart default.
+///
+/// So the opening filter travels beside the push instead of through it. It is
+/// set immediately before the route is pushed and consumed by the first
+/// `initState` that runs, which makes the constructor parameterless again —
+/// nothing for the panel to demand a value for, and nothing for a human to
+/// spell wrong in an action editor.
+///
+/// One static field rather than a queue, because there is exactly one route
+/// being pushed at the moment it is read: `_take()` runs in the `initState` of
+/// the widget the very push created, on the same synchronous turn.
+class KandiShopFilter {
+  /// Department slug. Empty means the whole catalogue.
+  final String? department;
+
+  /// `newest` | `price_asc` | `price_desc` | `discount` | `popular`.
+  final String? sort;
+
+  /// Restricts to reduced products.
+  final bool saleOnly;
+
+  /// A ceiling in shillings — what "Under UGX 50,000" sends.
+  final double? maxPrice;
+
+  /// Whole percent. What "50% off" sends, deliberately not `saleOnly`:
+  /// "reduced at all" and "half price" are different promises.
+  final int? minDiscount;
+
+  /// What to call this view at the top of the screen.
+  final String? title;
+
+  const KandiShopFilter({
+    this.department,
+    this.sort,
+    this.saleOnly = false,
+    this.maxPrice,
+    this.minDiscount,
+    this.title,
+  });
+
+  static KandiShopFilter? _pending;
+
+  /// Arms the next `CategoryNavigationMenu` to open with this filter.
+  static void arm(KandiShopFilter filter) => _pending = filter;
+
+  /// Reads and clears it, so a later plain push is not filtered by a leftover.
+  static KandiShopFilter? take() {
+    final filter = _pending;
+    _pending = null;
+    return filter;
+  }
+}
+
 class CategoryNavigationMenu extends StatefulWidget {
-  /// ---- Navigation is Actions ----
+  /// ---- Parameters are the bottom tabs, and nothing else ----
   ///
-  /// Every destination is a FlutterFlow ACTION parameter wired in the action
-  /// editor, not a page name typed as a String. FlutterFlow knows whether a
-  /// page takes path or query parameters and a string does not carry that; a
-  /// renamed page silently kills a string parameter and cannot kill an Action;
-  /// and an Action can update App State or show a dialog on the way, which a
-  /// route name can never do.
+  /// Every parameter here is a parameterless FlutterFlow Action for one of the
+  /// bottom tabs. Nothing carries data: no department, no sort, no product id.
   ///
-  /// All optional. A null Action is a control this project chose not to wire,
-  /// and does nothing — quiet rather than crashing.
+  /// That is not a style preference, it is what FlutterFlow's Custom Widget
+  /// panel makes practical. Every constructor parameter becomes a panel row
+  /// that EVERY instance of the widget must then supply a value for, so a
+  /// filter argument used by one caller becomes a required field on every
+  /// screen that places this widget — and a missing one is a build error, not a
+  /// default. The opening filter therefore arrives through
+  /// [KandiShopFilter.arm] instead; see `openFiltered`.
+  ///
+  /// Products are opened by this file, in code. A null Action is a tab the
+  /// project chose not to wire, and Cart and Saved fall back to pushing this
+  /// project's own screens rather than doing nothing.
   const CategoryNavigationMenu({
     super.key,
     this.width,
     this.height,
-    this.initialDepartment,
-    this.initialSort,
-    this.initialSaleOnly = false,
-    this.initialMaxPrice,
-    this.initialMinDiscount,
-    this.initialTitle,
-    this.onProductTap,
     this.onHomeTap,
     this.onSearchTap,
     this.onCartTap,
@@ -564,50 +652,46 @@ class CategoryNavigationMenu extends StatefulWidget {
     this.onProfileTap,
   });
 
+  /// Opens the shop with a filter already applied.
+  ///
+  /// The one supported way in from another screen. `KandiShopFilter` is armed
+  /// and the route pushed on the same turn, so the state this creates reads it
+  /// in `initState` before anything else can.
+  ///
+  /// Every argument is checked by the compiler — "50% off" is
+  /// `minDiscount: 50`, not a query string assembled by hand in two files that
+  /// have to agree.
+  static Future<void> openFiltered(
+    BuildContext context, {
+    String? department,
+    String? sort,
+    bool saleOnly = false,
+    double? maxPrice,
+    int? minDiscount,
+    String? title,
+  }) {
+    KandiShopFilter.arm(KandiShopFilter(
+      department: department,
+      sort: sort,
+      saleOnly: saleOnly,
+      maxPrice: maxPrice,
+      minDiscount: minDiscount,
+      title: title,
+    ));
+
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const CategoryNavigationMenu(),
+      ),
+    );
+  }
+
   final double? width;
   final double? height;
 
-  /// ---- The opening filter, set in code and not in FlutterFlow ----
-  ///
-  /// These six are NOT parameters to declare in the Custom Widget panel. They
-  /// exist because the home screen pushes this page itself —
-  /// `CategoryNavigationMenu(initialSaleOnly: true, initialMinDiscount: 50)` —
-  /// and a typed Dart argument is the whole point of doing it that way: it
-  /// cannot be misspelled, it cannot drift from a page parameter declared
-  /// somewhere else, and the compiler checks it.
-  ///
-  /// All are optional and all fall back to what this screen has always done:
-  /// the whole catalogue, newest first. A deep link through the route still
-  /// works and still wins where it says something — see `_readInitialCategory`.
-  ///
-  /// Department slug, e.g. `mens-fashion`. Empty or null means everything.
-  final String? initialDepartment;
-
-  /// `newest` | `price_asc` | `price_desc` | `discount` | `popular`.
-  final String? initialSort;
-
-  /// Restricts to reduced products.
-  final bool initialSaleOnly;
-
-  /// A ceiling in shillings — what "Under UGX 50,000" sends.
-  final double? initialMaxPrice;
-
-  /// Whole percent. What the "50% off" entry point sends, and deliberately not
-  /// `initialSaleOnly`: "reduced at all" is a different promise from "half
-  /// price", and only one of them is written on the button.
-  final int? initialMinDiscount;
-
-  /// What to call this view at the top of the screen — "Promotions", "Under
-  /// UGX 50,000". Null falls back to the department name, as before.
-  final String? initialTitle;
-
-  /// Opening a product. Receives the slug when there is one — what the
-  /// website's own URLs use — and the numeric id, so either can be passed on.
-  ///
-  /// Left in place for projects that wired it, but no longer how this screen
-  /// opens a product: when it is null the page pushes `ProductDetailPage`
-  /// itself, which is what the home screen and the basket now do too.
-  final Future Function(String productId, String slug)? onProductTap;
+  // `onProductTap` is gone with the filter arguments, and for the same reason:
+  // a product id crossing this boundary is a panel row every instance has to
+  // fill in. Products are opened by this file, in code — see `_openProduct`.
 
   final Future Function()? onHomeTap;
   final Future Function()? onSearchTap;
@@ -663,6 +747,11 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   double? _maxPrice;
   int? _minDiscount;
 
+  /// What this screen was opened as, when it was opened as something. Held so
+  /// the title and the banner can say it, and so clearing the filter can tell
+  /// which of them was the shopper's doing.
+  KandiShopFilter? _filter;
+
   int _page = 1;
   final List<_Product> _products = [];
 
@@ -689,19 +778,24 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     super.initState();
     _scroll.addListener(_onScroll);
 
-    // The opening filter, from whoever pushed this page. Applied before the
-    // first fetch so the screen never shows the whole catalogue for a frame and
-    // then narrows — which reads as the filter having failed and then caught
-    // up.
-    final department = widget.initialDepartment;
-    if (department != null && department.isNotEmpty && department != 'all') {
-      _department = department;
+    // The opening filter, from whoever pushed this page — read here, in
+    // `initState`, which is the same synchronous turn the push happened on.
+    // Applied before the first fetch so the screen never shows the whole
+    // catalogue for a frame and then narrows, which reads as the filter having
+    // failed and then caught up.
+    _filter = KandiShopFilter.take();
+    final filter = _filter;
+    if (filter != null) {
+      final department = filter.department;
+      if (department != null && department.isNotEmpty && department != 'all') {
+        _department = department;
+      }
+      final sort = filter.sort;
+      if (sort != null && sort.isNotEmpty) _sort = sort;
+      _saleOnly = filter.saleOnly;
+      _maxPrice = filter.maxPrice;
+      _minDiscount = filter.minDiscount;
     }
-    final sort = widget.initialSort;
-    if (sort != null && sort.isNotEmpty) _sort = sort;
-    _saleOnly = widget.initialSaleOnly;
-    _maxPrice = widget.initialMaxPrice;
-    _minDiscount = widget.initialMinDiscount;
 
     _syncStores();
 
@@ -772,7 +866,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       // underneath it is whatever page happened to be showing, and letting it
       // overwrite the argument would send a tap on "Men" to wherever the
       // shopper already was.
-      final pushed = widget.initialDepartment;
+      final pushed = _filter?.department;
       final pushedDepartment =
           pushed != null && pushed.isNotEmpty && pushed != 'all';
 
@@ -834,7 +928,8 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     if (_maxPrice != null && _maxPrice! > 0) {
       params['max_price'] = _maxPrice!.round().toString();
     }
-    // Not the same as `sale=1`, and deliberately so — see `initialMinDiscount`.
+    // Not the same as `sale=1`, and deliberately so — see
+    // `KandiShopFilter.minDiscount`.
     if (_minDiscount != null && _minDiscount! > 0) {
       params['min_discount'] = '${_minDiscount!}';
     }
@@ -950,14 +1045,8 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   /// and the failure mode is a blank product page rather than a compile error.
   void _openProduct(_Product p) {
     HapticFeedback.lightImpact();
-    final id = p.slug.isNotEmpty ? p.slug : p.id.toString();
-
-    final action = widget.onProductTap;
-    if (action != null) {
-      action(id, p.slug);
-      return;
-    }
-    kandiOpenProduct(context, id);
+    kandiOpenProduct(context, p.slug.isNotEmpty ? p.slug : p.id.toString())
+        .then((_) => _syncStores());
   }
 
   /// The basket, in code, falling back to the tab's Action when one is wired.
@@ -1073,7 +1162,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   bool get _hasPushedFilter =>
       (_maxPrice != null && _maxPrice! > 0) ||
       (_minDiscount != null && _minDiscount! > 0) ||
-      (_saleOnly && widget.initialSaleOnly);
+      (_saleOnly && (_filter?.saleOnly ?? false));
 
   /// The label for the narrowing, in the shopper's words.
   String? get _pushedFilterLabel {
@@ -1083,7 +1172,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     if (_maxPrice != null && _maxPrice! > 0) {
       return 'Under ${_ugx(_maxPrice!)}';
     }
-    if (_saleOnly && widget.initialSaleOnly) return 'Reduced items only';
+    if (_saleOnly && (_filter?.saleOnly ?? false)) return 'Reduced items only';
     return null;
   }
 
@@ -1112,7 +1201,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     setState(() {
       _maxPrice = null;
       _minDiscount = null;
-      if (widget.initialSaleOnly) _saleOnly = false;
+      if (_filter?.saleOnly ?? false) _saleOnly = false;
     });
     _load(reset: true);
   }
@@ -1122,7 +1211,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     // off", "Under UGX 50,000". A page reached from a button should say the
     // words that were on the button; "Shop" over a half-price listing loses
     // the shopper's place.
-    final pushed = widget.initialTitle;
+    final pushed = _filter?.title;
     if (pushed != null && pushed.isNotEmpty && _hasPushedFilter) return pushed;
 
     if (_department.isEmpty) return 'Shop';
