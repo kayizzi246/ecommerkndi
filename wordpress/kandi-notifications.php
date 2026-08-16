@@ -41,8 +41,25 @@ function kandi_mail_brand() {
 	return array(
 		'name'    => trim( $name . ' ' . $suffix ),
 		'logo'    => isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] : '',
+		/**
+		 * The square brand mark — the same image the browser tab uses.
+		 *
+		 * Emails get a *mark*, not just a wordmark, and the difference is worth
+		 * stating. A shopper scanning an inbox on a phone reads the sender
+		 * column and the first line of the message; by the time the letterhead
+		 * is on screen they have already decided to open it. What the mark does
+		 * is make the opened message unmistakably from this shop at a glance,
+		 * the way every WooCommerce, Amazon and Jumia receipt does.
+		 *
+		 * The favicon is the right file for it because it is the one image in
+		 * the shop guaranteed to be square — `getFaviconUrl` on the storefront
+		 * refuses anything more lopsided than 1.6:1 — and a logo cropped into a
+		 * 44px circle is otherwise a coin flip.
+		 */
+		'mark'    => isset( $settings['favicon_url'] ) ? (string) $settings['favicon_url'] : '',
 		'phone'   => isset( $settings['support_phone'] ) ? (string) $settings['support_phone'] : '',
 		'email'   => isset( $settings['support_email'] ) ? (string) $settings['support_email'] : get_option( 'admin_email' ),
+		'address' => isset( $settings['support_address'] ) ? (string) $settings['support_address'] : '',
 		// The Next.js shop, learned from the X-Kandi-Storefront header the
 		// storefront sends on every read. Falls back to WordPress's own URL so
 		// a link is never empty, even if it lands on the wrong half of the site.
@@ -57,68 +74,199 @@ function kandi_mail_brand() {
  * ---------------------------------------------------------------------- */
 
 /**
+ * The shop's font stack, as an email client will actually resolve it.
+ *
+ * No webfont, and that is not a compromise. Gmail, Outlook and every native
+ * mobile client strip `@font-face`, so a `<link>` to Open Sans buys nothing but
+ * a slower render and a fallback nobody chose. Naming the system faces means
+ * the message is set in the reader's own interface font — which is what every
+ * WooCommerce, Amazon and Jumia receipt does, and why they look native.
+ */
+function kandi_mail_font() {
+	return "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+}
+
+/**
  * Wraps a message in the shop's letterhead.
  *
- * Deliberately plain HTML with inline styles and a single table: email clients
- * are twenty years behind browsers, and Gmail strips <style> blocks from the
- * head. Anything cleverer than this renders as a mess in Outlook.
+ * Deliberately plain HTML with inline styles and nested tables: email clients
+ * are twenty years behind browsers, Gmail strips <style> blocks from the head,
+ * and Outlook renders through Word. Anything cleverer than this is a mess
+ * somewhere that matters.
+ *
+ * ---- What makes it read as professional ----
+ *
+ * The pieces below are the ones a shopper never consciously notices and would
+ * immediately notice the absence of:
+ *
+ *   • A SQUARE BRAND MARK in the header, beside the shop name. This is the
+ *     favicon — the same image as the browser tab — so the receipt, the tab and
+ *     the search result all carry one mark.
+ *   • A PREHEADER: hidden text that becomes the grey preview line next to the
+ *     subject in every inbox list. Left unset, mailbox providers scrape it from
+ *     the first thing in the body, which is why so much small-business email
+ *     previews as its own letterhead alt text. This is the single highest-value
+ *     detail in the whole template, because it is read before the message is
+ *     opened and often instead of it.
+ *   • A BULLETPROOF BUTTON: a table with a background colour, not a styled <a>.
+ *     Outlook ignores padding and border-radius on an anchor and collapses the
+ *     button to a bare underlined link.
+ *   • `mso-line-height-rule:exactly`, or Word rounds every line height up and
+ *     the careful spacing turns to slop in Outlook.
+ *   • 600px, the width every email client has been tested against since the
+ *     2000s and the one WooCommerce itself uses.
+ *   • `color-scheme` / `supported-color-schemes`, so Apple Mail and Outlook
+ *     dark mode stop inverting the palette into mud.
  *
  * @param string $heading  The one-line headline.
  * @param string $body     Pre-escaped HTML for the message body.
  * @param array  $cta      Optional array( 'label' => …, 'url' => … ).
+ * @param string $preview  Optional inbox preview line. Falls back to the heading.
  */
-function kandi_mail_template( $heading, $body, $cta = null ) {
+function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
 	$brand = kandi_mail_brand();
+	$font  = kandi_mail_font();
 
-	$masthead = $brand['logo']
+	/* ---- The mark ----
+	   Square, 44px, rounded. `border-radius` is ignored by Outlook, which shows
+	   a square — acceptable, because a square logo in a square frame is still a
+	   logo. The image is given explicit width AND height attributes as well as
+	   CSS: Outlook reads the attributes and ignores the style, and without them
+	   a slow-loading image reserves no space and the header jumps. */
+	$mark = '';
+	if ( $brand['mark'] ) {
+		$mark = sprintf(
+			'<td width="44" style="padding:0 12px 0 0;vertical-align:middle">
+				<img src="%s" alt="" width="44" height="44"
+					style="display:block;width:44px;height:44px;border-radius:10px;border:0;outline:none;text-decoration:none">
+			</td>',
+			esc_url( $brand['mark'] )
+		);
+	}
+
+	/* The wordmark. A logo image when the shop has uploaded one, otherwise the
+	   name set in the brand orange — never an empty header. */
+	$wordmark = $brand['logo']
 		? sprintf(
-			'<img src="%s" alt="%s" style="max-height:38px;max-width:200px;display:block">',
+			'<img src="%s" alt="%s" width="150" style="max-height:36px;max-width:150px;display:block;border:0">',
 			esc_url( $brand['logo'] ),
 			esc_attr( $brand['name'] )
 		)
 		: sprintf(
-			'<span style="font:700 22px/1 Helvetica,Arial,sans-serif;color:#ff6a00">%s</span>',
+			'<span style="font:700 20px/1.2 %s;color:#171717;mso-line-height-rule:exactly">%s</span>',
+			$font,
 			esc_html( $brand['name'] )
 		);
 
+	/* ---- The button ----
+	   A table with a background colour rather than a padded anchor, because
+	   Outlook drops padding and radius on an <a> and leaves a bare blue link
+	   where the call to action should be. The anchor still fills the cell, so
+	   the whole coloured block is clickable everywhere else. */
 	$button = '';
 	if ( is_array( $cta ) && ! empty( $cta['url'] ) && ! empty( $cta['label'] ) ) {
 		$button = sprintf(
-			'<tr><td style="padding:8px 32px 32px">
-				<a href="%s" style="display:inline-block;background:#ff6a00;color:#ffffff;text-decoration:none;
-					font:700 15px/1 Helvetica,Arial,sans-serif;padding:14px 28px;border-radius:8px">%s</a>
+			'<tr><td style="padding:4px 32px 30px">
+				<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+					<tr><td align="center" bgcolor="#ff6a00" style="background:#ff6a00;border-radius:8px">
+						<a href="%s" style="display:inline-block;padding:14px 30px;font:700 15px/1 %s;
+							color:#ffffff;text-decoration:none;border-radius:8px;mso-line-height-rule:exactly">%s</a>
+					</td></tr>
+				</table>
 			</td></tr>',
 			esc_url( $cta['url'] ),
+			$font,
 			esc_html( $cta['label'] )
 		);
 	}
 
+	/* ---- The preheader ----
+	   Hidden in the message, shown in the inbox list. The run of zero-width
+	   spaces after it is deliberate and is the standard trick: without it Gmail
+	   pads the preview out with whatever text comes next, which would be the
+	   letterhead, and the reader sees "Kandi For Less Kandi For Less …". */
+	$preheader = sprintf(
+		'<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;
+			mso-hide:all">%s%s</div>',
+		esc_html( '' !== $preview ? $preview : $heading ),
+		str_repeat( '&#8199;&#65279;&#847; ', 30 )
+	);
+
+	// The footer's support lines, each dropped when the shop has not set it.
+	$support = array();
+	if ( $brand['phone'] ) {
+		$support[] = 'Call ' . esc_html( $brand['phone'] );
+	}
+	if ( $brand['email'] ) {
+		$support[] = sprintf(
+			'<a href="mailto:%s" style="color:#71717a;text-decoration:underline">%s</a>',
+			esc_attr( $brand['email'] ),
+			esc_html( $brand['email'] )
+		);
+	}
+
 	return sprintf(
-		'<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f5">
-		<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 12px">
-			<tr><td align="center">
-				<table role="presentation" width="100%%" cellpadding="0" cellspacing="0"
-					style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden">
-					<tr><td style="padding:26px 32px 18px;border-bottom:1px solid #e5e7eb">%s</td></tr>
-					<tr><td style="padding:28px 32px 6px">
-						<h1 style="margin:0 0 14px;font:700 21px/1.3 Helvetica,Arial,sans-serif;color:#171717">%s</h1>
-						<div style="font:400 15px/1.6 Helvetica,Arial,sans-serif;color:#3f3f46">%s</div>
-					</td></tr>
-					%s
-					<tr><td style="padding:20px 32px 26px;border-top:1px solid #e5e7eb;
-						font:400 13px/1.6 Helvetica,Arial,sans-serif;color:#71717a">
-						%s%s<br>%s
-					</td></tr>
-				</table>
+		'<!doctype html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>%s</title>
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;-webkit-text-size-adjust:100%%;-ms-text-size-adjust:100%%">
+%s
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+	style="background:#f4f4f5;padding:24px 12px">
+	<tr><td align="center">
+		<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+			style="width:100%%;max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+
+			<!-- Letterhead -->
+			<tr><td style="padding:22px 32px;border-bottom:1px solid #e5e7eb">
+				<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s<td style="vertical-align:middle">%s</td></tr></table>
 			</td></tr>
-		</table></body></html>',
-		$masthead,
+
+			<!-- Message -->
+			<tr><td style="padding:30px 32px 8px">
+				<h1 style="margin:0 0 14px;font:700 22px/1.3 %s;color:#171717;mso-line-height-rule:exactly">%s</h1>
+				<div style="font:400 15px/1.6 %s;color:#3f3f46;mso-line-height-rule:exactly">%s</div>
+			</td></tr>
+			%s
+
+			<!-- Footer -->
+			<tr><td style="padding:20px 32px 24px;border-top:1px solid #e5e7eb;background:#fafafa;
+				font:400 13px/1.6 %s;color:#71717a;mso-line-height-rule:exactly">
+				<div style="font-weight:700;color:#3f3f46">%s</div>
+				%s
+				%s
+				<div style="margin-top:10px;color:#a1a1aa;font-size:12px">
+					You are receiving this because of an order or account on
+					<a href="%s" style="color:#a1a1aa;text-decoration:underline">%s</a>.
+				</div>
+			</td></tr>
+		</table>
+	</td></tr>
+</table>
+</body></html>',
 		esc_html( $heading ),
+		$preheader,
+		$mark,
+		$wordmark,
+		$font,
+		esc_html( $heading ),
+		$font,
 		$body,
 		$button,
-		$brand['phone'] ? 'Questions? Call ' . esc_html( $brand['phone'] ) . '<br>' : '',
-		$brand['email'] ? 'Email ' . esc_html( $brand['email'] ) : '',
-		esc_html( $brand['name'] )
+		$font,
+		esc_html( $brand['name'] ),
+		$support ? '<div>' . implode( ' &middot; ', $support ) . '</div>' : '',
+		$brand['address'] ? '<div>' . esc_html( $brand['address'] ) . '</div>' : '',
+		esc_url( $brand['url'] ),
+		esc_html( wp_parse_url( $brand['url'], PHP_URL_HOST ) ?: $brand['name'] )
 	);
 }
 
@@ -128,7 +276,7 @@ function kandi_mail_template( $heading, $body, $cta = null ) {
  * The Seller Centre calls this when it is available and drops back to plain
  * wp_mail when it is not, so the two plugins stay independent.
  */
-function kandi_send_mail( $to, $subject, $heading, $body, $cta = null ) {
+function kandi_send_mail( $to, $subject, $heading, $body, $cta = null, $preview = '' ) {
 	if ( ! $to || ! is_email( $to ) ) {
 		return false;
 	}
@@ -157,7 +305,7 @@ function kandi_send_mail( $to, $subject, $heading, $body, $cta = null ) {
 	add_action( 'phpmailer_init', 'kandi_mail_attach_plain_text' );
 	$GLOBALS['kandi_mail_plain'] = kandi_mail_plain_text( $heading, $body, $cta );
 
-	$sent = wp_mail( $to, $subject, kandi_mail_template( $heading, $body, $cta ), $headers );
+	$sent = wp_mail( $to, $subject, kandi_mail_template( $heading, $body, $cta, $preview ), $headers );
 
 	remove_action( 'phpmailer_init', 'kandi_mail_attach_plain_text' );
 	unset( $GLOBALS['kandi_mail_plain'] );
@@ -225,17 +373,44 @@ function kandi_mail_from_address() {
  * 3. Small formatting helpers shared by the order emails
  * ---------------------------------------------------------------------- */
 
-/** Renders order lines as a table. Used in both shopper and seller emails. */
+/**
+ * Renders order lines as a table. Used in both shopper and seller emails.
+ *
+ * Boxed with a header row and a shaded total, which is the shape a receipt is
+ * expected to have — the same one WooCommerce, and every invoice before it, has
+ * used. The previous version was two bare columns separated by hairlines; it
+ * read as a list of things rather than as a statement of what was bought and
+ * what it came to, and a shopper checking a charge scans for the boxed total.
+ *
+ * `white-space:nowrap` on the money column so "UGX 1,250,000" can never be
+ * broken across two lines, which is the one thing in a receipt that must not
+ * happen. The name column takes the wrapping instead.
+ */
 function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
-	$html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-		style="border-collapse:collapse;margin:6px 0 2px;font:400 14px/1.5 Helvetica,Arial,sans-serif">';
+	$font = kandi_mail_font();
+
+	$html = sprintf(
+		'<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+			style="width:100%%;border-collapse:collapse;margin:16px 0 6px;border:1px solid #e5e7eb;border-radius:8px;
+			font:400 14px/1.5 %s">
+		<tr>
+			<th align="left" style="padding:10px 14px;background:#fafafa;border-bottom:1px solid #e5e7eb;
+				font:600 12px/1.4 %s;color:#71717a;text-transform:uppercase;letter-spacing:0.04em">Item</th>
+			<th align="right" style="padding:10px 14px;background:#fafafa;border-bottom:1px solid #e5e7eb;
+				font:600 12px/1.4 %s;color:#71717a;text-transform:uppercase;letter-spacing:0.04em">Total</th>
+		</tr>',
+		$font,
+		$font,
+		$font
+	);
 
 	foreach ( $rows as $row ) {
 		$html .= sprintf(
 			'<tr>
-				<td style="padding:8px 0;border-bottom:1px solid #f1f1f4;color:#3f3f46">%s<br>
+				<td style="padding:12px 14px;border-bottom:1px solid #f1f1f4;color:#171717;mso-line-height-rule:exactly">%s<br>
 					<span style="color:#71717a;font-size:13px">Qty %d</span></td>
-				<td style="padding:8px 0;border-bottom:1px solid #f1f1f4;text-align:right;color:#171717;white-space:nowrap">%s</td>
+				<td align="right" style="padding:12px 14px;border-bottom:1px solid #f1f1f4;color:#171717;
+					white-space:nowrap;vertical-align:top">%s</td>
 			</tr>',
 			esc_html( $row['name'] ),
 			(int) $row['quantity'],
@@ -245,8 +420,11 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 
 	if ( null !== $total ) {
 		$html .= sprintf(
-			'<tr><td style="padding:12px 0 0;font-weight:700;color:#171717">%s</td>
-				<td style="padding:12px 0 0;text-align:right;font-weight:700;color:#171717;white-space:nowrap">%s</td></tr>',
+			'<tr>
+				<td style="padding:13px 14px;background:#fafafa;font-weight:700;color:#171717">%s</td>
+				<td align="right" style="padding:13px 14px;background:#fafafa;font-weight:700;color:#171717;
+					white-space:nowrap;font-size:16px">%s</td>
+			</tr>',
 			esc_html( $total_label ),
 			wp_kses_post( $total )
 		);
@@ -337,12 +515,26 @@ function kandi_mail_order_placed( $order_id ) {
 			: 'We have your payment. Packing starts now.'
 	);
 
+	/**
+	 * The preview line, which is read before the message is opened.
+	 *
+	 * It carries the total and the delivery window rather than repeating the
+	 * subject, because the inbox already shows the subject an inch to the left.
+	 * A preview that restates it wastes the one line a shopper reads while
+	 * deciding whether this needs opening at all — and the two facts they
+	 * actually want from an order confirmation are what it cost and when it
+	 * comes.
+	 */
 	kandi_send_mail(
 		$to,
 		sprintf( 'Order #%s confirmed', $order->get_order_number() ),
 		'Thank you for your order',
 		$body,
-		array( 'label' => 'Track this order', 'url' => kandi_order_tracking_url( $order ) )
+		array( 'label' => 'Track this order', 'url' => kandi_order_tracking_url( $order ) ),
+		sprintf(
+			'%s · arriving in 1–3 days. We will text you before the rider sets off.',
+			wp_strip_all_tags( $order->get_formatted_order_total() )
+		)
 	);
 
 	// Stamped on the order rather than kept in a transient: an order is only
