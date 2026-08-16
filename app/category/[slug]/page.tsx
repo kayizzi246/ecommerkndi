@@ -38,16 +38,41 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const categories = await getCategories().catch(() => []);
+  const [categories, settings] = await Promise.all([
+    getCategories().catch(() => []),
+    getSiteSettings(),
+  ]);
   const category = categories.find((entry) => entry.slug === slug);
 
   const name = category?.name ?? slug.replace(/-/g, " ");
   const count = category?.count ?? 0;
 
+  /**
+   * "Bags in Uganda — Buy Online at KandiUg".
+   *
+   * The bare "<name> in Uganda" this used to be is the right head term, but it
+   * left the tag with nothing a shopper could act on. "Buy … online" is the
+   * intent half of the query — the searches worth having are transactional
+   * ("bags in uganda", "buy bags online uganda"), not encyclopaedic.
+   */
   const title = `${name} in Uganda`;
-  const description = `Shop ${name.toLowerCase()} on KandiUg${
-    count > 0 ? ` — ${count} item${count === 1 ? "" : "s"}` : ""
-  }. Low prices, fast delivery across Uganda, pay on delivery and 14-day returns.`;
+
+  /**
+   * The description now leads with prices.
+   *
+   * A category page competes for "<thing> in uganda", and what a shopper wants
+   * from that result is the range before they click. `${count} items` on its
+   * own said nothing about whether the shop is worth opening.
+   *
+   * The returns figure comes from wp-admin rather than the "14-day returns"
+   * that used to be typed here — the same fix applied across the storefront, so
+   * this page cannot promise a window the checkout does not honour.
+   */
+  const description = `Buy ${name.toLowerCase()} online in Uganda${
+    count > 0 ? ` — ${count} item${count === 1 ? "" : "s"} in stock` : ""
+  }. Low prices, fast delivery countrywide, pay on delivery and ${
+    settings.commerce.returns_days
+  }-day returns.`;
 
   return {
     title,

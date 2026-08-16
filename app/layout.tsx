@@ -119,8 +119,26 @@ export async function generateMetadata(): Promise<Metadata> {
      * 16px tab icon). If an upload appears to do nothing, that is now the first
      * thing to check — crop it square.
      */
+    /**
+     * ---- Every icon URL here is now on this origin ----
+     *
+     * These used to be the wp-admin URL itself, which meant the icon Google
+     * crawls lived on `shop.kandiug.com` under a path containing the month of
+     * the upload and the original filename — a URL that changes completely
+     * every time the shop replaces its logo. Google crawls favicons on their
+     * own schedule and wants the address to stay put; a moving one can cost
+     * weeks of search results with no icon beside them.
+     *
+     * `/brand-icon` is a route on this site that serves whatever wp-admin
+     * currently points at, so the upload still works and the URL never moves
+     * again. See `app/brand-icon/route.ts`.
+     *
+     * `/favicon.ico` stays as the `shortcut`: it is genuinely a .ico with real
+     * 16, 32 and 48px frames in it, which is the one format every crawler and
+     * every old browser can read without negotiation.
+     */
     icons: favicon
-      ? { icon: favicon, shortcut: favicon, apple: favicon }
+      ? { icon: "/brand-icon", shortcut: "/favicon.ico", apple: "/brand-icon" }
       : { icon: "/icon.png", shortcut: "/favicon.ico", apple: "/apple-icon.png" },
     // No canonical here, deliberately.
     //

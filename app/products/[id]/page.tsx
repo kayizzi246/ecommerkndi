@@ -55,7 +55,25 @@ export async function generateMetadata({
   const url = absolute(productPath(product));
 
   return {
-    title: product.name,
+    /**
+     * "<name> price in Uganda", not just the name.
+     *
+     * The layout appends " | Kandi For Less", so the tag reads
+     * "Nike Air Max 90 price in Uganda | Kandi For Less" — which matches the
+     * shape of what people search for here almost word for word. Ugandan
+     * shoppers overwhelmingly search a product with "price in uganda" attached,
+     * because the question they are asking is what it costs *landed*, not what
+     * it costs in dollars somewhere else.
+     *
+     * The suffix is dropped when the seller has already put a country or price
+     * word in the name, so nothing ends up titled "… in Uganda price in
+     * Uganda". Long names are left alone rather than truncated here: Google
+     * shortens a title to the width it has, and doing it first only guarantees
+     * the loss.
+     */
+    title: /\b(uganda|price)\b/i.test(product.name)
+      ? product.name
+      : `${product.name} price in Uganda`,
     description,
     // Stops the same product counting as duplicate content when it is reachable
     // by both its slug and its numeric id.

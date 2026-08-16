@@ -1,4 +1,5 @@
 import type { Product, ProductCategory, ProductReview } from "@/lib/woocommerce";
+import { formatPrice } from "@/lib/currency";
 
 /**
  * Search-engine plumbing: canonical URLs, and the JSON-LD that turns a plain
@@ -60,22 +61,88 @@ export function productPath(product: Pick<Product, "id" | "slug">): string {
  * there, and a description cut mid-word reads as neglect.
  */
 export function metaDescription(product: Product): string {
-  const own = product.short_description?.replace(/\s+/g, " ").trim();
-  if (own && own.length > 40) {
-    return own.length > 155 ? `${own.slice(0, 152).trimEnd()}…` : own;
-  }
+  /**
+   * ---- What was wrong with this, as it appeared in Google ----
+   *
+   * The live snippet for a running shoe read:
+   *
+   *   "Buy ASICS Gel-Kayano 14 Retro Breathable Low-Top Casual Running Shoes
+   *    Unisex, Silver Gray 1203A537-020 in Hoodies on KandiUg. In stock Fast
+   *    delivery acr…"
+   *
+   * Three separate faults in one sentence.
+   *
+   * 1. NO PRICE. A supplier's 90-character product name ate the whole budget,
+   *    so the truncation fell before anything useful. That is the expensive
+   *    one: a shopper searching "nike price in uganda" is asking a question
+   *    this shop can answer, and the answer was being cut off. The price is
+   *    now in the part of the sentence that is guaranteed to survive.
+   *
+   * 2. "In stock Fast delivery" — a missing full stop, because the parts were
+   *    joined with spaces and only some of them ended in punctuation.
+   *
+   * 3. It cut at 155 characters mid-word and appended an ellipsis, which is
+   *    Google's job, not ours. Google truncates to the width it has; a
+   *    description that arrives pre-truncated just loses the text twice.
+   *
+   * ---- How it is built now ----
+   *
+   * Back to front. The tail — price, stock, delivery — is composed first and is
+   * never cut, because it holds the three facts that turn a search into a
+   * visit. Only the lead is trimmed to fit around it.
+   */
+  const LIMIT = 155;
+
+  const price = Number(product.price) > 0 ? formatPrice(product.price) : null;
+
+  const stock =
+    product.stock_status === "instock"
+      ? "In stock."
+      : product.stock_status === "onbackorder"
+        ? "Available on backorder."
+        : "";
+
+  /**
+   * "Price in Uganda: UGX 155,000." is phrased that way on purpose.
+   *
+   * It is the shape of the question people actually type — "nike price in
+   * uganda", "iphone price in uganda" — and a description that contains both
+   * the words and the figure answers it in the result itself. Google shows the
+   * snippet it thinks matches; giving it a sentence that matches the query
+   * pattern verbatim is the cheapest help it can be given.
+   */
+  const tail = [
+    price ? `Price in Uganda: ${price}.` : "",
+    stock,
+    "Fast delivery, pay on delivery.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  /**
+   * The seller's own copy, when there is any worth using.
+   *
+   * `short_description` arrives from WooCommerce as HTML — WordPress wraps it
+   * in `<p>` at minimum — and the tags were previously passed straight into the
+   * meta tag, where they are noise at best. Stripped here.
+   */
+  const own = product.short_description
+    ?.replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const category = product.categories[0]?.name;
-  const parts = [
-    `Buy ${product.name}`,
-    category ? `in ${category}` : "",
-    "on KandiUg.",
-    product.stock_status === "instock" ? "In stock" : "",
-    "Fast delivery across Uganda, pay on delivery.",
-  ].filter(Boolean);
+  const lead =
+    own && own.length > 40
+      ? own
+      : `Buy ${product.name}${category ? ` in ${category}` : ""} on KandiUg.`;
 
-  const sentence = parts.join(" ").replace(/\s+/g, " ");
-  return sentence.length > 155 ? `${sentence.slice(0, 152).trimEnd()}…` : sentence;
+  // Everything the tail does not claim, less the space that joins them.
+  const budget = LIMIT - tail.length - 1;
+  const trimmed =
+    lead.length > budget ? `${lead.slice(0, Math.max(0, budget - 1)).trimEnd()}…` : lead;
+
+  return `${trimmed} ${tail}`.replace(/\s+/g, " ").trim();
 }
 
 /** Google's schema.org availability values. */
