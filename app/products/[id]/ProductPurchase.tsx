@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
+import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import AddToCartButton from "@/components/AddToCartButton";
@@ -51,6 +52,15 @@ export default function ProductPurchase({
    */
   freeDeliveryFrom = 0,
   /**
+   * The returns window, from wp-admin, for the same reason as the threshold
+   * above: this page states it in the terms bar, in the guarantees panel and in
+   * the delivery dialog, and all three used to have "14" typed into them. Three
+   * literals is three chances to disagree with the returns policy the shop
+   * actually operates — and with the `merchantReturnDays` in the product's own
+   * structured data, which has always come from the setting.
+   */
+  returnsDays = DEFAULT_SETTINGS.commerce.returns_days,
+  /**
    * The ratings split, counted on the server from the same reviews the section
    * at the foot of the page lists — so the summary beside the price and the one
    * below can never report different numbers for the same product.
@@ -62,6 +72,7 @@ export default function ProductPurchase({
   product: Product;
   isNew: boolean;
   freeDeliveryFrom?: number;
+  returnsDays?: number;
   ratingAverage?: number;
   ratingCount?: number;
   ratingBreakdown?: number[];
@@ -359,7 +370,7 @@ export default function ProductPurchase({
                 <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                 </svg>
-                <span>Pay on delivery · 14-day returns</span>
+                <span>Pay on delivery · {returnsDays}-day returns</span>
               </p>
             </div>
           )}
@@ -509,7 +520,7 @@ export default function ProductPurchase({
                     <Tick /> Refund if the item arrives damaged
                   </li>
                   <li className="flex items-start gap-1.5">
-                    <Tick /> 14-day returns, in original condition
+                    <Tick /> {returnsDays}-day returns, in original condition
                   </li>
                 </ul>
               </div>
@@ -563,17 +574,31 @@ export default function ProductPurchase({
 
       {/* Info dialogs */}
       <InfoModal open={modal === "delivery"} title="Delivery and returns" onClose={() => setModal(null)}>
+        {/* Every figure in this dialog comes from wp-admin. It used to say
+            `formatPrice(50000)` and "14 days" as literals, which meant the
+            modal a shopper opens to check the terms could contradict both the
+            terms bar a few centimetres above it and the structured data Google
+            reads off the same page. */}
         <p className="font-semibold text-shop-ink">Delivery</p>
         <p>
-          Standard delivery across Uganda takes 1–3 business days. Delivery is free on orders over{" "}
-          {formatPrice(50000)}; below that a flat fee applies at checkout.
+          Standard delivery across Uganda takes 1–3 business days.
+          {freeDeliveryFrom > 0 ? (
+            <>
+              {" "}
+              Delivery is free on orders over {formatPrice(freeDeliveryFrom)}; below that the fee is
+              calculated by distance at checkout.
+            </>
+          ) : (
+            <> The fee is calculated by distance at checkout.</>
+          )}
         </p>
         <p className="mt-4 font-semibold text-shop-ink">Payment</p>
         <p>Pay on delivery with cash, MTN Mobile Money, Airtel Money, or by card at checkout.</p>
         <p className="mt-4 font-semibold text-shop-ink">Returns</p>
         <p>
-          Items can be returned within 14 days of delivery in their original condition with tags
-          attached. Underwear, swimwear and pierced jewellery cannot be returned for hygiene reasons.
+          Items can be returned within {returnsDays} days of delivery in their original condition
+          with tags attached. Underwear, swimwear and pierced jewellery cannot be returned for
+          hygiene reasons.
         </p>
       </InfoModal>
 

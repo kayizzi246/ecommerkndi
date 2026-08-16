@@ -255,7 +255,7 @@ export default async function Home() {
           />
         </section>
 
-        <TrustBar />
+        <TrustBar returnsDays={settings.commerce.returns_days} />
 
         {/* Recruiting sellers at the foot of the page, after a shopper has seen
             what the shop looks like — the trader worth having is the one who

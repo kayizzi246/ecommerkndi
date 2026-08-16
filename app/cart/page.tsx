@@ -7,8 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import CartRecommendations from "@/components/cart/CartRecommendations";
-
-const FREE_DELIVERY_THRESHOLD = 50000;
+import { useCommerceTerms } from "@/lib/commerce-terms";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem } = useCart();
@@ -28,7 +27,13 @@ export default function CartPage() {
   );
   const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const qualifiesFree = selectedSubtotal >= FREE_DELIVERY_THRESHOLD;
+  /* From wp-admin rather than a local constant — the same figure the checkout
+     prices against, so the bar below cannot promise what the next page refuses.
+     See `lib/commerce-terms.tsx`. */
+  const { freeDeliveryFrom } = useCommerceTerms();
+  const freeDeliveryOn = freeDeliveryFrom > 0;
+
+  const qualifiesFree = freeDeliveryOn && selectedSubtotal >= freeDeliveryFrom;
 
   // No delivery figure here on purpose. The real fee is charged per kilometre
   // from the shop, and it cannot be known until the shopper shares their
@@ -37,8 +42,10 @@ export default function CartPage() {
   const total = selectedSubtotal;
 
   // Progress toward the free-delivery threshold, capped so the bar never overruns.
-  const freeProgress = Math.min(100, (selectedSubtotal / FREE_DELIVERY_THRESHOLD) * 100);
-  const away = Math.max(0, FREE_DELIVERY_THRESHOLD - selectedSubtotal);
+  const freeProgress = freeDeliveryOn
+    ? Math.min(100, (selectedSubtotal / freeDeliveryFrom) * 100)
+    : 0;
+  const away = freeDeliveryOn ? Math.max(0, freeDeliveryFrom - selectedSubtotal) : 0;
 
   if (items.length === 0) {
     return (
@@ -73,30 +80,33 @@ export default function CartPage() {
         </Link>
       </div>
 
-      {/* Free-delivery progress */}
-      <div className="card-shop mb-6 px-5 py-4">
-        <p className="text-[14px] text-shop-body">
-          {qualifiesFree ? (
-            <span className="font-semibold text-shop-success">
-              Nice — your order ships free.
-            </span>
-          ) : (
-            <>
-              You&apos;re{" "}
-              <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> away from
-              free delivery.
-            </>
-          )}
-        </p>
-        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-shop-surface">
-          <div
-            className={`h-full rounded-full transition-[width] duration-500 ${
-              qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
-            }`}
-            style={{ width: `${freeProgress}%` }}
-          />
+      {/* Free-delivery progress. Suppressed rather than drawn empty when the
+          shop is not running a free-delivery offer at all. */}
+      {freeDeliveryOn && (
+        <div className="card-shop mb-6 px-5 py-4">
+          <p className="text-[14px] text-shop-body">
+            {qualifiesFree ? (
+              <span className="font-semibold text-shop-success">
+                Nice — your order ships free.
+              </span>
+            ) : (
+              <>
+                You&apos;re{" "}
+                <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> away from
+                free delivery.
+              </>
+            )}
+          </p>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-shop-surface">
+            <div
+              className={`h-full rounded-full transition-[width] duration-500 ${
+                qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
+              }`}
+              style={{ width: `${freeProgress}%` }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_364px]">
         <div>

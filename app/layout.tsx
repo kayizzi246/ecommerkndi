@@ -7,6 +7,7 @@ import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocommerce";
 import { CustomerSessionProvider } from "@/lib/customer-session";
+import { CommerceTermsProvider } from "@/lib/commerce-terms";
 import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
@@ -240,15 +241,28 @@ export default async function RootLayout({
             ),
           }}
         />
-        <CustomerSessionProvider>
-          <CartProvider>
-            <ToastProvider>
-              <StoreChrome departments={departments} settings={settings}>
-                {children}
-              </StoreChrome>
-            </ToastProvider>
-          </CartProvider>
-        </CustomerSessionProvider>
+        {/* The shop's delivery and returns terms, read once here and available
+            to every client component below. `getSiteSettings()` is already
+            awaited above for the metadata, so this adds no request — it only
+            stops the cart, the trust strips and the product page from each
+            keeping their own copy of a number the owner can edit in wp-admin.
+            See `lib/commerce-terms.tsx` for what that drift cost. */}
+        <CommerceTermsProvider
+          terms={{
+            freeDeliveryFrom: settings.commerce.free_delivery_from,
+            returnsDays: settings.commerce.returns_days,
+          }}
+        >
+          <CustomerSessionProvider>
+            <CartProvider>
+              <ToastProvider>
+                <StoreChrome departments={departments} settings={settings}>
+                  {children}
+                </StoreChrome>
+              </ToastProvider>
+            </CartProvider>
+          </CustomerSessionProvider>
+        </CommerceTermsProvider>
 
         {/* ---- Vercel Analytics and Speed Insights ----
              Page views and real-user performance, both first-party.

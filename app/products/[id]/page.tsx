@@ -149,18 +149,33 @@ export default async function ProductPage({
 
   const isNew = isNewListing(product.date_created);
 
+  /**
+   * The spec table.
+   *
+   * "Care: Machine washable" and "Occasion: Casual" used to be unconditional
+   * rows here, printed on every listing in the catalogue. On a clothing
+   * marketplace that is merely filler; on a marketplace that also sells phone
+   * chargers, blenders and headphones it is a spec sheet telling shoppers to
+   * put electronics in the wash. A shopper who notices one obviously wrong fact
+   * has no way to tell which of the others are also invented, and the whole
+   * table — including the real WooCommerce attributes above it — stops being
+   * read. Both rows are gone rather than made conditional on a category guess:
+   * the seller can state care instructions in the description, where they know
+   * what the product is.
+   *
+   * What is left is what the shop can actually stand behind — the product's own
+   * attributes, its category, the colour disclaimer, and live stock.
+   */
   const detailRows: [string, string][] = [
     ...(product.attributes ?? []).map(
       (attr) =>
         [attr.name, attr.options.map((option) => option.name).join(", ")] as [string, string]
     ),
-    ["Care", "Machine washable"],
-    brand ? (["Ideal For", brand.name] as [string, string]) : null,
+    brand ? (["Category", brand.name] as [string, string]) : null,
     [
       "Disclaimer",
       "Product color may slightly vary due to photographic lighting sources or your monitor settings.",
     ],
-    ["Occasion", "Casual"],
     [
       "Availability",
       product.stock_status === "instock"
@@ -247,6 +262,7 @@ export default async function ProductPage({
         product={product}
         isNew={isNew}
         freeDeliveryFrom={settings.commerce.free_delivery_from}
+        returnsDays={settings.commerce.returns_days}
         ratingAverage={reviews.average_rating}
         ratingCount={reviews.rating_count}
         ratingBreakdown={ratingBreakdown}
@@ -308,8 +324,14 @@ export default async function ProductPage({
                 <div>
                   <p className="mb-1.5 font-semibold text-shop-ink">Delivery</p>
                   <p>
-                    Standard delivery across Uganda takes 1–3 business days, and is free on orders
-                    over {formatPrice(50000)}.
+                    Standard delivery across Uganda takes 1–3 business days
+                    {settings.commerce.free_delivery_from > 0 && (
+                      <>
+                        , and is free on orders over{" "}
+                        {formatPrice(settings.commerce.free_delivery_from)}
+                      </>
+                    )}
+                    .
                   </p>
                 </div>
                 <div>
@@ -322,8 +344,8 @@ export default async function ProductPage({
                 <div>
                   <p className="mb-1.5 font-semibold text-shop-ink">Returns</p>
                   <p>
-                    Returns are accepted within 14 days of delivery, in original condition with tags
-                    attached.
+                    Returns are accepted within {settings.commerce.returns_days} days of delivery,
+                    in original condition with tags attached.
                   </p>
                 </div>
               </div>

@@ -55,8 +55,14 @@ export default function StoreChrome({
               </svg>
               Back to cart
             </Link>
+            {/* The brand from wp-admin, not the literal "Kandi For Less" that
+                used to be typed here. A shop that renames itself in settings
+                would have kept the old name on the one page where a shopper is
+                about to hand over money — which is the worst possible place for
+                the storefront to look like a different business. */}
             <Link href="/" className="ml-auto text-[18px] font-semibold text-shop-ink">
-              Kandi <span className="font-normal">For Less</span>
+              {settings.brand.name}{" "}
+              <span className="font-normal">{settings.brand.suffix}</span>
             </Link>
           </div>
         </header>

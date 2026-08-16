@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import { useCommerceTerms } from "@/lib/commerce-terms";
 
 /**
  * Side cart, modelled on the Next.js Commerce cart modal: a panel that slides
@@ -15,15 +16,26 @@ import { formatPrice } from "@/lib/currency";
  * The panel stays mounted so the slide transition can play in both directions;
  * it is inert (`pointer-events-none`, `aria-hidden`) while closed.
  */
-const FREE_DELIVERY_THRESHOLD = 50000;
-
 export default function CartDrawer() {
   const { items, count, subtotal, updateQuantity, removeItem, drawerOpen, closeDrawer } =
     useCart();
 
-  const qualifiesFree = subtotal >= FREE_DELIVERY_THRESHOLD;
-  const away = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
-  const freeProgress = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
+  /* The threshold from wp-admin, not the `const FREE_DELIVERY_THRESHOLD = 50000`
+     that used to sit here. This drawer quotes the shopper a figure — "spend X
+     more and delivery is free" — that the checkout then has to honour, and the
+     checkout prices against `getDeliveryRates`, which reads the same setting.
+     Two hardcoded copies of one number is a promise the basket can break. */
+  const { freeDeliveryFrom } = useCommerceTerms();
+
+  /* A shop that has switched the offer off (0) has no bar to draw and no
+     shortfall to quote, so the whole block below is suppressed rather than
+     dividing by zero and promising free delivery on everything. */
+  const freeDeliveryOn = freeDeliveryFrom > 0;
+  const qualifiesFree = freeDeliveryOn && subtotal >= freeDeliveryFrom;
+  const away = freeDeliveryOn ? Math.max(0, freeDeliveryFrom - subtotal) : 0;
+  const freeProgress = freeDeliveryOn
+    ? Math.min(100, (subtotal / freeDeliveryFrom) * 100)
+    : 0;
 
   // Escape closes, and the page behind the panel stops scrolling.
   useEffect(() => {
@@ -99,30 +111,34 @@ export default function CartDrawer() {
         ) : (
           <div className="flex h-full flex-col justify-between overflow-hidden px-6 pb-6">
             {/* Free-delivery progress — the single highest-leverage nudge in a
-                side cart, and it is computed from the real subtotal. */}
-            <div className="shrink-0 rounded-lg bg-shop-surface px-4 py-3">
-              <p className="text-[13px] text-shop-body">
-                {qualifiesFree ? (
-                  <span className="font-semibold text-shop-success">
-                    Your order ships free.
-                  </span>
-                ) : (
-                  <>
-                    Add{" "}
-                    <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> more
-                    for free delivery.
-                  </>
-                )}
-              </p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-                <div
-                  className={`h-full rounded-full transition-[width] duration-500 ${
-                    qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
-                  }`}
-                  style={{ width: `${freeProgress}%` }}
-                />
+                side cart, and it is computed from the real subtotal against the
+                real wp-admin threshold. Hidden entirely when the shop is not
+                running the offer, rather than drawing an empty bar. */}
+            {freeDeliveryOn && (
+              <div className="shrink-0 rounded-lg bg-shop-surface px-4 py-3">
+                <p className="text-[13px] text-shop-body">
+                  {qualifiesFree ? (
+                    <span className="font-semibold text-shop-success">
+                      Your order ships free.
+                    </span>
+                  ) : (
+                    <>
+                      Add{" "}
+                      <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> more
+                      for free delivery.
+                    </>
+                  )}
+                </p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-500 ${
+                      qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
+                    }`}
+                    style={{ width: `${freeProgress}%` }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <ul className="grow overflow-auto py-2">
               {items.map((item) => (

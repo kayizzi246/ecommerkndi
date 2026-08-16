@@ -44,7 +44,10 @@ const PROMISES = [
   },
   {
     title: "Easy Returns",
-    copy: "14 days, no questions",
+    // Filled in from wp-admin by the component below — this used to read
+    // "14 days, no questions" as a literal, which is a promise the shop can
+    // change in its settings without this line noticing.
+    copy: "",
     icon: (
       <>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 9h11a5 5 0 0 1 0 10h-4" />
@@ -54,14 +57,26 @@ const PROMISES = [
   },
 ];
 
-export default function TrustBar() {
+/**
+ * `returnsDays` comes down as a prop rather than through `useCommerceTerms`,
+ * because this bar renders on the homepage — a server component with the
+ * settings already in hand — and there is no reason to ship it to the browser
+ * just to read one number.
+ */
+export default function TrustBar({ returnsDays }: { returnsDays: number }) {
+  const promises = PROMISES.map((promise) =>
+    promise.title === "Easy Returns"
+      ? { ...promise, copy: `${returnsDays} days, no questions` }
+      : promise
+  );
+
   return (
     <section
       aria-label="Why shop with KandiUg"
       className="rounded-2xl border border-shop-line bg-white px-4 py-6 md:px-8"
     >
       <ul className="grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
-        {PROMISES.map((promise) => (
+        {promises.map((promise) => (
           <li key={promise.title} className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-shop-primary-soft">
               <svg
