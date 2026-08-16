@@ -72,7 +72,7 @@ import 'package:http/http.dart' as http;
 //
 //  5. BRAND. v2 mixed the brand orange with Poppins/Inter, a grey
 //     page and a red `_goldDeep`. Matched to the storefront:
-//     Plus Jakarta Sans, white page, orange #ff6a00, and red
+//     Inter, white page, orange #ff6a00, and red
 //     reserved strictly for discounts.
 //
 //  SETUP  (FlutterFlow)
@@ -145,7 +145,7 @@ const Color _kPage = Colors.white;
 const int _kLowStockAt = 5;
 
 // ============================================================
-// TYPE — Plus Jakarta Sans
+// TYPE — Inter, matching the website (see home_sections_widget.dart)
 // ============================================================
 
 TextStyle _heading({
@@ -154,7 +154,7 @@ TextStyle _heading({
   FontWeight weight = FontWeight.w800,
   double? height,
 }) =>
-    GoogleFonts.plusJakartaSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -170,7 +170,7 @@ TextStyle _text({
   TextDecoration? decoration,
   Color? decorationColor,
 }) =>
-    GoogleFonts.plusJakartaSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
@@ -181,7 +181,7 @@ TextStyle _text({
     );
 
 /// Section subtitle — 600 in the body colour, matching the website.
-TextStyle _subtitle({double size = 13.5}) => GoogleFonts.plusJakartaSans(
+TextStyle _subtitle({double size = 13.5}) => GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w600,
       color: _kBody,
@@ -190,7 +190,7 @@ TextStyle _subtitle({double size = 13.5}) => GoogleFonts.plusJakartaSans(
     );
 
 TextStyle _price({double size = 15, Color color = _kInk}) =>
-    GoogleFonts.plusJakartaSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w700,
       color: color,
@@ -199,7 +199,7 @@ TextStyle _price({double size = 15, Color color = _kInk}) =>
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
-TextStyle _struck({double size = 12}) => GoogleFonts.plusJakartaSans(
+TextStyle _struck({double size = 12}) => GoogleFonts.inter(
       fontSize: size,
       fontWeight: FontWeight.w500,
       color: _kFaint,
@@ -214,7 +214,7 @@ TextStyle _label({
   FontWeight weight = FontWeight.w600,
   double spacing = 0.2,
 }) =>
-    GoogleFonts.plusJakartaSans(
+    GoogleFonts.inter(
       fontSize: size,
       fontWeight: weight,
       color: color,
