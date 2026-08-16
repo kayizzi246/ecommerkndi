@@ -100,13 +100,8 @@ import 'package:http/http.dart' as http;
 /// The live storefront origin. No trailing slash.
 const String _kApiBaseUrl = 'https://kandiug.com';
 
-/// FlutterFlow page names. Empty string disables that tap.
-const String _kProductRoute = 'ProductDetail';
-const String _kSearchRoute = 'Search';
-const String _kCartRoute = 'Cart';
-const String _kWishlistRoute = 'Wishlist';
-const String _kHomeRoute = 'Home';
-const String _kProfileRoute = 'Profile';
+// No page-name constants. Every destination is a FlutterFlow Action parameter
+// on the widget — see the note on the constructor.
 
 // ============================================================
 // BRAND — matched to app/globals.css
@@ -533,11 +528,41 @@ class _PressState extends State<_Press> {
 // ============================================================
 
 class CategoryNavigationMenu extends StatefulWidget {
-  /// `width` and `height` only — FlutterFlow adds those two itself.
-  const CategoryNavigationMenu({super.key, this.width, this.height});
+  /// ---- Navigation is Actions ----
+  ///
+  /// Every destination is a FlutterFlow ACTION parameter wired in the action
+  /// editor, not a page name typed as a String. FlutterFlow knows whether a
+  /// page takes path or query parameters and a string does not carry that; a
+  /// renamed page silently kills a string parameter and cannot kill an Action;
+  /// and an Action can update App State or show a dialog on the way, which a
+  /// route name can never do.
+  ///
+  /// All optional. A null Action is a control this project chose not to wire,
+  /// and does nothing — quiet rather than crashing.
+  const CategoryNavigationMenu({
+    super.key,
+    this.width,
+    this.height,
+    this.onProductTap,
+    this.onHomeTap,
+    this.onSearchTap,
+    this.onCartTap,
+    this.onWishlistTap,
+    this.onProfileTap,
+  });
 
   final double? width;
   final double? height;
+
+  /// Opening a product. Receives the slug when there is one — what the
+  /// website's own URLs use — and the numeric id, so either can be passed on.
+  final Future Function(String productId, String slug)? onProductTap;
+
+  final Future Function()? onHomeTap;
+  final Future Function()? onSearchTap;
+  final Future Function()? onCartTap;
+  final Future Function()? onWishlistTap;
+  final Future Function()? onProfileTap;
 
   @override
   State<CategoryNavigationMenu> createState() => _CategoryNavigationMenuState();
@@ -807,25 +832,24 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
 
   // ---------- Navigation ----------
 
-  /// Opens a FlutterFlow page by name.
+  /// Runs one of the navigation Actions.
   ///
-  /// Replaces the action callbacks v2 took as parameters. try/catch because
-  /// `pushNamed` throws on an unknown route, and a mistyped page name should
-  /// cost a dead button rather than the shopper's session.
-  void _go(String routeName, {Map<String, String> params = const {}}) {
-    if (routeName.isEmpty) return;
+  /// v2 took action callbacks; v3 replaced them with page names and had to
+  /// guess whether a page wanted path or query parameters — catching a throw
+  /// and retrying. This is back to Actions, which is where it should have
+  /// stayed: FlutterFlow does the navigating and already knows the answer.
+  void _run(Future Function()? action) {
+    if (action == null) return;
     HapticFeedback.lightImpact();
-    try {
-      context.pushNamed(routeName, queryParameters: params);
-    } catch (e) {
-      debugPrint('Kandi: no FlutterFlow page named "$routeName" ($e)');
-    }
+    action();
   }
 
-  void _openProduct(_Product p) => _go(
-        _kProductRoute,
-        params: {'slug': p.slug, 'productId': p.id.toString()},
-      );
+  void _openProduct(_Product p) {
+    final action = widget.onProductTap;
+    if (action == null) return;
+    HapticFeedback.lightImpact();
+    action(p.slug.isNotEmpty ? p.slug : p.id.toString(), p.slug);
+  }
 
   void _toggleWishlist(_Product p) {
     HapticFeedback.lightImpact();
@@ -1018,7 +1042,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
                     if (Navigator.of(context).canPop()) {
                       Navigator.of(context).pop();
                     } else {
-                      _go(_kHomeRoute);
+                      _run(widget.onHomeTap);
                     }
                   },
                   child: Container(
@@ -1048,13 +1072,13 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
                 _circleIcon(
                   icon: Icons.favorite_border_rounded,
                   badge: _wishlisted.length,
-                  onTap: () => _go(_kWishlistRoute),
+                  onTap: () => _run(widget.onWishlistTap),
                 ),
                 const SizedBox(width: 8),
                 _circleIcon(
                   icon: Icons.shopping_bag_outlined,
                   badge: _cartCount,
-                  onTap: () => _go(_kCartRoute),
+                  onTap: () => _run(widget.onCartTap),
                 ),
               ],
             ),
@@ -1121,7 +1145,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   Widget _searchArea() => Padding(
         padding: const EdgeInsets.fromLTRB(_pad, 0, _pad, 8),
         child: GestureDetector(
-          onTap: () => _go(_kSearchRoute),
+          onTap: () => _run(widget.onSearchTap),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
@@ -2144,12 +2168,12 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   Widget _bottomNav() {
     // Shop is index 1 and already on screen, so its route is empty — `_go`
     // treats that as "do nothing".
-    const items = <_NavItem>[
-      _NavItem(Icons.home_rounded, 'Home', _kHomeRoute),
-      _NavItem(Icons.grid_view_rounded, 'Shop', ''),
-      _NavItem(Icons.favorite_border_rounded, 'Saved', _kWishlistRoute),
-      _NavItem(Icons.shopping_bag_outlined, 'Cart', _kCartRoute),
-      _NavItem(Icons.person_outline_rounded, 'Me', _kProfileRoute),
+    final items = <_NavItem>[
+      _NavItem(Icons.home_rounded, 'Home', widget.onHomeTap),
+      const _NavItem(Icons.grid_view_rounded, 'Shop', null),
+      _NavItem(Icons.favorite_border_rounded, 'Saved', widget.onWishlistTap),
+      _NavItem(Icons.shopping_bag_outlined, 'Cart', widget.onCartTap),
+      _NavItem(Icons.person_outline_rounded, 'Me', widget.onProfileTap),
     ];
 
     return Container(
@@ -2167,7 +2191,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
               for (var i = 0; i < items.length; i++)
                 _Press(
                   // No haptic here: `_go` fires one itself.
-                  onTap: () => _go(items[i].route),
+                  onTap: () => _run(items[i].action),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
@@ -2205,8 +2229,12 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
 class _NavItem {
   final IconData icon;
   final String label;
-  final String route;
-  const _NavItem(this.icon, this.label, this.route);
+
+  /// The FlutterFlow Action this tab runs. Null for the tab already on screen,
+  /// and for any destination the project chose not to wire.
+  final Future Function()? action;
+
+  const _NavItem(this.icon, this.label, this.action);
 }
 
 /// Thrown for a non-200.

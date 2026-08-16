@@ -106,19 +106,8 @@ import 'package:http/http.dart' as http;
 /// like an outage rather than a typo.
 const String _kApiBaseUrl = 'https://kandiug.com';
 
-/// Names of the FlutterFlow pages to open on tap.
-///
-/// Set any of these to an empty string to make that tap do nothing. A name
-/// that does not match a real page is caught and ignored rather than crashing
-/// the screen — see `_go`. That is deliberate: a mistyped route should cost a
-/// dead button, not a shopper's whole session.
-const String _kProductRoute = 'ProductDetail';
-const String _kCategoryRoute = 'CategoryProducts';
-const String _kSearchRoute = 'Search';
-const String _kCartRoute = 'Cart';
-const String _kWishlistRoute = 'Wishlist';
-const String _kShopRoute = 'Shop';
-const String _kProfileRoute = 'Profile';
+// No page-name constants. Every destination is a FlutterFlow Action parameter
+// on the widget — see the NAVIGATION note in the header.
 
 /// The city shown in the masthead's "Deliver to" line.
 ///
@@ -129,7 +118,7 @@ const String _kProfileRoute = 'Profile';
 ///
 /// The honest version of this line is the shopper's own saved address, which
 /// lives in FlutterFlow rather than here. When your project has one, set
-/// `deliverToRoute` to your address page and read the saved city into this
+/// `onDeliverToTap` to your address page and read the saved city into this
 /// widget — the one-line change is to make `_deliverTo` return
 /// `FFAppState().deliveryCity` with this as the fallback.
 const String _kDeliverToCity = 'Kampala';
@@ -670,60 +659,68 @@ class _PressState extends State<_Press> {
 // ============================================================
 
 class HomeSectionsWidget extends StatefulWidget {
-  /// ---- Route parameters ----
+  /// ---- Navigation is Actions ----
   ///
-  /// Every destination this screen can navigate to is now an optional String
-  /// parameter, so the page names can be set in FlutterFlow's own parameter
-  /// panel instead of by editing Dart.
+  /// Every destination this screen can reach is a FlutterFlow ACTION parameter,
+  /// wired in the action editor. None of them is a page name typed as a String.
   ///
-  /// This reverses the earlier "NO PARAMETERS" rule, and the reversal is
-  /// narrow on purpose. That rule was about DATA — the shop name, the logo, the
+  /// This narrows the file's original "NO PARAMETERS" rule rather than
+  /// abandoning it. That rule was about DATA — the shop name, the logo, the
   /// terms, the products — all of which belong to the API and would be wrong to
-  /// duplicate into a widget parameter. Route names are not data; they are
-  /// facts about the FlutterFlow project this widget was dropped into, and that
-  /// is exactly what a parameter is for. Nobody should have to open a 1,700-line
-  /// file to rename a page.
+  /// duplicate into a widget parameter. Navigation is not data; it is what the
+  /// FlutterFlow project does when something is tapped, and an Action is
+  /// precisely the thing FlutterFlow has for expressing that.
   ///
-  /// Each falls back to the constant at the top of this file, so a project that
-  /// sets none of them behaves exactly as before. An empty string still means
-  /// "deliberately disabled" and makes that tap do nothing.
+  /// Page names were tried in between and are worse on three counts:
   ///
-  /// In FlutterFlow: Custom Widget ▸ Parameters ▸ Add, type String, NOT
-  /// required — leave a parameter unset and the constant is used.
+  ///   • FlutterFlow knows whether a page takes path or query parameters; a
+  ///     string does not carry that. This file had to try one, catch the throw
+  ///     and try the other, and a page declaring neither shape failed silently.
+  ///   • A page name is unvalidated. Rename the page and the parameter still
+  ///     holds the old name — the tap dies with nothing to say why.
+  ///   • An Action can do more than navigate: update App State, show a dialog,
+  ///     call an API. A route name can only ever go somewhere.
+  ///
+  /// Every Action is optional, and a null one is a no-op — a control the project
+  /// chose not to wire, quiet rather than crashing.
+  ///
+  /// In FlutterFlow: Custom Widget ▸ Parameters ▸ Add, type Action, NOT
+  /// required.
   const HomeSectionsWidget({
     super.key,
     this.width,
     this.height,
-    this.productRoute,
-    this.categoryRoute,
-    this.searchRoute,
-    this.cartRoute,
-    this.wishlistRoute,
-    this.shopRoute,
-    this.profileRoute,
-    this.deliverToRoute,
+    this.onProductTap,
+    this.onCategoryTap,
+    this.onSearchTap,
+    this.onCartTap,
+    this.onWishlistTap,
+    this.onShopTap,
+    this.onProfileTap,
+    this.onDeliverToTap,
   });
 
   final double? width;
   final double? height;
 
-  /// The product detail page. Receives `productId` and `slug`.
-  final String? productRoute;
+  /// Opening a product. Receives the slug when there is one — which is what the
+  /// website's own URLs use and what the detail screen's `productId` parameter
+  /// accepts — and the numeric id, so the destination can take either.
+  final Future Function(String productId, String slug)? onProductTap;
 
-  /// The category/shop listing page. Receives `slug` and `name`.
-  final String? categoryRoute;
+  /// Opening a department. Receives its slug and its display name.
+  final Future Function(String slug, String name)? onCategoryTap;
 
-  final String? searchRoute;
-  final String? cartRoute;
-  final String? wishlistRoute;
-  final String? shopRoute;
-  final String? profileRoute;
+  final Future Function()? onSearchTap;
+  final Future Function()? onCartTap;
+  final Future Function()? onWishlistTap;
+  final Future Function()? onShopTap;
+  final Future Function()? onProfileTap;
 
-  /// Optional page behind the "Deliver to" line in the masthead — an address
-  /// picker, usually. Left unset, the line is shown but is not tappable, which
-  /// is honest: a control that looks interactive and does nothing is worse than
-  /// a label.
-  final String? deliverToRoute;
+  /// Behind the "Deliver to" line in the masthead — an address picker, usually.
+  /// Left unwired, the line is shown but is not tappable, which is honest: a
+  /// control that looks interactive and does nothing is worse than a label.
+  final Future Function()? onDeliverToTap;
 
   @override
   State<HomeSectionsWidget> createState() => _HomeSectionsWidgetState();
@@ -806,47 +803,20 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
 
   // ---------- Navigation ----------
 
-  /// The widget parameter when the project set one, otherwise the constant.
-  String _route(String? given, String fallback) =>
-      (given != null && given.trim().isNotEmpty) ? given.trim() : fallback;
-
-  String get _productRoute => _route(widget.productRoute, _kProductRoute);
-  String get _categoryRoute => _route(widget.categoryRoute, _kCategoryRoute);
-  String get _searchRoute => _route(widget.searchRoute, _kSearchRoute);
-  String get _cartRoute => _route(widget.cartRoute, _kCartRoute);
-  String get _wishlistRoute => _route(widget.wishlistRoute, _kWishlistRoute);
-  String get _shopRoute => _route(widget.shopRoute, _kShopRoute);
-  String get _profileRoute => _route(widget.profileRoute, _kProfileRoute);
-
-  void _go(String routeName, {Map<String, String> params = const {}}) {
-    if (routeName.isEmpty) return;
+  /// Runs one of the navigation Actions.
+  ///
+  /// This replaced a `pushNamed` that took a page NAME and had to try query
+  /// parameters, catch the throw, and then try path parameters — because a
+  /// string gives no way to know which shape the destination page declared, and
+  /// a page taking neither failed silently.
+  ///
+  /// FlutterFlow knows, so FlutterFlow navigates. A null Action is a control the
+  /// project chose not to wire and does nothing: deliberately quiet rather than
+  /// a crash, and obvious the first time it is tapped in testing.
+  void _run(Future Function()? action) {
+    if (action == null) return;
     HapticFeedback.lightImpact();
-
-    /* ---- Query first, then path ----
-     *
-     * FlutterFlow declares a page's parameters as either path or query
-     * depending on how the route was set up, and `pushNamed` throws if the
-     * caller supplies the wrong kind — a page expecting `/product/:productId`
-     * given query parameters gets a missing-path-parameter error and the tap
-     * dies silently.
-     *
-     * Nothing here can know which way a given project declared its pages, so
-     * both are tried. The retry passes the SAME map as path parameters, which
-     * is what a path-style route wants, and only a genuinely wrong page name
-     * reaches the log. This is the difference between "tapping a product does
-     * nothing" and it just working, and it is not worth being clever about. */
-    try {
-      context.pushNamed(routeName, queryParameters: params);
-      return;
-    } catch (_) {
-      // Fall through and try the other shape.
-    }
-
-    try {
-      context.pushNamed(routeName, pathParameters: params);
-    } catch (e) {
-      debugPrint('Kandi: could not open FlutterFlow page "$routeName" ($e)');
-    }
+    action();
   }
 
   Future<void> _load() async {
@@ -906,10 +876,10 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// own product URLs use, so a page built from it opens the same product, and
   /// the id is there for any lookup that wants the numeric key.
   void _openProduct(_Product p) {
-    _go(_productRoute, params: {
-      'slug': p.slug,
-      'productId': p.id.toString(),
-    });
+    final action = widget.onProductTap;
+    if (action == null) return;
+    HapticFeedback.lightImpact();
+    action(p.slug.isNotEmpty ? p.slug : p.id.toString(), p.slug);
   }
 
   void _toTop() {
@@ -1096,14 +1066,14 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
              * Amazon, Jumia, Noon and Temu all put a "Deliver to …" control
              * exactly here for the same reason.
              *
-             * Tappable only when a `deliverToRoute` is set, because a control
+             * Tappable only when an `onDeliverToTap` Action is wired, because a control
              * that looks interactive and does nothing is worse than a label.
              * The city is the shop's own delivery origin — see `_deliverTo`. */
             Expanded(
               child: _Press(
-                onTap: (widget.deliverToRoute ?? '').trim().isEmpty
+                onTap: widget.onDeliverToTap == null
                     ? null
-                    : () => _go(widget.deliverToRoute!.trim()),
+                    : () => _run(widget.onDeliverToTap),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -1134,7 +1104,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if ((widget.deliverToRoute ?? '').trim().isNotEmpty)
+                        if (widget.onDeliverToTap != null)
                           const Icon(
                             Icons.keyboard_arrow_down_rounded,
                             size: 17,
@@ -1149,13 +1119,13 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             _circleIcon(
               icon: Icons.favorite_border_rounded,
               badge: _wishlisted.length,
-              onTap: () => _go(_wishlistRoute),
+              onTap: () => _run(widget.onWishlistTap),
             ),
             const SizedBox(width: 8),
             _circleIcon(
               icon: Icons.shopping_bag_outlined,
               badge: _cartCount,
-              onTap: () => _go(_cartRoute),
+              onTap: () => _run(widget.onCartTap),
             ),
           ],
         ),
@@ -1249,7 +1219,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
         color: _kPage,
         padding: const EdgeInsets.fromLTRB(_pad, 0, _pad, 8),
         child: GestureDetector(
-          onTap: () => _go(_searchRoute),
+          onTap: () => _run(widget.onSearchTap),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
@@ -1364,10 +1334,12 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                 final ink = _kDeptInks[i % _kDeptInks.length];
 
                 return _Press(
-                  onTap: () => _go(
-                    _categoryRoute,
-                    params: {'slug': d.slug, 'name': d.name},
-                  ),
+                  onTap: () {
+                    final action = widget.onCategoryTap;
+                    if (action == null) return;
+                    HapticFeedback.lightImpact();
+                    action(d.slug, d.name);
+                  },
                   child: Container(
                     width: _kDeptCardWidth,
                     padding: const EdgeInsets.symmetric(
@@ -1491,7 +1463,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
               children: [
                 Expanded(child: _sectionHeading(rail.title, rail.subtitle)),
                 _Press(
-                  onTap: () => _go(_shopRoute),
+                  onTap: () => _run(widget.onShopTap),
                   child: Row(
                     children: [
                       Text(
@@ -2092,16 +2064,17 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     // A small class rather than a record tuple, so the file still compiles on
     // a FlutterFlow project pinned to a pre-Dart-3 SDK.
     //
-    // Home is index 0 and already on screen, so its route is empty — `_go`
-    // treats that as "do nothing" rather than pushing the page onto itself.
-    // No longer `const`: each route now reads a widget parameter first and
-    // falls back to the constant, so the list has to be built at runtime.
+    // Home is index 0 and already on screen, so it carries no action — a null
+    // one is a no-op rather than pushing this page onto itself.
+    //
+    // Built at runtime rather than const, because each entry now carries the
+    // Action the project wired in FlutterFlow rather than a page name.
     final items = <_NavItem>[
-      const _NavItem(Icons.home_rounded, 'Home', ''),
-      _NavItem(Icons.grid_view_rounded, 'Shop', _shopRoute),
-      _NavItem(Icons.favorite_border_rounded, 'Saved', _wishlistRoute),
-      _NavItem(Icons.shopping_bag_outlined, 'Cart', _cartRoute),
-      _NavItem(Icons.person_outline_rounded, 'Me', _profileRoute),
+      const _NavItem(Icons.home_rounded, 'Home', null),
+      _NavItem(Icons.grid_view_rounded, 'Shop', widget.onShopTap),
+      _NavItem(Icons.favorite_border_rounded, 'Saved', widget.onWishlistTap),
+      _NavItem(Icons.shopping_bag_outlined, 'Cart', widget.onCartTap),
+      _NavItem(Icons.person_outline_rounded, 'Me', widget.onProfileTap),
     ];
 
     return Container(
@@ -2120,7 +2093,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                 _Press(
                   // No haptic here: `_go` fires one itself, and two on a
                   // single tap reads as a stutter.
-                  onTap: () => _go(items[i].route),
+                  onTap: () => _run(items[i].action),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -2198,8 +2171,12 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
 class _NavItem {
   final IconData icon;
   final String label;
-  final String route;
-  const _NavItem(this.icon, this.label, this.route);
+
+  /// The FlutterFlow Action this tab runs. Null for the tab already on screen,
+  /// and for any destination the project chose not to wire.
+  final Future Function()? action;
+
+  const _NavItem(this.icon, this.label, this.action);
 }
 
 /// Thrown for a non-200 so the catch in `_load` has one thing to handle.
