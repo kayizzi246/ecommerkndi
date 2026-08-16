@@ -7,7 +7,6 @@ import type { SiteSettings } from "@/lib/site-settings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import ShopperOnboarding from "@/components/ShopperOnboarding";
 import CartDrawer from "@/components/CartDrawer";
 import CookieNotice from "@/components/CookieNotice";
 import ContactRail from "@/components/ContactRail";
@@ -90,7 +89,29 @@ export default function StoreChrome({
           masthead and the bottom nav. */}
       <CookieNotice />
       <MobileBottomNav />
-      <ShopperOnboarding departments={departments} />
+      {/* ---- The welcome flow is gone, and this is why ----
+
+          `<ShopperOnboarding />` used to render here: a full-screen modal that
+          appeared 1.2 seconds after load for every first-time visitor, asked
+          for departments, a clothing size and a city, and set
+          `document.body.style.overflow = "hidden"` while it was up.
+
+          It was the single most expensive thing on the site. A shopper arriving
+          from Google — which is nearly all of them, on a phone, on a Ugandan
+          connection — waited for the page, started to read it, and then had it
+          taken away and replaced with three questions from a shop they had not
+          decided to trust yet. The answers bought very little: a size that most
+          departments here have no use for, and a city that the delivery quote
+          asks for again at checkout because it needs a real address anyway.
+
+          It also blocked the one thing the page is for. The first product photo
+          was behind it, scrolling was locked, and the way out was a dismissal
+          the visitor had to find.
+
+          The component file stays — `readShopperPreferences` is still imported
+          by DeliveryPromise, and returns null now, which that component already
+          handles by falling back to the shop's own default. Nothing renders the
+          flow, so nothing asks. */}
     </>
   );
 }

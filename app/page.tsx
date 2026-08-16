@@ -5,6 +5,7 @@ import SuperDeals from "@/components/home/SuperDeals";
 import DailyDeals from "@/components/home/DailyDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import TrustBar from "@/components/home/TrustBar";
 import SellWithUs from "@/components/home/SellWithUs";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
@@ -150,6 +151,22 @@ export default async function Home() {
             <DealCarousel products={trending} priority />
           </section>
         )}
+
+        {/* ---- What this visitor was last looking at ----
+
+            Second on the page, and only for somebody who has been here before:
+            the component renders nothing at all when the list is empty, so a
+            first-time visitor never sees an empty shelf where merchandise
+            should be.
+
+            High up because of what it is. A shopper who left and came back
+            almost always came back for something specific, and it is something
+            they have already seen — making them find it again through the
+            departments is asking them to repeat work the browser already did.
+            It reads from `kandi-recently-viewed-v1` in their own browser, which
+            is the same place the product page writes it, and it leaves the
+            device no more than the basket does. */}
+        <RecentlyViewed className="" />
 
         {/* ---- New in ----
              The newest listings from the shop's independent sellers, in the

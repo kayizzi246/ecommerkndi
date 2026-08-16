@@ -810,7 +810,16 @@ class _PressState extends State<_Press> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      // The press tick, on the way down, for every control on the page —
+      // `selectionClick` rather than `lightImpact` because several handlers
+      // fire an impact of their own when the action lands, and a crisp tick
+      // down plus a softer impact out reads as one gesture where two identical
+      // buzzes read as a fault. Nothing is fired for a disabled control: a
+      // sold-out "Add to cart" that buzzes has told the finger it worked.
+      onTapDown: (_) {
+        if (widget.onTap != null) HapticFeedback.selectionClick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,

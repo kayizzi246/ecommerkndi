@@ -20,7 +20,28 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        /**
+         * `/api/auth/me` is allowed, and it is the exception that proves the
+         * `/api/` rule below rather than a hole in it.
+         *
+         * Every page on this site mounts `CustomerSessionProvider`, which fetches
+         * that endpoint once to find out whether anybody is signed in. With
+         * `/api/` blocked outright, Googlebot rendered the page, was refused the
+         * request, and reported it — "1/80 couldn't be loaded, blocked by
+         * robots.txt" in the URL inspector, on the homepage, permanently.
+         *
+         * It is not fatal — the page renders identically for a signed-out
+         * visitor, which is what a crawler always is — but it is noise in the
+         * one report that should be quiet, and a rendering warning on the
+         * homepage is exactly the kind of thing that gets mistaken for the
+         * cause when something else goes wrong later.
+         *
+         * Allowing it costs nothing: to an unauthenticated request, which is all
+         * a crawler can make, it returns no customer. There is no data behind it
+         * to leak. A more specific `Allow` wins over a broader `Disallow` in
+         * every major crawler, so the rest of `/api/` stays shut.
+         */
+        allow: ["/", "/api/auth/me"],
         /**
          * `/cart` is deliberately NOT in this list any more, and that is not an
          * oversight — it is the fix for it showing up in Google.

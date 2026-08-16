@@ -81,10 +81,36 @@ export type SellerStats = {
   products_live: number;
   products_pending: number;
   products_out_of_stock: number;
+  /**
+   * Product page views in the selected range, and the change on the previous
+   * one.
+   *
+   * Optional, and that is load-bearing rather than laziness: these arrive from
+   * a WordPress endpoint that older installs of the plugin do not have, and a
+   * dashboard that renders "0 views" against a plugin which simply is not
+   * counting yet tells a seller their listings are dead when they are not.
+   * `undefined` means "not measured"; `0` means "measured, and nobody looked".
+   * The dashboard draws the tile only for the first of those.
+   */
+  views?: number;
+  views_change?: number;
   /** Daily revenue series for the selected range. */
   revenue_series: { date: string; revenue: number; orders: number }[];
-  /** Best performing products in the selected range. */
-  top_products: { id: number; name: string; units: number; revenue: number }[];
+  /**
+   * Best performing products in the selected range.
+   *
+   * `views` is optional here for the same reason, and it is the field that
+   * makes this table worth reading: units alone cannot distinguish a listing
+   * nobody found from a listing everybody found and nobody bought, and those
+   * two need opposite fixes.
+   */
+  top_products: {
+    id: number;
+    name: string;
+    units: number;
+    revenue: number;
+    views?: number;
+  }[];
   /** Revenue split by product category. */
   category_split: { name: string; revenue: number }[];
 };

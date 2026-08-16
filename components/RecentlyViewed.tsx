@@ -5,13 +5,24 @@ import Image from "next/image";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice } from "@/lib/currency";
 
-export default function RecentlyViewed() {
+/**
+ * The rail of what this visitor has already looked at.
+ *
+ * `className` exists because the two places it renders space themselves
+ * differently: the product page stacks sections with margins, so it keeps the
+ * `mt-12` default, while the homepage lays its sections out in a flex column
+ * with a gap — where a margin on top of the gap is a double helping of it.
+ */
+export default function RecentlyViewed({ className = "mt-12" }: { className?: string }) {
   const { items } = useRecentlyViewed();
 
+  // Nothing is drawn for a first-time visitor, which is what makes this safe to
+  // place high on the homepage: it costs a new shopper no space at all, and a
+  // returning one gets the thing they were last looking at above the fold.
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-12">
+    <section className={className}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="section-title text-[20px] text-shop-ink md:text-[24px]">
           Recently viewed

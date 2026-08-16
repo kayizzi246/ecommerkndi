@@ -12,6 +12,7 @@ import {
 import { formatPrice } from "@/lib/currency";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import ProductViewPing from "@/components/ProductViewPing";
 import ReviewSection from "@/components/ReviewSection";
 import { getSiteSettings } from "@/lib/site-settings";
 import ExpandableContent from "@/components/ExpandableContent";
@@ -275,6 +276,10 @@ export default async function ProductPage({
         <Chevron />
         <span className="text-shop-ink">{product.name}</span>
       </nav>
+
+      {/* Records the view for the seller's dashboard. Renders nothing, blocks
+          nothing, and counts once per product per tab — see the component. */}
+      <ProductViewPing productId={product.id} />
 
       <ProductPurchase
         product={product}

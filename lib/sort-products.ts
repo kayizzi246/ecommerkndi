@@ -48,6 +48,15 @@ export type ProductFilters = {
   stock?: string;
   /** "1" restricts to discounted products. */
   sale?: string;
+  /**
+   * Whole percent. Restricts to products reduced by at least this much.
+   *
+   * `sale` answers "is it reduced at all", which is not the same question as
+   * "show me half price" — and a "50% off" entry point that quietly includes
+   * things reduced by 5% is the kind of thing a shopper checks once and never
+   * trusts again.
+   */
+  min_discount?: string;
   /** Category slug from the brand facet. */
   brand?: string;
 };
@@ -63,11 +72,24 @@ export function filterProducts(products: Product[], filters: ProductFilters): Pr
   const min = Number(filters.min_price);
   const max = Number(filters.max_price);
 
+  const minDiscount = Number(filters.min_discount);
+
   return products.filter((product) => {
     if (Number.isFinite(min) && filters.min_price && product.price < min) return false;
     if (Number.isFinite(max) && filters.max_price && product.price > max) return false;
     if (filters.stock === "1" && product.stock_status !== "instock") return false;
     if (filters.sale === "1" && !product.on_sale) return false;
+    if (
+      Number.isFinite(minDiscount) &&
+      filters.min_discount &&
+      // The same `discountPercent` the tiles print, so a product shown as
+      // "−50%" is one this filter agrees is 50% off. Computing the reduction a
+      // second way here is how a "50% off" page ends up listing a tile badged
+      // 49%.
+      discountPercent(product.regular_price, product.price) < minDiscount
+    ) {
+      return false;
+    }
     if (filters.brand && !product.categories.some((c) => c.slug === filters.brand)) {
       return false;
     }
@@ -117,6 +139,17 @@ export function sortProducts(products: Product[], sort?: string): Product[] {
         if (!b.date_created) return -1;
         return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
       });
+    /**
+     * Most bought first.
+     *
+     * This case was missing while `?sort=popular` was already being linked
+     * from the site — the "View all" beside Trending now and Best sellers both
+     * point at it — so those links fell through to `default` and returned the
+     * page in whatever order WooCommerce sent it. The label said popular and
+     * the order was arbitrary, which is worse than offering no such sort.
+     */
+    case "popular":
+      return sorted.sort((a, b) => b.total_sales - a.total_sales);
     default:
       return sorted;
   }

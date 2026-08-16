@@ -289,7 +289,15 @@ export default function SellerOverviewPage() {
       ) : (
         // While refetching, the frame is held at reduced opacity — no skeleton, no jump.
         <div className={refreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Five across once views are being measured, four before then.
+              The column count follows the tiles rather than the tiles being
+              padded out to fill a fixed grid — a placeholder "—" where a real
+              number will one day sit is worse than the number being absent. */}
+          <div
+            className={`grid gap-4 sm:grid-cols-2 ${
+              stats.views === undefined ? "xl:grid-cols-4" : "xl:grid-cols-5"
+            }`}
+          >
             <StatTile
               label="Revenue"
               value={formatPrice(stats.revenue)}
@@ -304,6 +312,25 @@ export default function SellerOverviewPage() {
               deltaPeriod={rangeLabel}
               trend={stats.revenue_series.map((point) => point.orders)}
             />
+            {/* Only when the shop is actually counting. `undefined` means the
+                plugin on this install has no view counter yet, and a "0 views"
+                tile in that case tells a seller their listings are dead when
+                nothing has been measured at all. */}
+            {stats.views !== undefined && (
+              <StatTile
+                label="Product views"
+                value={stats.views.toLocaleString("en-UG")}
+                delta={stats.views_change}
+                deltaPeriod={rangeLabel}
+                hint={
+                  stats.views > 0 && stats.orders > 0
+                    ? `${((stats.orders / stats.views) * 100).toFixed(1)}% of views ordered`
+                    : stats.views > 0
+                      ? "No orders from these views yet"
+                      : undefined
+                }
+              />
+            )}
             <StatTile
               label="Units sold"
               value={String(stats.units_sold)}

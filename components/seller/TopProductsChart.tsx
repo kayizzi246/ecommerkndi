@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 
-export type TopProduct = { id: number; name: string; units: number; revenue: number };
+export type TopProduct = {
+  id: number;
+  name: string;
+  units: number;
+  revenue: number;
+  /**
+   * Product page views in the same period. Absent on installs whose plugin has
+   * no view counter — see `SellerStats.views`.
+   */
+  views?: number;
+};
 
 /**
  * Best sellers by revenue — magnitude comparison, so one hue and bar length do
@@ -78,6 +88,17 @@ export default function TopProductsChart({
                   <p className="text-[13px] text-[color:var(--text-secondary)]">
                     {product.units} {product.units === 1 ? "unit" : "units"} sold
                   </p>
+                  {/* Views, and what share of them bought — the pair is the
+                      point. Units alone cannot tell a listing nobody found
+                      from one everybody found and nobody bought, and those two
+                      need opposite fixes: the first is a title or a category,
+                      the second is a price or a photograph. */}
+                  {product.views !== undefined && product.views > 0 && (
+                    <p className="text-[13px] text-[color:var(--text-muted)]">
+                      {product.views.toLocaleString("en-UG")} views ·{" "}
+                      {((product.units / product.views) * 100).toFixed(1)}% bought
+                    </p>
+                  )}
                 </div>
               )}
             </li>

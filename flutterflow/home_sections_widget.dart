@@ -71,6 +71,20 @@ import 'package:http/http.dart' as http;
 //     those two on every custom widget itself and re-adds them if
 //     removed — they are its scaffolding, not configuration.
 //
+//  6. QUICK PICKS, AND DEPARTMENTS WITHOUT COUNTS. A row of four
+//     entry points sits above the departments — Trending,
+//     Promotions, 50% off, Under UGX 50,000 — and each one is a
+//     query the API can actually answer, opening the shop screen
+//     already narrowed. "50% off" sends `min_discount=50` and NOT
+//     `sale=1`: "reduced at all" and "half price" are different
+//     promises and only the second is on the button.
+//
+//     The department cards lost their "128 items" line and gained
+//     an icon that differs per department. The count answered a
+//     question nobody asks before tapping, and read badly on a
+//     young shop; the icon is the thing the old row of six
+//     identical grey circles never had.
+//
 //  SETUP  (FlutterFlow)
 //  -----------------------------------------------------------
 //  • Custom Widget name:  HomeSectionsWidget
@@ -78,19 +92,39 @@ import 'package:http/http.dart' as http;
 //        http: ^1.2.0
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
-//  • Parameters to add: NONE. Drop the widget on the page and it
-//    works. Edit the CONFIG constants below to point it at your
-//    storefront and to name your FlutterFlow pages.
+//        shared_preferences: ^2.2.2
+//  • Paste cart_widget.dart into FlutterFlow FIRST. This screen
+//    uses `KandiCart`, `KandiWishlist` and `kandiOpenProduct`,
+//    which are declared there.
+//  • Parameters (all optional Actions):
+//        onSearchTap   onShopTap   onCartTap
+//        onWishlistTap onProfileTap onDeliverToTap
+//
+//    Nothing that carries an id. Products and departments are
+//    opened by this file, in code — `ProductDetailPage(...)`,
+//    `CategoryNavigationMenu(...)` — because an id passed as a
+//    FlutterFlow parameter has to be declared on the destination,
+//    spelled identically in the action editor and kept in step
+//    with this file, and when it drifts the shopper gets a blank
+//    page rather than a failed build.
+//
+//    `onCartTap` and `onWishlistTap` fall back to pushing this
+//    project's own cart and saved-items screens when unwired, so
+//    neither tab can be dead.
 //
 //  NOTE ON THE SUPABASE IMPORT ABOVE: FlutterFlow writes that
 //  header itself and rewrites it on every save, so it stays.
 //  Nothing in this file uses Supabase any more.
 //
-//  NOTE ON THE WISHLIST: kept in memory for the session, which
-//  mirrors the website (its wishlist is per-device localStorage,
-//  not a server record). To persist it across launches, lift
-//  `_wishlisted` into FFAppState — that is FlutterFlow's job, not
-//  a custom widget's.
+//  NOTE ON THE WISHLIST: no longer session-only. It is the shared
+//  `KandiWishlist`, on the same per-device storage key the
+//  website's own wishlist uses, so the heart here, the saved-items
+//  screen and a wrapped webview all agree. The paragraph that used
+//  to be here suggested lifting it into FFAppState — that would
+//  have made the app disagree with the site instead.
+//  anything else tempted into FFAppState: state two screens share
+//  belongs where both can read it, and where the website already
+//  keeps its copy.
 // ============================================================
 
 // ============================================================
@@ -468,12 +502,23 @@ class _Rail {
   final String id;
   final String title;
   final String? subtitle;
+
+  /// Where the website's own "View all" for this rail points — `/sale`,
+  /// `/search?sort=popular`, `/category/mens-fashion`.
+  ///
+  /// It was arriving in the payload and being dropped, so every "View all" on
+  /// this screen went to the same undifferentiated shop: tapping it beside
+  /// Daily Deals and beside Best sellers landed in identical places. The server
+  /// already knows where each rail leads, which makes reading this the only way
+  /// the two can't drift — see `_openRail`.
+  final String? href;
   final List<_Product> products;
 
   const _Rail({
     required this.id,
     required this.title,
     required this.subtitle,
+    required this.href,
     required this.products,
   });
 
@@ -483,6 +528,7 @@ class _Rail {
       id: (j['id'] ?? '').toString(),
       title: (j['title'] ?? '').toString(),
       subtitle: j['subtitle']?.toString(),
+      href: j['href']?.toString(),
       products: raw is List
           ? raw
               .whereType<Map>()
@@ -636,11 +682,44 @@ class _Press extends StatefulWidget {
 class _PressState extends State<_Press> {
   bool _down = false;
 
+  /// The press tick.
+  ///
+  /// ---- Why it lives here and not in the handlers ----
+  ///
+  /// Haptics were on about a third of this screen's controls: whichever ones
+  /// somebody remembered to add `HapticFeedback` to. A tap on a product tile
+  /// buzzed and a tap on a department did not, which does not read as a design
+  /// decision — it reads as half the screen being dead.
+  ///
+  /// Every control on this page is already wrapped in `_Press`, so this is the
+  /// one place that catches all of them, including any added later.
+  ///
+  /// ---- Why on press-DOWN, and why `selectionClick` ----
+  ///
+  /// Down, because that is when the finger is still on the glass and the tick
+  /// is felt as the button yielding. Fired on tap-up it arrives after the
+  /// screen has already begun changing and reads as a stutter.
+  ///
+  /// `selectionClick` rather than `lightImpact` because several handlers fire
+  /// their own `lightImpact` or `mediumImpact` when the action lands, and two
+  /// identical buzzes in a row feels like a fault. A crisp tick on the way down
+  /// and a softer impact on the way out is the pairing native pickers use — it
+  /// reads as one gesture with a beginning and an end. On Android
+  /// `selectionClick` maps to the platform's own click effect, which is
+  /// quieter than a light impact by design.
+  void _tick() {
+    if (widget.onTap == null) return; // Nothing will happen; say nothing.
+    HapticFeedback.selectionClick();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      onTapDown: (_) {
+        _tick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,
@@ -690,8 +769,6 @@ class HomeSectionsWidget extends StatefulWidget {
     super.key,
     this.width,
     this.height,
-    this.onProductTap,
-    this.onCategoryTap,
     this.onSearchTap,
     this.onCartTap,
     this.onWishlistTap,
@@ -703,14 +780,26 @@ class HomeSectionsWidget extends StatefulWidget {
   final double? width;
   final double? height;
 
-  /// Opening a product. Receives the slug when there is one — which is what the
-  /// website's own URLs use and what the detail screen's `productId` parameter
-  /// accepts — and the numeric id, so the destination can take either.
-  final Future Function(String productId, String slug)? onProductTap;
-
-  /// Opening a department. Receives its slug and its display name.
-  final Future Function(String slug, String name)? onCategoryTap;
-
+  /// ---- What is NOT here any more ----
+  ///
+  /// `onProductTap` and `onCategoryTap` are gone. Both carried an id or a slug
+  /// across the FlutterFlow boundary, and both destinations — the product page
+  /// and the department browser — are custom widgets in this same project. This
+  /// screen pushes them itself now, with the id as a typed Dart argument.
+  ///
+  /// That is strictly better than a parameter for one reason: a parameter has
+  /// to be declared on the destination page, spelled identically in the action
+  /// editor, and kept in step with this file. Three places to get one string
+  /// wrong, and when it goes wrong the shopper gets a blank product page rather
+  /// than the build failing.
+  ///
+  /// What remains are the bottom tabs — destinations that carry no data and are
+  /// real FlutterFlow pages with their own scaffolds — plus search, which has
+  /// no in-code counterpart, and the "Deliver to" line.
+  ///
+  /// `onCartTap` and `onWishlistTap` are the two tabs that also have a screen in
+  /// this project, so an unwired one is not a dead control: it falls back to
+  /// pushing `ShoppingCartPage` / `WishlistPage` in code.
   final Future Function()? onSearchTap;
   final Future Function()? onCartTap;
   final Future Function()? onWishlistTap;
@@ -742,16 +831,21 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   String? _error;
   bool _showTop = false;
 
-  /// Session-only, mirroring the website's per-device wishlist.
-  final Set<int> _wishlisted = {};
+  /// The saved-items list, shared with every other screen.
+  ///
+  /// It used to be session-only — a heart tapped here survived until the
+  /// shopper left the screen and no further, and the saved-items page knew
+  /// nothing about it. Both now read `KandiWishlist`, on the same storage key
+  /// the website's own wishlist uses.
+  Set<int> _wishlisted = <int>{};
 
   /// Badge on the cart icon. Hidden while it is zero.
   ///
-  /// Left at zero because this widget has no parameters and no cart of its
-  /// own. If your project keeps a cart count in FFAppState, the one-line change
-  /// is to read it here — e.g. `int get _cartCount => FFAppState().cartCount;`
-  /// — rather than to add a parameter back.
-  final int _cartCount = 0;
+  /// It was hard-zero, with a note suggesting FFAppState as the place to keep a
+  /// real one. There is a real one now and it is not in FlutterFlow: the basket
+  /// this app adds to is `KandiCart`, so the badge reads the same list the cart
+  /// screen shows and cannot say 3 over a basket of 5.
+  int _cartCount = 0;
 
   int _hintIndex = 0;
   Timer? _hintTimer;
@@ -769,6 +863,10 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     super.initState();
     _scroll.addListener(_onScroll);
     _load();
+    // The basket and the saved list, from the device. Not awaited: they are
+    // local reads that finish in a frame or two, and the feed request should
+    // not be waiting behind them.
+    _syncStores();
     _hintTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted) {
         setState(() => _hintIndex = (_hintIndex + 1) % _hints.length);
@@ -861,25 +959,166 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     }
   }
 
-  void _toggleWishlist(_Product p) {
+  /// Saves or unsaves, in the list every other screen reads.
+  ///
+  /// This was a `Set<int>` that lived and died with the screen, which meant a
+  /// heart tapped here was forgotten the moment the shopper scrolled to another
+  /// screen and disagreed with the saved-items page while both were open. The
+  /// store is the one declared in `cart_widget.dart`, on the website's own
+  /// storage key.
+  Future<void> _toggleWishlist(_Product p) async {
     HapticFeedback.lightImpact();
+    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+      productId: p.id,
+      name: p.name,
+      image: p.image,
+      price: p.price,
+      slug: p.slug,
+    ));
+    if (!mounted) return;
     setState(() {
-      if (_wishlisted.contains(p.id)) {
-        _wishlisted.remove(p.id);
-      } else {
+      if (nowSaved) {
         _wishlisted.add(p.id);
+      } else {
+        _wishlisted.remove(p.id);
       }
     });
   }
 
-  /// Both the slug and the id are handed over: the slug is what the website's
-  /// own product URLs use, so a page built from it opens the same product, and
-  /// the id is there for any lookup that wants the numeric key.
+  /// Re-reads the shared basket and saved list.
+  ///
+  /// Run on open and again every time this screen comes back from one of them,
+  /// since both can change while it is off screen — and a badge that is one
+  /// behind is the visible half of the bug this replaces.
+  Future<void> _syncStores() async {
+    final saved = await KandiWishlist.load(force: true);
+    await KandiCart.load(force: true);
+    if (!mounted) return;
+    setState(() {
+      _wishlisted = saved.map((i) => i.productId).toSet();
+      _cartCount = KandiCart.itemCount;
+    });
+  }
+
+  // ---------- Opening things, in code ----------
+
+  /// Opens a product.
+  ///
+  /// `kandiOpenProduct` is declared in `cart_widget.dart` and pushes
+  /// `ProductDetailPage` directly, wiring its related rail and its cart icon on
+  /// the way. The id travels as a typed Dart argument rather than through a
+  /// FlutterFlow parameter that has to be declared on the destination, spelled
+  /// identically in the action editor and kept in step with this file — three
+  /// places to get one string wrong, and the failure is a blank product page
+  /// rather than a compile error.
   void _openProduct(_Product p) {
-    final action = widget.onProductTap;
-    if (action == null) return;
     HapticFeedback.lightImpact();
-    action(p.slug.isNotEmpty ? p.slug : p.id.toString(), p.slug);
+    kandiOpenProduct(context, p.slug.isNotEmpty ? p.slug : p.id.toString());
+  }
+
+  /// Opens a department, with its own name at the top of the page.
+  void _openDepartment(_Department d) {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CategoryNavigationMenu(
+          initialDepartment: d.slug,
+          initialTitle: d.name,
+        ),
+      ),
+    );
+  }
+
+  /// Opens the whole shop, or one of the quick picks.
+  ///
+  /// Every argument here is checked by the compiler, which is the point: "50%
+  /// off" is `initialMinDiscount: 50` and not a query string assembled by hand
+  /// in two files that have to agree.
+  void _openShop({
+    String? sort,
+    bool saleOnly = false,
+    double? maxPrice,
+    int? minDiscount,
+    String? title,
+  }) {
+    HapticFeedback.lightImpact();
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => CategoryNavigationMenu(
+              initialSort: sort,
+              initialSaleOnly: saleOnly,
+              initialMaxPrice: maxPrice,
+              initialMinDiscount: minDiscount,
+              initialTitle: title,
+            ),
+          ),
+        )
+        .then((_) => _syncStores());
+  }
+
+  /// Follows a rail's own "View all".
+  ///
+  /// The destination is read from the `href` the server sent rather than
+  /// guessed from the rail's id, so a rail the website re-points moves the app
+  /// with it and a rail added there needs no case adding here. Anything this
+  /// does not recognise opens the shop unfiltered, which is the honest failure:
+  /// more products, not none.
+  void _openRail(_Rail rail) {
+    final href = rail.href ?? '';
+
+    if (href.startsWith('/category/')) {
+      final slug = href.substring('/category/'.length).split('?').first;
+      if (slug.isNotEmpty) {
+        HapticFeedback.lightImpact();
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute<void>(
+                builder: (_) => CategoryNavigationMenu(
+                  initialDepartment: slug,
+                  initialTitle: rail.title,
+                ),
+              ),
+            )
+            .then((_) => _syncStores());
+        return;
+      }
+    }
+
+    if (href.startsWith('/sale')) {
+      _openShop(saleOnly: true, sort: 'discount', title: rail.title);
+      return;
+    }
+
+    // `/search?sort=…` — the sort keys are the same words the app's own
+    // endpoint takes, which is why they can be passed straight through.
+    final sort = Uri.tryParse(href)?.queryParameters['sort'];
+    _openShop(sort: sort, title: rail.title);
+  }
+
+  /// The basket. The tab's Action when the project wired one, this app's own
+  /// cart screen when it did not — so the control is never dead.
+  void _openCart() {
+    HapticFeedback.lightImpact();
+    if (widget.onCartTap != null) {
+      widget.onCartTap!();
+      return;
+    }
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const ShoppingCartPage()))
+        .then((_) => _syncStores());
+  }
+
+  /// Saved items, the same way.
+  void _openWishlist() {
+    HapticFeedback.lightImpact();
+    if (widget.onWishlistTap != null) {
+      widget.onWishlistTap!();
+      return;
+    }
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const WishlistPage()))
+        .then((_) => _syncStores());
   }
 
   void _toTop() {
@@ -1015,6 +1254,10 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     return [
       SliverToBoxAdapter(child: _appBar()),
       _stickySearch(),
+      // Above the departments deliberately: a department answers "where do I
+      // look", these answer "what is worth looking at", and the second question
+      // is the one a shopper opening a shop app has.
+      SliverToBoxAdapter(child: _quickPicks()),
       if (feed.departments.isNotEmpty)
         SliverToBoxAdapter(child: _departments(feed)),
       SliverToBoxAdapter(child: _trustStrip(feed)),
@@ -1119,13 +1362,13 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             _circleIcon(
               icon: Icons.favorite_border_rounded,
               badge: _wishlisted.length,
-              onTap: () => _run(widget.onWishlistTap),
+              onTap: _openWishlist,
             ),
             const SizedBox(width: 8),
             _circleIcon(
               icon: Icons.shopping_bag_outlined,
               badge: _cartCount,
-              onTap: () => _run(widget.onCartTap),
+              onTap: _openCart,
             ),
           ],
         ),
@@ -1276,6 +1519,190 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
         ),
       );
 
+  /// An icon for a department, chosen from its own name.
+  ///
+  /// The shop's categories are whatever wp-admin says they are, so this cannot
+  /// be a fixed list of six — it is a keyword match against the name and the
+  /// slug, with a shopping bag for anything it does not recognise. A wrong-ish
+  /// icon on an unusual department costs nothing; the failure it replaces was
+  /// six identical grey glyphs, which is decoration standing where information
+  /// should be.
+  ///
+  /// Matching is on both the name and the slug because the two can differ —
+  /// "Men's Fashion" arrives as `mens-fashion`, and an apostrophe or a capital
+  /// should not decide whether a card gets its icon.
+  IconData _deptIcon(String name, String slug) {
+    final s = '$name $slug'.toLowerCase();
+
+    bool has(List<String> words) => words.any(s.contains);
+
+    // Ordered from the most specific to the most general: "phone accessories"
+    // has to be caught by the phone rule before "accessories" claims it.
+    if (has(['phone', 'smartphone', 'mobile', 'tecno', 'itel'])) {
+      return Icons.smartphone_rounded;
+    }
+    if (has(['laptop', 'computer', 'pc'])) return Icons.laptop_mac_rounded;
+    if (has(['tv', 'television', 'screen'])) return Icons.tv_rounded;
+    if (has(['electronic', 'gadget', 'tech'])) {
+      return Icons.devices_other_rounded;
+    }
+    if (has(['audio', 'speaker', 'headphone', 'earbud'])) {
+      return Icons.headphones_rounded;
+    }
+    if (has(['shoe', 'sneaker', 'footwear', 'boot', 'sandal'])) {
+      return Icons.directions_walk_rounded;
+    }
+    if (has(['bag', 'handbag', 'luggage', 'backpack'])) {
+      return Icons.shopping_bag_rounded;
+    }
+    if (has(['watch', 'jewel', 'jewellery', 'jewelry'])) {
+      return Icons.watch_rounded;
+    }
+    if (has(['beauty', 'cosmetic', 'makeup', 'perfume', 'fragrance'])) {
+      return Icons.spa_rounded;
+    }
+    if (has(['health', 'pharmacy', 'medic', 'wellness'])) {
+      return Icons.medical_services_rounded;
+    }
+    if (has(['baby', 'kid', 'child', 'toy'])) {
+      return Icons.child_friendly_rounded;
+    }
+    if (has(['men', 'gent'])) return Icons.man_rounded;
+    if (has(['women', 'ladies', 'lady'])) return Icons.woman_rounded;
+    if (has(['fashion', 'cloth', 'wear', 'apparel', 'dress'])) {
+      return Icons.checkroom_rounded;
+    }
+    if (has(['home', 'furniture', 'decor', 'kitchen', 'bed'])) {
+      return Icons.chair_rounded;
+    }
+    if (has(['grocer', 'food', 'drink', 'beverage'])) {
+      return Icons.local_grocery_store_rounded;
+    }
+    if (has(['sport', 'fitness', 'gym', 'outdoor'])) {
+      return Icons.sports_soccer_rounded;
+    }
+    if (has(['car', 'auto', 'motor', 'vehicle'])) {
+      return Icons.directions_car_rounded;
+    }
+    if (has(['book', 'stationery', 'office'])) return Icons.menu_book_rounded;
+    if (has(['game', 'gaming', 'console'])) {
+      return Icons.sports_esports_rounded;
+    }
+    if (has(['tool', 'hardware', 'build'])) return Icons.handyman_rounded;
+
+    return Icons.shopping_bag_outlined;
+  }
+
+  // ---------- Quick picks ----------
+
+  /// Four ways into the catalogue, above the departments.
+  ///
+  /// ---- Why these four, and why they are not rails ----
+  ///
+  /// The rails below already show trending and reduced products, but a rail
+  /// shows about four things and then asks the shopper to scroll sideways
+  /// through the rest. These are the same intentions expressed as destinations:
+  /// tapping one opens the shop screen already narrowed, with every matching
+  /// product in a grid and the shop's own filters still available on top.
+  ///
+  /// Every one of them is a real query the API can answer, and that is the bar
+  /// each had to clear:
+  ///
+  ///   • Trending  — `sort=popular`, most bought first.
+  ///   • Promotions — `sale=1`, anything reduced, deepest cuts first.
+  ///   • 50% off   — `min_discount=50`, and deliberately NOT `sale=1`. "Reduced
+  ///     at all" and "half price" are different promises, and the one on the
+  ///     button is the second. A chip that quietly included 5% reductions is
+  ///     the kind of thing a shopper checks once and never trusts again.
+  ///   • Under UGX 50,000 — `max_price=50000`, cheapest first.
+  ///
+  /// The 50% chip is the loud one — filled orange against three outlined
+  /// neighbours — because it is the only one of the four that is a claim about
+  /// price rather than a way of sorting, and it is what a shopper scanning this
+  /// row is looking for.
+  Widget _quickPicks() {
+    Widget chip({
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      bool filled = false,
+    }) =>
+        _Press(
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: filled ? _kPrimary : _kWhite,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: filled ? _kPrimary : _kLine),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 15,
+                  color: filled ? _kWhite : _kPrimaryInk,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: _label(
+                    size: 12.5,
+                    color: filled ? _kWhite : _kInk,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(_pad, 4, _pad - 8, 6),
+        children: [
+          chip(
+            icon: Icons.local_fire_department_rounded,
+            label: 'Trending',
+            onTap: () => _openShop(sort: 'popular', title: 'Trending now'),
+          ),
+          chip(
+            icon: Icons.sell_rounded,
+            label: 'Promotions',
+            onTap: () => _openShop(
+              saleOnly: true,
+              sort: 'discount',
+              title: 'Promotions',
+            ),
+          ),
+          chip(
+            icon: Icons.bolt_rounded,
+            label: '50% off',
+            filled: true,
+            onTap: () => _openShop(
+              minDiscount: 50,
+              sort: 'discount',
+              title: '50% off',
+            ),
+          ),
+          chip(
+            icon: Icons.savings_rounded,
+            label: 'Under UGX 50,000',
+            onTap: () => _openShop(
+              maxPrice: 50000,
+              sort: 'price_asc',
+              title: 'Under UGX 50,000',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ---------- Departments ----------
   Widget _departments(_HomeFeed feed) {
     return Padding(
@@ -1334,53 +1761,64 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                 final ink = _kDeptInks[i % _kDeptInks.length];
 
                 return _Press(
-                  onTap: () {
-                    final action = widget.onCategoryTap;
-                    if (action == null) return;
-                    HapticFeedback.lightImpact();
-                    action(d.slug, d.name);
-                  },
+                  onTap: () => _openDepartment(d),
                   child: Container(
                     width: _kDeptCardWidth,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 10,
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
                       color: tint,
                       borderRadius: BorderRadius.circular(_kCardRadius),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
+                    /* ---- An icon and a name. Nothing else ----
+                     *
+                     * The card used to print the product count under the name —
+                     * "128 items" — and it has been taken out. It answered a
+                     * question nobody asks before tapping: a shopper choosing
+                     * between Men and Electronics is choosing what they came
+                     * for, not which shelf is fuller, and the number was
+                     * loudest exactly where it mattered least. It also aged
+                     * badly, since a count that says 4 tells a shopper the shop
+                     * is empty before they have seen a single photograph.
+                     *
+                     * What is there instead is the thing the old circular row
+                     * never had: an icon that DIFFERS per department. That row
+                     * failed because all six circles held the same grey glyph,
+                     * so the icon carried no information at all. Chosen by
+                     * matching the department's own name — see `_deptIcon` —
+                     * with a shopping bag for anything unrecognised, so a shop
+                     * that invents a department still gets a card that looks
+                     * deliberate. */
+                    child: Row(
                       children: [
-                        Text(
-                          d.name,
-                          style: _text(
-                            size: 13,
-                            color: _kInk,
-                            weight: FontWeight.w700,
-                            height: 1.25,
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            color: _kWhite,
+                            shape: BoxShape.circle,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 3),
-                        // The count, at last. Suppressed when the API reports
-                        // zero rather than printing "0 items" under a
-                        // department a shopper is being invited to open.
-                        Text(
-                          d.count > 0
-                              ? '${d.count} ${d.count == 1 ? 'item' : 'items'}'
-                              : 'Browse',
-                          style: _label(
-                            size: 10.5,
+                          child: Icon(
+                            _deptIcon(d.name, d.slug),
+                            size: 18,
                             color: ink,
-                            weight: FontWeight.w700,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            d.name,
+                            style: _text(
+                              size: 13,
+                              color: _kInk,
+                              weight: FontWeight.w700,
+                              height: 1.25,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -1463,7 +1901,9 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
               children: [
                 Expanded(child: _sectionHeading(rail.title, rail.subtitle)),
                 _Press(
-                  onTap: () => _run(widget.onShopTap),
+                  // Follows this rail's own destination, not a single generic
+                  // "Shop" for all eight of them.
+                  onTap: () => _openRail(rail),
                   child: Row(
                     children: [
                       Text(
@@ -1975,46 +2415,137 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
       );
 
   // ---------- Skeleton ----------
-  Widget _skeleton() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _pad),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Shimmer(
-              child: Container(
-                height: 18,
-                width: 150,
-                decoration: BoxDecoration(
-                  color: _kHairline,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+  /// The whole page, in grey.
+  ///
+  /// ---- Why this got longer ----
+  ///
+  /// It used to be one heading and one rail, which meant the shopper watched a
+  /// single grey row for as long as the feed took and then had five more
+  /// sections drop in underneath it. A skeleton that covers a fifth of the page
+  /// does not prevent the jump it exists to prevent — it just moves it further
+  /// down.
+  ///
+  /// Every section the real page draws now has a shape here, in the same order
+  /// and off the same constants: the quick picks, the two rows of department
+  /// cards, the trust strip, two rails and the first row of the grid. The
+  /// arithmetic is shared rather than copied, so a tile that changes height
+  /// changes here too and the two cannot drift.
+  Widget _skeleton() {
+    Widget block(double width, double height, {double radius = 4}) => _Shimmer(
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: _kHairline,
+              borderRadius: BorderRadius.circular(radius),
             ),
-            const SizedBox(height: 14),
-            // The same height and tile width as a real rail, off the same
-            // constants. A skeleton that is not the size of the thing it stands
-            // in for makes the page jump when the data lands, which is the one
-            // job a skeleton exists to prevent.
-            SizedBox(
-              height: _kRailTileWidth + _kCardTextHeight,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 4,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, __) => _Shimmer(
-                  child: Container(
-                    width: _kRailTileWidth,
-                    decoration: BoxDecoration(
-                      color: _kHairline,
-                      borderRadius: BorderRadius.circular(_kCardRadius),
-                    ),
+          ),
+        );
+
+    Widget railBlock() => Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _pad),
+                child: block(150, 18),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: _kRailTileWidth + _kCardTextHeight,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: _pad),
+                  itemCount: 4,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, __) => block(
+                    _kRailTileWidth,
+                    _kRailTileWidth + _kCardTextHeight,
+                    radius: _kCardRadius,
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+        );
+
+    final gridTileWidth = (MediaQuery.of(context).size.width - 24) / 2;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Quick picks.
+        SizedBox(
+          height: 50,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(_pad, 4, _pad, 6),
+            itemCount: 4,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) => block(i == 3 ? 150 : 104, 36, radius: 20),
+          ),
         ),
-      );
+
+        // Departments — two rows, exactly as tall as the real strip.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(_pad, 10, _pad, 0),
+          child: block(150, 18),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 2 * _kDeptCardHeight + _kDeptGap,
+          child: GridView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: _pad),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: _kDeptGap,
+              crossAxisSpacing: _kDeptGap,
+              childAspectRatio: _kDeptCardHeight / _kDeptCardWidth,
+            ),
+            itemCount: 6,
+            itemBuilder: (_, __) => block(
+              _kDeptCardWidth,
+              _kDeptCardHeight,
+              radius: _kCardRadius,
+            ),
+          ),
+        ),
+
+        // Trust strip.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(_pad, 14, _pad, 0),
+          child: block(double.infinity, 34, radius: 8),
+        ),
+
+        railBlock(),
+        railBlock(),
+
+        // The head of the endless grid, so the page does not end abruptly in
+        // white while the rest is still coming.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(_pad, 20, _pad, 12),
+          child: block(150, 18),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              block(gridTileWidth, gridTileWidth + _kCardTextHeight,
+                  radius: _kCardRadius),
+              const SizedBox(width: 8),
+              block(gridTileWidth, gridTileWidth + _kCardTextHeight,
+                  radius: _kCardRadius),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   // ---------- Error ----------
   Widget _errorState() => Padding(
@@ -2071,10 +2602,22 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     // Action the project wired in FlutterFlow rather than a page name.
     final items = <_NavItem>[
       const _NavItem(Icons.home_rounded, 'Home', null),
-      _NavItem(Icons.grid_view_rounded, 'Shop', widget.onShopTap),
-      _NavItem(Icons.favorite_border_rounded, 'Saved', widget.onWishlistTap),
-      _NavItem(Icons.shopping_bag_outlined, 'Cart', widget.onCartTap),
-      _NavItem(Icons.person_outline_rounded, 'Me', widget.onProfileTap),
+      _NavItem(
+        Icons.grid_view_rounded,
+        'Shop',
+        // The department browser lives in this project, so an unwired Shop tab
+        // still goes shopping rather than doing nothing.
+        () => widget.onShopTap != null
+            ? _run(widget.onShopTap)
+            : _openShop(title: 'Shop'),
+      ),
+      _NavItem(Icons.favorite_border_rounded, 'Saved', _openWishlist),
+      _NavItem(Icons.shopping_bag_outlined, 'Cart', _openCart),
+      _NavItem(
+        Icons.person_outline_rounded,
+        'Me',
+        () => _run(widget.onProfileTap),
+      ),
     ];
 
     return Container(
@@ -2091,9 +2634,9 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             children: [
               for (var i = 0; i < items.length; i++)
                 _Press(
-                  // No haptic here: `_go` fires one itself, and two on a
-                  // single tap reads as a stutter.
-                  onTap: () => _run(items[i].action),
+                  // No haptic fired here: every callback behind these tabs
+                  // fires its own, and two on one tap reads as a stutter.
+                  onTap: items[i].onTap,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -2165,18 +2708,20 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
 }
 
 /// One entry in the bottom bar.
-///
-/// Carries the *name* of the page to open rather than a callback, since there
-/// are no callbacks to pass any more. An empty name means the tap is a no-op.
 class _NavItem {
   final IconData icon;
   final String label;
 
-  /// The FlutterFlow Action this tab runs. Null for the tab already on screen,
-  /// and for any destination the project chose not to wire.
-  final Future Function()? action;
+  /// What the tab does.
+  ///
+  /// A plain callback rather than the FlutterFlow Action it used to hold, so a
+  /// tab can choose for itself between running an Action and pushing a sibling
+  /// screen in code — which is what Shop, Saved and Cart now do. Null for the
+  /// tab already on screen: tapping Home on Home is a no-op rather than a push
+  /// of this page onto itself.
+  final VoidCallback? onTap;
 
-  const _NavItem(this.icon, this.label, this.action);
+  const _NavItem(this.icon, this.label, this.onTap);
 }
 
 /// Thrown for a non-200 so the catch in `_load` has one thing to handle.

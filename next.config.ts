@@ -209,6 +209,40 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  /**
+   * `/favicon.ico` serves the same image as `/brand-icon`.
+   *
+   * ---- The bug this closes ----
+   *
+   * The head declares one icon — `/brand-icon`, which proxies whatever is
+   * uploaded in wp-admin — and that part has been right for a while. But
+   * `/favicon.ico` is not a declaration, it is a *convention*: browsers and
+   * Google's favicon crawler request it by habit whether or not the page says
+   * anything, and until now it answered with a different picture. Two Kandi
+   * marks, at two URLs, both live, and nothing in the site deciding which one
+   * a crawler would keep.
+   *
+   * The file that used to sit at `public/favicon.ico` was a real 16/32/48
+   * multi-frame icon of the older orange "K", generated once and then left
+   * behind while the shop's actual logo moved on in wp-admin. So a shop owner
+   * who replaced their logo saw the tab update and the search result stay,
+   * which is precisely the complaint that has now been chased through three
+   * different fixes in `app/layout.tsx`.
+   *
+   * This is the last URL that could disagree. Whatever wp-admin holds is what
+   * every path serves, and the content type it comes back as does not matter:
+   * Google accepts PNG at `/favicon.ico`, and has since favicons stopped being
+   * required to be ICO files.
+   *
+   * A rewrite rather than a redirect, so the icon arrives in one round trip
+   * rather than two — and the static file has been deleted, because anything
+   * in `public/` is served before a rewrite is consulted and would have made
+   * this rule silently do nothing.
+   */
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/brand-icon" }];
+  },
 };
 
 export default nextConfig;

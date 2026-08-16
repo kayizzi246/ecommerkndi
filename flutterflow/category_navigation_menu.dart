@@ -509,7 +509,14 @@ class _PressState extends State<_Press> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      // The press tick, on the way down — see the long note on the home
+      // screen's `_Press`. Here rather than in each handler because this is the
+      // one place that catches every control on the page, including the ones
+      // added after somebody stops remembering to add haptics by hand.
+      onTapDown: (_) {
+        if (widget.onTap != null) HapticFeedback.selectionClick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,
@@ -543,6 +550,12 @@ class CategoryNavigationMenu extends StatefulWidget {
     super.key,
     this.width,
     this.height,
+    this.initialDepartment,
+    this.initialSort,
+    this.initialSaleOnly = false,
+    this.initialMaxPrice,
+    this.initialMinDiscount,
+    this.initialTitle,
     this.onProductTap,
     this.onHomeTap,
     this.onSearchTap,
@@ -554,8 +567,46 @@ class CategoryNavigationMenu extends StatefulWidget {
   final double? width;
   final double? height;
 
+  /// ---- The opening filter, set in code and not in FlutterFlow ----
+  ///
+  /// These six are NOT parameters to declare in the Custom Widget panel. They
+  /// exist because the home screen pushes this page itself —
+  /// `CategoryNavigationMenu(initialSaleOnly: true, initialMinDiscount: 50)` —
+  /// and a typed Dart argument is the whole point of doing it that way: it
+  /// cannot be misspelled, it cannot drift from a page parameter declared
+  /// somewhere else, and the compiler checks it.
+  ///
+  /// All are optional and all fall back to what this screen has always done:
+  /// the whole catalogue, newest first. A deep link through the route still
+  /// works and still wins where it says something — see `_readInitialCategory`.
+  ///
+  /// Department slug, e.g. `mens-fashion`. Empty or null means everything.
+  final String? initialDepartment;
+
+  /// `newest` | `price_asc` | `price_desc` | `discount` | `popular`.
+  final String? initialSort;
+
+  /// Restricts to reduced products.
+  final bool initialSaleOnly;
+
+  /// A ceiling in shillings — what "Under UGX 50,000" sends.
+  final double? initialMaxPrice;
+
+  /// Whole percent. What the "50% off" entry point sends, and deliberately not
+  /// `initialSaleOnly`: "reduced at all" is a different promise from "half
+  /// price", and only one of them is written on the button.
+  final int? initialMinDiscount;
+
+  /// What to call this view at the top of the screen — "Promotions", "Under
+  /// UGX 50,000". Null falls back to the department name, as before.
+  final String? initialTitle;
+
   /// Opening a product. Receives the slug when there is one — what the
   /// website's own URLs use — and the numeric id, so either can be passed on.
+  ///
+  /// Left in place for projects that wired it, but no longer how this screen
+  /// opens a product: when it is null the page pushes `ProductDetailPage`
+  /// itself, which is what the home screen and the basket now do too.
   final Future Function(String productId, String slug)? onProductTap;
 
   final Future Function()? onHomeTap;
@@ -605,19 +656,26 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   bool _inStockOnly = false;
   bool _showFilters = false;
 
+  /// The two narrowings the home screen's quick picks arrive with. Null means
+  /// unrestricted, and both can be cleared from the banner the page draws when
+  /// either is set — a filtered listing that gives no way back out reads as an
+  /// empty catalogue rather than a filtered one.
+  double? _maxPrice;
+  int? _minDiscount;
+
   int _page = 1;
   final List<_Product> _products = [];
 
-  /// Session-only, mirroring the website's per-device wishlist.
-  final Set<int> _wishlisted = {};
-
-  /// Badge on the cart icon. Hidden while zero.
+  /// The saved-items list, shared with every other screen.
   ///
-  /// Zero because this widget takes no parameters and has no cart of its own,
-  /// exactly as on the home screen. If your project keeps a count in
-  /// FFAppState, read it here — `int get _cartCount => FFAppState().cartCount;`
-  /// — rather than adding a parameter back.
-  final int _cartCount = 0;
+  /// It was a `Set<int>` living for the length of this screen's life, which
+  /// meant a heart tapped here was forgotten the moment the shopper went back —
+  /// and disagreed with the saved-items page while they were both open. The
+  /// store is the one in `cart_widget.dart`, on the website's own storage key.
+  Set<int> _wishlisted = <int>{};
+
+  /// Badge on the cart icon, read live from the shared basket.
+  int _cartCount = 0;
 
   /// Guards against a slow response for a tab the shopper has already left.
   int _requestToken = 0;
@@ -630,6 +688,23 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
+
+    // The opening filter, from whoever pushed this page. Applied before the
+    // first fetch so the screen never shows the whole catalogue for a frame and
+    // then narrows — which reads as the filter having failed and then caught
+    // up.
+    final department = widget.initialDepartment;
+    if (department != null && department.isNotEmpty && department != 'all') {
+      _department = department;
+    }
+    final sort = widget.initialSort;
+    if (sort != null && sort.isNotEmpty) _sort = sort;
+    _saleOnly = widget.initialSaleOnly;
+    _maxPrice = widget.initialMaxPrice;
+    _minDiscount = widget.initialMinDiscount;
+
+    _syncStores();
+
     _hintTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted) {
         setState(() => _hintIndex = (_hintIndex + 1) % _hints.length);
@@ -692,7 +767,19 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       final category = read('category') ?? read('slug');
       final sub = read('sub') ?? read('subcategory');
 
-      if (category != null && category.isNotEmpty && category != 'all') {
+      // An explicit `initialDepartment` wins. When this page was pushed in code
+      // with a department, that is the more specific instruction — the route
+      // underneath it is whatever page happened to be showing, and letting it
+      // overwrite the argument would send a tap on "Men" to wherever the
+      // shopper already was.
+      final pushed = widget.initialDepartment;
+      final pushedDepartment =
+          pushed != null && pushed.isNotEmpty && pushed != 'all';
+
+      if (!pushedDepartment &&
+          category != null &&
+          category.isNotEmpty &&
+          category != 'all') {
         _department = category;
       }
       if (sub != null && sub.isNotEmpty) _subcategory = sub;
@@ -742,6 +829,15 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     };
     if (_saleOnly) params['sale'] = '1';
     if (_inStockOnly) params['stock'] = '1';
+    // Whole shillings: the endpoint parses these with `Number`, and "50000.0"
+    // is a needless way to find out whether it copes.
+    if (_maxPrice != null && _maxPrice! > 0) {
+      params['max_price'] = _maxPrice!.round().toString();
+    }
+    // Not the same as `sale=1`, and deliberately so — see `initialMinDiscount`.
+    if (_minDiscount != null && _minDiscount! > 0) {
+      params['min_discount'] = '${_minDiscount!}';
+    }
 
     return Uri.parse('$_base/api/app/products')
         .replace(queryParameters: params);
@@ -844,20 +940,85 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     action();
   }
 
+  /// Opens a product — in code, unless the project wired the old Action.
+  ///
+  /// `kandiOpenProduct` lives in `cart_widget.dart` and pushes
+  /// `ProductDetailPage` directly, wiring its related rail and its cart icon on
+  /// the way. The id is a typed Dart argument rather than a string that has to
+  /// be declared on a destination page, spelled the same in the action editor
+  /// and kept in step with this file — three places to get one string wrong,
+  /// and the failure mode is a blank product page rather than a compile error.
   void _openProduct(_Product p) {
-    final action = widget.onProductTap;
-    if (action == null) return;
     HapticFeedback.lightImpact();
-    action(p.slug.isNotEmpty ? p.slug : p.id.toString(), p.slug);
+    final id = p.slug.isNotEmpty ? p.slug : p.id.toString();
+
+    final action = widget.onProductTap;
+    if (action != null) {
+      action(id, p.slug);
+      return;
+    }
+    kandiOpenProduct(context, id);
   }
 
-  void _toggleWishlist(_Product p) {
+  /// The basket, in code, falling back to the tab's Action when one is wired.
+  void _openCart() {
     HapticFeedback.lightImpact();
+    if (widget.onCartTap != null) {
+      widget.onCartTap!();
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const ShoppingCartPage()),
+    );
+  }
+
+  /// Saved items, the same way.
+  void _openWishlist() {
+    HapticFeedback.lightImpact();
+    if (widget.onWishlistTap != null) {
+      widget.onWishlistTap!();
+      return;
+    }
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const WishlistPage()))
+        .then((_) => _syncStores());
+  }
+
+  /// Re-reads the shared basket and saved list.
+  ///
+  /// Called on open and again whenever this screen comes back from one of
+  /// them, because both can be changed while it is off screen and a stale
+  /// heart or badge is the visible half of the bug that had this screen
+  /// keeping its own private wishlist.
+  Future<void> _syncStores() async {
+    final saved = await KandiWishlist.load(force: true);
+    await KandiCart.load(force: true);
+    if (!mounted) return;
     setState(() {
-      if (_wishlisted.contains(p.id)) {
-        _wishlisted.remove(p.id);
-      } else {
+      _wishlisted = saved.map((i) => i.productId).toSet();
+      _cartCount = KandiCart.itemCount;
+    });
+  }
+
+  Future<void> _toggleWishlist(_Product p) async {
+    HapticFeedback.lightImpact();
+    final nowSaved = await KandiWishlist.toggle(KandiWishlistItem(
+      productId: p.id,
+      name: p.name,
+      image: p.image,
+      // The tile only ever carries the formatted label — every price on this
+      // screen is formatted server-side so the app and the site cannot disagree
+      // about a separator — so the digits are read back out of it. The saved
+      // list re-prices itself from the shop on open in any case.
+      price: kandiPriceFromLabel(p.priceLabel),
+      slug: p.slug,
+    ));
+    if (!mounted) return;
+    setState(() {
+      if (nowSaved) {
         _wishlisted.add(p.id);
+      } else {
+        _wishlisted.remove(p.id);
       }
     });
   }
@@ -903,7 +1064,67 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     return const [];
   }
 
+  /// True while one of the narrowings this page was pushed with is still on.
+  ///
+  /// It stops being true the moment the shopper clears it from the banner, and
+  /// the title falls back to the department — because "50% off" over a listing
+  /// that is no longer restricted to half price would be a label describing the
+  /// button that was tapped rather than the products on screen.
+  bool get _hasPushedFilter =>
+      (_maxPrice != null && _maxPrice! > 0) ||
+      (_minDiscount != null && _minDiscount! > 0) ||
+      (_saleOnly && widget.initialSaleOnly);
+
+  /// The label for the narrowing, in the shopper's words.
+  String? get _pushedFilterLabel {
+    if (_minDiscount != null && _minDiscount! > 0) {
+      return '${_minDiscount!}% off or more';
+    }
+    if (_maxPrice != null && _maxPrice! > 0) {
+      return 'Under ${_ugx(_maxPrice!)}';
+    }
+    if (_saleOnly && widget.initialSaleOnly) return 'Reduced items only';
+    return null;
+  }
+
+  /// `UGX 50,000`, matching the server's formatter.
+  ///
+  /// The only figure this screen formats itself: every price on a tile arrives
+  /// already formatted, but a ceiling the app was handed as a number has to be
+  /// written out here.
+  String _ugx(double amount) {
+    final digits = amount.round().toString();
+    final out = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
+      out.write(digits[i]);
+    }
+    return 'UGX $out';
+  }
+
+  /// Clears whatever this page was opened with, and reloads.
+  ///
+  /// The way back out. A filtered listing with no visible filter and no way to
+  /// widen it reads as a shop with four products in it, and the shopper's next
+  /// move is to close the app rather than to look further.
+  void _clearPushedFilter() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _maxPrice = null;
+      _minDiscount = null;
+      if (widget.initialSaleOnly) _saleOnly = false;
+    });
+    _load(reset: true);
+  }
+
   String get _title {
+    // What the screen was opened as, when it was opened as something — "50%
+    // off", "Under UGX 50,000". A page reached from a button should say the
+    // words that were on the button; "Shop" over a half-price listing loses
+    // the shopper's place.
+    final pushed = widget.initialTitle;
+    if (pushed != null && pushed.isNotEmpty && _hasPushedFilter) return pushed;
+
     if (_department.isEmpty) return 'Shop';
     final c = _catalogue;
     if (c != null) {
@@ -985,6 +1206,9 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
               children: [
                 _header(),
                 _searchArea(),
+                // Only present when this page was opened as "50% off" or
+                // "Under UGX 50,000" — and it is the way back out of that.
+                if (_hasPushedFilter) _pushedFilterBanner(),
                 _departmentTabs(),
                 if (_currentSubcategories.isNotEmpty) _subcategoryChips(),
                 _trustStrip(),
@@ -1072,19 +1296,80 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
                 _circleIcon(
                   icon: Icons.favorite_border_rounded,
                   badge: _wishlisted.length,
-                  onTap: () => _run(widget.onWishlistTap),
+                  onTap: _openWishlist,
                 ),
                 const SizedBox(width: 8),
                 _circleIcon(
                   icon: Icons.shopping_bag_outlined,
                   badge: _cartCount,
-                  onTap: () => _run(widget.onCartTap),
+                  onTap: _openCart,
                 ),
               ],
             ),
           ),
         ),
       );
+
+  /// The narrowing this page was opened with, and a way to drop it.
+  Widget _pushedFilterBanner() {
+    final label = _pushedFilterLabel;
+    if (label == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_pad, 0, _pad, 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(11, 7, 7, 7),
+        decoration: BoxDecoration(
+          color: _kPrimarySoft,
+          borderRadius: BorderRadius.circular(_radius),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_alt_rounded, size: 15, color: _kPrimaryInk),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                'Showing $label',
+                style: _label(
+                  size: 12.5,
+                  color: _kPrimaryInk,
+                  weight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            _Press(
+              onTap: _clearPushedFilter,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _kWhite,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Clear',
+                      style: _label(
+                        size: 12,
+                        color: _kInk,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(Icons.close_rounded, size: 13, color: _kInk),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// Badged circle icon — identical to the home screen's.
   Widget _circleIcon({
@@ -2168,12 +2453,16 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   Widget _bottomNav() {
     // Shop is index 1 and already on screen, so its route is empty — `_go`
     // treats that as "do nothing".
+    // Saved and Cart do not run an Action directly any more — they call the
+    // two helpers, which use the tab's Action when the project wired one and
+    // push the sibling widget in code when it did not. A tab that does nothing
+    // until somebody remembers to wire it is the failure this removes.
     final items = <_NavItem>[
-      _NavItem(Icons.home_rounded, 'Home', widget.onHomeTap),
+      _NavItem(Icons.home_rounded, 'Home', () => _run(widget.onHomeTap)),
       const _NavItem(Icons.grid_view_rounded, 'Shop', null),
-      _NavItem(Icons.favorite_border_rounded, 'Saved', widget.onWishlistTap),
-      _NavItem(Icons.shopping_bag_outlined, 'Cart', widget.onCartTap),
-      _NavItem(Icons.person_outline_rounded, 'Me', widget.onProfileTap),
+      _NavItem(Icons.favorite_border_rounded, 'Saved', _openWishlist),
+      _NavItem(Icons.shopping_bag_outlined, 'Cart', _openCart),
+      _NavItem(Icons.person_outline_rounded, 'Me', () => _run(widget.onProfileTap)),
     ];
 
     return Container(
@@ -2190,8 +2479,9 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
             children: [
               for (var i = 0; i < items.length; i++)
                 _Press(
-                  // No haptic here: `_go` fires one itself.
-                  onTap: () => _run(items[i].action),
+                  // No haptic fired here: every callback behind these tabs
+                  // fires its own, and two on one tap reads as a stutter.
+                  onTap: items[i].onTap,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
@@ -2230,11 +2520,15 @@ class _NavItem {
   final IconData icon;
   final String label;
 
-  /// The FlutterFlow Action this tab runs. Null for the tab already on screen,
-  /// and for any destination the project chose not to wire.
-  final Future Function()? action;
+  /// What the tab does.
+  ///
+  /// A plain callback rather than the FlutterFlow Action it used to hold, so a
+  /// tab can decide for itself between running an Action and pushing a sibling
+  /// screen in code. Null for the tab already on screen — tapping it is a
+  /// no-op rather than a push of this page onto itself.
+  final VoidCallback? onTap;
 
-  const _NavItem(this.icon, this.label, this.action);
+  const _NavItem(this.icon, this.label, this.onTap);
 }
 
 /// Thrown for a non-200.

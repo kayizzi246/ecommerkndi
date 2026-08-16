@@ -35,14 +35,15 @@ import { getSiteSettings } from "@/lib/site-settings";
  *
  * ## Query parameters
  *
- *   category   Category slug. Omitted or "all" for the whole catalogue.
- *   q          Free-text search.
- *   sort       newest | price_asc | price_desc | discount
- *   page       1-based. Defaults to 1.
- *   min_price  Lower bound, inclusive.
- *   max_price  Upper bound, inclusive.
- *   sale       "1" restricts to discounted products.
- *   stock      "1" restricts to items in stock.
+ *   category      Category slug. Omitted or "all" for the whole catalogue.
+ *   q             Free-text search.
+ *   sort          newest | price_asc | price_desc | discount | popular
+ *   page          1-based. Defaults to 1.
+ *   min_price     Lower bound, inclusive.
+ *   max_price     Upper bound, inclusive.
+ *   sale          "1" restricts to discounted products.
+ *   min_discount  Whole percent. Restricts to reductions of at least this much.
+ *   stock         "1" restricts to items in stock.
  */
 
 export const revalidate = 60;
@@ -92,6 +93,10 @@ export async function GET(request: Request) {
       min_price: params.get("min_price") ?? undefined,
       max_price: params.get("max_price") ?? undefined,
       sale: params.get("sale") ?? undefined,
+      // Whole percent. The app's "50% off" entry point sends this rather than
+      // `sale=1`, because "reduced at all" and "half price" are different
+      // promises and only one of them is on the button.
+      min_discount: params.get("min_discount") ?? undefined,
       stock: params.get("stock") ?? undefined,
       brand: params.get("brand") ?? undefined,
     }),

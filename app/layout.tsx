@@ -183,9 +183,16 @@ export async function generateMetadata(): Promise<Metadata> {
      * rule it keeps teaching is worth stating plainly — ONE icon, one URL, no
      * alternatives for a browser to choose between.
      *
-     * `/favicon.ico` still exists in `public/` and still answers the bare
-     * request browsers and crawlers make by habit. It is just not *declared*
-     * any more, so it cannot outrank the icon this function chose.
+     * `/favicon.ico` no longer exists as a file at all. It is rewritten to
+     * `/brand-icon` in next.config.ts, so the bare request browsers and Google's
+     * favicon crawler make by habit now returns the same image this function
+     * declares.
+     *
+     * That was the last URL that could disagree. The static file used to be a
+     * multi-frame icon of the older orange "K" — a real Kandi mark, which is
+     * why nothing looked broken, and the wrong one, because it was generated
+     * once and left behind while the logo in wp-admin moved on. A shop owner
+     * replacing their logo saw the tab change and the search result stay.
      */
     icons: favicon
       ? { icon: "/brand-icon", shortcut: "/brand-icon", apple: "/brand-icon" }

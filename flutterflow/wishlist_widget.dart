@@ -265,7 +265,13 @@ class _PressState extends State<_Press> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      // The press tick — see the note on the cart's `_Press`. Nothing fires for
+      // a disabled control, which is what keeps the sold-out "Move to cart"
+      // from telling a finger it worked.
+      onTapDown: (_) {
+        if (widget.onTap != null) HapticFeedback.selectionClick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,
