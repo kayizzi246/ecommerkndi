@@ -106,9 +106,6 @@ import 'package:http/http.dart' as http;
 /// like an outage rather than a typo.
 const String _kApiBaseUrl = 'https://kandiug.com';
 
-/// Shown only until the API answers, then replaced by the real brand name.
-const String _kFallbackShopName = 'Kandi';
-
 /// Names of the FlutterFlow pages to open on tap.
 ///
 /// Set any of these to an empty string to make that tap do nothing. A name
@@ -122,6 +119,20 @@ const String _kCartRoute = 'Cart';
 const String _kWishlistRoute = 'Wishlist';
 const String _kShopRoute = 'Shop';
 const String _kProfileRoute = 'Profile';
+
+/// The city shown in the masthead's "Deliver to" line.
+///
+/// A constant rather than something read from the API, because the API does not
+/// know where this shopper is — and inventing a location from an IP lookup would
+/// be worse than a sensible default that says something true about the shop: it
+/// delivers from Kampala, and that is where most of its orders go.
+///
+/// The honest version of this line is the shopper's own saved address, which
+/// lives in FlutterFlow rather than here. When your project has one, set
+/// `deliverToRoute` to your address page and read the saved city into this
+/// widget — the one-line change is to make `_deliverTo` return
+/// `FFAppState().deliveryCity` with this as the fallback.
+const String _kDeliverToCity = 'Kampala';
 // ============================================================
 
 // ============================================================
@@ -131,8 +142,11 @@ const String _kProfileRoute = 'Profile';
 /// Brand orange. Fills, active state, prices at display size.
 const Color _kPrimary = Color(0xFFFF6A00);
 
-/// The tint behind an active or selected row.
-const Color _kPrimarySoft = Color(0xFFFFF3E8);
+// `_kPrimarySoft` (#FFF3E8, the tint behind an active row) is no longer
+// declared here. Its only use on this screen was the ground of the old circular
+// department icons, and the same value now leads `_kDeptTints` below — keeping
+// a second name for one colour is how a palette starts disagreeing with itself.
+// The category screen still declares it, because it still has selected rows.
 
 /// Darkened orange that clears 4.6:1 with white text on it.
 ///
@@ -164,6 +178,43 @@ const Color _kPage = Colors.white;
 /// At or below this many units the card says how few are left.
 /// The same threshold as the website's LOW_STOCK_AT.
 const int _kLowStockAt = 5;
+
+// ============================================================
+// DEPARTMENT CARDS
+// ============================================================
+
+/// One department card. Wide enough for a two-line name at 13px without
+/// ellipsising the common ones ("Home & Living", "Phones & Tablets").
+const double _kDeptCardWidth = 132;
+const double _kDeptCardHeight = 62;
+const double _kDeptGap = 8;
+
+/// The card grounds, cycled so neighbouring departments never share one.
+///
+/// Every colour is a tint already defined in the storefront's palette — see the
+/// "Marketing accents" block in `app/globals.css`. Nothing new is introduced:
+/// this row is allowed to be colourful precisely because the product grid below
+/// it is not, and the tints are pale enough that near-black text on them clears
+/// AA comfortably.
+const List<Color> _kDeptTints = [
+  Color(0xFFFFF3E8), // orange
+  Color(0xFFEAF0FF), // blue
+  Color(0xFFF0FDF4), // green
+  Color(0xFFF3ECFF), // violet
+  Color(0xFFFEF2F2), // red
+];
+
+/// The matching saturated step, used only for the item count.
+///
+/// Paired by index with the tints above, so a card's count is a darker version
+/// of its own ground rather than a colour borrowed from somewhere else.
+const List<Color> _kDeptInks = [
+  Color(0xFFB34A00), // orange, darkened until it clears 4.6:1
+  Color(0xFF1A4FD6), // blue
+  Color(0xFF16A34A), // green
+  Color(0xFF6D28D9), // violet
+  Color(0xFFE53935), // red
+];
 
 // ============================================================
 // CARD METRICS
@@ -619,19 +670,60 @@ class _PressState extends State<_Press> {
 // ============================================================
 
 class HomeSectionsWidget extends StatefulWidget {
-  /// `width` and `height` only — FlutterFlow adds those two to every custom
-  /// widget and will put them back if they are deleted. There is nothing else
-  /// to pass: the shop name, logo, terms, departments and products all come
-  /// from the API, and the handful of real choices are constants at the top of
-  /// this file.
+  /// ---- Route parameters ----
+  ///
+  /// Every destination this screen can navigate to is now an optional String
+  /// parameter, so the page names can be set in FlutterFlow's own parameter
+  /// panel instead of by editing Dart.
+  ///
+  /// This reverses the earlier "NO PARAMETERS" rule, and the reversal is
+  /// narrow on purpose. That rule was about DATA — the shop name, the logo, the
+  /// terms, the products — all of which belong to the API and would be wrong to
+  /// duplicate into a widget parameter. Route names are not data; they are
+  /// facts about the FlutterFlow project this widget was dropped into, and that
+  /// is exactly what a parameter is for. Nobody should have to open a 1,700-line
+  /// file to rename a page.
+  ///
+  /// Each falls back to the constant at the top of this file, so a project that
+  /// sets none of them behaves exactly as before. An empty string still means
+  /// "deliberately disabled" and makes that tap do nothing.
+  ///
+  /// In FlutterFlow: Custom Widget ▸ Parameters ▸ Add, type String, NOT
+  /// required — leave a parameter unset and the constant is used.
   const HomeSectionsWidget({
     super.key,
     this.width,
     this.height,
+    this.productRoute,
+    this.categoryRoute,
+    this.searchRoute,
+    this.cartRoute,
+    this.wishlistRoute,
+    this.shopRoute,
+    this.profileRoute,
+    this.deliverToRoute,
   });
 
   final double? width;
   final double? height;
+
+  /// The product detail page. Receives `productId` and `slug`.
+  final String? productRoute;
+
+  /// The category/shop listing page. Receives `slug` and `name`.
+  final String? categoryRoute;
+
+  final String? searchRoute;
+  final String? cartRoute;
+  final String? wishlistRoute;
+  final String? shopRoute;
+  final String? profileRoute;
+
+  /// Optional page behind the "Deliver to" line in the masthead — an address
+  /// picker, usually. Left unset, the line is shown but is not tappable, which
+  /// is honest: a control that looks interactive and does nothing is worse than
+  /// a label.
+  final String? deliverToRoute;
 
   @override
   State<HomeSectionsWidget> createState() => _HomeSectionsWidgetState();
@@ -714,21 +806,46 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
 
   // ---------- Navigation ----------
 
-  /// Opens a FlutterFlow page by name.
-  ///
-  /// Replaces the action callbacks the previous version took as parameters.
-  /// Wrapped in a try/catch on purpose: `pushNamed` throws when the route does
-  /// not exist, and an unrouted tap should cost a dead button rather than
-  /// throwing the shopper out of the home screen. An empty name is treated as
-  /// "deliberately disabled" and does nothing at all.
+  /// The widget parameter when the project set one, otherwise the constant.
+  String _route(String? given, String fallback) =>
+      (given != null && given.trim().isNotEmpty) ? given.trim() : fallback;
+
+  String get _productRoute => _route(widget.productRoute, _kProductRoute);
+  String get _categoryRoute => _route(widget.categoryRoute, _kCategoryRoute);
+  String get _searchRoute => _route(widget.searchRoute, _kSearchRoute);
+  String get _cartRoute => _route(widget.cartRoute, _kCartRoute);
+  String get _wishlistRoute => _route(widget.wishlistRoute, _kWishlistRoute);
+  String get _shopRoute => _route(widget.shopRoute, _kShopRoute);
+  String get _profileRoute => _route(widget.profileRoute, _kProfileRoute);
+
   void _go(String routeName, {Map<String, String> params = const {}}) {
     if (routeName.isEmpty) return;
     HapticFeedback.lightImpact();
 
+    /* ---- Query first, then path ----
+     *
+     * FlutterFlow declares a page's parameters as either path or query
+     * depending on how the route was set up, and `pushNamed` throws if the
+     * caller supplies the wrong kind — a page expecting `/product/:productId`
+     * given query parameters gets a missing-path-parameter error and the tap
+     * dies silently.
+     *
+     * Nothing here can know which way a given project declared its pages, so
+     * both are tried. The retry passes the SAME map as path parameters, which
+     * is what a path-style route wants, and only a genuinely wrong page name
+     * reaches the log. This is the difference between "tapping a product does
+     * nothing" and it just working, and it is not worth being clever about. */
     try {
       context.pushNamed(routeName, queryParameters: params);
+      return;
+    } catch (_) {
+      // Fall through and try the other shape.
+    }
+
+    try {
+      context.pushNamed(routeName, pathParameters: params);
     } catch (e) {
-      debugPrint('Kandi: no FlutterFlow page named "$routeName" ($e)');
+      debugPrint('Kandi: could not open FlutterFlow page "$routeName" ($e)');
     }
   }
 
@@ -789,7 +906,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// own product URLs use, so a page built from it opens the same product, and
   /// the id is there for any lookup that wants the numeric key.
   void _openProduct(_Product p) {
-    _go(_kProductRoute, params: {
+    _go(_productRoute, params: {
       'slug': p.slug,
       'productId': p.id.toString(),
     });
@@ -804,12 +921,13 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     );
   }
 
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+  /// Where the masthead says this order is going.
+  ///
+  /// The time-of-day greeting that used to sit in that corner has gone with the
+  /// wordmark. "Good morning" is pleasant and tells a shopper nothing they can
+  /// act on; the delivery city answers the question that decides whether they
+  /// keep scrolling.
+  String get _deliverTo => _kDeliverToCity;
 
   /// "2.2K sold" — the compact form the website prints beside a price.
   ///
@@ -909,7 +1027,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     if (_loading) {
       return [
         SliverToBoxAdapter(child: _appBar()),
-        SliverToBoxAdapter(child: _searchArea()),
+        _stickySearch(),
         SliverToBoxAdapter(child: _skeleton()),
       ];
     }
@@ -926,7 +1044,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
 
     return [
       SliverToBoxAdapter(child: _appBar()),
-      SliverToBoxAdapter(child: _searchArea()),
+      _stickySearch(),
       if (feed.departments.isNotEmpty)
         SliverToBoxAdapter(child: _departments(feed)),
       SliverToBoxAdapter(child: _trustStrip(feed)),
@@ -952,50 +1070,92 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   }
 
   // ---------- App bar ----------
+  //
+  // The shop's logo and name no longer appear here — see the "Deliver to" note
+  // below. `_feed.logoUrl` is therefore read by nothing on this screen, which
+  // is deliberate rather than an oversight: the brand is established by the app
+  // icon, the splash and the orange, and repeating it at the top of the one
+  // screen a shopper reaches by opening this app is a line spent on the shop
+  // rather than on them.
   Widget _appBar() {
-    final logo = _feed?.logoUrl;
-    final hasLogo = logo != null && logo.isNotEmpty;
-
     return SafeArea(
       bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 6),
         child: Row(
           children: [
+            /* ---- Deliver to, not the shop's own name ----
+             *
+             * The masthead used to print the brand wordmark and a greeting.
+             * Both are gone, and the reasoning is the one every large
+             * marketplace app has arrived at: a shopper who has opened your app
+             * knows whose app it is. The most valuable line in that corner is
+             * not your name, it is theirs — where this is going, which is the
+             * question underneath "can I actually get this".
+             *
+             * Amazon, Jumia, Noon and Temu all put a "Deliver to …" control
+             * exactly here for the same reason.
+             *
+             * Tappable only when a `deliverToRoute` is set, because a control
+             * that looks interactive and does nothing is worse than a label.
+             * The city is the shop's own delivery origin — see `_deliverTo`. */
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (hasLogo)
-                    SizedBox(
-                      height: 24,
-                      child: CachedNetworkImage(
-                        imageUrl: logo,
-                        fit: BoxFit.contain,
-                        alignment: Alignment.centerLeft,
-                        errorWidget: (_, __, ___) => _logoText(),
-                      ),
-                    )
-                  else
-                    _logoText(),
-                  const SizedBox(height: 1),
-                  // No name: there is no parameter to carry one. A bare
-                  // greeting is better than "Good morning, there".
-                  Text(_greeting(), style: _label(size: 11, color: _kMuted)),
-                ],
+              child: _Press(
+                onTap: (widget.deliverToRoute ?? '').trim().isEmpty
+                    ? null
+                    : () => _go(widget.deliverToRoute!.trim()),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Deliver to',
+                      style: _label(size: 10.5, color: _kMuted),
+                    ),
+                    const SizedBox(height: 1),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 15,
+                          color: _kPrimary,
+                        ),
+                        const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            _deliverTo,
+                            style: _text(
+                              size: 14,
+                              color: _kInk,
+                              weight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if ((widget.deliverToRoute ?? '').trim().isNotEmpty)
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 17,
+                            color: _kBody,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             _circleIcon(
               icon: Icons.favorite_border_rounded,
               badge: _wishlisted.length,
-              onTap: () => _go(_kWishlistRoute),
+              onTap: () => _go(_wishlistRoute),
             ),
             const SizedBox(width: 8),
             _circleIcon(
               icon: Icons.shopping_bag_outlined,
               badge: _cartCount,
-              onTap: () => _go(_kCartRoute),
+              onTap: () => _go(_cartRoute),
             ),
           ],
         ),
@@ -1003,10 +1163,9 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     );
   }
 
-  Widget _logoText() => Text(
-        _feed?.brandName ?? _kFallbackShopName,
-        style: _heading(size: 21, color: _kPrimary),
-      );
+  // `_logoText()` — the orange wordmark that used to head this screen — has
+  // been removed with the rest of the branding in the masthead, along with the
+  // fallback shop name it fell back to while the feed was loading.
 
   Widget _circleIcon({
     required IconData icon,
@@ -1057,10 +1216,40 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   }
 
   // ---------- Search ----------
-  Widget _searchArea() => Padding(
+  /// The search field, pinned to the top of the screen as the page scrolls.
+  ///
+  /// ---- Why it is pinned ----
+  ///
+  /// Search is the primary way into a catalogue of any size, and this home
+  /// screen is long by design — departments, a trust strip, eight rails and an
+  /// endless grid. Left to scroll away with everything else, the search field
+  /// is reachable only by flicking back to the top, which is a long way from
+  /// the bottom of the grid. A shopper who has scrolled past forty products and
+  /// not found what they came for is exactly the shopper who most needs to
+  /// search, and they were the one it was furthest from.
+  ///
+  /// The masthead above it still scrolls away. That is the trade: the "Deliver
+  /// to" line and the cart are chrome a shopper consults occasionally, and the
+  /// cart is on the fixed bottom bar in any case, so only the one control worth
+  /// the permanent space keeps it.
+  ///
+  /// Implemented as a `SliverPersistentHeader` rather than a fixed widget
+  /// outside the scroll view, so it participates in the same scroll — no second
+  /// scrollable, no gap to keep in sync, and `RefreshIndicator` still works
+  /// through it.
+  SliverPersistentHeader _stickySearch() => SliverPersistentHeader(
+        pinned: true,
+        delegate: _StickySearchDelegate(child: _searchArea()),
+      );
+
+  Widget _searchArea() => Container(
+        // Opaque, and that is load-bearing: while pinned this sits ON TOP of
+        // the rails scrolling underneath it, and a transparent background
+        // would let product photographs slide through the search field.
+        color: _kPage,
         padding: const EdgeInsets.fromLTRB(_pad, 0, _pad, 8),
         child: GestureDetector(
-          onTap: () => _go(_kSearchRoute),
+          onTap: () => _go(_searchRoute),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
@@ -1128,49 +1317,98 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             padding: const EdgeInsets.fromLTRB(_pad, 2, _pad, 10),
             child: _sectionHeading('Shop by department', null),
           ),
+          /* ---- Two rows of cards, not one row of circles ----
+           *
+           * The old design was a horizontally-scrolling row of 54px circles,
+           * each holding the SAME grey category icon, with the name under it.
+           * Three things were wrong with it:
+           *
+           *   • Every circle was identical. A row of six copies of one icon is
+           *     decoration standing where information should be — the only
+           *     thing distinguishing one department from the next was 11px of
+           *     text underneath.
+           *   • It hid the catalogue. `count` comes down from the API on every
+           *     department and was thrown away, so nothing told a shopper
+           *     whether "Electronics" held four products or four hundred.
+           *   • One row, scrolling sideways, showed about four and a half
+           *     departments and gave no hint how many more there were. Side
+           *     scrolling is a poor way to present a *complete, short* list,
+           *     which is what a department list is.
+           *
+           * This is a two-row horizontal grid of cards — the shape Jumia and
+           * Noon use for the same job. Two rows means roughly twice as many
+           * departments are visible at once, the cards carry the real product
+           * count, and each takes a colour from a small rotating palette so the
+           * row reads as a set of distinct places rather than repeated
+           * furniture. The colours are drawn from the marketing accents already
+           * defined for the storefront, so nothing new enters the palette. */
           SizedBox(
-            height: 82,
-            child: ListView.separated(
+            height: 2 * _kDeptCardHeight + _kDeptGap,
+            child: GridView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: _pad),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                // "Cross axis" is the vertical one on a horizontal grid, so
+                // this is what makes it two rows deep rather than two wide.
+                crossAxisCount: 2,
+                mainAxisSpacing: _kDeptGap,
+                crossAxisSpacing: _kDeptGap,
+                // Width over height, and it is inverted here for the same
+                // reason: on a horizontal grid the main axis is the width.
+                childAspectRatio: _kDeptCardHeight / _kDeptCardWidth,
+              ),
               itemCount: feed.departments.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
               itemBuilder: (_, i) {
                 final d = feed.departments[i];
+                final tint = _kDeptTints[i % _kDeptTints.length];
+                final ink = _kDeptInks[i % _kDeptInks.length];
+
                 return _Press(
                   onTap: () => _go(
-                    _kCategoryRoute,
+                    _categoryRoute,
                     params: {'slug': d.slug, 'name': d.name},
                   ),
-                  child: SizedBox(
-                    width: 62,
+                  child: Container(
+                    width: _kDeptCardWidth,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tint,
+                      borderRadius: BorderRadius.circular(_kCardRadius),
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: const BoxDecoration(
-                            color: _kPrimarySoft,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.category_rounded,
-                            color: _kPrimaryInk,
-                            size: 23,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
                         Text(
                           d.name,
-                          style: _label(
-                            size: 11,
+                          style: _text(
+                            size: 13,
                             color: _kInk,
-                            weight: FontWeight.w600,
+                            weight: FontWeight.w700,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        // The count, at last. Suppressed when the API reports
+                        // zero rather than printing "0 items" under a
+                        // department a shopper is being invited to open.
+                        Text(
+                          d.count > 0
+                              ? '${d.count} ${d.count == 1 ? 'item' : 'items'}'
+                              : 'Browse',
+                          style: _label(
+                            size: 10.5,
+                            color: ink,
+                            weight: FontWeight.w700,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -1253,7 +1491,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
               children: [
                 Expanded(child: _sectionHeading(rail.title, rail.subtitle)),
                 _Press(
-                  onTap: () => _go(_kShopRoute),
+                  onTap: () => _go(_shopRoute),
                   child: Row(
                     children: [
                       Text(
@@ -1856,12 +2094,14 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     //
     // Home is index 0 and already on screen, so its route is empty — `_go`
     // treats that as "do nothing" rather than pushing the page onto itself.
+    // No longer `const`: each route now reads a widget parameter first and
+    // falls back to the constant, so the list has to be built at runtime.
     final items = <_NavItem>[
       const _NavItem(Icons.home_rounded, 'Home', ''),
-      const _NavItem(Icons.grid_view_rounded, 'Shop', _kShopRoute),
-      const _NavItem(Icons.favorite_border_rounded, 'Saved', _kWishlistRoute),
-      const _NavItem(Icons.shopping_bag_outlined, 'Cart', _kCartRoute),
-      const _NavItem(Icons.person_outline_rounded, 'Me', _kProfileRoute),
+      _NavItem(Icons.grid_view_rounded, 'Shop', _shopRoute),
+      _NavItem(Icons.favorite_border_rounded, 'Saved', _wishlistRoute),
+      _NavItem(Icons.shopping_bag_outlined, 'Cart', _cartRoute),
+      _NavItem(Icons.person_outline_rounded, 'Me', _profileRoute),
     ];
 
     return Container(
@@ -1913,6 +2153,42 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
       ),
     );
   }
+}
+
+/// Holds the search field at the top of the screen while the page scrolls.
+///
+/// A `SliverPersistentHeader` needs a delegate, and the delegate needs a fixed
+/// height — the sliver protocol has no way to measure its own child. 56 is the
+/// search pill plus the 8px of breathing room under it; get it wrong and the
+/// header either clips the field or leaves a band of bare page under it.
+///
+/// `shouldRebuild` compares the child rather than returning a blanket `true`.
+/// This delegate is consulted on every scroll frame, and the field inside it is
+/// already animating its own rotating placeholder — an unconditional `true`
+/// would rebuild that subtree sixty times a second for the whole length of a
+/// very long page.
+class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  const _StickySearchDelegate({required this.child});
+
+  static const double _height = 56;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) =>
+      SizedBox.expand(child: child);
+
+  @override
+  bool shouldRebuild(covariant _StickySearchDelegate old) => old.child != child;
 }
 
 /// One entry in the bottom bar.
