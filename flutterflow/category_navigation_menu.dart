@@ -145,6 +145,54 @@ const Color _kPage = Colors.white;
 const int _kLowStockAt = 5;
 
 // ============================================================
+// CARD METRICS
+// ============================================================
+//
+// Kept deliberately identical to the block of the same name in
+// `home_sections_widget.dart`, because these two custom widgets render the
+// same product tile on two different screens and a shopper moving between
+// them must not be able to tell.
+//
+// FlutterFlow gives custom widgets no shared library to import from — each is
+// a standalone paste — so the duplication is forced rather than chosen. If you
+// change a number here, change it there too.
+//
+// The tile is a square photograph with a text block of FIXED height under it,
+// so its height is arithmetic rather than a guessed aspect ratio:
+//
+//     tile height = tile width (the square image) + _kCardTextHeight
+
+/// The tile's corner radius. 10 rather than the app's usual 8, matching the
+/// website.
+const double _kCardRadius = 10;
+
+/// Between the photograph and the first line of text.
+const double _kCardGap = 4;
+
+/// Two lines at the website's 20px leading. Fixed rather than fit-to-content so
+/// a one-line name still reserves its second line.
+const double _kCardNameHeight = 40;
+
+/// The price row.
+const double _kCardPriceHeight = 20;
+
+/// The rating row and the delivery row, which are the same height as each other.
+const double _kCardMetaHeight = 16;
+
+/// One logical pixel of slack, so a tile is never a hair shorter than its own
+/// content and Flutter never paints its overflow hazard bar across the bottom
+/// of it. See the note in `home_sections_widget.dart`.
+const double _kCardSlack = 1;
+
+/// Everything below the photograph, which is the figure the grid needs.
+const double _kCardTextHeight = _kCardGap +
+    _kCardNameHeight +
+    _kCardPriceHeight +
+    _kCardMetaHeight + // rating and units sold
+    _kCardMetaHeight + // the delivery promise
+    _kCardSlack;
+
+// ============================================================
 // TYPE — Inter, matching the website (see home_sections_widget.dart)
 // ============================================================
 
@@ -886,19 +934,10 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     );
   }
 
-  /// The small green "Local" tag that runs inline with the product name.
-  Widget get _localChip => Container(
-        margin: const EdgeInsets.only(right: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(
-          border: Border.all(color: _kSuccess.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: Text(
-          'Local',
-          style: _label(size: 9, color: _kSuccess, weight: FontWeight.w600),
-        ),
-      );
+  // The small green "Local" tag that used to run inline with the product name
+  // has been removed along with it, matching the website tile and the home
+  // screen: prefixed to a name row that is now a fixed two lines, it ate about
+  // six characters of a title that was already being ellipsised.
 
   // ============================================================
   // BUILD
@@ -1582,8 +1621,25 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   }
 
   // ---------- Grid ----------
+  /// Two columns, with the aspect ratio *computed* rather than typed.
+  ///
+  /// It used to be `childAspectRatio: 0.50`, a number that had to be re-guessed
+  /// whenever the card changed and was wrong on any screen it was not tuned
+  /// against — too tall and every tile carried a band of dead space, too short
+  /// and Flutter painted its overflow stripes across the bottom row.
+  ///
+  /// The photograph is square, so it is exactly as tall as the tile is wide,
+  /// and everything under it is a known `_kCardTextHeight`. The tile's true
+  /// height is therefore arithmetic and the ratio falls out of it — right on a
+  /// 360px phone and on a tablet, and right again the next time a row height
+  /// changes, because it is derived from the constants the card lays itself out
+  /// with.
   Widget _productGrid() {
     if (_products.isEmpty) return _emptyState();
+
+    const gutter = 8.0;
+    final tileWidth = (MediaQuery.of(context).size.width - gutter * 3) / 2;
+    final tileHeight = tileWidth + _kCardTextHeight;
 
     return RefreshIndicator(
       onRefresh: () => _load(reset: true),
@@ -1592,12 +1648,12 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       child: GridView.builder(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 20),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        padding: const EdgeInsets.fromLTRB(gutter, gutter, gutter, 20),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 0.50,
+          crossAxisSpacing: gutter,
+          mainAxisSpacing: gutter,
+          childAspectRatio: tileWidth / tileHeight,
         ),
         // One extra cell at the end while another page is loading.
         itemCount: _products.length + (_loadingMore ? 2 : 0),
@@ -1607,7 +1663,7 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
               child: Container(
                 decoration: BoxDecoration(
                   color: _kHairline,
-                  borderRadius: BorderRadius.circular(_radius),
+                  borderRadius: BorderRadius.circular(_kCardRadius),
                 ),
               ),
             );
@@ -1630,32 +1686,28 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
   /// importance rather than a description of the product:
   ///
   ///   image -> name -> price, was-price and discount on one line ->
-  ///   money saved -> rating and units sold -> promo line -> delivery promise.
+  ///   rating and units sold -> delivery promise.
   ///
-  /// The price leads the text because it is what a shopper scans a grid for,
-  /// and the three price figures share one line because they only mean anything
-  /// read together. Colour is rationed the same way: a resting price is
-  /// near-black and only a discounted one turns red, green is delivery and
-  /// nothing else, orange is reserved for the single promo line.
+  /// FOUR text rows, and always the same four, each a fixed-height `SizedBox`
+  /// rather than a `Spacer`. The full argument for that — and for the square
+  /// photograph and the corner flag — is written out over the same method in
+  /// `home_sections_widget.dart`; in short, the conditional rows this used to
+  /// render meant no two tiles were the same height, and in a grid of two
+  /// columns that is a text block starting at two different places in every
+  /// row.
   ///
-  /// Every line disappears when there is no real number behind it rather than
-  /// printing a zero.
+  /// Colour is rationed as on the web: a resting price is near-black and only a
+  /// discounted one turns red, green is delivery and nothing else.
   Widget _card(_Product p) {
     final wished = _wishlisted.contains(p.id);
     final soldOut = !p.inStock;
     final lowStock =
         !soldOut && p.stockQuantity != null && p.stockQuantity! <= _kLowStockAt;
 
-    // One promotional line, earned from real figures rather than pasted onto
-    // every card.
-    String? promo;
-    if (!soldOut && p.categoryName != null) {
-      if (p.totalSales >= 50) {
-        promo = 'Best Seller';
-      } else if (p.isNew) {
-        promo = 'New Arrival';
-      }
-    }
+    /// The website drops the struck-through original and the percentage beside
+    /// the price below its `sm` breakpoint (640px). Same rule, same number, so
+    /// a phone shows what the website shows on a phone.
+    final wide = MediaQuery.of(context).size.width >= 640;
 
     return RepaintBoundary(
       child: _Press(
@@ -1663,17 +1715,18 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 4:5 rather than square. Clothes and shoes are photographed
-            // standing up, and a square crop of a portrait shot spends its
-            // height on floor and ceiling — the extra 25% goes to the garment,
-            // which on a phone is most of what the shopper can see at all.
+            // Square, down from 4:5. The 4:5 crop assumed a fashion catalogue;
+            // this shop sells wardrobes, air pumps, curtains and milk, most of
+            // it photographed square, so the taller frame was 25% empty space
+            // by construction. Square also puts more rows on a phone screen,
+            // and rows are the product.
             AspectRatio(
-              aspectRatio: 4 / 5,
+              aspectRatio: 1,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(_radius),
+                    borderRadius: BorderRadius.circular(_kCardRadius),
                     child: Opacity(
                       opacity: soldOut ? 0.5 : 1,
                       child: _image(p.image),
@@ -1681,11 +1734,11 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
                   ),
                   if (soldOut)
                     Positioned(
-                      left: 6,
-                      top: 6,
+                      left: 8,
+                      top: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
+                          horizontal: 8,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
@@ -1695,19 +1748,54 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
                         child: Text(
                           'Sold out',
                           style: _label(
-                            size: 10,
+                            size: 11,
                             color: _kWhite,
                             weight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
+
+                  // The discount flag. Top left, opposite the always-visible
+                  // heart, and it cannot collide with "Sold out" in the same
+                  // corner because a sold-out product never renders a discount.
+                  if (!soldOut && p.discountPercent > 0)
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _kSale,
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '−${p.discountPercent}%',
+                          style: _label(
+                            size: 11,
+                            color: _kWhite,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // The website reveals the heart on hover. A phone has no
                   // hover, so it stays visible — hiding it would remove the
                   // feature rather than match the design.
                   Positioned(
-                    right: 5,
-                    top: 5,
+                    right: 8,
+                    top: 8,
                     child: _Press(
                       onTap: () => _toggleWishlist(p),
                       child: Container(
@@ -1731,162 +1819,165 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
               ),
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: _kCardGap),
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // ---- Row 1: the name ----
+            // Exactly two lines, always — the box is a fixed 40, two times the
+            // 20px leading, so a short name reserves its second line instead of
+            // letting the price ride up under it.
+            SizedBox(
+              height: _kCardNameHeight,
+              width: double.infinity,
+              child: Text(
+                p.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: _text(
+                  size: 14,
+                  color: _kInk,
+                  weight: FontWeight.w400,
+                  height: 20 / 14,
+                ),
+              ),
+            ),
+
+            // ---- Row 2: the money ----
+            // A `Row` that cannot wrap, not the `Wrap` this used to be: in a
+            // fixed-height row a wrapped price is a price cut in half. On
+            // narrow screens the was-price and the percentage are dropped
+            // rather than squeezed, which is what the website does below `sm` —
+            // the reduction is on the photograph as a flag either way.
+            SizedBox(
+              height: _kCardPriceHeight,
+              width: double.infinity,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Name at the interface weight, not bold. A supplier's
-                  // 90-character title set bold is a wall, and the chip runs
-                  // inline so the tag costs no vertical space.
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: _localChip,
-                        ),
-                        TextSpan(text: p.name),
-                      ],
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: _text(
-                      size: 13,
-                      color: _kInk,
-                      weight: FontWeight.w400,
-                      height: 1.35,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // The money, all on one line: what it costs, what it cost,
-                  // and what that saves as a percentage.
-                  Wrap(
-                    spacing: 5,
-                    runSpacing: 2,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        p.priceLabel,
-                        style: _price(
-                          size: 16,
-                          color: p.discountPercent > 0 ? _kSale : _kInk,
-                        ),
-                      ),
-                      if (p.wasPriceLabel != null)
-                        Text(p.wasPriceLabel!, style: _struck(size: 11)),
-                      if (p.discountPercent > 0)
-                        Text(
-                          '−${p.discountPercent}%',
-                          style: _label(
-                            size: 11,
-                            color: _kSale,
-                            weight: FontWeight.w800,
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  // What the discount is worth in money. "-17%" is arithmetic
-                  // the shopper has to do; "Save UGX 5,000" is the answer.
-                  if (p.savingLabel != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      'Save ${p.savingLabel}',
-                      style: _label(
-                        size: 11,
-                        color: _kSuccess,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-
-                  // Rating and units sold — the two numbers a shopper uses to
-                  // decide whether anyone else took the risk first.
-                  if (p.ratingCount > 0 || p.totalSales > 0) ...[
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        if (p.ratingCount > 0) ...[
-                          _stars(p.rating),
-                          const SizedBox(width: 3),
-                          Text(
-                            p.rating.toStringAsFixed(1),
-                            style: _label(
-                              size: 11,
-                              color: _kBody,
-                              weight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                        if (p.ratingCount > 0 && p.totalSales > 0)
-                          const SizedBox(width: 6),
-                        if (p.totalSales > 0)
-                          Flexible(
-                            child: Text(
-                              '${_compactSold(p.totalSales)} sold',
-                              style: _label(size: 11, color: _kMuted),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-
-                  if (promo != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '$promo in ${p.categoryName}',
-                      style: _label(
-                        size: 11,
-                        color: _kPrimaryInk,
-                        weight: FontWeight.w600,
-                      ),
+                  Flexible(
+                    child: Text(
+                      p.priceLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: _price(
+                        size: wide ? 15 : 13,
+                        color: p.discountPercent > 0 ? _kSale : _kInk,
+                      ),
                     ),
+                  ),
+                  if (wide && p.wasPriceLabel != null) ...[
+                    const SizedBox(width: 6),
+                    Text(p.wasPriceLabel!, style: _struck(size: 11.5)),
                   ],
-
-                  const Spacer(),
-
-                  // Not "free delivery" — that depends on the basket total and
-                  // a tile cannot know it. Promising it here would be a lie on
-                  // most orders.
-                  if (soldOut)
+                  if (wide && p.discountPercent > 0) ...[
+                    const SizedBox(width: 6),
                     Text(
-                      'Back in stock soon',
-                      style: _label(size: 11, color: _kMuted),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else if (lowStock)
-                    Text(
-                      'Only ${p.stockQuantity} left',
+                      '−${p.discountPercent}%',
                       style: _label(
-                        size: 11,
+                        size: 11.5,
                         color: _kSale,
                         weight: FontWeight.w700,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ---- Row 3: rating and units sold ----
+            // Rendered even when empty. A product with no reviews and no sales
+            // is exactly the one that would otherwise render a shorter tile
+            // than its neighbours.
+            SizedBox(
+              height: _kCardMetaHeight,
+              width: double.infinity,
+              child: Row(
+                children: [
+                  if (p.ratingCount > 0) ...[
+                    _stars(p.rating),
+                    const SizedBox(width: 4),
                     Text(
-                      'Fastest delivery: 1 business day',
+                      p.rating.toStringAsFixed(1),
                       style: _label(
-                        size: 11,
-                        color: _kSuccess,
+                        size: 11.5,
+                        color: _kBody,
                         weight: FontWeight.w600,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (p.ratingCount > 0 && p.totalSales > 0)
+                    const SizedBox(width: 8),
+                  if (p.totalSales > 0)
+                    Flexible(
+                      child: Text(
+                        '${_compactSold(p.totalSales)} sold',
+                        style: _label(
+                          size: 11.5,
+                          color: _kMuted,
+                          weight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
               ),
+            ),
+
+            // ---- Row 4: the delivery promise ----
+            SizedBox(
+              height: _kCardMetaHeight,
+              width: double.infinity,
+              child: soldOut
+                  ? Text(
+                      'Back in stock soon',
+                      style: _label(
+                        size: 11.5,
+                        color: _kMuted,
+                        weight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  : lowStock
+                      ? Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: _kSale,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'Only ${p.stockQuantity} left',
+                                style: _label(
+                                  size: 11.5,
+                                  color: _kSale,
+                                  weight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
+                      // Not "free delivery" — that depends on the basket total
+                      // and a tile cannot know it. Promising it here would be a
+                      // lie on most orders.
+                      : Text(
+                          'Fastest delivery: 1 business day',
+                          style: _label(
+                            size: 11.5,
+                            color: _kSuccess,
+                            weight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
             ),
           ],
         ),
@@ -1921,24 +2012,37 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
       );
 
   // ---------- Shimmer grid ----------
-  Widget _shimmerGrid() => GridView.builder(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 20),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 0.50,
-        ),
-        itemCount: 6,
-        itemBuilder: (_, __) => _Shimmer(
-          child: Container(
-            decoration: BoxDecoration(
-              color: _kHairline,
-              borderRadius: BorderRadius.circular(_radius),
-            ),
+  /// The placeholder grid, laid out from the same arithmetic as the real one.
+  ///
+  /// It has to be, or it defeats its own purpose: a skeleton that is not the
+  /// size of the thing it stands in for makes the page jump the moment the
+  /// products land, which is precisely the flicker a skeleton exists to
+  /// prevent. This carried its own copy of the hardcoded 0.50 and so would have
+  /// quietly gone on standing in for a tile shape that no longer exists.
+  Widget _shimmerGrid() {
+    const gutter = 8.0;
+    final tileWidth = (MediaQuery.of(context).size.width - gutter * 3) / 2;
+    final tileHeight = tileWidth + _kCardTextHeight;
+
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(gutter, gutter, gutter, 20),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: gutter,
+        mainAxisSpacing: gutter,
+        childAspectRatio: tileWidth / tileHeight,
+      ),
+      itemCount: 6,
+      itemBuilder: (_, __) => _Shimmer(
+        child: Container(
+          decoration: BoxDecoration(
+            color: _kHairline,
+            borderRadius: BorderRadius.circular(_kCardRadius),
           ),
         ),
-      );
+      ),
+    );
+  }
 
   // ---------- Empty ----------
   Widget _emptyState() => Center(
