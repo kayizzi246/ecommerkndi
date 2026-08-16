@@ -2133,7 +2133,7 @@ add_action( 'rest_api_init', function () {
 	/* ---- GET /seller/stats ---- */
 	/* ---- POST /seller/fee-paid ----
 	 *
-	 * Called by the storefront once Pesapal confirms the one-off registration
+	 * Called by the storefront once Pesapal confirms a month's seller
 	 * fee. Gated on the shared secret rather than the seller's own token: the
 	 * IPN that fires when a seller closes the tab mid-payment comes from
 	 * Pesapal's servers and carries no session, and that is precisely the case

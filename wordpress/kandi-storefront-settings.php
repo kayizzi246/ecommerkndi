@@ -831,10 +831,18 @@ function kandi_settings_render_page() {
 			<p class="description">Quoted on the &ldquo;Sell with us&rdquo; landing page, in its earnings calculator, and throughout seller onboarding.</p>
 			<table class="form-table" role="presentation">
 				<tr>
-					<th scope="row"><label for="seller_fee">One-off registration fee (UGX)</label></th>
+					<th scope="row"><label for="seller_fee">Monthly seller fee (UGX)</label></th>
 					<td>
 						<input type="number" id="seller_fee" name="seller_fee" value="<?php echo esc_attr( $s['seller_fee'] ); ?>" class="small-text" step="1000" min="0">
-						<p class="description">Set to 0 to make registration free — the whole payment step then disappears from onboarding.</p>
+						<p class="description">
+							Charged <strong>every month</strong>, not once. A seller whose month runs
+							out has their products hidden from the shop until they pay — nothing is
+							deleted, and their listings come straight back. Record each payment with
+							<em>Add a month</em> on the Kandi Sellers screen.
+							<br>
+							Set to 0 to make selling free: the payment step disappears from
+							onboarding and no store is ever hidden for non-payment.
+						</p>
 					</td>
 				</tr>
 				<tr>
@@ -853,7 +861,7 @@ function kandi_settings_render_page() {
 					<td>
 						<input type="text" id="seller_pay_number" name="seller_pay_number" value="<?php echo esc_attr( $s['seller_pay_number'] ); ?>" class="regular-text" placeholder="0700 000 000">
 						<input type="text" name="seller_pay_name" value="<?php echo esc_attr( $s['seller_pay_name'] ); ?>" class="regular-text" placeholder="Registered name on the account">
-						<p class="description">The mobile money number new sellers send the registration fee to, and the name it is registered under so they can check before sending. Leave blank and onboarding tells them to call you instead.</p>
+						<p class="description">The mobile money number sellers send the monthly fee to, and the name it is registered under so they can check before sending. Leave blank and onboarding tells them to call you instead.</p>
 					</td>
 				</tr>
 			</table>
