@@ -134,13 +134,29 @@ export async function generateMetadata(): Promise<Metadata> {
      * currently points at, so the upload still works and the URL never moves
      * again. See `app/brand-icon/route.ts`.
      *
-     * `/favicon.ico` stays as the `shortcut`: it is genuinely a .ico with real
-     * 16, 32 and 48px frames in it, which is the one format every crawler and
-     * every old browser can read without negotiation.
+     * ---- All three point at the SAME URL, and that is not an oversight ----
+     *
+     * This briefly read `shortcut: "/favicon.ico"`, on the reasoning that a
+     * real .ico with 16/32/48px frames is the one format every crawler can
+     * read without negotiation. That reasoning is true and it does not matter,
+     * because it re-broke the exact bug the paragraphs above exist to describe.
+     *
+     * Declaring two different icons means the browser picks one, and Chrome
+     * prefers the `.ico` — which is the bundled file that never changes. The
+     * result on the live site was a head containing both the uploaded logo and
+     * the stock icon, with the stock one winning: the upload reached the page
+     * every time and was simply never what got painted. That is the second
+     * time this shop has lost its favicon to a second declaration, and the
+     * rule it keeps teaching is worth stating plainly — ONE icon, one URL, no
+     * alternatives for a browser to choose between.
+     *
+     * `/favicon.ico` still exists in `public/` and still answers the bare
+     * request browsers and crawlers make by habit. It is just not *declared*
+     * any more, so it cannot outrank the icon this function chose.
      */
     icons: favicon
-      ? { icon: "/brand-icon", shortcut: "/favicon.ico", apple: "/brand-icon" }
-      : { icon: "/icon.png", shortcut: "/favicon.ico", apple: "/apple-icon.png" },
+      ? { icon: "/brand-icon", shortcut: "/brand-icon", apple: "/brand-icon" }
+      : { icon: "/icon.png", shortcut: "/icon.png", apple: "/apple-icon.png" },
     // No canonical here, deliberately.
     //
     // Metadata set in a layout is *inherited* by every page under it that does
