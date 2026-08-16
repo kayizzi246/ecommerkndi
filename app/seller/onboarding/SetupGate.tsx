@@ -19,7 +19,7 @@ const ACCEPT = "image/jpeg,image/png,image/webp,image/avif,application/pdf";
  *      formally registered. A marketplace that takes payment on a stranger's
  *      behalf has to know who the stranger is; it is also what makes a fraud
  *      complaint answerable rather than a shrug.
- *   2. The joining fee — paid here, not "some time later". A store that can
+ *   2. The monthly fee — first month paid here, not "some time later". A store that can
  *      reach the dashboard without paying will list products, take orders and
  *      then be chased for the fee, which is a worse conversation than this one.
  *
@@ -72,7 +72,7 @@ export default function SetupGate({
           {seller.kyc_status === "approved"
             ? "Your documents have been checked and your store is verified."
             : "Your documents are with our team. We will email you the moment they are checked — usually the same working day."}
-          {feeAmount > 0 ? " The joining fee is paid." : ""}
+          {feeAmount > 0 ? " Your first month is paid." : ""}
         </p>
         <button
           type="button"
@@ -225,7 +225,7 @@ export default function SetupGate({
 
   /* ---------------------------------------------------------------- step 2 */
   return (
-    <Shell title="Pay the joining fee" step="Step 2 of 2">
+    <Shell title="Pay your first month" step="Step 2 of 2">
       <p className="text-[15px] leading-relaxed text-shop-body">
         One payment of{" "}
         <strong className="text-shop-ink">

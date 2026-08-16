@@ -93,7 +93,7 @@ export default function GettingStarted({
     ...(feeAmount > 0
       ? [
           {
-            title: "Pay the one-off joining fee",
+            title: "Pay your monthly seller fee",
             copy: "Covers your store setup and the checks we run on every seller.",
             done: feeSettled,
             href: "/seller/onboarding",

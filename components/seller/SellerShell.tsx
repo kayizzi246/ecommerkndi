@@ -12,7 +12,7 @@ const PUBLIC_ROUTES = ["/seller/login", "/seller/register"];
 
 /**
  * The setup gate. Signed in, but not finished: verification documents not sent,
- * or the joining fee not paid.
+ * or the monthly fee unpaid.
  *
  * It renders on its own, without the dashboard chrome — a sidebar of links to
  * places the seller cannot go yet is an invitation to try them.
@@ -361,13 +361,13 @@ export default function SellerShell({ children }: { children: React.ReactNode })
             </div>
           )}
 
-          {/* Unpaid joining fee blocks approval, so it is said on every screen
+          {/* An unpaid monthly fee hides the seller's products, so it is said on every screen
               rather than only on the one the seller happens to open. */}
           {feeDue && (
             <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-5">
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] font-semibold text-shop-primary">
-                  Your joining fee has not been received yet
+                  Your monthly seller fee is unpaid
                 </p>
                 <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
                   Your store cannot be approved until it clears. Quote reference{" "}

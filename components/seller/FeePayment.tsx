@@ -44,7 +44,7 @@ export default function FeePayment({
         body: JSON.stringify({
           purpose: { kind: "seller-fee", sellerId: seller.id },
           amount,
-          description: `KandiUg seller joining fee — ${seller.store_name}`.slice(0, 100),
+          description: `KandiUg seller monthly fee — ${seller.store_name}`.slice(0, 100),
           billing: {
             email_address: seller.email,
             phone_number: seller.phone,
@@ -83,7 +83,7 @@ export default function FeePayment({
   return (
     <div className="mt-7 rounded-2xl border-2 border-shop-flame bg-shop-primary-soft p-6 text-left">
       <p className="text-[14px] font-semibold uppercase tracking-wide text-shop-primary">
-        Next: pay the joining fee
+        Next: pay your monthly fee
       </p>
       <p className="price mt-1 text-[22px] leading-none text-shop-flame">{formatPrice(amount)}</p>
 

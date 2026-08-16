@@ -410,11 +410,27 @@ function kandi_format_seller( $user_id ) {
 		'payout_account'  => (string) get_user_meta( $user->ID, '_kandi_payout_account', true ),
 		'registered_at'   => mysql2date( 'c', $user->user_registered ),
 		'logo'            => (string) get_user_meta( $user->ID, '_kandi_logo', true ),
-		// One-off registration fee. 'waived' when the shop has set the fee to
-		// zero, so the seller never sees a payment step that does not apply.
-		'fee_status'      => (string) ( get_user_meta( $user->ID, '_kandi_fee_status', true ) ?: 'unpaid' ),
+		/**
+		 * The monthly seller fee.
+		 *
+		 * `fee_status` is DERIVED from the paid-until date rather than read from
+		 * a stored flag, so it cannot go stale between a cron run and a page
+		 * load. 'waived' when the shop has set the fee to zero, so a seller
+		 * never sees a payment step that does not apply to them.
+		 */
+		'fee_status'      => kandi_seller_fee_state( $user->ID ),
 		'fee_amount'      => (float) get_user_meta( $user->ID, '_kandi_fee_amount', true ),
 		'fee_reference'   => kandi_seller_fee_reference( $user->ID ),
+		/**
+		 * When cover runs out, ISO-8601, or null if they have never paid.
+		 *
+		 * The Seller Centre needs the date and not just the status: "Your fee is
+		 * due" is a demand, "Your cover runs out on 14 September" is information
+		 * a seller can act on before they lose their shopfront.
+		 */
+		'fee_paid_until'  => kandi_seller_fee_paid_until( $user->ID )
+			? gmdate( 'c', kandi_seller_fee_paid_until( $user->ID ) )
+			: null,
 		// Whether the emailed code has been entered. The Seller Centre uses this
 		// to decide between the dashboard and the verification screen.
 		'email_verified'  => kandi_seller_is_verified( $user->ID ),
@@ -432,7 +448,7 @@ function kandi_seller_fee_reference( $user_id ) {
 	return 'KND-' . str_pad( (string) (int) $user_id, 4, '0', STR_PAD_LEFT );
 }
 
-/** The registration fee currently configured in Kandi Storefront settings. */
+/** The monthly seller fee currently configured in Kandi Storefront settings. */
 function kandi_seller_registration_fee() {
 	$settings = get_option( 'kandi_storefront_settings', array() );
 	if ( is_array( $settings ) && isset( $settings['seller_fee'] ) && '' !== $settings['seller_fee'] ) {
@@ -440,6 +456,178 @@ function kandi_seller_registration_fee() {
 	}
 	return 50000.0;
 }
+
+/* ==========================================================================
+ * THE MONTHLY SELLER FEE
+ * ==========================================================================
+ *
+ * The fee used to be a one-off gate: a single `_kandi_fee_status` meta holding
+ * 'unpaid', 'paid' or 'waived', flipped to 'paid' once and never looked at
+ * again. A subscription cannot be expressed in that flag, because the only
+ * question it can answer is "did they ever pay", and the question now is "are
+ * they paid up *today*".
+ *
+ * So the truth moved to a date — `_kandi_fee_paid_until`, a Unix timestamp for
+ * the moment cover runs out — and the status is DERIVED from it rather than
+ * stored. That ordering is the important part. A stored status has to be
+ * corrected by something running on a schedule, and anything that depends on
+ * wp-cron firing on a shared host will eventually be wrong in the direction
+ * that costs a seller their shopfront. A derived status cannot drift: it is
+ * recomputed from the clock every time it is read.
+ *
+ * `_kandi_fee_status` is still written, but only for the one value the date
+ * cannot express — 'waived', which is what a shop charging nothing sets.
+ */
+
+/** How long one payment buys. */
+function kandi_seller_fee_period() {
+	return '+1 month';
+}
+
+/**
+ * When this seller's cover expires, as a Unix timestamp. 0 if never paid.
+ */
+function kandi_seller_fee_paid_until( $seller_id ) {
+	return (int) get_user_meta( $seller_id, '_kandi_fee_paid_until', true );
+}
+
+/**
+ * The seller's fee standing right now: 'waived', 'paid' or 'unpaid'.
+ *
+ * Derived from the clock, never from a stored flag — see the block above.
+ *
+ * There is no grace period, by explicit instruction: cover ends the moment the
+ * paid-until timestamp passes. Note what that means operationally, because it
+ * is a foot-gun rather than a subtlety — payments are confirmed BY HAND on the
+ * Sellers screen in wp-admin, so a seller who has genuinely paid stays 'unpaid'
+ * until somebody marks it. The lag being punished there is the marketplace's,
+ * not the seller's. `kandi_seller_extend_fee` therefore always counts a month
+ * from the later of now and the existing expiry, so marking a payment late
+ * never costs the seller the days you took to record it.
+ */
+function kandi_seller_fee_state( $seller_id ) {
+	if ( 'waived' === get_user_meta( $seller_id, '_kandi_fee_status', true ) ) {
+		return 'waived';
+	}
+
+	// A shop that has set the fee to zero charges nobody, whatever is on file.
+	if ( kandi_seller_registration_fee() <= 0 ) {
+		return 'waived';
+	}
+
+	$until = kandi_seller_fee_paid_until( $seller_id );
+
+	return ( $until > 0 && $until >= time() ) ? 'paid' : 'unpaid';
+}
+
+/**
+ * Credits one month of cover.
+ *
+ * Counted from the LATER of now and the current expiry, which is what makes the
+ * billing cycle stable: a seller who pays three days early keeps those three
+ * days instead of forfeiting them, and one whose payment you record a week late
+ * is not charged for the week you spent recording it. Both of those are the same
+ * bug — resetting the clock to `now` on every payment — and it silently shortens
+ * every cycle a seller ever buys.
+ */
+function kandi_seller_extend_fee( $seller_id ) {
+	$current = kandi_seller_fee_paid_until( $seller_id );
+	$from    = max( time(), $current );
+	$until   = strtotime( kandi_seller_fee_period(), $from );
+
+	update_user_meta( $seller_id, '_kandi_fee_paid_until', $until );
+	// Cleared rather than set: 'paid' is now derived, and leaving a stale
+	// literal here would outrank the date it is supposed to describe.
+	delete_user_meta( $seller_id, '_kandi_fee_status' );
+
+	return $until;
+}
+
+/**
+ * Every seller who is not currently paid up.
+ *
+ * Cached for a minute because the storefront asks this on every product query.
+ * A minute is short enough that a seller who pays sees their shop return almost
+ * at once, and long enough that a burst of catalogue requests does not re-read
+ * every seller's meta from the database.
+ */
+function kandi_seller_lapsed_ids() {
+	$cached = get_transient( 'kandi_lapsed_sellers' );
+	if ( is_array( $cached ) ) {
+		return $cached;
+	}
+
+	$lapsed = array();
+
+	foreach ( get_users( array( 'role' => 'kandi_seller', 'fields' => 'ID' ) ) as $seller_id ) {
+		if ( 'unpaid' === kandi_seller_fee_state( $seller_id ) ) {
+			$lapsed[] = (int) $seller_id;
+		}
+	}
+
+	set_transient( 'kandi_lapsed_sellers', $lapsed, MINUTE_IN_SECONDS );
+
+	return $lapsed;
+}
+
+/** Drops the cache above, so a payment takes effect without waiting it out. */
+function kandi_seller_flush_lapsed_cache() {
+	delete_transient( 'kandi_lapsed_sellers' );
+}
+
+/**
+ * Hides the products of sellers who are not paid up.
+ *
+ * The chosen consequence of lapsing: listings stop being shown to shoppers,
+ * while the account, the products, the images and the order history all stay
+ * exactly as they were. Nothing is deleted and nothing is unrecoverable — the
+ * moment the fee is credited the same products reappear, unedited. That is the
+ * only version of enforcement worth having, because the alternative asks a
+ * seller to rebuild a catalogue over a late payment.
+ *
+ * Applied at the query layer rather than by flipping each product to `draft`,
+ * and the distinction matters more than it looks. Editing post status would
+ * mean writing to every one of a seller's products on lapse and again on
+ * payment, which is slow, destroys any genuine draft/published distinction the
+ * seller had set up, and leaves the catalogue in a state that has to be
+ * correctly reversed. Filtering leaves the data untouched and is exactly as
+ * reversible as the condition that caused it.
+ *
+ * Products with no `_kandi_seller_id` are the shop's own stock and are never
+ * touched by this.
+ */
+function kandi_seller_hide_lapsed_products( $query ) {
+	// Never in wp-admin: the shop must still be able to see and manage the
+	// listings of a seller who has lapsed, which is precisely when somebody
+	// needs to look at them.
+	if ( is_admin() ) {
+		return;
+	}
+
+	$lapsed = kandi_seller_lapsed_ids();
+	if ( empty( $lapsed ) ) {
+		return;
+	}
+
+	$meta_query = (array) $query->get( 'meta_query' );
+
+	$meta_query[] = array(
+		'relation' => 'OR',
+		// The shop's own products carry no seller meta at all.
+		array(
+			'key'     => '_kandi_seller_id',
+			'compare' => 'NOT EXISTS',
+		),
+		array(
+			'key'     => '_kandi_seller_id',
+			'value'   => $lapsed,
+			'compare' => 'NOT IN',
+		),
+	);
+
+	$query->set( 'meta_query', $meta_query );
+}
+add_action( 'woocommerce_product_query', 'kandi_seller_hide_lapsed_products' );
 
 function kandi_seller_commission_rate( $seller_id ) {
 	$rate = get_user_meta( $seller_id, '_kandi_commission_rate', true );
@@ -1124,11 +1312,21 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_status', 'pending' );
 			update_user_meta( $user_id, '_kandi_commission_rate', kandi_default_commission_rate() );
 
-			// Registration fee. Recorded at the amount in force on the day they
-			// applied, so a later price change never moves someone's goalposts.
+			/**
+			 * The monthly fee. Recorded at the amount in force on the day they
+			 * applied, so a later price change never moves someone's goalposts
+			 * mid-cycle.
+			 *
+			 * No paid-until date is written: a new seller has bought no cover
+			 * yet, and `kandi_seller_fee_state` reads an absent date as 'unpaid'
+			 * without needing to be told. A zero fee is still stored as 'waived'
+			 * explicitly, because that is the one state a date cannot express.
+			 */
 			$fee = kandi_seller_registration_fee();
 			update_user_meta( $user_id, '_kandi_fee_amount', $fee );
-			update_user_meta( $user_id, '_kandi_fee_status', $fee > 0 ? 'unpaid' : 'waived' );
+			if ( $fee <= 0 ) {
+				update_user_meta( $user_id, '_kandi_fee_status', 'waived' );
+			}
 
 			/**
 			 * A Google sign-up is confirmed on arrival: the ID token the
@@ -1929,26 +2127,44 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_not_found', 'Seller not found.', array( 'status' => 404 ) );
 			}
 
-			$already = 'paid' === get_user_meta( $seller_id, '_kandi_fee_status', true );
+			/**
+			 * Every confirmed payment credits another month.
+			 *
+			 * The `$already` guard that used to sit here has gone, and its
+			 * removal is the point of the change rather than a side effect. It
+			 * asked "has this seller ever paid?" and did nothing if so — correct
+			 * for a one-off fee, and exactly wrong for a subscription, where the
+			 * second payment is the one that keeps the shop open. A seller
+			 * paying their second month would have had the money taken and no
+			 * cover added.
+			 *
+			 * Idempotency now comes from the arithmetic instead: cover is
+			 * counted from the later of now and the current expiry, so paying
+			 * early stacks rather than resets. A genuine duplicate of the same
+			 * transaction would add a month twice, which is why the reference is
+			 * still recorded — a repeat is visible and refundable, where a
+			 * silently swallowed renewal is neither.
+			 */
+			$until = kandi_seller_extend_fee( $seller_id );
+			kandi_seller_flush_lapsed_cache();
 
-			if ( ! $already ) {
-				update_user_meta( $seller_id, '_kandi_fee_status', 'paid' );
-				update_user_meta( $seller_id, '_kandi_fee_reference', $reference );
-				update_user_meta( $seller_id, '_kandi_fee_method', $method );
+			update_user_meta( $seller_id, '_kandi_fee_reference', $reference );
+			update_user_meta( $seller_id, '_kandi_fee_method', $method );
 
-				// Paying the fee is what a seller can do for themselves; whether
-				// the store then goes live is still the shop's call, so approval
-				// is left to the Sellers screen in wp-admin.
-				if ( 'pending' === ( get_user_meta( $seller_id, '_kandi_status', true ) ?: 'pending' )
-					&& get_option( 'kandi_seller_auto_approve_sellers' ) ) {
-					update_user_meta( $seller_id, '_kandi_status', 'approved' );
-				}
+			// Paying the fee is what a seller can do for themselves; whether
+			// the store then goes live is still the shop's call, so approval
+			// is left to the Sellers screen in wp-admin.
+			if ( 'pending' === ( get_user_meta( $seller_id, '_kandi_status', true ) ?: 'pending' )
+				&& get_option( 'kandi_seller_auto_approve_sellers' ) ) {
+				update_user_meta( $seller_id, '_kandi_status', 'approved' );
 			}
 
 			return rest_ensure_response( array(
-				'ok'      => true,
-				'already' => $already,
-				'seller'  => kandi_format_seller( $seller_id ),
+				'ok'         => true,
+				// When the month just bought runs out, so the Seller Centre can
+				// say so on the confirmation rather than only "paid".
+				'paid_until' => gmdate( 'c', $until ),
+				'seller'     => kandi_format_seller( $seller_id ),
 			) );
 		},
 	) );
@@ -2699,11 +2915,33 @@ function kandi_admin_sellers_page() {
 			echo '<div class="notice notice-success is-dismissible"><p>Commission rate updated.</p></div>';
 		}
 
-		// Registration fee. Marked by hand once the mobile money payment lands,
-		// because there is no payment gateway wired into onboarding — the money
-		// arrives out of band and a human confirms it.
+		/**
+		 * The monthly fee, marked by hand once the mobile money payment lands —
+		 * there is no gateway wired into onboarding, so the money arrives out of
+		 * band and a human confirms it.
+		 *
+		 * "Mark paid" now CREDITS A MONTH rather than setting a flag, and it can
+		 * be used again every month for as long as the seller keeps paying.
+		 * Because `kandi_seller_extend_fee` counts from the later of now and the
+		 * existing expiry, pressing it twice in one cycle buys two months rather
+		 * than throwing the first away — which also means it is the button to
+		 * press when catching up on a payment recorded late.
+		 *
+		 * "Mark unpaid" ends cover immediately by clearing the date. It is a
+		 * correction tool for a payment entered in error, not a punishment: no
+		 * product is deleted, and crediting a month puts everything back.
+		 */
 		if ( 'fee_paid' === $action || 'fee_unpaid' === $action ) {
-			update_user_meta( $seller_id, '_kandi_fee_status', 'fee_paid' === $action ? 'paid' : 'unpaid' );
+			if ( 'fee_paid' === $action ) {
+				kandi_seller_extend_fee( $seller_id );
+			} else {
+				delete_user_meta( $seller_id, '_kandi_fee_paid_until' );
+				delete_user_meta( $seller_id, '_kandi_fee_status' );
+			}
+
+			// The storefront caches who has lapsed for a minute; a decision made
+			// here should show up on the shop now, not when that expires.
+			kandi_seller_flush_lapsed_cache();
 
 			if ( 'fee_paid' === $action ) {
 				$user = get_userdata( $seller_id );
@@ -2808,32 +3046,65 @@ function kandi_admin_sellers_page() {
 		}
 		echo '</td>';
 
-		// Registration fee, with the reference the seller was told to quote.
-		$fee_status = get_user_meta( $seller->ID, '_kandi_fee_status', true ) ?: 'unpaid';
+		/**
+		 * The monthly fee column, with the reference the seller quotes.
+		 *
+		 * Status is read through `kandi_seller_fee_state` rather than straight
+		 * off the meta, so this screen shows the same derived answer the
+		 * storefront enforces on. Reading the raw meta here would let wp-admin
+		 * report a seller "paid" whose cover expired last week.
+		 *
+		 * The expiry date is printed next to it because it is the number this
+		 * screen exists to act on: "paid" alone does not tell you whether a
+		 * seller is about to drop off the shop tomorrow.
+		 */
+		$fee_status = kandi_seller_fee_state( $seller->ID );
 		$fee_amount = (float) get_user_meta( $seller->ID, '_kandi_fee_amount', true );
+		$paid_until = kandi_seller_fee_paid_until( $seller->ID );
 		echo '<td>';
 		if ( 'waived' === $fee_status ) {
 			echo '<span class="description">Waived</span>';
 		} else {
 			printf(
-				'<span class="kandi-status kandi-status-%s">%s</span><br><code>%s</code><br><span class="description">%s</span>',
+				'<span class="kandi-status kandi-status-%s">%s</span><br><code>%s</code><br><span class="description">%s / month</span>',
 				'paid' === $fee_status ? 'approved' : 'pending',
 				'paid' === $fee_status ? 'paid' : 'unpaid',
 				esc_html( kandi_seller_fee_reference( $seller->ID ) ),
 				wp_kses_post( wc_price( $fee_amount ) )
 			);
+
+			if ( $paid_until > 0 ) {
+				printf(
+					'<br><span class="description">%s %s</span>',
+					'paid' === $fee_status ? 'Until' : 'Lapsed',
+					esc_html( date_i18n( get_option( 'date_format' ), $paid_until ) )
+				);
+			}
+
+			// Spelled out, because the consequence is invisible from this screen
+			// and is the whole reason the column matters now.
+			if ( 'unpaid' === $fee_status ) {
+				echo '<br><span class="description" style="color:#b32d2e">Products hidden from the shop</span>';
+			}
+
 			echo '<form method="post" style="margin-top:4px">';
 			wp_nonce_field( 'kandi_seller_action' );
 			printf( '<input type="hidden" name="seller_id" value="%d">', (int) $seller->ID );
-			printf(
-				'<input type="hidden" name="kandi_seller_action" value="%s">',
-				'paid' === $fee_status ? 'fee_unpaid' : 'fee_paid'
-			);
-			printf(
-				'<button class="button button-small">%s</button>',
-				'paid' === $fee_status ? 'Mark unpaid' : 'Mark paid'
-			);
+			// "Add a month" is always available, including to a seller already
+			// paid up — that is how a renewal is recorded, and the month stacks
+			// onto the end of the current one rather than replacing it.
+			printf( '<input type="hidden" name="kandi_seller_action" value="fee_paid">' );
+			printf( '<button class="button button-small">%s</button>', 'Add a month' );
 			echo '</form>';
+
+			if ( 'paid' === $fee_status ) {
+				echo '<form method="post" style="margin-top:4px">';
+				wp_nonce_field( 'kandi_seller_action' );
+				printf( '<input type="hidden" name="seller_id" value="%d">', (int) $seller->ID );
+				echo '<input type="hidden" name="kandi_seller_action" value="fee_unpaid">';
+				echo '<button class="button button-small button-link-delete">End cover</button>';
+				echo '</form>';
+			}
 		}
 		echo '</td>';
 

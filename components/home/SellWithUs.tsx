@@ -12,7 +12,7 @@ import type { SiteSettings } from "@/lib/site-settings";
  * anything.
  *
  * Every number is the shop's own, read from wp-admin: the commission rate, the
- * payout frequency, the joining fee. Nothing here is a claim the Seller Centre
+ * payout frequency, the monthly fee. Nothing here is a claim the Seller Centre
  * does not keep, because a seller who joins on a promise that turns out to be
  * decoration is a seller who leaves in a month and tells people why.
  *
@@ -45,7 +45,7 @@ export default function SellWithUs({
       detail:
         fee > 0
           ? "One payment, never again — it covers your store setup and checks."
-          : "No joining fee at all. Open a store and start listing.",
+          : "No monthly fee at all. Open a store and start listing.",
     },
   ];
 

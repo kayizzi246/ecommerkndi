@@ -57,7 +57,7 @@ export default function SellerGuidePage() {
             items={[
               "Confirm your email. We send a six-digit code the moment you sign up — enter it and your account is live.",
               "Send your documents: a photo of your national ID, and whether the business is formally registered. If it is, we ask for the certificate or TIN number. Nobody but our team sees any of this, and none of it appears on your store page.",
-              "Pay the one-off joining fee, by MTN MoMo, Airtel Money or card. One payment, never again.",
+              "Pay your monthly seller fee, by MTN MoMo, Airtel Money or card. Charged every month you trade.",
               "We check the documents — usually the same working day — and approve the store. You get an email when we do.",
             ]}
           />

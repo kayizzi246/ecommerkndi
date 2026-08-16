@@ -57,7 +57,7 @@ type Props = {
  * when the last step is submitted — abandoning halfway leaves nothing behind.
  *
  * Signing up does not open the Seller Centre. It creates the account and sends
- * the emailed code; the verification documents and the joining fee are then
+ * the emailed code; the verification documents and the first month's fee are then
  * collected by the setup gate at /seller/onboarding, which the dashboard cannot
  * be reached past. Everything to do with paying lives there, in one place.
  */
@@ -495,7 +495,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
               {STEPS[step].key === "store" && "Let's name your store"}
               {STEPS[step].key === "you" && "Now, a bit about you"}
               {STEPS[step].key === "password" && "Secure your account"}
-              {STEPS[step].key === "fee" && "One last thing: the joining fee"}
+              {STEPS[step].key === "fee" && "One last thing: your first month"}
             </h1>
 
             <div className="mt-7 max-w-[560px]">
@@ -762,7 +762,7 @@ function PasswordMeter({ password }: { password: string }) {
   );
 }
 
-/** The joining fee, explained before anyone is asked to pay it. */
+/** The monthly fee, explained before anyone is asked to pay it. */
 function FeeStep({
   registrationFee,
   commissionRate,
@@ -833,7 +833,7 @@ function FeeStep({
 }
 
 /**
- * The joining fee, paid on the spot through Pesapal.
+ * The first month's fee, paid on the spot through Pesapal.
  *
  * Mobile money and card both open the same Pesapal window — it presents its own
  * method picker, so the two buttons are really one flow with the shopper's
@@ -870,7 +870,7 @@ function Done({
         </h1>
         <p className="mx-auto mt-2 max-w-[42ch] text-[16px] leading-relaxed text-shop-body">
           {feeDue
-            ? "Two things left: your verification documents and the joining fee. Both take a couple of minutes."
+            ? "Two things left: your verification documents and your first month's fee. Both take a couple of minutes."
             : "Send us your verification documents and your store goes to our team for approval."}
         </p>
 

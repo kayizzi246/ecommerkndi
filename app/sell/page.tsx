@@ -63,11 +63,11 @@ export default async function SellPage() {
   const steps = [
     {
       title: "Apply",
-      copy: "Five short steps: your store, you, your password, the joining fee, done. About three minutes.",
+      copy: "Five short steps: your store, you, your password, your first month, done. About three minutes.",
     },
     {
-      title: "Pay the joining fee",
-      copy: `A one-off ${formatPrice(seller.registration_fee)} by mobile money, quoting the reference we give you.`,
+      title: "Pay your first month",
+      copy: `${formatPrice(seller.registration_fee)} a month by mobile money, quoting the reference we give you.`,
     },
     {
       title: "We check and approve",
@@ -88,12 +88,12 @@ export default async function SellPage() {
 
   const faqs = [
     {
-      q: "Is the joining fee refundable?",
-      a: `If we reject your application, the ${formatPrice(seller.registration_fee)} is refunded in full within five working days. If you are approved and later close your store, it is not refunded — the work it pays for has already been done.`,
+      q: "Is the monthly fee refundable?",
+      a: `If we reject your application, your first ${formatPrice(seller.registration_fee)} is refunded in full within five working days. After that it is a subscription rather than a purchase: stop paying whenever you like and your store simply comes off the shop when the month you have paid for ends. Part-months already running are not refunded.`,
     },
     {
       q: "Are there any other charges?",
-      a: `No. No listing fees, no monthly fee, no payout fee. The only ongoing cost is the ${seller.commission_rate}% commission on items you actually sell.`,
+      a: `No. No listing fees and no payout fee. There are two costs and no others: the ${formatPrice(seller.registration_fee)} monthly fee, and ${seller.commission_rate}% commission on items you actually sell.`,
     },
     {
       q: "What can I sell?",
@@ -140,7 +140,7 @@ export default async function SellPage() {
             </div>
 
             <p className="mt-4 text-[14px] text-shop-muted">
-              One-off {formatPrice(seller.registration_fee)} joining fee · refunded if we turn you
+              {formatPrice(seller.registration_fee)} a month · first month refunded if we turn you
               down · already selling?{" "}
               <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
                 Sign in
@@ -217,11 +217,17 @@ export default async function SellPage() {
                 Straight answer
               </p>
               <h2 className="mt-2 text-[26px] font-extrabold leading-tight text-shop-ink md:text-[30px]">
-                What the {formatPrice(seller.registration_fee)} is for
+                What the {formatPrice(seller.registration_fee)} a month is for
               </h2>
               <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
-                It is charged once, when you join, and never again. It is not a deposit and it is
-                not commission in advance — it pays for the work of getting a store trading.
+                It is a subscription, not a deposit and not commission in advance. It pays for the
+                shopfront your products sit in — the storefront, the photography standards, the
+                delivery network and the support line — for as long as you are trading here.
+              </p>
+              <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
+                Stop paying and nothing is lost: your listings simply stop showing to shoppers when
+                the month runs out. Your account, your products and your order history stay exactly
+                as they are, and paying again puts everything straight back.
               </p>
               <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
                 It also does a second job: it is why every store here is real. A marketplace that
@@ -249,7 +255,7 @@ export default async function SellPage() {
                 </li>
               ))}
               <li className="rounded-xl bg-pop-green-soft p-4 text-[15px] font-semibold leading-relaxed text-pop-green">
-                Turned down? You get the full {formatPrice(seller.registration_fee)} back within
+                Turned down? You get your first {formatPrice(seller.registration_fee)} back within
                 five working days.
               </li>
             </ul>

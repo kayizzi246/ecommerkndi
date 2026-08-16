@@ -41,9 +41,28 @@ export default function EarningsCalculator({
   const perItem = price - price * (commissionRate / 100);
   const yearlyNet = net * 12;
 
-  // How many items it takes to cover the one-off joining fee — the honest way
-  // to frame it, and usually the number that answers the objection.
+  /**
+   * How many items it takes to cover the monthly fee — the honest way to frame
+   * it, and usually the number that answers the objection.
+   *
+   * The framing changed with the fee. Against a one-off charge this was "your
+   * first N sales, then never again", which is a one-sentence answer. Against a
+   * subscription it is N sales EVERY month, and pretending otherwise would be
+   * the single most misleading thing this page could say to somebody deciding
+   * whether to join.
+   */
   const unitsToCoverFee = perItem > 0 ? Math.ceil(registrationFee / perItem) : 0;
+
+  /**
+   * What is actually left each month, after commission AND the fee.
+   *
+   * The figures above are net of commission only, which was the whole story
+   * when the fee was charged once. It is not any more: a recurring cost that
+   * the "what would you keep?" number quietly ignores is exactly the kind of
+   * omission a seller discovers in month two and never forgives. Floored at
+   * zero so a low-volume scenario reads "nothing left" rather than a negative.
+   */
+  const netAfterFee = Math.max(0, net - registrationFee);
 
   return (
     <div className="rounded-2xl border border-shop-line bg-white p-6 shadow-sm md:p-8">
@@ -127,11 +146,12 @@ export default function EarningsCalculator({
       {registrationFee > 0 && unitsToCoverFee > 0 && (
         <p className="mt-4 rounded-xl bg-shop-hairline p-4 text-[14px] leading-relaxed text-shop-body">
           <strong className="text-shop-ink">
-            The one-off {formatPrice(registrationFee)} joining fee
+            The {formatPrice(registrationFee)} monthly fee
           </strong>{" "}
-          is covered by your first {unitsToCoverFee}{" "}
-          {unitsToCoverFee === 1 ? "sale" : "sales"} at this price, and is never charged again.
-          Payouts are requested from your dashboard and settled every {payoutDays} days.
+          is covered by {unitsToCoverFee} {unitsToCoverFee === 1 ? "sale" : "sales"} a month at
+          this price, leaving{" "}
+          <strong className="text-shop-ink">{formatPrice(netAfterFee)}</strong> of the figures
+          above. Payouts are requested from your dashboard and settled every {payoutDays} days.
         </p>
       )}
 

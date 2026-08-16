@@ -72,7 +72,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
         How your store appears to shoppers, and where we send your money.
       </p>
 
-      {/* The joining fee, and the reference to quote when paying it. Shown
+      {/* The monthly fee, and the reference to quote when paying it. Shown
           until the team marks it received in wp-admin. */}
       {seller.fee_status === "unpaid" && seller.fee_amount > 0 && (
         <section className="mt-6 rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-6">

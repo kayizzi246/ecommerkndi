@@ -8,7 +8,7 @@ export const metadata = {
 
 /**
  * The setup gate: everything a new seller must finish before the Seller Centre
- * opens to them — identity and business verification, then the joining fee.
+ * opens to them — identity and business verification, then the first month's fee.
  *
  * A server component only to read the shop's own terms, which live in wp-admin.
  * The steps themselves are client work.

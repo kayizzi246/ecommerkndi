@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Seller onboarding. The terms quoted through the flow — the joining fee, the
+ * Seller onboarding. The terms quoted through the flow — the monthly fee, the
  * commission rate, the number to pay it to — come from wp-admin, so they are
  * never out of step with the landing page or with what the team actually
  * charges.

@@ -22,9 +22,28 @@ export type Seller = {
   payout_account: string;
   registered_at: string;
   logo: string;
-  /** One-off registration fee. "waived" when the shop charges nothing. */
+  /**
+   * The monthly seller fee.
+   *
+   * "paid" means paid up *today*, not "has ever paid" — WordPress derives this
+   * from `fee_paid_until` against the clock rather than storing a flag, so it
+   * cannot go stale. "waived" when the shop charges nothing.
+   *
+   * A seller who lapses to "unpaid" has their products hidden from the shop.
+   * Nothing is deleted: the account, the listings and the order history all
+   * survive, and paying puts them straight back.
+   */
   fee_status: "unpaid" | "paid" | "waived";
+  /** What one month costs, fixed at the amount in force when they joined. */
   fee_amount: number;
+  /**
+   * ISO-8601 date the current month of cover runs out, or null if never paid.
+   *
+   * Worth showing rather than just the status: "your cover runs out on 14
+   * September" is something a seller can act on, where "unpaid" is only a
+   * demand delivered after the shopfront has already gone.
+   */
+  fee_paid_until: string | null;
   /** The reference the seller quotes when paying. */
   fee_reference: string;
   /** False until the six-digit code emailed at sign-up has been entered. */
