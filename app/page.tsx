@@ -194,6 +194,45 @@ export default async function Home() {
           back to the products. Headings and copy carry their own `px-3` so
           words never touch the glass. */}
       <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-0 py-3 md:gap-8 md:px-8 md:py-5">
+        {/* ---- Every carousel rail, desktop only ----
+         *
+         * On a phone this whole block is gone and the homepage is the hero
+         * followed by one endless grid.
+         *
+         * The rails are a DESKTOP idiom. A horizontal carousel works when there
+         * is a pointer to drag it, arrows to click and enough width to show six
+         * tiles at once — then a rail is a curated shelf. On a 390px screen it
+         * shows two and a half tiles, the rest is off-screen behind a swipe most
+         * shoppers never make, and eight rails stacked means eight separate
+         * swipes to see a fraction of the catalogue. What that actually
+         * produces is a page where almost every product is hidden and the
+         * shopper's whole job is scrolling past headings.
+         *
+         * A single endless grid is the phone answer, and it is what every large
+         * marketplace serves on mobile: two columns, no interaction to learn,
+         * every product on the vertical scroll the thumb is already doing.
+         *
+         * ---- What is lost, stated plainly ----
+         *
+         * The merchandising. Trending, New in, Daily Deals, Promotions, New
+         * arrivals, Best sellers, the department rails and Super Deals do not
+         * appear on a phone at all — and phones are most of this shop's
+         * traffic. "Picked for you" is newest-first, so a shopper on a phone no
+         * longer sees the deepest discount or the department landmarks unless
+         * they go looking through the header.
+         *
+         * That is a real merchandising cost and it was asked for deliberately.
+         * If it turns out to matter, the middle path is to keep ONE rail above
+         * the grid — Daily Deals is the candidate, since price is what the
+         * banner promises — rather than to bring all eight back.
+         *
+         * `hidden md:contents` rather than `hidden md:block`: `display: contents`
+         * makes this wrapper vanish from the layout at md and up, so the
+         * sections inside stay direct flex children of the column and keep the
+         * `gap-5 md:gap-8` spacing exactly as before. A `block` wrapper would
+         * collapse all eight rails into one flex item and destroy the spacing
+         * between them. */}
+        <div className="hidden md:contents">
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
@@ -327,6 +366,8 @@ export default async function Home() {
         ))}
 
         <SuperDeals products={deals} />
+        </div>
+        {/* ---- end of the desktop-only rails ---- */}
 
         {/* The wide orange offer slab used to sit here, between Super Deals and
             the endless grid. It carried the shop's terms — free delivery over a

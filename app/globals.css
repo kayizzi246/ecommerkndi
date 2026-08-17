@@ -61,6 +61,39 @@
   --foreground: #111827;
 }
 
+/* ---- Off-white on phones only ----
+ *
+ * Below 768px the page ground is #f9fafb; from 768px up it is white, as above.
+ *
+ * This looks like a reversal of the note above and it is not — the two screens
+ * have genuinely different problems, and the answer that is right for one is
+ * wrong for the other.
+ *
+ * On a DESKTOP the page is a 1600px column of six-across tiles with generous
+ * gaps and a dark masthead over it. There is structure everywhere the eye
+ * looks, and a tint behind the merchandise would only put a grey cast under
+ * photography that is mostly shot on white.
+ *
+ * On a PHONE almost all of that is gone. The masthead scrolls away, the rails
+ * are gone (see `app/page.tsx`), and what is left is two columns of borderless
+ * tiles running the full width of the glass, edge to edge, for as far as the
+ * catalogue goes. On a white ground that is white photographs on white with
+ * 10px of white between them and no edge anywhere on the screen — the tiles
+ * have nothing to sit on and the grid stops reading as a grid.
+ *
+ * The tint gives them a ground to sit on. It is 2%, which is light enough that
+ * a product shot on white does not read as boxed, and it is the only thing
+ * separating one tile from the next now that `ProductCard` draws no border.
+ *
+ * 768px rather than a Tailwind token because this file is plain CSS; it is the
+ * same `md` breakpoint the rails and the grid use, and the three have to agree
+ * — the tint exists BECAUSE the rails are gone below it. */
+@media (max-width: 767px) {
+  :root {
+    --background: #f9fafb;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -405,7 +438,24 @@ h6,
      it the first thing read in the tile. 700 is a loaded Poppins weight, so
      nothing is synthesised. */
   font-weight: 700;
-  font-size: 18px;
+  /* ---- 15px on a phone, 18px from 640px up ----
+   *
+   * The scale's price row is 18px and that is still the size on any screen with
+   * room for it. A phone is not such a screen.
+   *
+   * At 2.5 tiles across a 390px display a tile is about 150px wide, and a UGX
+   * price is a long number — "UGX 145,854" is eleven characters before the
+   * struck-through original beside it. At 18px that row is on the edge of
+   * fitting, and it was 18px bold ORANGE as of the reference-grid pass, which
+   * made it the loudest thing on a phone screen by a wide margin: louder than
+   * the product name above it and competing with the photograph, which is
+   * supposed to be what a shopper looks at.
+   *
+   * 15px still reads first among the tile's text — it is the only bold,
+   * coloured line in the block — without shouting over the product it belongs
+   * to. Set here rather than as a utility at the call site because `.price` is
+   * unlayered and would win over any `text-*` class a component tried. */
+  font-size: 15px;
   /* 1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
      the descender on a comma, and UGX prices are full of them. */
   line-height: 1.1;
@@ -421,6 +471,14 @@ h6,
      any more: the shop is one face now, so if a grid of prices is ever seen to
      shift a hair between rows, the fix is a different face, not `--font-ui`. */
   font-variant-numeric: tabular-nums;
+}
+
+/* The scale's 18px, restored as soon as there is width for it. 640px is where
+   the grid goes from 2 columns to 3 and a tile stops being 150px wide. */
+@media (min-width: 640px) {
+  .price {
+    font-size: 18px;
+  }
 }
 
 /* ---------- Old price — 400, 12px ----------
