@@ -177,60 +177,70 @@ export default function HeroBanner({
                never fetched, and if the visible one changes across a resize the
                URL is identical so it comes from cache. It keeps the markup to a
                single shape instead of three conditional branches. */}
-          {/* ---- Height is CAPPED, and that means the banner is cropped ----
-               A full-width image has no height of its own to set — its height
-               is its width times its aspect ratio, and nothing else. A 1993×816
-               banner (2.4:1) across a 1600px sheet is 655px tall, which is most
-               of a laptop screen given to one picture before a single product
-               is visible.
+          {/* ---- Why these are plain <img> and not next/image ----
 
-               So the height is capped and `object-cover` fills the shortfall,
-               which crops the banner top and bottom, centred. The caps step up
-               with the viewport so the proportion of screen the hero takes
-               stays roughly constant rather than exploding on a wide monitor.
+               This is the fix for a banner arriving with its bottom row cut
+               off, and the cause was subtler than the height cap it looked
+               like.
 
-               WHAT THIS MEANS FOR ARTWORK: anything near the top or bottom edge
-               of an upload can be cut. A 2.4:1 banner loses very little at
-               these caps; a squarer one loses a lot. If a banner is being
-               clipped somewhere that matters, the fix is not here — it is to
-               export it at a wider ratio (3:1 or 4:1), which is shorter at full
-               width by construction and needs no cropping at all. That is the
-               only way to get a short full-width banner with nothing lost.
+               `next/image` REQUIRES `width` and `height`, and the browser
+               computes the element's aspect ratio from those two numbers — not
+               from the file. So declaring 1920×800 does not describe the
+               upload, it DEFINES a 2.4:1 box, and `object-cover` then crops
+               whatever was actually uploaded to fit it. A 3:1 banner (the shape
+               the admin screen asks for) was being cropped to 2.4:1 before any
+               height cap was even consulted, and the crop was invisible in the
+               code because the numbers looked like a description.
 
-               A purpose-made phone crop gets taller caps — it is a portrait
-               image, so the desktop numbers would cut most of it away. A wide
-               banner standing in on phones gets the short ones. The cap follows
-               what the FILE is, not which breakpoint it is showing at. */}
-          <Image
+               There is no correct pair of numbers to declare here. The shop can
+               upload any shape it likes and only the FILE knows what that shape
+               is. A plain `<img>` with no dimensions lets the browser read the
+               intrinsic size and lay the element out at the image's own ratio,
+               which is the only arrangement where an arbitrary upload renders
+               uncropped.
+
+               Nothing is given up by dropping `next/image` here. These are
+               already `unoptimized` — the file lives in the WordPress media
+               library, which is not necessarily in `next.config`
+               remotePatterns — so the component was contributing no resizing,
+               no format conversion and no optimisation. It was contributing the
+               forced aspect ratio, which is exactly the bug.
+
+               `fetchPriority="high"` and `loading="eager"` replace `priority`.
+               This is the first element on the page and almost certainly its
+               LCP, so it must not be lazy.
+
+               ---- The height cap, now a safety valve rather than a crop ----
+
+               `h-auto` means the image is at its natural height: at 1600px wide
+               a 2.4:1 banner is 655px and a 3:1 banner is 533px, and both are
+               shown whole. The `max-h` values are set ABOVE those, so for any
+               sensibly wide banner they never engage.
+
+               They are kept for the upload that ignores the guidance
+               completely — a square banner at 1600px wide would be 1600px tall
+               and would fill the entire screen with one picture. At that point
+               cropping is the lesser evil. */}
+          {/* eslint-disable @next/next/no-img-element */}
+          <img
             src={mobileSrc}
             alt={image_alt}
-            width={mobileIsPortrait ? 900 : 1920}
-            height={mobileIsPortrait ? 1100 : 800}
-            unoptimized
-            priority
-            className={`w-full object-cover object-center md:hidden ${
-              mobileIsPortrait
-                ? "max-h-[340px] sm:max-h-[420px]"
-                : "max-h-[200px] sm:max-h-[260px]"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className={`h-auto w-full object-cover object-center md:hidden ${
+              mobileIsPortrait ? "max-h-[560px]" : "max-h-[320px]"
             }`}
-            sizes="100vw"
           />
-          <Image
+          <img
             src={desktopSrc}
             alt={image_alt}
-            width={1920}
-            height={800}
-            /* `unoptimized`, matching the logo: the file lives in the WordPress
-               media library, which is not necessarily in `next.config`
-               remotePatterns, and a hero that 500s because of a hostname is a
-               blank homepage. */
-            unoptimized
-            /* This is the first element on the page and almost certainly its
-               LCP. One image, above the fold, on every visit. */
-            priority
-            className="hidden w-full object-cover object-center md:block md:max-h-[320px] lg:max-h-[380px]"
-            sizes="100vw"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[520px] lg:max-h-[720px]"
           />
+          {/* eslint-enable @next/next/no-img-element */}
         </Link>
       </section>
     );

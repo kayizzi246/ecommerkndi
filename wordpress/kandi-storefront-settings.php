@@ -717,15 +717,17 @@ function kandi_settings_render_page() {
 							Spans the <strong>full width</strong> of the page, so upload it wide.
 							<strong>1920&times;640 (3:1) is the size to aim for.</strong>
 							<br>
-							The reason is worth knowing, because it decides whether your artwork
-							survives intact. A full-width image has no height of its own — its
-							height is the page width times its shape. A 2.4:1 banner across a wide
-							screen comes out about 650px tall, which is most of a laptop screen
-							before a single product is visible, so the storefront caps the height
-							and <strong>crops the banner top and bottom, from the centre</strong>.
-							The wider (and so shorter) you export it, the less is cut: at 3:1
-							almost nothing is, at 4:1 nothing at all. Keep important wording away
-							from the top and bottom edges either way.
+							Whatever you upload is shown <strong>whole</strong> — nothing is cropped
+							and nothing is stretched, at any shape. What the shape decides is the
+							<em>height</em>, because a full-width image has no height of its own: it
+							is the page width times its proportions. Across a wide screen a 3:1
+							banner comes out about 530px tall and a 2.4:1 one about 650px, which is
+							most of a laptop screen given to one picture before a single product is
+							visible. So the wider you export it, the shorter and tighter the hero.
+							<br>
+							Avoid anything near square. A 1:1 banner would be as tall as the page is
+							wide; past roughly 720px the storefront does start trimming, purely to
+							stop one image filling the whole screen.
 							<br>
 							Leave this empty to go back to the built-in hero, which is live text and
 							resizes properly on every screen.
