@@ -69,6 +69,33 @@ function kandi_settings_defaults() {
 		'banner_cta_label'    => 'Shop now',
 		'banner_cta_url'      => '/sale',
 
+		// ---- The homepage hero image ----
+		//
+		// Blank by default, and blank is a real state rather than a broken one:
+		// with no image uploaded the storefront draws its own hero — headline,
+		// badge, promises, button, all as live text. Upload one here and it
+		// takes over the slot entirely.
+		//
+		// Two fields, because one banner cannot serve both shapes. A wide
+		// desktop banner is roughly 2.4:1, and at 390px across that is about
+		// 160px tall — any headline designed into it lands at a size nobody can
+		// read. `banner_image_mobile_url` is shown instead below 768px, so the
+		// phone gets artwork laid out for a phone. Leave it blank and the wide
+		// one is used at every width.
+		'banner_image_url'    => '',
+		'banner_image_id'     => 0,
+		'banner_image_mobile_url' => '',
+		'banner_image_mobile_id'  => 0,
+		// Where the banner links. Separate from `banner_cta_url` because that
+		// one belongs to the older text banner; a shop may well want the hero
+		// pointing at a campaign category while the text CTA still says /sale.
+		'banner_image_href'   => '/sale',
+		// The alt text. Not optional in practice: an uploaded banner is usually
+		// the largest statement on the homepage, and with the words baked into
+		// the pixels this is the only form of them a screen reader, a crawler
+		// or a shopper on a failed image request will ever get.
+		'banner_image_alt'    => '',
+
 		// Contact details, shown on /contact and in the footer.
 		'support_phone'       => '0200 804 020',
 		'support_email'       => 'support@kandiug.com',
@@ -334,6 +361,12 @@ add_action( 'rest_api_init', function () {
 					'headline'  => $settings['banner_headline'],
 					'cta_label' => $settings['banner_cta_label'],
 					'cta_url'   => $settings['banner_cta_url'],
+					// The uploaded hero. Empty strings rather than null so the
+					// storefront's parser has one shape to check.
+					'image_url'        => $settings['banner_image_url'],
+					'image_mobile_url' => $settings['banner_image_mobile_url'],
+					'image_href'       => $settings['banner_image_href'],
+					'image_alt'        => $settings['banner_image_alt'],
 				),
 				'support'  => array(
 					'phone'    => $settings['support_phone'],
@@ -408,8 +441,8 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 
 /** Text fields are sanitised per type; URLs and emails get their own filters. */
 function kandi_settings_sanitise( $key, $value ) {
-	$url_fields   = array( 'logo_url', 'favicon_url', 'promo_cta_url', 'banner_cta_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
-	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'favicon_id', 'seller_fee', 'seller_commission', 'seller_payout_days', 'delivery_lat', 'delivery_lng', 'delivery_base', 'delivery_per_km', 'delivery_free_km', 'delivery_max_fee', 'delivery_max_km' );
+	$url_fields   = array( 'logo_url', 'favicon_url', 'promo_cta_url', 'banner_cta_url', 'banner_image_url', 'banner_image_mobile_url', 'banner_image_href', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
+	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'favicon_id', 'banner_image_id', 'banner_image_mobile_id', 'seller_fee', 'seller_commission', 'seller_payout_days', 'delivery_lat', 'delivery_lng', 'delivery_base', 'delivery_per_km', 'delivery_free_km', 'delivery_max_fee', 'delivery_max_km' );
 
 	if ( 'ticker_messages' === $key || 'promotions' === $key ) {
 		return sanitize_textarea_field( $value );
@@ -666,6 +699,83 @@ function kandi_settings_render_page() {
 						<input type="text" name="banner_cta_url" value="<?php echo esc_attr( $s['banner_cta_url'] ); ?>" class="regular-text" placeholder="/sale">
 					</td>
 				</tr>
+				<tr>
+					<th scope="row"><label for="banner_image_url">Hero image (desktop)</label></th>
+					<td>
+						<div id="kandi-hero-preview" style="margin-bottom:8px;">
+							<?php if ( $s['banner_image_url'] ) : ?>
+								<img src="<?php echo esc_url( $s['banner_image_url'] ); ?>" alt="" style="max-width:520px;width:100%;height:auto;background:#f6f6f6;padding:6px;border-radius:6px;">
+							<?php else : ?>
+								<em>No hero image — the storefront draws its own hero with live text.</em>
+							<?php endif; ?>
+						</div>
+						<input type="text" id="banner_image_url" name="banner_image_url" value="<?php echo esc_attr( $s['banner_image_url'] ); ?>" class="large-text" placeholder="https://…">
+						<input type="hidden" id="banner_image_id" name="banner_image_id" value="<?php echo esc_attr( $s['banner_image_id'] ); ?>">
+						<button type="button" class="button" id="kandi-pick-hero">Choose from media library</button>
+						<button type="button" class="button" id="kandi-clear-hero">Remove</button>
+						<p class="description">
+							Spans the <strong>full width</strong> of the page, so upload it wide.
+							<strong>1920&times;640 (3:1) is the size to aim for.</strong>
+							<br>
+							The reason is worth knowing, because it decides whether your artwork
+							survives intact. A full-width image has no height of its own — its
+							height is the page width times its shape. A 2.4:1 banner across a wide
+							screen comes out about 650px tall, which is most of a laptop screen
+							before a single product is visible, so the storefront caps the height
+							and <strong>crops the banner top and bottom, from the centre</strong>.
+							The wider (and so shorter) you export it, the less is cut: at 3:1
+							almost nothing is, at 4:1 nothing at all. Keep important wording away
+							from the top and bottom edges either way.
+							<br>
+							Leave this empty to go back to the built-in hero, which is live text and
+							resizes properly on every screen.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="banner_image_mobile_url">Hero image (phone)</label></th>
+					<td>
+						<div id="kandi-hero-mobile-preview" style="margin-bottom:8px;">
+							<?php if ( $s['banner_image_mobile_url'] ) : ?>
+								<img src="<?php echo esc_url( $s['banner_image_mobile_url'] ); ?>" alt="" style="max-width:260px;width:100%;height:auto;background:#f6f6f6;padding:6px;border-radius:6px;">
+							<?php else : ?>
+								<em>None — the desktop image is used at every screen size.</em>
+							<?php endif; ?>
+						</div>
+						<input type="text" id="banner_image_mobile_url" name="banner_image_mobile_url" value="<?php echo esc_attr( $s['banner_image_mobile_url'] ); ?>" class="large-text" placeholder="https://…">
+						<input type="hidden" id="banner_image_mobile_id" name="banner_image_mobile_id" value="<?php echo esc_attr( $s['banner_image_mobile_id'] ); ?>">
+						<button type="button" class="button" id="kandi-pick-hero-mobile">Choose from media library</button>
+						<button type="button" class="button" id="kandi-clear-hero-mobile">Remove</button>
+						<p class="description">
+							<strong>Strongly recommended, and here is why.</strong> A wide banner shown on a
+							phone is about 160px tall — any wording designed into it comes out at
+							roughly 13px, and small print inside it is not readable at all. Most
+							shoppers here are on a phone.
+							<br>
+							Upload a taller crop with the words re-laid out for a narrow screen —
+							about <strong>900&times;1100</strong> works well. Shown below 768px wide.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="banner_image_href">Hero image link</label></th>
+					<td>
+						<input type="text" id="banner_image_href" name="banner_image_href" value="<?php echo esc_attr( $s['banner_image_href'] ); ?>" class="regular-text" placeholder="/sale">
+						<p class="description">Where tapping the banner goes — <code>/sale</code>, <code>/category/shoes</code>, and so on.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="banner_image_alt">Hero image description</label></th>
+					<td>
+						<input type="text" id="banner_image_alt" name="banner_image_alt" value="<?php echo esc_attr( $s['banner_image_alt'] ); ?>" class="large-text" placeholder="Buy more, spend less — unbeatable prices on everything you love">
+						<p class="description">
+							Type out whatever the banner <em>says</em>. The words in an uploaded image are
+							pixels: Google cannot read them, a screen reader cannot read them, and a
+							shopper on a bad connection whose image fails sees only this. It is usually
+							the biggest statement on the homepage, so it is worth filling in.
+						</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2 class="title">Contact details</h2>
@@ -908,6 +1018,86 @@ function kandi_settings_render_page() {
 			$('#logo_url').val('');
 			$('#logo_id').val(0);
 			$('#kandi-logo-preview').html('<em>No logo set — the storefront shows the built-in wordmark.</em>');
+		});
+
+		// ---- The two hero-image pickers ----
+		//
+		// Built from one factory rather than copied twice more, because there
+		// are now four of these on this screen and they differ only in their
+		// element ids, their frame title and what the empty state says.
+		//
+		// Each gets its OWN `wp.media` frame, created lazily and kept. Sharing a
+		// frame between fields carries the previous field's selection across, so
+		// opening the phone picker after the desktop one would come up with the
+		// desktop banner already ticked — which looks like the field is already
+		// filled in and is the sort of thing somebody saves without noticing.
+		function kandiImagePicker(options) {
+			var frameInstance;
+
+			$('#' + options.pickId).on('click', function (event) {
+				event.preventDefault();
+
+				if (frameInstance) {
+					frameInstance.open();
+					return;
+				}
+
+				frameInstance = wp.media({
+					title: options.title,
+					button: { text: options.buttonText },
+					library: { type: 'image' },
+					multiple: false
+				});
+
+				frameInstance.on('select', function () {
+					var image = frameInstance.state().get('selection').first().toJSON();
+					$('#' + options.urlId).val(image.url);
+					$('#' + options.idId).val(image.id);
+					$('#' + options.previewId).html(
+						$('<img>', { src: image.url, alt: '' }).css({
+							maxWidth: options.previewWidth,
+							width: '100%',
+							height: 'auto',
+							background: '#f6f6f6',
+							padding: '6px',
+							borderRadius: '6px'
+						})
+					);
+				});
+
+				frameInstance.open();
+			});
+
+			$('#' + options.clearId).on('click', function (event) {
+				event.preventDefault();
+				$('#' + options.urlId).val('');
+				$('#' + options.idId).val(0);
+				$('#' + options.previewId).html('<em>' + options.emptyText + '</em>');
+			});
+		}
+
+		kandiImagePicker({
+			pickId: 'kandi-pick-hero',
+			clearId: 'kandi-clear-hero',
+			urlId: 'banner_image_url',
+			idId: 'banner_image_id',
+			previewId: 'kandi-hero-preview',
+			previewWidth: '520px',
+			title: 'Choose the homepage hero image',
+			buttonText: 'Use this banner',
+			emptyText: 'No hero image — the storefront draws its own hero with live text.'
+		});
+
+		kandiImagePicker({
+			pickId: 'kandi-pick-hero-mobile',
+			clearId: 'kandi-clear-hero-mobile',
+			urlId: 'banner_image_mobile_url',
+			idId: 'banner_image_mobile_id',
+			previewId: 'kandi-hero-mobile-preview',
+			previewWidth: '260px',
+			title: 'Choose the phone hero image',
+			buttonText: 'Use this banner',
+			emptyText: 'None — the desktop image is used at every screen size.'
 		});
 
 		// The favicon picker. Its own frame instance, because sharing one with

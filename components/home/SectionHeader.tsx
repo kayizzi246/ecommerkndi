@@ -38,8 +38,15 @@ export default function SectionHeader({
   // The rails below run to the edge of a phone screen; text must not. This
   // padding is the header's own, so a section heading keeps a thumb's width of
   // margin while the products beside it use the full width.
+  //
+  // `mb-3` — 12px, down from 14 — is the within-section half of the spacing
+  // ratio the homepage depends on. The gap BETWEEN sections came down from 48px
+  // to 32, and this came down with it so that a heading still sits far nearer
+  // its own products than it does the rail above. The reasoning in full is at
+  // the head of the section list in `app/page.tsx`; the short version is that
+  // both numbers move together or neither does.
   return (
-    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 md:px-0">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 md:px-0">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets

@@ -15,14 +15,56 @@ import AccountMenu from "@/components/AccountMenu";
 import SalesTicker from "@/components/SalesTicker";
 
 /**
- * Storefront masthead, in the large-marketplace layout: a hairline promo strip
- * carrying the rotating promise line, then a white row given over almost
- * entirely to the search field, then the department bar led by the Categories
- * mega-menu.
+ * Storefront masthead, in the large-marketplace layout, and it is now THREE
+ * bands rather than one white one:
  *
- * White throughout, deliberately. A masthead in a dark or saturated slab is the
- * heaviest thing on a page whose entire job is showing product photography, and
- * every marketplace at this scale has converged on getting out of the way.
+ *   1. ORANGE promo strip — the rotating promise line, in the brand colour.
+ *   2. GRAY-900 working row — logo, search field, account, cart.
+ *   3. WHITE department bar — the Categories mega-menu and the curated links,
+ *      handing off to the white content sheet below it.
+ *
+ * ---- Why this is no longer white throughout ----
+ *
+ * It used to be, on the argument that a masthead in a dark or saturated slab is
+ * the heaviest thing on a page whose job is showing product photography, and
+ * that every marketplace at this scale has converged on getting out of the way.
+ *
+ * Half of that is still true and is why band 3 exists: the row nearest the
+ * products stays white and quiet. What the argument got wrong is that a shop
+ * which is white from the top of the browser chrome all the way down has no
+ * horizon in it. Nothing tells a shopper where the site's controls end and the
+ * merchandise begins, so the search field — the single most important control
+ * in a catalogue this size — reads as one more white box among many, and the
+ * page as a whole reads as unfinished rather than restrained.
+ *
+ * A dark working row fixes exactly that and nothing else. It is 60-odd pixels,
+ * it is above the fold only, and the white search pill and orange submit button
+ * sitting on it become the most contrasted object on the screen — which is
+ * precisely what they should be.
+ *
+ * ---- Why the working row is gray-900 and not orange ----
+ *
+ * Orange was the obvious choice and it is the wrong one, for a reason worth
+ * recording so nobody re-tries it: #ff6a00 is a LIGHT hue. White on it is
+ * 2.9:1, which fails AA for text and fails the 3:1 graphics threshold for
+ * icons too. An orange masthead therefore cannot carry white type or white
+ * icons — it has to carry near-black ones, which looks muddy — and the shop
+ * would be reaching for `--color-shop-primary-ink` in the one place a brand
+ * colour is supposed to be at full strength.
+ *
+ * Gray-900 has no such problem. White on #111827 is 16.1:1 and the brand orange
+ * on it is 5.9:1, so orange becomes the ACCENT — the search button, the cart
+ * badge, the cart total, every hover — at full saturation and fully legible.
+ * That is the palette's own stated ratio (mostly neutral, a little orange)
+ * expressed in the masthead rather than argued against by it.
+ *
+ * ---- The promo strip is orange and its type is near-black ----
+ *
+ * Same arithmetic, opposite conclusion. The strip carries nothing but short
+ * bold phrases, near-black on orange is 5.5:1, and one saturated hairline above
+ * a dark row is what stops the top of the page reading as a single black slab.
+ * It replaces a yellow strip, which was legible (black on #facc15 is 11:1) and
+ * a second brand colour the shop does not otherwise use.
  *
  * The logo, the promo wording and the free-delivery threshold all come from
  * `settings`, which is edited in wp-admin — nothing here is hard-coded.
@@ -157,26 +199,29 @@ export default function Header({
     // Once the department bar folds away there is no rule between the masthead
     // and the grid scrolling under it, so a shadow takes over that job.
     <header
-      className={`sticky top-0 z-40 bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
+      className={`sticky top-0 z-40 bg-shop-nav transition-transform duration-300 ease-out motion-reduce:transition-none ${
         scrolled ? "shadow-sm md:shadow-none" : ""
       } ${slidUp ? "-translate-y-full" : "translate-y-0"}`}
     >
       {/* ---- Announcement strip ----
-           A yellow rule across the top, carrying the shop's three strongest
-           promises — pay on delivery, free returns, the sale. It was white on
-           white once, which left them in the palest text on the page and read
-           by nobody; then near-black, which read but receded. Yellow is the
-           loudest thing a marketplace can put above its masthead without
-           spending a pixel on an image.
+           A brand-orange rule across the top, carrying the shop's three
+           strongest promises — pay on delivery, free returns, the sale.
 
-           Type is near-black, not white. White on #facc15 is about 1.7:1 and
-           genuinely unreadable — yellow is a light hue, so the contrast has to
-           come from below it rather than above. Black on this yellow is 11:1,
-           which is why the ADD TO CART button has always been drawn this way.
+           This has been white on white (palest text on the page, read by
+           nobody), then near-black (read, but receded), then yellow. Yellow
+           worked — black on #facc15 is 11:1 — and its only fault was being a
+           second brand colour in a shop that has one. Orange says the same
+           thing in the shop's own hue, and now that the row beneath it is
+           gray-900 it is the strip rather than the type that does the shouting.
 
-           `bg-bfl-yellow` rather than a redefined `--color-shop-nav`: that
-           token still paints the footer and the admin masthead, where white
-           text on near-black is correct and yellow would be a disaster.
+           Type is near-black, not white, and this is not negotiable: orange is
+           a light hue, white on #ff6a00 is 2.9:1 and genuinely hard to read at
+           12px. The contrast has to come from below the colour rather than
+           above it. Near-black on this orange is 5.5:1.
+
+           `bg-shop-primary` rather than a redefined `--color-shop-nav`: that
+           token paints this masthead's working row, the footer and the admin
+           masthead, where white text on near-black is correct.
 
            Once there is something in the cart the rotating line gives way to
            live free-delivery progress, which is the more useful message. Every
@@ -194,7 +239,7 @@ export default function Header({
            and bringing 32px of rotating marketing back with it would push the
            thing they actually reached for further down the screen. What returns
            is the working row and nothing else. */}
-      <div className={`bg-bfl-yellow text-bfl-black/80 ${scrolled ? "hidden" : ""}`}>
+      <div className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}>
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
@@ -218,14 +263,18 @@ export default function Header({
                 {line}
               </span>
             ))}
-            {/* The one accent in the strip. It was `text-bfl-yellow`, which on
-                the old near-black bar was the brightest thing in it and on a
-                yellow bar is invisible. The darkened brand orange keeps it
-                warm, distinct from the near-black copy beside it, and clears
-                4.9:1 on this yellow. */}
+            {/* The one accent in the strip, and it has to be a FILL now rather
+                than a colour. On the old yellow bar the darkened brand orange
+                stood out against near-black copy; on an orange bar there is no
+                orange left to differentiate with, and every text colour that
+                passes contrast here is some shade of dark. So the call to
+                action becomes a small white pill — it separates by shape and
+                brightness instead of hue, it is the only white object in the
+                strip so the eye finds it immediately, and the darkened orange
+                type on white clears 6.4:1. */}
             <Link
               href={settings.promo.cta_url}
-              className="font-bold text-shop-primary-ink hover:underline"
+              className="rounded-full bg-white px-2.5 py-0.5 font-bold text-shop-primary-ink transition-opacity hover:opacity-90"
             >
               {settings.promo.cta_label} ›
             </Link>
@@ -233,11 +282,18 @@ export default function Header({
         </div>
       </div>
       {/* ---- Main row ----
-           White, roomy, and dominated by the search field — the marketplace
+           Gray-900, roomy, and dominated by the search field — the marketplace
            masthead. Search is the primary way into a catalogue this size, so it
            takes the whole middle of the row and grows with the window instead
-           of sitting at a fixed width. Below md it wraps to its own line. */}
-      <div className="bg-white">
+           of sitting at a fixed width. Below md it wraps to its own line.
+
+           The dark ground is doing work for the search field specifically.
+           `SearchBar` is a white pill with an orange submit button; on the
+           white row it used to sit on, that was a white box on white
+           distinguished only by a hairline border. On this it is the brightest
+           object on the screen, which is what the most-used control in the shop
+           should be. Nothing in `SearchBar` needed changing for this. */}
+      <div className="bg-shop-nav">
       <div
         className={`mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 md:flex-nowrap md:px-8 md:py-3.5 ${
           scrolled ? "py-2" : "py-3.5"
@@ -266,15 +322,40 @@ export default function Header({
             // `w-auto` with a max width means a wide logo grows into the space
             // rather than distorting, and the intrinsic size stays generous so
             // the file is never upscaled.
-            <Image
-              src={settings.brand.logo_url}
-              alt={brandName(settings)}
-              width={260}
-              height={60}
-              unoptimized
-              priority
-              className="h-9 w-auto max-w-[150px] object-contain md:h-10 md:max-w-[180px]"
-            />
+            //
+            // ---- The white plate, and why an uploaded logo needs one ----
+            //
+            // The row behind this is gray-900 now. What gets uploaded in
+            // wp-admin is somebody's existing logo file, and the overwhelming
+            // majority of those are dark artwork on a transparent or white
+            // background, because they were drawn for a white page. Dropped
+            // straight onto a near-black row, a dark-on-transparent logo is
+            // invisible and a white-background one is a bright rectangle with
+            // hard edges.
+            //
+            // The plate makes both cases correct without knowing which one it
+            // has: any logo, on any background, on its own small white card. It
+            // is the treatment used wherever a brand mark has to sit on a dark
+            // chrome it was not drawn for, and it is deliberate rather than
+            // apologetic — rounded, padded, aligned with the search pill beside
+            // it.
+            //
+            // The alternative was asking every shop owner to upload a second,
+            // light-on-transparent version for dark backgrounds. That is the
+            // correct answer for a design system and the wrong one for a
+            // wp-admin field somebody fills in once, since the failure mode is
+            // a shop with no visible logo and no clue why.
+            <span className="flex items-center rounded-lg bg-white px-2.5 py-1.5">
+              <Image
+                src={settings.brand.logo_url}
+                alt={brandName(settings)}
+                width={260}
+                height={60}
+                unoptimized
+                priority
+                className="h-7 w-auto max-w-[140px] object-contain md:h-8 md:max-w-[170px]"
+              />
+            </span>
           ) : (
             <>
               {/* The KandiUg mark: a shopping bag carrying a white K, with two
@@ -324,9 +405,15 @@ export default function Header({
                   />
                 </svg>
               </span>
+              {/* The suffix is white where it used to be near-black. On the
+                  gray-900 row the ink half of the wordmark would have been
+                  invisible — the brand name would simply have looked like it
+                  ended early. Orange on this ground is 5.9:1 and white is
+                  16.1:1, so both halves read and the two-tone wordmark survives
+                  the move intact. */}
               <span className="font-heading text-[21px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[24px]">
                 {settings.brand.name}
-                <span className="text-shop-ink">{settings.brand.suffix}</span>
+                <span className="text-white">{settings.brand.suffix}</span>
               </span>
             </>
           )}
@@ -380,7 +467,7 @@ export default function Header({
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
               aria-expanded={false}
-              className="text-shop-ink md:hidden"
+              className="text-white transition-colors hover:text-shop-primary md:hidden"
             >
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path
@@ -402,7 +489,7 @@ export default function Header({
             type="button"
             onClick={openDrawer}
             aria-label="Open cart"
-            className="flex items-center gap-2 text-shop-ink hover:text-shop-flame"
+            className="flex items-center gap-2 text-white transition-colors hover:text-shop-primary"
           >
             <span className="relative">
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -410,7 +497,12 @@ export default function Header({
                 <circle cx="9" cy="20" r="1.2" />
                 <circle cx="17.5" cy="20" r="1.2" />
               </svg>
-              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-ember px-1 text-[11px] font-semibold text-white">
+              {/* The count badge keeps its orange fill and gains a ring in the
+                  row's own colour. On the old white row the badge's edge was
+                  defined by the page; on gray-900 an orange disc sitting
+                  directly against a white cart glyph smudges into it at 18px,
+                  and the ring cuts them apart. */}
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-primary px-1 text-[11px] font-bold text-white ring-2 ring-shop-nav">
                 {count > 9 ? "9+" : count}
               </span>
             </span>
@@ -435,7 +527,7 @@ export default function Header({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
-            className="text-shop-ink lg:hidden"
+            className="text-white transition-colors hover:text-shop-primary lg:hidden"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />

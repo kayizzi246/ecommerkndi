@@ -46,9 +46,31 @@ function Stars({ rating }: { rating: number }) {
 /**
  * The one product card the whole store uses — every grid, rail and carousel.
  *
- * Chrome-free: no border, no shadow, no card background. The photograph sits on
- * white and the detail beneath it is tight, so a grid of forty reads as a
- * catalogue rather than forty floating panels. Whitespace separates.
+ * Chrome-free, on the Taobao model: no border, no shadow, no card background,
+ * no padding. The photograph sits directly on the page with a 10px radius, the
+ * text runs flush to its left edge, and what separates one product from the
+ * next is the GAP around it.
+ *
+ * ---- This is the third position on that question, so here is the rule ----
+ *
+ * A tile needs exactly one separator, and it can be an edge OR a gap. It must
+ * not be neither, and it does not want both.
+ *
+ *   • It was gaps alone, on an off-white page. Correct: the page colour ran
+ *     between the tiles and did the work.
+ *   • The content sheet went white, and gaps alone stopped working — white
+ *     tiles on white with 8px between them have no boundary at all, and a row
+ *     of four products read as one wide picture with words underneath.
+ *   • A hairline border fixed that, and is now removed again: the grid is going
+ *     back to gaps, but this time with gaps WIDE enough to separate on their
+ *     own. That is the half that was missing the first time.
+ *
+ * So the borders came out and the grid gaps went up together, in
+ * `InfiniteProducts` and `DealCarousel`. Removing one without raising the other
+ * is what produced the wall of touching photographs, and it is the specific
+ * mistake to avoid if this is ever revisited.
+ *
+ * No shadow either, at rest or on hover — argued at the `<article>` below.
  *
  * The order is the one every large marketplace has converged on, and it is an
  * order of decreasing importance rather than a description of the product:
@@ -160,7 +182,37 @@ export default function ProductCard({
     // other. 10px is the size that survives at both extremes — big enough to be
     // seen on a 150px phone tile, small enough that a 300px desktop tile does
     // not turn into a lozenge.
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-[10px] border border-transparent bg-white p-0 transition-colors hover:border-shop-line">
+    // ---- The tile now has an edge at rest, not only on hover ----
+    //
+    // This was `border-transparent` with the hairline appearing on hover, which
+    // worked when the tile sat on an off-white page: the white of the card was
+    // itself the boundary, and a border would have been drawing a line that the
+    // colour change already drew.
+    //
+    // The content sheet is white now (see `StoreChrome`), so a white tile on it
+    // has no boundary at all — the grid became photographs and text floating in
+    // space with nothing saying where one product ends and the next begins. In a
+    // dense catalogue that is not a cosmetic problem; it is what makes a page
+    // tiring to scan, because the eye has to do the grouping that the design
+    // should have done for it.
+    //
+    // ---- No border, no background, no shadow ----
+    //
+    // The separation is the grid gap; see the note at the top of this file for
+    // why that only works if the gaps are wide, and where they are set.
+    //
+    // A lift shadow was tried here and taken back out. On a grid it is the
+    // wrong instrument: forty tiles each casting a soft shadow turns the gaps
+    // between them grey, so the page gains a haze exactly where it should be
+    // clean, and the one tile under the cursor is not much more distinguished
+    // than it was. The hover now lives on the product NAME turning orange,
+    // which is one colour change, costs no paint area, and keeps the grid flat.
+    //
+    // No `overflow-hidden` either. It was only ever there to clip the photo to
+    // the card's radius, and the photo carries its own radius now. Leaving it
+    // on a card with no background would clip the badges that deliberately sit
+    // proud of the image.
+    <article className="group relative flex h-full flex-col">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -177,8 +229,33 @@ export default function ProductCard({
               Square is also what every marketplace tile this grid is modelled
               on uses, and the reason is arithmetic rather than taste: a shorter
               tile puts more rows on a screen, and on a page whose job is to
-              show a catalogue, rows are the product. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-shop-hairline">
+              show a catalogue, rows are the product.
+
+              ---- Briefly 5:4, and back to square ----
+
+              It was cut to 5:4 to make the tile shorter still, then measured
+              against the reference grid and put back. That measurement is the
+              argument: in the reference a tile is 251px wide and its photograph
+              is 248px tall, which is square to within a pixel.
+
+              Square is also where the cropping stops. `object-cover` fills the
+              box, so 5:4 was taking roughly 10% off the top and 10% off the
+              bottom of every square supplier photograph — fine on a centred
+              product shot, and a clipped toe on a pair of boots shot upright.
+              At 1:1 a square source is untouched, which is most of this
+              catalogue.
+
+              The height that was wanted from 5:4 has been found elsewhere
+              instead, and more cheaply: the meta row below went 16px → 13px and
+              the text block lost its padding, so the tile is shorter than it
+              was without a pixel coming off the photograph.
+
+              ---- 8px corners, down from 10 ----
+
+              Measured off the same reference. The difference is small and it is
+              the difference between a tile that looks drawn to a spec and one
+              that looks approximately styled. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -321,13 +398,37 @@ export default function ProductCard({
            nothing to put in it — an empty box of the right height, rather than a
            missing row that shortens the tile.
 
-           ---- No space ----
+           ---- Space: none BETWEEN the rows, some AROUND them ----
 
-           `gap-0` between the rows and no padding on the tile. Each row already
-           carries its own leading, which is the space; a flex gap on top of that
-           was a second helping of it, stacked six times under every tile in the
-           shop. */}
-      <div className="mt-0.5 flex flex-1 flex-col gap-0">
+           `gap-0` still. Each row already carries its own leading, which is the
+           space; a flex gap on top of that was a second helping of it, stacked
+           six times under every tile in the shop. That part was right and has
+           not changed.
+
+           ---- No horizontal inset, now that there is no card ----
+
+           The text was briefly padded in from the tile's edges, which was right
+           while the tile had a border: copy running hard against a drawn edge
+           reads as text that overflowed rather than text that was placed.
+
+           There is no edge any more, so there is nothing to inset from, and
+           padding here would only push the name away from the photograph it
+           belongs to — the product name and the picture should share a left
+           margin, which is what makes a column of tiles line up down the page.
+           This is what the reference does and it is the right call for a
+           borderless tile.
+
+           It also gives the width back. A phone tile is about 150px at 2.5
+           tiles per screen, so 16px of horizontal padding was over a tenth of
+           the name row — roughly two characters off a supplier's already
+           truncated title, on every tile in the shop, and Poppins had taken
+           some of that width already (see `layout.tsx`).
+
+           `pt-2` stays. The gap between the photograph's bottom edge and the
+           first line of the name is the one piece of vertical spacing in this
+           block that is not simply a row's own leading, and at 8px it matches
+           the reference. */}
+      <div className="flex flex-1 flex-col gap-0 pt-2">
         <Link href={href} className="block">
           {/* Exactly two lines, always — `h-10` is 2 × the 20px leading, and it
               is a fixed height rather than a clamp so that a short name reserves
@@ -376,9 +477,25 @@ export default function ProductCard({
              is 22px rather than 20 to fit the taller price without clipping the
              comma in "UGX 145,854". */}
         <p className="flex h-[22px] items-baseline gap-x-1.5 overflow-hidden">
+          {/* ---- The resting price is orange now, not near-black ----
+               The reference sets every price in its brand orange-red, and it is
+               the single loudest thing about that grid: on a page of neutral
+               photographs and grey text, one saturated colour repeated in the
+               same position on every tile becomes the thing the eye tracks down
+               the page. A shopper scanning for a number finds forty of them
+               without reading a word.
+
+               This does bend the palette's "colour is rationed" rule, and the
+               bend is deliberate and bounded: orange appears on exactly one
+               element per tile, always the same one. Red stays reserved for a
+               DISCOUNTED price, so the colour still carries the discount — the
+               two are now orange-vs-red rather than black-vs-red, which is a
+               smaller difference than it was. The `−N%` flag on the photograph
+               and the struck-through was-price beside it are what carry that
+               signal properly; the colour is corroboration. */}
           <span
             className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale" : "text-shop-ink"
+              discount > 0 ? "text-shop-sale" : "text-shop-primary"
             }`}
           >
             {formatPrice(product.price)}
@@ -405,17 +522,35 @@ export default function ProductCard({
         {/* "Reviews / sold" on the scale — 12px at the plain weight, via
              `.meta-note`. This row was 11.5px semibold, which made corroboration
              compete with the price above it. */}
-        <div className="flex h-4 items-center gap-x-2 overflow-hidden">
+        {/* ---- This row is the gap between the price and the delivery line ----
+             Worth being explicit about, because it does not look like spacing
+             and it is the only spacing there is. The rows are butted together
+             with `gap-0`; what separates the price from "Only 3 left" is the
+             HEIGHT OF THIS ROW, and on the many products with no reviews and no
+             recorded sales it is an empty box.
+
+             13px, down from 16. The row cannot go to zero — it is reserved on
+             purpose so a product with no corroboration renders the same height
+             as one with plenty, which is what keeps a rail's tiles aligned. But
+             16px was the natural line box of 12px text at the 1.3 leading
+             `.meta-note` sets, not a considered number, and the row does not
+             need its text's full leading when it holds exactly one line.
+
+             `leading-none` on the two spans is what makes 13px safe: without
+             it the 15.6px line box would be clipped by `overflow-hidden` and
+             the sold count would lose its descenders. The stars are 11px and
+             fit either way. */}
+        <div className="flex h-[13px] items-center gap-x-2 overflow-hidden">
           {product.rating_count > 0 && (
             <span className="flex items-center gap-1">
               <Stars rating={product.average_rating} />
-              <span className="meta-note text-shop-body">
+              <span className="meta-note leading-none text-shop-body">
                 {product.average_rating.toFixed(1)}
               </span>
             </span>
           )}
           {product.total_sales > 0 && (
-            <span className="meta-note text-shop-muted">
+            <span className="meta-note leading-none text-shop-muted">
               {compactSold(product.total_sales)} sold
             </span>
           )}

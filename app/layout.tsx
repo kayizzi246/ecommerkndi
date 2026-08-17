@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,72 +13,90 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: Inter, self-hosted ----
+ * ---- The shop's type: Poppins, one face, everywhere ----
  *
- * The face is Inter. The SCALE — which element is set at which weight and size —
- * is the AliExpress-style spec written out in full at the head of the type block
- * in `globals.css`, and it is unchanged. Those are two separate decisions and
- * only the first one moved.
+ * ONE face rather than a display/body pair. This shop has been through the
+ * system stack, Inter, Open Sans, and a Montserrat-over-Roboto pairing, and the
+ * argument for landing on a single geometric face is not that pairing is wrong
+ * — it is that this page is already carrying a great deal visually. A product
+ * grid is photography, prices, discount flags, badges, tinted rails and orange.
+ * A second typeface is one more thing competing in that frame, and the thing it
+ * competes with is the merchandise. One face across headings, prices, navigation
+ * and body is what makes the page read as one designed object instead of a
+ * template with sections bolted on.
  *
- * ---- Why Inter and not Open Sans ----
+ * Poppins specifically because it is geometric and even-width, which is what
+ * gives a marketplace personality next to the brand orange without the
+ * headings having to shout. It is the modern-storefront idiom rather than the
+ * functional-app one.
  *
- * This shop has been through the system stack, Inter, Open Sans and back, so the
- * reasoning is worth pinning down in terms of the thing being sold rather than
- * taste. Three arguments, all about the product grid:
+ * The SCALE — which element is set at which weight and size — is the
+ * AliExpress-style spec written out in full at the head of the type block in
+ * `globals.css`, and it is unchanged across every one of these moves. Which
+ * face carries it is a separate decision, and only that one keeps moving.
  *
- * 1. WIDTH. Open Sans sets wider per character. The product name row is a fixed
- *    two lines in a tile about 150px across on a phone, so a wider face fits
- *    fewer characters before the ellipsis — and a supplier's 90-character title
- *    truncating a word or two earlier, on every tile, is the most direct way
- *    type makes a catalogue look worse.
+ * ---- THREE COSTS, all real, all accepted deliberately ----
  *
- * 2. FIGURES. `.price` asks for `tabular-nums`. Inter draws a real tabular set;
- *    Open Sans approximates one. In a grid of prices that is the difference
- *    between a column that lines up and one that very slightly does not — and
- *    price is the number every other decision on the tile is in service of.
+ * 1. FIVE FILES, NOT ONE. Poppins is not a variable font in the version of the
+ *    Google font data bundled with this Next install — it ships as static
+ *    instances. Inter, Montserrat and Roboto were all variable, so each of them
+ *    was ONE download covering 100–900. Poppins is one download PER WEIGHT.
  *
- * 3. INTENT. Inter was drawn for interface text at 12–14px, which is exactly
- *    where this grid lives. Open Sans (2011) was drawn for web body copy and is
- *    doing a job next to the one it was made for.
+ *    That is why the `weight` array below is exactly five entries and not the
+ *    nine Google offers. Every one of them is a weight this shop actually sets:
  *
- * What Open Sans had going for it — humanist, large x-height, open apertures,
- * legible small — Inter has too. It is not a downgrade on any of those.
+ *      400  body copy, product names, search field, was-prices, meta notes
+ *      500  category names, `font-medium`
+ *      600  navigation, section subtitles, buttons, `font-semibold`
+ *      700  headings, prices, section titles
+ *      800  hero display, product-page titles, `font-extrabold`
  *
- * The commissioned faces the big marketplaces actually ship (Amazon Ember,
- * eBay's Market Sans — both Dalton Maag) are not licensable, and Inter is the
- * closest open equivalent to both.
+ *    Adding a sixth costs a Ugandan shopper another file on the critical path
+ *    for nothing. Before adding one, check it is genuinely used — the tally that
+ *    produced this list is `font-(normal|medium|semibold|bold|extrabold)` across
+ *    `app/` and `components/`, plus the `font-weight` declarations in
+ *    `globals.css`. There is no 100/200/300 and no 900 anywhere in the shop.
  *
- * The engineering that made a webfont affordable here is unchanged:
+ * 2. WIDTH. Poppins is geometric, which means round letterforms and wide
+ *    sidebearings — it sets meaningfully wider per character than Inter or
+ *    Roboto. The product name row is a fixed two lines in a tile about 150px
+ *    across on a phone, so a wider face fits fewer characters before the
+ *    ellipsis, and a supplier's 90-character title now truncates a word or two
+ *    earlier than it did. That is the price of the personality, and it is paid
+ *    on every tile in the shop. If titles start looking badly clipped, the
+ *    lever is the tile's name row, not the face.
  *
- *   • `next/font/google` downloads the file at BUILD time and serves it from
+ * 3. FIGURES. `.price` asks for `tabular-nums` and Poppins ships no true
+ *    tabular set. Its digits are geometric and near-uniform in width so a
+ *    column of UGX prices still lines up in practice; the request is left in
+ *    place because it costs nothing and starts working the moment the face
+ *    changes again.
+ *
+ * What has NOT changed is the delivery, and it is the reason a webfont is
+ * affordable on a Ugandan mobile connection at all:
+ *
+ *   • `next/font/google` downloads the files at BUILD time and serves them from
  *     this origin. No request reaches Google from a shopper's browser, so there
  *     is no third-party DNS lookup or handshake on the critical path, and
  *     nothing to add to the CSP in next.config.ts.
- *   • One variable file covers the whole scale. Inter is variable across
- *     100–900 and the spec runs 400 to 800, so every weight the stylesheet asks
- *     for is real rather than synthesised — and it is one download, not five.
  *   • `display: "swap"` means text paints immediately in the fallback and is
- *     repainted in Inter when it lands. A Ugandan mobile connection never sees
- *     a blank page waiting on a font.
+ *     repainted in Poppins when it lands. Nobody ever sees a blank page waiting
+ *     on a font.
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
  *     `@font-face`, so the swap does not reflow a single price or product name.
  *
  * `variable` rather than `className`: the family is handed to CSS as
- * `--font-inter`, which `globals.css` puts at the head of `--font-ui` with the
- * system stack still behind it as the fallback.
+ * `--font-poppins`, which `globals.css` puts at the head of BOTH `--font-ui`
+ * and `--font-display`, with the system stack still behind it as the fallback.
+ * Those two names are kept even though they now resolve to one family — it is
+ * what made this swap a two-line change instead of a search through two hundred
+ * components, and it is what will make the next one cheap too.
  */
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
-  /**
-   * The optical-size axis, pinned by its own range to the 14px default.
-   *
-   * Inter's `opsz` retunes the letterforms for the size they are set at, and
-   * 14px is the workhorse of this grid — product names, navigation, category
-   * labels and the search field are all at or near it.
-   */
-  axes: ["opsz"],
+  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 /**
@@ -239,12 +257,12 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `inter.variable` defines `--font-inter` on the root element,
-      // where every rule in globals.css can reach it. The class carries no
+      // `poppins.variable` defines `--font-poppins` on the root element, where
+      // every rule in globals.css can reach it. The class carries no
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
-      className={`${inter.variable} h-full antialiased`}
+      className={`${poppins.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

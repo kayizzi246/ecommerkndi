@@ -1,6 +1,7 @@
 import { buildHomeFeed, MIN_RAIL } from "@/lib/home-feed";
 import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
+import HeroBanner from "@/components/home/HeroBanner";
 import SuperDeals from "@/components/home/SuperDeals";
 import DailyDeals from "@/components/home/DailyDeals";
 import SectionHeader from "@/components/home/SectionHeader";
@@ -107,6 +108,41 @@ export default async function Home() {
     // instead. The `--background` token in globals.css is the one place the
     // page's colour is decided, and this defers to it.
     <main className="pb-20">
+      {/* ---- The hero, OUTSIDE the padded container below ----
+           The page opens on a banner again, and the comment further down
+           records that a hero banner was removed from exactly this position
+           once before, so the difference is worth stating.
+
+           What was removed was a hero banner PLUS a category card grid PLUS
+           department chips PLUS coloured promo tiles — four blocks of
+           navigation dressed as content, which together pushed the first real
+           product below the fold on every phone. The objection was to the
+           stack, not to the idea of a banner.
+
+           This is one block, it makes a price promise rather than offering a
+           fifth route into the departments, and it is built to stay short. If
+           it ever grows a second panel beside it, that is the point at which
+           this page is repeating its own history.
+
+           ---- Why it is here and not inside the flex column ----
+
+           It has to reach the full width of the content sheet, and the column
+           below carries `md:px-8`. Rendering the hero inside it would inset the
+           banner by 32px a side on desktop — visible as two off-white slivers
+           down the edges of the artwork, which is exactly what a full-bleed
+           hero must not have. Lifting it out is cleaner than cancelling the
+           padding with a negative margin, which is the other way to do this and
+           breaks the moment that padding changes.
+
+           The consequence is that it sits outside the `gap-5 md:gap-8` that
+           spaces every other section, so it has to carry that spacing itself —
+           and the margin here is NOT that gap, because the container below
+           already opens with `py-3 md:py-5`. 8 + 12 = the 20px phone gap, and
+           12 + 20 = the 32px desktop one. Three numbers, one result; if any of
+           them moves the hero drifts out of step with the rails beneath it. */}
+      <div className="mb-2 md:mb-3">
+        <HeroBanner settings={settings} />
+      </div>
       {/* The page opens on merchandise.
 
           The hero banner and category card grid went first; the department
@@ -117,21 +153,37 @@ export default async function Home() {
 
           ---- Spacing between sections ----
 
-          24px on a phone, 48px from md up.
+          20px on a phone, 32px from md up.
 
-          This has been wrong in both directions. It was 36px, judged too loose
-          and cut to 28 — but 28 was too tight, and the screenshots show why: a
-          rail's last line of product text sat closer to the *next* section's
-          heading than that heading sat to its own products. The eye groups by
-          proximity, so "Daily Deals" read as a caption belonging to the rail
-          above it rather than a title for the row below, and the page arrived as
-          one continuous stream of tiles with words occasionally in it.
+          This has been wrong in both directions and the history is worth
+          keeping, because the fix is a RATIO and not a number. It was 36px,
+          judged too loose and cut to 28 — but 28 was too tight, and the
+          screenshots showed why: a rail's last line of product text sat closer
+          to the *next* section's heading than that heading sat to its own
+          products. The eye groups by proximity, so "Daily Deals" read as a
+          caption belonging to the rail above it rather than a title for the row
+          below, and the page arrived as one continuous stream of tiles with
+          words occasionally in it. It went to 48px to fix that, and 48 fixed it.
 
-          What fixes it is not simply more air, it is more air *between* sections
-          than within them. 48px is comfortably larger than the ~12px a heading
-          sits above its own rail, so each block now reads as one object. This is
-          the separation the large marketplaces use, and it is what makes a long
-          homepage scannable rather than exhausting. */}
+          48 was also too much, in a way that is harder to see in a screenshot
+          of one rail and obvious in a screenshot of five. A marketplace
+          homepage is a dense shelf; the thing that signals a real one is that
+          merchandise keeps arriving as you scroll. Half a rail's worth of empty
+          white between every row is the signature of a page laid out to look
+          designed rather than to sell — generous, even, uniform air, which is
+          exactly the tell being asked about here. Amazon, AliExpress and Jumia
+          all run their rails much closer than this.
+
+          So the gap comes down to 32px, and the separation is preserved by
+          bringing the *within*-section spacing down with it: a heading now sits
+          12px above its own rail, not 14. 32 against 12 is a ratio of 2.7 — the
+          same grouping the 48/14 pair bought, at two thirds of the height. Each
+          block still reads as one object; there is simply less nothing between
+          them.
+
+          If a future change makes this feel crowded again, move BOTH numbers,
+          not one. The moment the between-gap stops being roughly 2.5× the
+          header gap, the page reverts to a stream of tiles. */}
       {/* Edge to edge on a phone, padded from md up.
 
           The side gutter used to be 12px, which bought nothing: it cost a
@@ -141,7 +193,7 @@ export default async function Home() {
           sideways. Removing the gutter fixes the drift and gives the width
           back to the products. Headings and copy carry their own `px-3` so
           words never touch the glass. */}
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-0 py-4 md:gap-12 md:px-8 md:py-6">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-0 py-3 md:gap-8 md:px-8 md:py-5">
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
@@ -343,7 +395,13 @@ export default async function Home() {
             gets the same words either way. */}
         <section
           aria-labelledby="about-kandi"
-          className="mt-4 border-t border-shop-line px-4 pt-8 md:px-8"
+          // No `mt-4` any more. The flex `gap` above already puts 20–32px in
+          // front of this block, and the extra margin stacked on top of it —
+          // making the one boundary that already has a rule drawn across it
+          // also the widest gap on the page. The rule is the separation; it
+          // does not need to be underlined with air as well. `pt-6` rather than
+          // `pt-8` for the same reason.
+          className="border-t border-shop-line px-4 pt-6 md:px-8"
         >
           <h1
             id="about-kandi"

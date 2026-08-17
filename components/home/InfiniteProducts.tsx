@@ -114,21 +114,25 @@ export default function InfiniteProducts({
           tight on purpose, and tighter still on a phone: a dense grid reads as
           a catalogue with depth, and 6px between two columns is all it takes to
           tell them apart on a 390px screen. */}
-      {/* 8px between columns, 16px between rows, opening to 12/24 from sm.
+      {/* ---- The gaps ARE the tile borders ----
 
-          This was 1px in both directions, on the reasoning that a card carrying
-          its own white background turns the gap into a grid line and every
-          pixel saved goes into the photograph. The first half of that was never
-          true: the page is white too, so a 1px white gap between two white
-          tiles drew nothing at all — the tiles simply touched, and a row of
-          four products read as one wide picture with words under it.
+          10px between columns and 20px between rows on a phone, opening to
+          16/28 from sm. Up from 8/16 and 12/24.
 
-          The rows get more air than the columns on purpose. A grid is scanned
-          down, so the horizontal gap only has to say "these are two products"
-          while the vertical one has to separate a tile's last line of text from
-          the next tile's photograph — which is the join that was actually
-          failing. */}
-      <ul className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-5 xl:grid-cols-6">
+          This is not a cosmetic loosening — it is load-bearing. `ProductCard`
+          has no border, no background and no shadow, so the ONLY thing telling
+          a shopper where one product ends and the next begins is the space
+          around it. The two decisions have to move together: this grid at the
+          old 8px gap with the new borderless tile is a wall of touching
+          photographs, which is the exact failure the border was added to fix.
+          The measurements here are taken off the reference grid.
+
+          The rows still get more air than the columns, and the reason is
+          unchanged. A grid is scanned down, so the horizontal gap only has to
+          say "these are two products", while the vertical one has to separate a
+          tile's last line of text from the next tile's photograph — a much
+          harder join, and the one that fails first. */}
+      <ul className="grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

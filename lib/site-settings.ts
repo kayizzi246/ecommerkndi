@@ -18,7 +18,33 @@ export type SiteSettings = {
    * case the storefront derives its own from the catalogue instead.
    */
   promotions: { badge: string; headline: string; note: string; url: string }[];
-  banner: { eyebrow: string; headline: string; cta_label: string; cta_url: string };
+  banner: {
+    eyebrow: string;
+    headline: string;
+    cta_label: string;
+    cta_url: string;
+    /**
+     * The homepage hero, uploaded in wp-admin under "Kandi Storefront".
+     *
+     * Empty is the meaningful default, not a missing value: with no image the
+     * storefront renders its own hero out of live text (see
+     * `components/home/HeroBanner.tsx`). An upload replaces that slot outright.
+     *
+     * `image_mobile_url` is a second, taller crop shown below 768px. It is
+     * optional and falls back to the wide one — but a 2.4:1 banner on a 390px
+     * phone is ~160px tall, which puts any wording designed into it at about
+     * 13px, so a shop that uploads only the wide one is shipping an
+     * unreadable headline to most of its traffic.
+     *
+     * `image_alt` is what the banner SAYS. The words in an uploaded banner are
+     * pixels — invisible to Google, to a screen reader, and to anyone whose
+     * image request fails — and this is the only textual form of them.
+     */
+    image_url: string;
+    image_mobile_url: string;
+    image_href: string;
+    image_alt: string;
+  };
   support: {
     phone: string;
     email: string;
@@ -72,6 +98,14 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     headline: "Up to 80% off RRP",
     cta_label: "Shop now",
     cta_url: "/sale",
+    // Blank on purpose, and for the same reason `promotions` is empty above: a
+    // default here would be a banner live on every shop that never opened the
+    // settings screen. Blank means the built-in text hero, which is always
+    // true and always readable.
+    image_url: "",
+    image_mobile_url: "",
+    image_href: "/sale",
+    image_alt: "",
   },
   support: {
     phone: "0200 804 020",
@@ -173,6 +207,22 @@ function merge(raw: unknown): SiteSettings {
       headline: str(banner.headline, d.banner.headline),
       cta_label: str(banner.cta_label, d.banner.cta_label),
       cta_url: str(banner.cta_url, d.banner.cta_url),
+      /* Not `str(…, default)` like the fields above, and the difference
+         matters. `str` falls back to the default when the value is blank,
+         which is right for wording — a shop that clears its headline wants
+         the shipped one, not nothing.
+
+         These are the opposite: blank means "no uploaded banner, draw the
+         built-in hero instead", so a fallback would make the image
+         impossible to REMOVE once set. Cleared in wp-admin has to arrive
+         here as an empty string. */
+      image_url: typeof banner.image_url === "string" ? banner.image_url.trim() : "",
+      image_mobile_url:
+        typeof banner.image_mobile_url === "string" ? banner.image_mobile_url.trim() : "",
+      // The link does take a fallback: a banner with no destination is a dead
+      // image, and /sale is the safe answer for a hero that is about price.
+      image_href: str(banner.image_href, d.banner.image_href),
+      image_alt: typeof banner.image_alt === "string" ? banner.image_alt.trim() : "",
     },
     support: {
       phone: str(support.phone, d.support.phone),

@@ -73,7 +73,43 @@ export default function StoreChrome({
   return (
     <>
       <Header departments={departments} settings={settings} />
-      <div className="flex-1">{children}</div>
+      {/* ---- The content sheet: white, on an off-white page ----
+       *
+       * `--background` is #f9fafb and every storefront page's content now sits
+       * on a white column centred in it, so the tint only ever shows in the
+       * gutters left and right of the content.
+       *
+       * That is the whole reason the page ground went off-white. A tint behind
+       * the CONTENT was the arrangement this shop tried twice and abandoned
+       * twice, because most of this catalogue is photographed on white and a
+       * tinted ground puts every product in a faintly visible grey box. A tint
+       * OUTSIDE the content has none of that problem: no product ever touches
+       * it. What it buys is that the shop reads as a sheet of merchandise on a
+       * surface rather than as text floating on the browser's own white, which
+       * is the difference between a storefront and a document.
+       *
+       * ---- The thing to know before judging this on your own screen ----
+       *
+       * The sheet is 1600px wide, which is the width the product grid has
+       * always used. So on any display narrower than that — every laptop, every
+       * tablet, every phone — the sheet fills the viewport and there are NO
+       * off-white gutters to see. The effect appears on wide desktop monitors
+       * and nowhere else.
+       *
+       * If the gutters should be visible on a laptop too, the lever is this
+       * `max-w-[1600px]`, and narrowing it takes width away from the product
+       * grid on exactly the screens that have the most room for products. That
+       * is a merchandising trade, not a styling one, which is why it has not
+       * been made here unilaterally.
+       *
+       * The hairline borders are what keep the sheet legible as a sheet when it
+       * IS narrower than the viewport — a 2% tint alone is too subtle to read
+       * as an edge, and an edge is the point. */}
+      <div className="flex-1">
+        <div className="mx-auto w-full max-w-[1600px] border-shop-line bg-white min-[1600px]:border-x">
+          {children}
+        </div>
+      </div>
       {/* Mounted here rather than in the layout so it inherits this component's
           one rule about where chrome belongs: the Seller Centre, admin and
           checkout return early above, and none of them should carry a shopper

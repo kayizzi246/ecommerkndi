@@ -23,7 +23,10 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
 
   return (
     <section className={className}>
-      <div className="mb-4 flex items-center justify-between">
+      {/* 12px, the same heading-to-content gap `SectionHeader` uses. This was
+          16px, which on the homepage made this the one rail sitting looser than
+          every other — see the spacing note in `app/page.tsx`. */}
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="section-title text-[20px] text-shop-ink md:text-[24px]">
           Recently viewed
         </h2>

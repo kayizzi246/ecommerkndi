@@ -73,9 +73,13 @@ export default function DailyDeals({
      */
     <section
       aria-labelledby="daily-deals-heading"
-      className="overflow-hidden bg-gradient-to-b from-pop-red-soft via-white to-white pt-4 md:rounded-2xl md:pt-5"
+      className="overflow-hidden bg-gradient-to-b from-pop-red-soft via-white to-white pt-3 md:rounded-2xl md:pt-4"
     >
-      <div className="mb-3.5 flex items-center gap-3 px-3 md:px-5">
+      {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
+          than using that component, so the homepage's spacing ratio has to be
+          repeated here by hand or the tinted sections drift looser than the
+          plain ones. See `app/page.tsx`. */}
+      <div className="mb-3 flex items-center gap-3 px-3 md:px-5">
         {/* The disc, matching the department rails. A price tag: the one glyph
             that means "this costs less" without a word. */}
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-shop-sale shadow-sm ring-1 ring-black/5">

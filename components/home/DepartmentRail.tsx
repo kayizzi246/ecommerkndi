@@ -114,9 +114,13 @@ export default function DepartmentRail({
          there, and a rounded card inset from the glass would cost the products
          width on the narrowest screens for a corner nobody asked for. From md
          up there is a gutter already, so the corners round. */
-      className={`overflow-hidden bg-gradient-to-b ${band} via-white to-white pt-4 md:rounded-2xl md:pt-5`}
+      className={`overflow-hidden bg-gradient-to-b ${band} via-white to-white pt-3 md:rounded-2xl md:pt-4`}
     >
-      <div className="mb-3.5 flex items-center gap-3 px-3 md:px-5">
+      {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
+          than using that component, so the homepage's spacing ratio has to be
+          repeated here by hand or the tinted sections drift looser than the
+          plain ones. See `app/page.tsx`. */}
+      <div className="mb-3 flex items-center gap-3 px-3 md:px-5">
         {/* The glyph disc. White, so it reads as a plate sitting on the tint
             rather than a second colour competing with it. */}
         <span

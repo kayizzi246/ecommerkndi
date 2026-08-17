@@ -19,21 +19,41 @@
  */
 
 :root {
-  /* Pure white, everywhere.
-
-     The page ran on a soft #f6f7f8 so that a white product card would separate
-     from it without a border. The separation now comes from the hairline the
-     cards already carry, and white buys two things the tint could not: product
-     photography — most of it shot on white — stops sitting in a visible grey
-     box, and every white panel on the site (cards, drawers, the masthead, the
-     checkout) lands on the same ground instead of one step off it.
-
-     Cards, rails and sections that hard-code `bg-white` are therefore now flush
-     with the page by design, not by accident. */
-  --background: #ffffff;
-  /* Near-black rather than soft charcoal: marketplace listings are dense and
-     scanned fast, so product type wants the extra contrast. */
-  --foreground: #171717;
+  /* ---- The page ground: #f9fafb, showing only in the gutters ----
+   *
+   * This has been both ways twice, and the resolution is not a compromise
+   * between them — it is a different arrangement that makes the argument moot.
+   *
+   * The page originally ran on #f6f7f8 so a white product card would separate
+   * from it without needing a border. That was abandoned for pure white
+   * because most of this catalogue is photographed on white: a tinted ground
+   * put every product in a faintly visible grey box, and the boxes were more
+   * noticeable than the separation was useful.
+   *
+   * Both of those were arguments about a tint BEHIND the merchandise. This
+   * tint is not behind the merchandise. `StoreChrome` now centres every
+   * storefront page on a white 1600px sheet, so the content — every product
+   * photograph, every card, every rail — sits on #ffffff exactly as it did,
+   * and #f9fafb shows only in the gutters left and right of it, where no
+   * product ever touches it.
+   *
+   * What that buys is that the shop reads as a sheet of merchandise resting on
+   * a surface rather than as text floating on the browser's own white. It is
+   * the storefront convention, and it costs the photography nothing.
+   *
+   * Two consequences worth knowing:
+   *
+   *   • The tint is only visible above 1600px. Narrower than that, the sheet
+   *     fills the viewport. See the note in `StoreChrome`.
+   *   • Anything that must sit on the PAGE rather than on the sheet — a
+   *     full-bleed band, the masthead — has to say `bg-background` and live
+   *     outside the sheet. Inside it, `bg-white` and `bg-background` are two
+   *     different colours again, where they were identical before. */
+  --background: #f9fafb;
+  /* Gray-900. A step cooler and darker than the #171717 near-black it replaces,
+     and the anchor of the grey ramp below — every text tone in the shop is now
+     drawn from one family rather than a slate ramp sitting on gray hairlines. */
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -58,24 +78,61 @@
   --color-bfl-surface: #f4f4f5;
 
   /* ---------- KandiUg brand palette ----------
-   * The greys are the slate ramp — very slightly cool, which is what makes
-   * product photography read as warm and separate from the page rather than
-   * blending into it.
+   *
+   * The greys are ONE family now — the neutral gray ramp, 900 down to 400.
+   *
+   * They used to be the slate ramp (#475569, #64748b, #334155, #94a3b8), which
+   * is faintly blue, sitting on top of hairlines and search fields that were
+   * already #e5e7eb and #f3f4f6 — the neutral ramp. Two grey families a couple
+   * of degrees apart in hue is the kind of thing nobody can name on sight and
+   * everybody registers: it is why a page can look slightly unresolved with
+   * every individual colour defensible. Text and rules now come from the same
+   * ramp, so a hairline under a paragraph is the same grey as the paragraph,
+   * lighter.
+   *
+   * ---- Where the two named brand greys landed ----
+   *
+   * The brief gave two text colours — #111827 dark and #6b7280 body — and this
+   * shop needs four steps, not two. #111827 anchors the top as `ink`, #6b7280
+   * sits at `muted`, and the two rungs between them are filled from the same
+   * ramp so the hierarchy that a dense product tile depends on survives:
+   *
+   *   ink    #111827  gray-900  16.1:1  headings, prices, the thing being said
+   *   title  #374151  gray-700   9.7:1  product names, section subtitles
+   *   body   #4b5563  gray-600   7.6:1  paragraphs and running copy
+   *   muted  #6b7280  gray-500   4.8:1  ratings, sold counts, secondary labels
+   *   faint  #9ca3af  gray-400   2.6:1  struck-through was-prices ONLY
+   *
+   * `body` is #4b5563 rather than the #6b7280 the name might suggest, and that
+   * is deliberate: at 4.8:1 #6b7280 clears AA for normal text with almost
+   * nothing to spare, which is right for a sold-count and wrong for a
+   * paragraph somebody is meant to read. Dropping running copy from 7.4:1 to
+   * 4.8:1 would have quietly undone the `.section-sub` decision further down
+   * this file, which exists precisely because subtitles set too light get
+   * skipped. Two rungs, two jobs.
+   *
+   * `faint` fails AA on purpose and may only ever carry a struck-through
+   * was-price — text that is decoration beside the real number, never
+   * information a shopper has to read.
    */
-  --color-shop-ink: #171717; /* type, not fills */
-  --color-shop-body: #475569;
-  --color-shop-muted: #64748b; /* ratings, sold counts, secondary labels */
-  --color-shop-title: #334155; /* product names — a step lighter than ink */
-  --color-shop-faint: #94a3b8; /* struck-through was-prices */
+  --color-shop-ink: #111827; /* type, not fills */
+  --color-shop-body: #4b5563;
+  --color-shop-muted: #6b7280; /* ratings, sold counts, secondary labels */
+  --color-shop-title: #374151; /* product names — a step lighter than ink */
+  --color-shop-faint: #9ca3af; /* struck-through was-prices */
   --color-shop-line: #e5e7eb;
   --color-shop-hairline: #f3f4f6;
-  --color-shop-surface: #fafafa; /* the rare tinted panel; the page itself is white */
+  /* The tinted panel, now that the PAGE is #f9fafb. It used to be #fafafa,
+     which was a step off a white page; against a #f9fafb page that is
+     indistinguishable, so it moves down to gray-100 to stay a real step. */
+  --color-shop-surface: #f3f4f6;
   --color-shop-cream: #fff3e8;
   --color-shop-search: #f3f4f6; /* the search field ground */
-  /* The thin announcement strip above the masthead. */
-  --color-shop-nav: #171717;
+  /* The thin announcement strip above the masthead. Pulled onto the same
+     gray-900 as `ink` so the darkest surface and the darkest type agree. */
+  --color-shop-nav: #111827;
   --color-shop-nav-dark: #000000;
-  --color-shop-band: #141414;
+  --color-shop-band: #111827;
 
   /* Kept for the odd accent that still wants it (seller badges, chart series). */
   --color-shop-olive: #6f7c02;
@@ -139,11 +196,12 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Inter, everywhere ----
+/* ---- The type: Poppins, one face, everywhere ----
  *
- * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the
- * reasoning for the face is written out in full. This is the other half: the
- * stack behind it, and the scale it is set at.
+ * `--font-poppins` is set by `next/font` in `app/layout.tsx`, where the
+ * reasoning for the face — and the three costs it carries — is written out in
+ * full. This is the other half: the stack behind it, and the scale it is set
+ * at.
  *
  * ---- THE SCALE ----
  *
@@ -168,27 +226,33 @@
  * than left to be retyped as utilities at each of several hundred call sites,
  * which is how a scale drifts out of a shop one component at a time.
  *
- * The `--font-display` / `--font-ui` distinction is kept even though both
- * resolve to the same family: display type is set heavy, UI type at 400–500 and
- * spaced for reading. Keeping the two names means a future decision to set
- * headings in something else is one line here rather than a search through the
- * components. */
+ * ---- Why `--font-display` and `--font-ui` both still exist ----
+ *
+ * They resolve to the same family again. Keeping the two names is not dead
+ * weight: it is the seam that has now made four typeface changes a two-line
+ * edit here instead of a search through two hundred components. Display type is
+ * set heavy, UI type at 400–600 and spaced for reading; the day headings want
+ * their own face again, this is the one place that changes. Do not collapse
+ * them into one variable to save a line. */
 :root {
-  /* Inter first, then the metric-matched fallback Next generates for it,
-     then the system stack this shop used to run on outright.
+  /* Poppins first, then the metric-matched fallback Next generates for it, then
+     the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Inter, so that face is what a shopper on a
+   * screen in whatever is behind Poppins, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
-   * and SF on iOS, all of which are humanist sans faces close enough in
-   * proportion that the swap is a refinement rather than a jolt. The named
-   * faces behind it cover the browsers that never implemented the keyword. */
+   * and SF on iOS. None of those is geometric, so the swap is more visible than
+   * it was with Inter, which is the other reason the weight list in
+   * `layout.tsx` is kept short: fewer files, sooner. */
   --font-ui:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   --font-display: var(--font-ui);
-  /* Alias kept so the Seller Centre and admin keep resolving to the UI face. */
+  /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
+     It no longer names anything real — Poppins draws no true tabular set — but
+     the call sites are worth keeping tagged, because they are exactly the
+     places to repoint if a face with proper figures ever comes back. */
   --font-tabular: var(--font-ui);
 }
 
@@ -228,15 +292,27 @@ body {
      be got through — descenders on one line stop crowding the caps on the next.
      Long-form pages go further still with `leading-relaxed`. */
   line-height: 1.6;
-  /* A hair of positive tracking. The face is spaced for 16px and above; most of
-     this interface runs at 12–14px, where the counters close up and glyphs like
-     "rn" start reading as "m". This opens them back up without the text looking
-     letterspaced. */
-  letter-spacing: 0.004em;
+  /* Very slightly negative, where this used to be very slightly positive.
+   *
+   * The old +0.004em existed because Inter and Roboto are drawn tight for
+   * interface use, and at the 12–14px most of this page runs at their counters
+   * close up — "rn" starts reading as "m" — so a hair of tracking opened them
+   * back out.
+   *
+   * Poppins has the opposite problem. It is geometric: circular bowls, generous
+   * sidebearings, drawn spacious by construction. Adding tracking to it makes a
+   * product title look letterspaced rather than legible, and on a two-line name
+   * in a 150px tile the extra width costs real characters before the ellipsis.
+   * Pulling it in a fraction buys some of that width back without the type ever
+   * looking cramped — there is a lot of room in this face to give up. */
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
-  /* Inter's variable file ships every weight the store asks for, so a
-     synthesised bold would only ever be the browser smearing a real one — turn
-     it off and any weight that renders genuinely exists in the file. */
+  /* The five Poppins weights loaded in `layout.tsx` are every weight this
+     stylesheet and the components ask for, so a synthesised bold would only
+     ever be the browser smearing a real one — turn it off and any weight that
+     renders genuinely exists in a file. The corollary: if type somewhere
+     suddenly looks too light, it is asking for a weight that was not loaded,
+     and the fix is the `weight` array in `layout.tsx`, not this line. */
   font-synthesis-weight: none;
 }
 
@@ -288,17 +364,23 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. Inter is variable across 100–900,
-     so nothing here is a synthesised bold. */
+     it that the eye had to stop and check. 700 is one of the five Poppins
+     weights loaded in `layout.tsx`, so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
 
-     This was -0.03em, which on a face whose counters are already drawn
-     tight for interface use — pushed "Daily Deals" and "Trending now" into a solid
-     block that has to be decoded rather than read. Tracking that tight is a
-     poster technique: it works on three words at 60px and fails on a sentence
+     This was -0.03em, which pushed "Daily Deals" and "Trending now" into a
+     solid block that has to be decoded rather than read. Tracking that tight is
+     a poster technique: it works on three words at 60px and fails on a sentence
      at 18px. -0.012em keeps a heading looking deliberate without closing the
-     gaps a reader uses to tell one letter from the next. */
+     gaps a reader uses to tell one letter from the next.
+
+     It stays at -0.012em on Poppins rather than being opened back up, for the
+     same reason the body tracking went negative: Poppins is geometric and drawn
+     with generous sidebearings, so a heading set at its natural spacing reads
+     slack above the dense product grid underneath it. On a one-face page this
+     matters more, not less — tracking, weight and size are now the only things
+     separating a heading from the copy around it. */
   letter-spacing: -0.012em;
 }
 
@@ -315,8 +397,8 @@ h6,
   font-family: var(--font-display);
   /* Bold, not semibold. The price is the number a shopper scans a grid for, and
      at 600 it sat at the same weight as the product name beside it; 700 makes
-     it the first thing read in the tile. Inter is variable across 100–900,
-     so nothing is synthesised. */
+     it the first thing read in the tile. 700 is a loaded Poppins weight, so
+     nothing is synthesised. */
   font-weight: 700;
   font-size: 18px;
   /* 1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
@@ -326,6 +408,13 @@ h6,
      word the eye takes in whole — so the space between figures has to stay open
      enough to count them. */
   letter-spacing: -0.008em;
+  /* Poppins has no true tabular set, so this is a request the face cannot fully
+     honour — its figures are geometric and near-uniform in width anyway, which
+     is why a price column still reads as a column. Left in place because it
+     costs nothing and starts working the moment a face with real tabular
+     figures arrives. Note there is no second family to fall back on for this
+     any more: the shop is one face now, so if a grid of prices is ever seen to
+     shift a hair between rows, the fix is a different face, not `--font-ui`. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -393,8 +482,8 @@ h6,
  * Fluid between the two ends of the spec rather than fixed at either: 32px is
  * the size that fits a phone without wrapping a three-word headline onto three
  * lines, 48px is what fills a desktop banner, and `clamp` walks between them
- * without a breakpoint. 800 is well inside Inter's 100–900 axis, so the heaviest
- * step here is still a real weight. */
+ * without a breakpoint. 800 is one of the five weights loaded in `layout.tsx`,
+ * so the heaviest step here is a real file rather than a smeared 700. */
 .hero-display {
   font-family: var(--font-display);
   font-weight: 800;
@@ -421,8 +510,9 @@ h6,
   font-weight: 400;
   /* Undoes the heading tracking above, but lands on the body's spacing rather
      than on zero — a product name is body copy that happens to be marked up as
-     a heading, and it should be spaced like the sentences around it. */
-  letter-spacing: 0.004em;
+     a heading, and it should be spaced like the sentences around it. Kept in
+     step with the `body` rule by hand; if that number moves, move this one. */
+  letter-spacing: -0.006em;
 }
 
 /* ---------- Section titles ----------
@@ -470,9 +560,11 @@ h6,
 .section-sub {
   font-family: var(--font-ui);
   font-weight: 600;
-  /* `--color-shop-body` rather than `--color-shop-muted`: 7.4:1 on white
-     against the muted grey's 4.6:1. Bold grey text at 13px is still grey text,
-     and the weight alone would not have made it comfortably readable. */
+  /* `--color-shop-body` rather than `--color-shop-muted`: 7.6:1 against the
+     muted grey's 4.8:1. Bold grey text at 13px is still grey text, and the
+     weight alone would not have made it comfortably readable. This is the rule
+     the two-rung split in the palette block exists to protect — if `body` is
+     ever flattened into `muted`, this subtitle is what gets skipped. */
   color: var(--color-shop-body);
   /* Bold type sits loose at default spacing; this is the same correction the
      headings take, scaled down for the smaller size. */
@@ -482,10 +574,11 @@ h6,
 
 /* The heaviest step, for the section headings that anchor the homepage.
  *
- * 800 rather than 900, by choice rather than by limit. Inter's variable axis
- * does reach 900, but at the sizes these headings run — 18 to 24px, not poster
- * scale — 900 closes the counters up and the word turns into a black bar. 800
- * is the heaviest step that still reads as letters.
+ * 800 rather than 900, by choice and now by supply as well. Poppins does draw a
+ * 900, but it is deliberately not loaded: at the sizes these headings run — 18
+ * to 24px, not poster scale — 900 closes the counters up and the word turns
+ * into a black bar, so it would be a sixth font file downloaded to make the
+ * page worse. 800 is the heaviest step that still reads as letters.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
  * Tracking is pulled in harder than at 600: at this weight the letterforms
@@ -516,10 +609,16 @@ h6,
   line-height: 1.25;
 }
 
-/* Large buttons and promotional labels — display face, tighter than body. */
+/* Large buttons and promotional labels.
+ *
+ * `--font-ui` rather than `--font-display`. Both resolve to Poppins today so it
+ * changes nothing on screen, and it is kept deliberately: buttons are UI, read
+ * at a glance at 14–16px alongside the navigation, and the last time headings
+ * had a separate wide display face it pushed "Add to cart" broader than the
+ * button drawn around it. Tagging them correctly now is free. */
 .btn-shop,
 .btn-shop-outline {
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
 }
 
 /* ---------- Corners ----------
