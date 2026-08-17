@@ -53,7 +53,7 @@ export default function ProductCarousel({
             type="button"
             onClick={() => scrollBy(-1)}
             aria-label="Previous products"
-            className="absolute left-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink shadow-sm transition-colors hover:bg-shop-surface md:flex"
+            className="absolute left-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink transition-colors hover:bg-shop-surface md:flex"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -63,7 +63,7 @@ export default function ProductCarousel({
             type="button"
             onClick={() => scrollBy(1)}
             aria-label="Next products"
-            className="absolute right-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink shadow-sm transition-colors hover:bg-shop-surface md:flex"
+            className="absolute right-0 top-[38%] hidden h-10 w-10 items-center justify-center rounded-full border border-shop-line bg-white text-shop-ink transition-colors hover:bg-shop-surface md:flex"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

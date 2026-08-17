@@ -204,22 +204,6 @@ export default async function Home() {
           </section>
         )}
 
-        {/* ---- What this visitor was last looking at ----
-
-            Second on the page, and only for somebody who has been here before:
-            the component renders nothing at all when the list is empty, so a
-            first-time visitor never sees an empty shelf where merchandise
-            should be.
-
-            High up because of what it is. A shopper who left and came back
-            almost always came back for something specific, and it is something
-            they have already seen — making them find it again through the
-            departments is asking them to repeat work the browser already did.
-            It reads from `kandi-recently-viewed-v1` in their own browser, which
-            is the same place the product page writes it, and it leaves the
-            device no more than the basket does. */}
-        <RecentlyViewed className="" />
-
         {/* ---- New in ----
              The newest listings from the shop's independent sellers, in the
              slot directly under Trending.
@@ -359,6 +343,33 @@ export default async function Home() {
             totalPages={latestTotalPages}
           />
         </section>
+
+        {/* ---- What this visitor was last looking at ----
+         *
+         * At the FOOT of the page, after the endless grid has run out.
+         *
+         * It used to be second from the top, and the argument for that was
+         * real: a shopper who leaves and comes back almost always came back for
+         * something specific and already seen, so putting it in front of them
+         * saves them finding it again. What that argument missed is that the
+         * slot it was occupying is the most valuable one on the page, and this
+         * rail is the only thing on the homepage that shows a returning shopper
+         * nothing they have not already looked at. Spending the second screen
+         * of a marketplace on stock somebody has demonstrably not bought yet is
+         * backwards — the rails above sell, this one reminds.
+         *
+         * Down here it is doing the job it is actually good at. "Picked for
+         * you" scrolls until the catalogue is exhausted, and the shopper who
+         * reaches the end of it without buying is precisely the one worth
+         * handing their own history back to. It is the last thing before the
+         * trust strip rather than a detour on the way in.
+         *
+         * Unchanged: it renders nothing at all when the list is empty, so a
+         * first-time visitor never sees an empty shelf, and it reads from
+         * `kandi-recently-viewed-v1` in their own browser — the same place the
+         * product page writes it — so it leaves the device no more than the
+         * basket does. */}
+        <RecentlyViewed className="" />
 
         <TrustBar returnsDays={settings.commerce.returns_days} />
 

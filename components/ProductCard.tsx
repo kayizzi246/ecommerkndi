@@ -342,7 +342,7 @@ export default function ProductCard({
              the two do different jobs — this one stops the scroll, that one
              closes the sale. */}
         {!soldOut && discount > 0 && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale px-1.5 py-[3px] text-[11px] font-bold leading-none text-white shadow-sm">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
             −{discount}%
           </span>
         )}
@@ -357,7 +357,20 @@ export default function ProductCard({
             name={product.name}
             image={product.image}
             price={product.price}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-shop-body shadow-sm backdrop-blur-sm transition-colors hover:text-shop-primary"
+            /* ---- A hairline ring where the shadow used to be ----
+               These two controls float over a product PHOTOGRAPH, which can be
+               any colour including white — most of this catalogue is shot on
+               it. A white disc with no shadow on a white background is not a
+               subtle button, it is an invisible one, so dropping the shadow
+               without replacing it would lose the control entirely on a good
+               half of the grid.
+
+               A 5%-black ring is the flat equivalent: it is a drawn edge rather
+               than a cast shadow, so it adds no haze to the page and no soft
+               grey halo to the photograph, and the button is still findable on
+               any ground. This is the same reasoning as the cart badge's ring
+               in the masthead. */
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-shop-body ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:text-shop-primary"
             iconClassName="w-[16px] h-[16px]"
           />
         </div>
@@ -365,7 +378,9 @@ export default function ProductCard({
         {/* Add-to-bag rides the corner of the photograph rather than sitting in
             the text below it. It buys back a whole line of the tile, and it is
             where a thumb already is after tapping the picture. */}
-        <div className="absolute bottom-2 right-2 rounded-full bg-white/95 shadow-sm backdrop-blur-sm">
+        {/* Ringed rather than shadowed, for the reason on the wishlist button
+            above: a white disc on a white product shot needs a drawn edge. */}
+        <div className="absolute bottom-2 right-2 rounded-full bg-white/95 ring-1 ring-black/5 backdrop-blur-sm">
           <TileCartButton product={product} />
         </div>
       </div>

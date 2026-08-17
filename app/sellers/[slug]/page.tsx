@@ -125,10 +125,10 @@ export default async function StorePage({ params }: Params) {
               width={80}
               height={80}
               unoptimized
-              className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover shadow-sm ring-1 ring-black/5 md:h-20 md:w-20"
+              className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover ring-1 ring-black/5 md:h-20 md:w-20"
             />
           ) : (
-            <span className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary shadow-sm ring-1 ring-black/5 md:h-20 md:w-20 md:text-[30px]">
+            <span className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary ring-1 ring-black/5 md:h-20 md:w-20 md:text-[30px]">
               {store.store_name.charAt(0).toUpperCase()}
             </span>
           )}

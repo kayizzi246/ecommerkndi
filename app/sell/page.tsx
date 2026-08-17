@@ -115,7 +115,7 @@ export default async function SellPage() {
       <section className="border-b border-shop-line bg-gradient-to-b from-pop-green-soft to-white">
         <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-20">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-pop-green shadow-sm">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-pop-green ring-1 ring-shop-line">
               <span className="h-2 w-2 rounded-full bg-pop-green" aria-hidden />
               Now accepting new stores
             </span>
@@ -171,7 +171,7 @@ export default async function SellPage() {
           {benefits.map((benefit) => (
             <div
               key={benefit.title}
-              className="rounded-2xl border border-shop-line bg-white p-6 transition-shadow hover:shadow-md"
+              className="rounded-2xl border border-shop-line bg-white p-6 transition-colors hover:border-shop-primary/40"
             >
               <span
                 className={`flex h-11 w-11 items-center justify-center rounded-xl ${benefit.bg} ${benefit.tone}`}

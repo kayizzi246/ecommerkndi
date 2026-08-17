@@ -124,7 +124,7 @@ export default function DepartmentRail({
         {/* The glyph disc. White, so it reads as a plate sitting on the tint
             rather than a second colour competing with it. */}
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 ${tone}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center  rounded-full bg-white ring-1 ring-black/5 ${tone}`}
         >
           <DepartmentGlyph id={id} />
         </span>

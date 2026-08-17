@@ -117,7 +117,7 @@ export default function SignInPanel({
               aria-pressed={mode === value}
               className={`rounded-lg py-2 text-[14px] font-semibold transition-colors ${
                 mode === value
-                  ? "bg-white text-shop-ink shadow-sm"
+                  ? "bg-white text-shop-ink ring-1 ring-shop-line"
                   : "text-shop-muted hover:text-shop-ink"
               }`}
             >

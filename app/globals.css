@@ -19,37 +19,42 @@
  */
 
 :root {
-  /* ---- The page ground: #f9fafb, showing only in the gutters ----
+  /* ---- One ground: white, everywhere ----
    *
-   * This has been both ways twice, and the resolution is not a compromise
-   * between them — it is a different arrangement that makes the argument moot.
+   * The page, the gutters and the content are all #ffffff. There is no sheet,
+   * no tint and no seam anywhere on the storefront.
    *
-   * The page originally ran on #f6f7f8 so a white product card would separate
-   * from it without needing a border. That was abandoned for pure white
-   * because most of this catalogue is photographed on white: a tinted ground
-   * put every product in a faintly visible grey box, and the boxes were more
-   * noticeable than the separation was useful.
+   * ---- The history, because this keeps getting re-litigated ----
    *
-   * Both of those were arguments about a tint BEHIND the merchandise. This
-   * tint is not behind the merchandise. `StoreChrome` now centres every
-   * storefront page on a white 1600px sheet, so the content — every product
-   * photograph, every card, every rail — sits on #ffffff exactly as it did,
-   * and #f9fafb shows only in the gutters left and right of it, where no
-   * product ever touches it.
+   *   1. #f6f7f8, so a white product card would separate from the page without
+   *      needing a border.
+   *   2. White, because #f6f7f8 is a 3% grey and most of this catalogue is
+   *      photographed on white — every product sat in a faintly visible grey
+   *      box, which was more noticeable than the separation was useful.
+   *   3. #f9fafb with the content on a white 1600px sheet, so the tint showed
+   *      only in the gutters where no product touches it.
+   *   4. White again, and this is where it stops.
    *
-   * What that buys is that the shop reads as a sheet of merchandise resting on
-   * a surface rather than as text floating on the browser's own white. It is
-   * the storefront convention, and it costs the photography nothing.
+   * Step 3 was sound and it solved a problem the shop no longer has. Its whole
+   * job was to give the page a horizon — something saying where the site's
+   * chrome ends and the merchandise begins — and that job now belongs to the
+   * gray-900 masthead, which does it far more decisively than a 2% tint in the
+   * margins ever did. With the header carrying the contrast, the sheet was a
+   * second answer to a question already answered, and it was only visible
+   * above 1600px anyway.
    *
-   * Two consequences worth knowing:
+   * It is also what the reference does: white edge to edge, with the grid
+   * doing the structuring.
    *
-   *   • The tint is only visible above 1600px. Narrower than that, the sheet
-   *     fills the viewport. See the note in `StoreChrome`.
-   *   • Anything that must sit on the PAGE rather than on the sheet — a
-   *     full-bleed band, the masthead — has to say `bg-background` and live
-   *     outside the sheet. Inside it, `bg-white` and `bg-background` are two
-   *     different colours again, where they were identical before. */
-  --background: #f9fafb;
+   * ---- What this means for anything built on top ----
+   *
+   * `bg-white` and `bg-background` are the same colour again. That is fine, and
+   * it is the trap that produced the tile-border mess: a white panel on a white
+   * page has NO boundary of its own, so anything that needs to read as a
+   * distinct surface must draw an edge — a hairline border — rather than
+   * assume the ground will separate it. `ProductCard` solves this with grid
+   * gaps instead; see the note at the top of that file. */
+  --background: #ffffff;
   /* Gray-900. A step cooler and darker than the #171717 near-black it replaces,
      and the anchor of the grey ramp below — every text tone in the shop is now
      drawn from one family rather than a slate ramp sitting on gray hairlines. */

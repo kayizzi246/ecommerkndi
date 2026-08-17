@@ -127,7 +127,36 @@ export default function HeroBanner({
    */
   const { image_url: wide, image_mobile_url: narrow, image_href, image_alt } = settings.banner;
 
-  if (wide) {
+  /* ---- EITHER field turns the uploaded hero on ----
+   *
+   * This used to test `wide` alone, and that was a bug worth recording because
+   * it failed silently and looked exactly like a broken setting. Uploading only
+   * the phone banner — which is the reasonable thing to do first, since the
+   * admin screen presses hard for a phone crop — left `wide` empty, so the
+   * whole uploaded branch was skipped and the shop kept drawing its built-in
+   * hero. The banner was saved, correct, and being ignored, with nothing
+   * anywhere to say so.
+   *
+   * Neither field is more important than the other. Both are optional and
+   * either one alone is a complete answer:
+   *
+   *   both        phone crop below md, wide one from md up
+   *   wide only   the wide one at every width
+   *   phone only  the phone one at every width
+   *   neither     the built-in text hero
+   *
+   * The height caps follow the SOURCE rather than the breakpoint, which is the
+   * subtle part. A portrait phone crop needs a tall cap or it is cropped to a
+   * letterbox; a wide banner shown on a phone needs the short one or it eats
+   * the screen. When one file is doing both jobs the cap has to be chosen from
+   * what the file actually is, not from where it is being shown.
+   */
+  const mobileSrc = narrow || wide;
+  const desktopSrc = wide || narrow;
+  /** True when the image on phones is a purpose-made portrait crop. */
+  const mobileIsPortrait = Boolean(narrow);
+
+  if (mobileSrc && desktopSrc) {
     return (
       <section aria-label={image_alt || "Featured offer"}>
         <Link href={image_href || "/sale"} className="block">
@@ -143,10 +172,11 @@ export default function HeroBanner({
                inside it, because it has no layout box. Only one is ever
                downloaded.
 
-               Both are only rendered when a phone crop actually exists. With
-               one uploaded, the wide image is shown at every width — legible or
-               not, that is what the shop asked for, and the admin screen says
-               plainly what it costs. */}
+               When only ONE file has been uploaded both of these point at it,
+               and that is deliberate rather than wasteful. The hidden one is
+               never fetched, and if the visible one changes across a resize the
+               URL is identical so it comes from cache. It keeps the markup to a
+               single shape instead of three conditional branches. */}
           {/* ---- Height is CAPPED, and that means the banner is cropped ----
                A full-width image has no height of its own to set — its height
                is its width times its aspect ratio, and nothing else. A 1993×816
@@ -167,22 +197,26 @@ export default function HeroBanner({
                width by construction and needs no cropping at all. That is the
                only way to get a short full-width banner with nothing lost.
 
-               The phone crop gets its own, taller caps. It is a portrait image
-               by design, so the desktop numbers would cut most of it away. */}
-          {narrow && (
-            <Image
-              src={narrow}
-              alt={image_alt}
-              width={900}
-              height={1100}
-              unoptimized
-              priority
-              className="max-h-[340px] w-full object-cover object-center sm:max-h-[420px] md:hidden"
-              sizes="100vw"
-            />
-          )}
+               A purpose-made phone crop gets taller caps — it is a portrait
+               image, so the desktop numbers would cut most of it away. A wide
+               banner standing in on phones gets the short ones. The cap follows
+               what the FILE is, not which breakpoint it is showing at. */}
           <Image
-            src={wide}
+            src={mobileSrc}
+            alt={image_alt}
+            width={mobileIsPortrait ? 900 : 1920}
+            height={mobileIsPortrait ? 1100 : 800}
+            unoptimized
+            priority
+            className={`w-full object-cover object-center md:hidden ${
+              mobileIsPortrait
+                ? "max-h-[340px] sm:max-h-[420px]"
+                : "max-h-[200px] sm:max-h-[260px]"
+            }`}
+            sizes="100vw"
+          />
+          <Image
+            src={desktopSrc}
             alt={image_alt}
             width={1920}
             height={800}
@@ -194,9 +228,7 @@ export default function HeroBanner({
             /* This is the first element on the page and almost certainly its
                LCP. One image, above the fold, on every visit. */
             priority
-            className={`max-h-[200px] w-full object-cover object-center sm:max-h-[260px] md:max-h-[320px] lg:max-h-[380px] ${
-              narrow ? "hidden md:block" : ""
-            }`}
+            className="hidden w-full object-cover object-center md:block md:max-h-[320px] lg:max-h-[380px]"
             sizes="100vw"
           />
         </Link>
@@ -307,7 +339,7 @@ export default function HeroBanner({
               thumb already is. Only ever one of the two is rendered. */}
           <Link
             href={href}
-            className="btn-shop mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-shop-primary to-shop-ember px-7 py-3.5 text-[15px] font-bold text-white shadow-md transition-opacity hover:opacity-90 sm:w-auto sm:self-start md:hidden"
+            className="btn-shop mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-shop-primary to-shop-ember px-7 py-3.5 text-[15px] font-bold text-white transition-opacity hover:opacity-90 sm:w-auto sm:self-start md:hidden"
           >
             SHOP NOW
             <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.6">
@@ -335,7 +367,7 @@ export default function HeroBanner({
                   index > 0 ? "sm:border-l sm:border-shop-line sm:pl-5 md:pl-7" : ""
                 }`}
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-white shadow-sm">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-white">
                   <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor">
                     <path d={feature.path} />
                     {feature.dot && <circle cx="8" cy="8" r="1.3" fill="var(--color-shop-primary)" />}
@@ -386,7 +418,7 @@ export default function HeroBanner({
                 focus ring. */}
             <Link
               href={href}
-              className="btn-shop absolute -right-2 top-2 hidden h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-center text-[14px] font-bold uppercase leading-tight text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-shop-primary-ink md:flex lg:h-[112px] lg:w-[112px] lg:text-[16px]"
+              className="btn-shop absolute -right-2 top-2 hidden h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-center text-[14px] font-bold uppercase leading-tight text-white transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-shop-primary-ink md:flex lg:h-[112px] lg:w-[112px] lg:text-[16px]"
             >
               Shop
               <span>Now</span>

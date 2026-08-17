@@ -73,42 +73,22 @@ export default function StoreChrome({
   return (
     <>
       <Header departments={departments} settings={settings} />
-      {/* ---- The content sheet: white, on an off-white page ----
+      {/* ---- The content column ----
        *
-       * `--background` is #f9fafb and every storefront page's content now sits
-       * on a white column centred in it, so the tint only ever shows in the
-       * gutters left and right of the content.
+       * Width only. No background and no border: the page is white everywhere
+       * now, so a white sheet with hairline edges was drawing a box around
+       * nothing. See the `--background` note in `globals.css` for why the tint
+       * went away — short version, the gray-900 masthead gives the page its
+       * horizon, which is the job the sheet was doing.
        *
-       * That is the whole reason the page ground went off-white. A tint behind
-       * the CONTENT was the arrangement this shop tried twice and abandoned
-       * twice, because most of this catalogue is photographed on white and a
-       * tinted ground puts every product in a faintly visible grey box. A tint
-       * OUTSIDE the content has none of that problem: no product ever touches
-       * it. What it buys is that the shop reads as a sheet of merchandise on a
-       * surface rather than as text floating on the browser's own white, which
-       * is the difference between a storefront and a document.
-       *
-       * ---- The thing to know before judging this on your own screen ----
-       *
-       * The sheet is 1600px wide, which is the width the product grid has
-       * always used. So on any display narrower than that — every laptop, every
-       * tablet, every phone — the sheet fills the viewport and there are NO
-       * off-white gutters to see. The effect appears on wide desktop monitors
-       * and nowhere else.
-       *
-       * If the gutters should be visible on a laptop too, the lever is this
-       * `max-w-[1600px]`, and narrowing it takes width away from the product
-       * grid on exactly the screens that have the most room for products. That
-       * is a merchandising trade, not a styling one, which is why it has not
-       * been made here unilaterally.
-       *
-       * The hairline borders are what keep the sheet legible as a sheet when it
-       * IS narrower than the viewport — a 2% tint alone is too subtle to read
-       * as an edge, and an edge is the point. */}
+       * The wrapper itself stays, and it is not vestigial. Most pages set their
+       * own `mx-auto max-w-[1600px]` on an inner container, but the homepage's
+       * hero deliberately sits OUTSIDE that container so it can span the full
+       * width without fighting its `md:px-8` padding. Without this, the hero
+       * would stretch across an entire ultrawide monitor while every rail
+       * beneath it stopped at 1600px. This is what bounds it. */}
       <div className="flex-1">
-        <div className="mx-auto w-full max-w-[1600px] border-shop-line bg-white min-[1600px]:border-x">
-          {children}
-        </div>
+        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's
           one rule about where chrome belongs: the Seller Centre, admin and

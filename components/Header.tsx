@@ -196,12 +196,21 @@ export default function Header({
   const awayFromFreeDelivery = Math.max(0, threshold - subtotal);
 
   return (
-    // Once the department bar folds away there is no rule between the masthead
-    // and the grid scrolling under it, so a shadow takes over that job.
+    // Once the department bar folds away on a phone there is no rule between
+    // the masthead and the grid scrolling under it, and something has to say
+    // where one ends and the other begins.
+    //
+    // That used to be a `shadow-sm`, and it is no longer needed at all. The
+    // masthead is gray-900 now: against a white page it is the highest-contrast
+    // edge on the screen, and a soft grey shadow under a near-black bar is a
+    // smudge nobody can see doing a job the colour already did. Every other
+    // shadow on the storefront's page surfaces came off in the same pass; this
+    // is the one that was genuinely load-bearing before the header went dark,
+    // which is why it is called out rather than just deleted.
     <header
       className={`sticky top-0 z-40 bg-shop-nav transition-transform duration-300 ease-out motion-reduce:transition-none ${
-        scrolled ? "shadow-sm md:shadow-none" : ""
-      } ${slidUp ? "-translate-y-full" : "translate-y-0"}`}
+        slidUp ? "-translate-y-full" : "translate-y-0"
+      }`}
     >
       {/* ---- Announcement strip ----
            A brand-orange rule across the top, carrying the shop's three

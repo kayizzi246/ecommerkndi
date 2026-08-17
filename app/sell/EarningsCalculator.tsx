@@ -65,7 +65,7 @@ export default function EarningsCalculator({
   const netAfterFee = Math.max(0, net - registrationFee);
 
   return (
-    <div className="rounded-2xl border border-shop-line bg-white p-6 shadow-sm md:p-8">
+    <div className="rounded-2xl border border-shop-line bg-white p-6 md:p-8">
       <h3 className="text-[21px] font-extrabold text-shop-ink">What would you keep?</h3>
       <p className="mt-1.5 text-[15px] text-shop-muted">
         Two numbers you already know. We take {commissionRate}% commission — nothing else is
