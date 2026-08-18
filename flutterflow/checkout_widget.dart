@@ -158,11 +158,31 @@ import 'package:url_launcher/url_launcher.dart';
 //        onOrderComplete     Action
 //        onBackTap           Action
 //
-//  NOT USED HERE: Supabase, and no `userId` parameter. The basket
-//  and the address are per device, like the website's, and the
-//  order carries the name and phone from the address record. A
-//  shopper does not need an account to buy, and requiring one
-//  here would turn away the shopper who just wants the shoes.
+//  SIGN-IN IS NOW REQUIRED — and this note used to say it was not
+//  -----------------------------------------------------------
+//  It read: "NOT USED HERE: Supabase, and no `userId` parameter.
+//  A shopper does not need an account to buy, and requiring one
+//  here would turn away the shopper who just wants the shoes."
+//
+//  Half of that is still true and half of it is now wrong, so
+//  both halves are worth keeping straight.
+//
+//  STILL TRUE: this screen takes no `userId` parameter, and the
+//  ORDER still does not carry one. The basket is per device, the
+//  address record is per device, and `POST /api/checkout` gets
+//  its name and phone from that record exactly as before. Signing
+//  in is a gate in front of this screen, not a change to what it
+//  sends. Nothing about the order shape moved.
+//
+//  NOW WRONG: the shopper is required to have a Supabase session
+//  before the form is drawn at all. The reasoning for and against
+//  is written out at `_authGate` below rather than here, because
+//  it is a product decision that may well be revisited and it
+//  should be argued where the code that implements it lives.
+//
+//  What that adds to this file: one import, one bool, one gate
+//  view, and a dependency on `KandiAuthPage` — whose SETUP block
+//  records what it must keep doing for the gate to work.
 // ============================================================
 
 const String _kApiBaseUrl = 'https://kandiug.com';
@@ -255,6 +275,13 @@ class _KandiCheckoutState extends State<KandiCheckout> {
   String _message = '';
   bool _loading = true;
 
+  /// Whether there is a Supabase session on this device.
+  ///
+  /// Starts true so the first frame is the loading spinner rather than the
+  /// gate: `_load` sets it for real within a tick, and a gate that flashes up
+  /// and vanishes for a signed-in shopper is worse than a spinner.
+  bool _signedIn = true;
+
   int? _orderId;
   String? _trackingId;
   Timer? _poll;
@@ -288,6 +315,22 @@ class _KandiCheckoutState extends State<KandiCheckout> {
   // ==========================================================
 
   Future<void> _load() async {
+    // ---- Signed in, or nothing else happens ----
+    //
+    // Checked before the basket is even read. There is no point pricing an
+    // order for somebody who is about to be sent away to sign in, and reading
+    // storage first would flash a fully drawn checkout for a frame before the
+    // gate replaced it.
+    if (!KandiAuthPage.isSignedIn()) {
+      if (!mounted) return;
+      setState(() {
+        _signedIn = false;
+        _loading = false;
+      });
+      return;
+    }
+    _signedIn = true;
+
     // The basket comes from `ShoppingCartPage`, not from a reader of our own.
     // One basket, one writer — see `loadLines` over there for why it hands back
     // maps rather than its own line type.
@@ -694,6 +737,9 @@ class _KandiCheckoutState extends State<KandiCheckout> {
         child: CircularProgressIndicator(color: _kOrange, strokeWidth: 2),
       );
     }
+    // Before the basket, before the address, before anything: is there
+    // somebody to bill? See `_authGate` for the argument.
+    if (!_signedIn) return _authGate();
     if (_stage == _Stage.done) return _successView();
     if (_lines.isEmpty) return _emptyView();
 
@@ -1252,6 +1298,152 @@ class _KandiCheckoutState extends State<KandiCheckout> {
                 size: 13, weight: FontWeight.w600, color: color ?? _kInk)),
       ],
     );
+  }
+
+  /// The sign-in wall.
+  ///
+  /// ---- This reverses a decision written at the head of this file ----
+  ///
+  /// That note says, and still says: "A shopper does not need an account to
+  /// buy, and requiring one here would turn away the shopper who just wants
+  /// the shoes." That argument has not become wrong. Every checkout that adds
+  /// a sign-in step loses some share of the people who reach it, and for an
+  /// impulse purchase on a phone the share is not small.
+  ///
+  /// It is overruled deliberately, because the shop asked for it, and the
+  /// counter-arguments are real too:
+  ///
+  ///   • An order placed anonymously from a device cannot be found again by
+  ///     the person who placed it. The website has "Orders" behind an account;
+  ///     the app had a receipt that vanished when storage was cleared.
+  ///   • The name and phone on an anonymous order are whatever was typed into
+  ///     the address form, unverified. A rider calling a mistyped number is a
+  ///     delivery that fails and a fee paid twice.
+  ///
+  /// If conversion drops after this ships, THIS is the thing to measure, and
+  /// the cheapest partial rollback is guest checkout for cash on delivery with
+  /// sign-in kept for card and mobile money.
+  ///
+  /// ---- Why a wall and not an automatic redirect ----
+  ///
+  /// Pushing the auth page from `initState` was the obvious build and it is
+  /// hostile: the shopper taps "Checkout" and lands, with no transition they
+  /// asked for, on a page demanding a password — and the back gesture from
+  /// there returns to the basket, so the checkout appears not to exist. A
+  /// screen that says what is being asked and why, with one button, is one
+  /// extra tap and no confusion.
+  ///
+  /// The session is re-read after the auth page closes rather than trusted
+  /// from a callback, because sign-in can also complete through an OAuth
+  /// redirect that this widget never sees.
+  Widget _authGate() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: _kOrange.withOpacity(0.09),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_outline_rounded,
+                color: _kOrange, size: 40),
+          ),
+          const SizedBox(height: 22),
+          Text('Sign in to check out',
+              style: _type(size: 20, weight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(
+            // The reason, not the rule. "You must be signed in" is a wall;
+            // this is what the shopper gets for the thirty seconds.
+            'So we can send your order to the right person, keep your receipt, '
+            'and let you track it from Orders.',
+            textAlign: TextAlign.center,
+            style: _type(size: 13.5, color: _kBody),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: _openAuth,
+            child: Container(
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kOrange, _kOrangeDark]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text('Sign in or create account',
+                    style: _type(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: Colors.white)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            // The way out. A wall with no door is a dead end, and the basket
+            // is where somebody who is not ready to sign up wants to be —
+            // with their items still in it, which they are.
+            onTap: () async {
+              await widget.onBackTap?.call();
+              if (mounted) Navigator.of(context).maybePop();
+            },
+            child: Text('Back to basket',
+                style: _type(
+                    size: 13.5, weight: FontWeight.w600, color: _kMuted)),
+          ),
+          const SizedBox(height: 28),
+          // The basket is not lost, and saying so is the point. The commonest
+          // reason to abandon here is the fear that signing in means starting
+          // over.
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _kSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _kLine),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.shopping_bag_outlined,
+                    size: 18, color: _kMuted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Your basket is saved on this phone. Nothing is lost.',
+                    style: _type(size: 12.5, color: _kBody),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Opens the auth page, then re-reads the session and carries on.
+  Future<void> _openAuth() async {
+    HapticFeedback.selectionClick();
+    await KandiAuthPage.open(context);
+    if (!mounted) return;
+
+    if (!KandiAuthPage.isSignedIn()) {
+      // Backed out, or signed up with email confirmation still pending — see
+      // the note in `_handleSignUp` over there. The gate stays; nothing is
+      // said, because they know what they just did.
+      return;
+    }
+
+    setState(() {
+      _signedIn = true;
+      _loading = true;
+    });
+    await _load();
   }
 
   Widget _statusCard() {

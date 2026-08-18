@@ -1060,6 +1060,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     slivers: [
                       SliverToBoxAdapter(child: _galleryBlock(d)),
+                      // The rest of the photographs, under the main frame.
+                      // Renders nothing for a single-image product.
+                      SliverToBoxAdapter(child: _thumbnailStrip(d)),
                       SliverToBoxAdapter(child: _buyBlock(d)),
                       // Directly under the price, which is where the website
                       // puts them and where the decision is actually made. A
@@ -1175,6 +1178,97 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// The rest of the gallery, as a thumbnail strip under the main photograph.
+  ///
+  /// ---- What was wrong with swipe-only ----
+  ///
+  /// The gallery was a `PageView` and a "1/6" counter in the corner, which is
+  /// the whole of what a shopper was told about the other five photographs.
+  /// Two costs, and neither is cosmetic on a page whose job is to sell an
+  /// object nobody can pick up:
+  ///
+  ///   • The counter says a number, not a subject. "1/6" does not tell anyone
+  ///     that photograph four is the sole shot of the sole, or that six is the
+  ///     size chart — so the swipe is a gamble and most people take it once.
+  ///   • Reaching photograph five means four deliberate swipes. Every large
+  ///     marketplace puts thumbnails under the frame instead, and the reason
+  ///     is arithmetic: one tap to any shot, and every shot ADVERTISED.
+  ///
+  /// The counter stays. It is still the fastest way to know how many there
+  /// are while mid-swipe, and it costs nothing.
+  ///
+  /// ---- Details ----
+  ///
+  /// Only rendered for more than one image — a strip holding a single
+  /// thumbnail of the picture directly above it is noise.
+  ///
+  /// 62px square: large enough to make out which shot is which on a phone,
+  /// small enough that five fit across a 390px screen without scrolling, which
+  /// is the whole catalogue's usual gallery length.
+  ///
+  /// `animateToPage` rather than `jumpToPage`, so the main frame slides the
+  /// way it does under a thumb. A gallery that teleports when tapped and
+  /// slides when swiped reads as two different controls.
+  ///
+  /// The selected thumbnail is ringed in brand orange rather than dimmed,
+  /// because dimming the others is a change to five things to say one thing
+  /// about the sixth.
+  Widget _thumbnailStrip(_Detail d) {
+    final images = d.images;
+    if (images.length < 2) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 62,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(_pad, 10, _pad, 0),
+        itemCount: images.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final selected = i == _imageIndex;
+          return _Press(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _imageIndex = i);
+              _gallery.animateToPage(
+                i,
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+              );
+            },
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected ? _kPrimary : _kLine,
+                  width: selected ? 1.8 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                // One less than the container's 8, so the image sits inside
+                // the ring rather than under it.
+                borderRadius: BorderRadius.circular(7),
+                child: CachedNetworkImage(
+                  imageUrl: images[i],
+                  fit: BoxFit.cover,
+                  // Drawn at 52px on a 3x screen. Decoding these at full
+                  // WooCommerce resolution would put six 2000px bitmaps in
+                  // memory to show six postage stamps.
+                  memCacheWidth: 160,
+                  placeholder: (_, __) => const ColoredBox(color: _kHairline),
+                  errorWidget: (_, __, ___) =>
+                      const ColoredBox(color: _kHairline),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

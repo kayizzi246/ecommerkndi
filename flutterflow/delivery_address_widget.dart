@@ -174,6 +174,75 @@ const Color _kSurface = Color(0xFFF9FAFB);
 const Color _kGreen = Color(0xFF16A34A);
 const Color _kRed = Color(0xFFE53935);
 
+/// ============================================================
+///  THE AREA LIST
+/// ============================================================
+///
+/// Places this shop delivers to, for the search sheet.
+///
+/// ---- Why a bundled list and not an autocomplete ----
+///
+/// Typing a free-text area and waiting for the server to geocode it is what
+/// this screen did, and it is the wrong shape for the problem. The shopper has
+/// to produce a spelling the geocoder recognises, with no idea what it will
+/// accept, and finds out 700ms later that it did not — "We could not find that
+/// place" against a word they know is a real place because they live there.
+/// Nothing on the screen tells them what a good answer looks like.
+///
+/// A real autocomplete would fix that and cannot be built from here. The
+/// server's forward geocoder is either Nominatim, whose usage policy rate-
+/// limits to roughly one request a second and which `lib/geocode.ts` is
+/// explicit about never calling in a loop, or Google Geocoding, which is not
+/// the Places Autocomplete API and does not do prefix matching. Neither is a
+/// per-keystroke endpoint, and there is no `/api/delivery/suggest` to call.
+///
+/// So the answer is a list this app already holds: instant, offline, and made
+/// of names that are KNOWN to geocode, because that is the only reason a name
+/// is on it. Tapping one fills the town field with a spelling that works.
+///
+/// ---- What it is and is not ----
+///
+/// It is a shortcut, not a restriction. The town field stays free text
+/// underneath, so somewhere not on this list is still typed and still quoted
+/// exactly as before — the list cannot make an address unreachable.
+///
+/// Ordered roughly by where this shop's orders actually go: the Kampala
+/// divisions and the suburbs around them first, then the greater-Kampala
+/// towns, then the rest of the country. The search matches anywhere in the
+/// string, so ordering only decides what an empty search shows.
+///
+/// Adding to it is safe and cheap. Removing a name is not — somebody may have
+/// a saved address under it.
+const List<String> _kAreas = <String>[
+  // Kampala, by division
+  'Kampala Central', 'Nakawa', 'Kawempe', 'Rubaga', 'Makindye',
+  // Kampala suburbs, the ones people actually name
+  'Ntinda', 'Kololo', 'Nakasero', 'Bugolobi', 'Muyenga', 'Kabalagala',
+  'Kansanga', 'Ggaba', 'Munyonyo', 'Luzira', 'Butabika', 'Mutungo',
+  'Bukoto', 'Kisaasi', 'Kyanja', 'Najeera', 'Kiwatule', 'Naguru',
+  'Ntinda Kigowa', 'Bukasa', 'Kirinya', 'Namugongo', 'Kyaliwajjala',
+  'Kira', 'Bweyogerere', 'Kireka', 'Banda', 'Kyambogo', 'Nakawa Market',
+  'Wandegeya', 'Makerere', 'Kikoni', 'Kasubi', 'Kawaala', 'Bwaise',
+  'Kalerwe', 'Mpererwe', 'Komamboga', 'Gayaza Road', 'Kanyanya',
+  'Kyebando', 'Mulago', 'Kamwokya', 'Ntinda Stretcher', 'Kabowa',
+  'Ndeeba', 'Nateete', 'Busega', 'Rubaga Road', 'Mengo', 'Namirembe',
+  'Nsambya', 'Katwe', 'Kibuye', 'Najjanankumbi', 'Zana', 'Kajjansi',
+  'Lubowa', 'Seguku', 'Bunamwaya', 'Wakiso', 'Nansana', 'Kawanda',
+  'Matugga', 'Kasangati', 'Gayaza', 'Kiira', 'Namboole',
+  // Greater Kampala and the Entebbe road
+  'Entebbe', 'Kitoro', 'Abaita Ababiri', 'Kisubi', 'Nkumba',
+  'Mukono', 'Seeta', 'Namanve', 'Nakisunga', 'Lugazi', 'Buikwe',
+  // The rest of the country, by size
+  'Jinja', 'Njeru', 'Iganga', 'Kamuli', 'Mbale', 'Tororo', 'Soroti',
+  'Lira', 'Gulu', 'Kitgum', 'Arua', 'Nebbi', 'Masindi', 'Hoima',
+  'Mbarara', 'Bushenyi', 'Ntungamo', 'Kabale', 'Kisoro', 'Fort Portal',
+  'Kasese', 'Masaka', 'Lyantonde', 'Mityana', 'Mubende', 'Luweero',
+  'Nakaseke', 'Kayunga', 'Bombo', 'Kiboga', 'Sembabule', 'Rakai',
+  'Kalangala', 'Moroto', 'Kotido', 'Adjumani', 'Moyo', 'Yumbe',
+  'Koboko', 'Pakwach', 'Apac', 'Dokolo', 'Kumi', 'Pallisa', 'Budaka',
+  'Sironko', 'Kapchorwa', 'Busia', 'Bugiri', 'Mayuge', 'Buwenge',
+];
+
 TextStyle _type({
   double size = 14,
   FontWeight weight = FontWeight.w400,
@@ -610,12 +679,26 @@ class _DeliveryAddressPageState extends State<DeliveryAddressPage> {
                 children: [
                   // The "Use my current location" button and the "or type it
                   // below" divider under it both went with the GPS code — see
-                  // the header. The divider had to go too: it separated two
-                  // ways of answering, and with only one left it was a rule
-                  // across the top of the form pointing at nothing above it.
+                  // the header.
                   //
-                  // The form now opens straight onto the name field, which is
-                  // where a first-time shopper was going to start anyway.
+                  // The area search took the top slot they left, and it is the
+                  // right thing to have there for the same reason the location
+                  // button was: it is the fastest correct answer to the
+                  // question this screen exists to ask. See `_areaButton`.
+                  _areaButton(),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: _kLine)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('or fill it in yourself',
+                            style: _type(size: 11.5, color: _kMuted)),
+                      ),
+                      const Expanded(child: Divider(color: _kLine)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   _field('Full name', _nameCtrl,
                       hint: 'Who is receiving the order',
                       onChanged: (_) => setState(() {})),
@@ -836,6 +919,301 @@ class _DeliveryAddressPageState extends State<DeliveryAddressPage> {
       tint: quote.free ? _kGreen.withOpacity(0.06) : _kSurface,
       edge: quote.free ? _kGreen.withOpacity(0.25) : _kLine,
     );
+  }
+
+  /// "Search your area" — the top slot, and the fastest correct answer here.
+  ///
+  /// Drawn as a search FIELD rather than a button, deliberately. A button
+  /// saying "Search your area" is a thing to be pressed; a field with a
+  /// magnifier and a grey prompt is a thing to be typed into, and it is
+  /// recognised as such without being read. It is not actually a field — it
+  /// opens the sheet — because a real one would need the suggestion list
+  /// rendered inline underneath, and inline suggestions inside a scrolling
+  /// form get covered by the keyboard on a short phone.
+  ///
+  /// Shows the chosen town once there is one, so this row doubles as the
+  /// answer rather than staying an empty prompt above a filled-in form.
+  Widget _areaButton() {
+    final chosen = _cityCtrl.text.trim();
+    final has = chosen.isNotEmpty;
+
+    return GestureDetector(
+      onTap: _openAreaSearch,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: has ? _kOrange.withOpacity(0.06) : _kSurface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: has ? _kOrange.withOpacity(0.45) : _kLine),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search_rounded, size: 19, color: has ? _kOrange : _kMuted),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                has ? chosen : 'Search your area',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _type(
+                  size: 14,
+                  weight: has ? FontWeight.w600 : FontWeight.w400,
+                  color: has ? _kInk : _kMuted,
+                ),
+              ),
+            ),
+            Text(
+              has ? 'Change' : 'Ntinda, Jinja…',
+              style: _type(
+                size: 12,
+                color: has ? _kOrangeDark : _kMuted,
+                weight: has ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The area picker: a filter field over `_kAreas`.
+  ///
+  /// ---- What this replaces ----
+  ///
+  /// Typing a town, waiting 700ms, and being told "We could not find that
+  /// place. Try a nearby landmark or suburb." — with no clue what the
+  /// geocoder would have accepted. Every name in this list is one that works,
+  /// so a tap cannot produce that error.
+  ///
+  /// ---- Details ----
+  ///
+  /// The filter matches ANYWHERE in the name, not just the start: people
+  /// search "kira" expecting Bweyogerere-Kira, and "gaba" for Ggaba. A
+  /// prefix-only match is the version of this that feels broken.
+  ///
+  /// Names that START with the query sort first, so typing "kam" puts Kampala
+  /// Central above Kamwokya above Bukamba — substring matching without that
+  /// re-sort buries the exact thing being typed.
+  ///
+  /// `autofocus` on the field, because the sheet was opened by somebody who
+  /// intends to type. It costs a keyboard animation nobody asked to wait for
+  /// otherwise.
+  ///
+  /// A tap fills the town field and quotes IMMEDIATELY rather than waiting for
+  /// the 700ms debounce: a tap is a finished decision, where a keystroke is
+  /// not, and the debounce exists only for the second case.
+  Future<void> _openAreaSearch() async {
+    HapticFeedback.selectionClick();
+    final queryCtrl = TextEditingController();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (rootSheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final query = queryCtrl.text.trim().toLowerCase();
+
+            final matches = query.isEmpty
+                ? _kAreas
+                : (_kAreas
+                    .where((area) => area.toLowerCase().contains(query))
+                    .toList()
+                  ..sort((a, b) {
+                    final aStarts = a.toLowerCase().startsWith(query);
+                    final bStarts = b.toLowerCase().startsWith(query);
+                    if (aStarts == bStarts) return a.compareTo(b);
+                    return aStarts ? -1 : 1;
+                  }));
+
+            return Padding(
+              // The keyboard. Without this the list is drawn behind it and the
+              // matches for what is being typed are the ones covered up.
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: SizedBox(
+                height: MediaQuery.of(sheetContext).size.height * 0.75,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 10, bottom: 12),
+                      decoration: BoxDecoration(
+                        color: _kLine,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _kSurface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _kLine),
+                        ),
+                        child: Row(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(left: 12, right: 8),
+                              child: Icon(Icons.search_rounded,
+                                  size: 19, color: _kMuted),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: queryCtrl,
+                                autofocus: true,
+                                textInputAction: TextInputAction.search,
+                                onChanged: (_) => setSheetState(() {}),
+                                style: _type(size: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Type your town or suburb',
+                                  hintStyle: _type(size: 14, color: _kMuted),
+                                  border: InputBorder.none,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                            if (query.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  queryCtrl.clear();
+                                  setSheetState(() {});
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  child: Icon(Icons.close_rounded,
+                                      size: 18, color: _kMuted),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, color: _kLine),
+                    Expanded(
+                      child: matches.isEmpty
+                          // Not a dead end. Somewhere genuinely absent from the
+                          // list is still deliverable — the town field is free
+                          // text — so this offers the typed word rather than
+                          // just reporting failure.
+                          ? _areaNotFound(sheetContext, queryCtrl.text.trim())
+                          : ListView.separated(
+                              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                              itemCount: matches.length,
+                              separatorBuilder: (_, __) => const Divider(
+                                  height: 1, color: _kSurface, indent: 16),
+                              itemBuilder: (_, i) => GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  Navigator.of(sheetContext).pop();
+                                  _chooseArea(matches[i]);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 14),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.place_outlined,
+                                          size: 18, color: _kMuted),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(matches[i],
+                                            style: _type(size: 14.5)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    queryCtrl.dispose();
+  }
+
+  /// Offers a typed word that is not on the list, rather than refusing it.
+  Widget _areaNotFound(BuildContext sheetContext, String typed) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.travel_explore_outlined, size: 34, color: _kMuted),
+            const SizedBox(height: 12),
+            Text(
+              'Not in our list — that is fine.',
+              style: _type(size: 14, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'We can still work out delivery from it. Use it and we will '
+              'look it up.',
+              textAlign: TextAlign.center,
+              style: _type(size: 12.5, color: _kBody),
+            ),
+            if (typed.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _chooseArea(typed);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _kOrange,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Use "$typed"',
+                    style: _type(
+                        size: 13.5,
+                        weight: FontWeight.w700,
+                        color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Takes the picked area and prices it, without waiting on the debounce.
+  void _chooseArea(String area) {
+    HapticFeedback.selectionClick();
+    _debounce?.cancel();
+    setState(() {
+      _cityCtrl.text = area;
+      _quote = null;
+      _error = null;
+      // The saved point belonged to the OLD town. Leaving it would let a
+      // shopper who changed area from Ntinda to Gulu save a record still
+      // carrying the Ntinda coordinates — and the coordinates are what the
+      // order is priced from, so the fee would be for a delivery nobody is
+      // making. Cleared here and replaced by whatever the quote echoes back.
+      _lat = null;
+      _lng = null;
+    });
+    _requestQuote();
   }
 
   Widget _panel(Widget child, {Color? tint, Color? edge}) {
