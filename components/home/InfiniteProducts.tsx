@@ -144,7 +144,7 @@ export default function InfiniteProducts({
           From `md` the tile goes flat again and the wide gaps come straight
           back — they are the ONLY separator up there, and the two settings have
           to keep moving together or the wall of touching photographs returns. */}
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-x-4 md:gap-y-7 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

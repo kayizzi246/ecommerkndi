@@ -210,17 +210,28 @@ export default function HeroBanner({
                This is the first element on the page and almost certainly its
                LCP, so it must not be lazy.
 
-               ---- The height cap, now a safety valve rather than a crop ----
+               ---- The height cap, which now engages on purpose ----
 
-               `h-auto` means the image is at its natural height: at 1600px wide
-               a 2.4:1 banner is 655px and a 3:1 banner is 533px, and both are
-               shown whole. The `max-h` values are set ABOVE those, so for any
-               sensibly wide banner they never engage.
+               `h-auto` still means natural height, and the caps are what stop
+               it: at 1600px wide a 2.4:1 banner is 655px tall and a 3:1 banner
+               is 533px, and the old caps sat ABOVE both, so they never fired
+               and the banner took most of the first screen. A shopper arriving
+               on this page scrolled past one picture to reach the catalogue,
+               which is the thing they came for.
 
-               They are kept for the upload that ignores the guidance
-               completely — a square banner at 1600px wide would be 1600px tall
-               and would fill the entire screen with one picture. At that point
-               cropping is the lesser evil. */}
+               The caps are lower than any sensible banner's natural height
+               now, so they always engage and the band is a known height:
+               roughly 440px on a desktop and 240 on a phone. That is a crop,
+               and it is affordable because of the pairing with
+               `object-center` — a banner is designed with its subject and its
+               wording in the middle third, so what comes off is the margin at
+               the top and bottom. The guidance to upload a wide, centred image
+               is what makes this safe; a banner with copy running to its top
+               edge will lose it.
+
+               The mobile caps are lower again, because a phone screen is
+               shorter and the same proportion of it is a much larger share of
+               what can be seen at once. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img
             src={mobileSrc}
@@ -229,7 +240,7 @@ export default function HeroBanner({
             loading="eager"
             decoding="async"
             className={`h-auto w-full object-cover object-center md:hidden ${
-              mobileIsPortrait ? "max-h-[560px]" : "max-h-[320px]"
+              mobileIsPortrait ? "max-h-[380px]" : "max-h-[240px]"
             }`}
           />
           <img
@@ -238,7 +249,7 @@ export default function HeroBanner({
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[520px] lg:max-h-[720px]"
+            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[340px] lg:max-h-[440px]"
           />
           {/* eslint-enable @next/next/no-img-element */}
         </Link>
@@ -287,7 +298,11 @@ export default function HeroBanner({
       />
 
       <div
-        className={`relative mx-auto flex max-w-[1600px] flex-col items-center gap-6 px-5 py-8 md:flex-row md:gap-10 md:px-10 md:py-10 ${
+        /* Vertical padding cut with the image caps above, so the hero is the
+           same band whether the shop uploaded a banner or is running the drawn
+           fallback — otherwise switching one for the other in wp-admin moves
+           the whole page down by 100px. */
+        className={`relative mx-auto flex max-w-[1600px] flex-col items-center gap-5 px-5 py-6 md:flex-row md:gap-10 md:px-10 md:py-7 ${
           withPhoto ? "" : "md:justify-center md:text-center"
         }`}
       >

@@ -14,6 +14,14 @@ type Suggestion = {
   category: string;
 };
 
+/** A matching shop, from the same suggest call as the products. */
+type StoreHit = {
+  name: string;
+  slug: string;
+  logo: string;
+  product_count: number;
+};
+
 /** Shown on focus before anything is typed, so the panel is never empty. */
 const POPULAR = ["Sneakers", "Adidas", "Shorts", "Formal shoes", "Women"];
 
@@ -72,6 +80,10 @@ const SCOPES = [
 export default function SearchBar() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // Stores that match what is being typed. Kept apart from `suggestions`
+  // because they are a different kind of answer and render as their own
+  // section, but walked as one list by the arrow keys — see `rows` below.
+  const [stores, setStores] = useState<StoreHit[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -115,6 +127,7 @@ export default function SearchBar() {
     const timer = setTimeout(async () => {
       if (term.length < 2) {
         setSuggestions([]);
+        setStores([]);
         setLoading(false);
         return;
       }
@@ -123,8 +136,10 @@ export default function SearchBar() {
         const res = await fetch(`/api/search-suggest?q=${encodeURIComponent(term)}`);
         const data = await res.json();
         setSuggestions(data.suggestions ?? []);
+        setStores(data.stores ?? []);
       } catch {
         setSuggestions([]);
+        setStores([]);
       } finally {
         setLoading(false);
       }
@@ -143,6 +158,25 @@ export default function SearchBar() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  // ---- The keyboard walks ONE list, even though the panel shows two ----
+  //
+  // `cursor` is an index into this array rather than into `suggestions`, which
+  // is what lets ↓ carry on from the last store into the first product instead
+  // of stopping at a section boundary the keyboard cannot see. Stores lead
+  // because they are the more specific answer: someone who typed a shop's name
+  // wants the shop, and a product row cannot give them that.
+  const rows: ({ kind: "store"; store: StoreHit } | { kind: "product"; product: Suggestion })[] = [
+    ...stores.map((store) => ({ kind: "store" as const, store })),
+    ...suggestions.map((product) => ({ kind: "product" as const, product })),
+  ];
+
+  const goToStore = (slug: string) => {
+    setOpen(false);
+    setCursor(-1);
+    inputRef.current?.blur();
+    router.push(`/sellers/${slug}`);
+  };
 
   const goToSearch = (value: string) => {
     setOpen(false);
@@ -163,8 +197,10 @@ export default function SearchBar() {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (cursor >= 0 && suggestions[cursor]) {
-      goToProduct(suggestions[cursor].id);
+    const row = cursor >= 0 ? rows[cursor] : undefined;
+    if (row) {
+      if (row.kind === "store") goToStore(row.store.slug);
+      else goToProduct(row.product.id);
       return;
     }
     if (term) goToSearch(term);
@@ -177,14 +213,14 @@ export default function SearchBar() {
       setCursor(-1);
       return;
     }
-    if (!open || suggestions.length === 0) return;
+    if (!open || rows.length === 0) return;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setCursor((c) => (c + 1) % suggestions.length);
+      setCursor((c) => (c + 1) % rows.length);
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setCursor((c) => (c <= 0 ? suggestions.length - 1 : c - 1));
+      setCursor((c) => (c <= 0 ? rows.length - 1 : c - 1));
     }
   };
 
@@ -355,26 +391,94 @@ export default function SearchBar() {
                 ))}
               </div>
             </div>
-          ) : loading && suggestions.length === 0 ? (
+          ) : loading && rows.length === 0 ? (
             <p className="px-4 py-3 text-[14px] text-shop-muted">Searching…</p>
-          ) : suggestions.length === 0 ? (
+          ) : rows.length === 0 ? (
             <p className="px-4 py-3 text-[14px] text-shop-muted">
               No matches for “{term}”
             </p>
           ) : (
             <>
+              {/* ---- Stores ----
+                   Its own section with a label, not store rows mixed into the
+                   product list. A shop and a pair of shoes are different kinds
+                   of destination, and a row that looks like the product above
+                   it but navigates somewhere else entirely is the sort of thing
+                   that gets clicked once and never trusted again.
+
+                   Capped at three by the API. This is a shortcut to a shop
+                   somebody already had in mind, not a directory — /sellers is
+                   the directory, and it is one tap from the footer. */}
+              {stores.length > 0 && (
+                <div className="border-b border-shop-hairline">
+                  <p className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+                    Stores
+                  </p>
+                  <ul>
+                    {stores.map((store, i) => (
+                      <li key={store.slug}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={i === cursor}
+                          onMouseEnter={() => setCursor(i)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => goToStore(store.slug)}
+                          className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                            i === cursor ? "bg-shop-surface" : ""
+                          }`}
+                        >
+                          {/* Round, where a product thumbnail is square — the
+                              shape alone says "this is a shop" before a word of
+                              the row is read. A store with no logo uploaded
+                              gets its initial rather than a broken image. */}
+                          {store.logo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={store.logo}
+                              alt=""
+                              className="h-9 w-9 shrink-0 rounded-full border border-shop-line bg-white object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-ink text-[14px] font-semibold text-white">
+                              {store.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="line-clamp-1 block text-[14px] font-medium text-shop-ink">
+                              {highlight(store.name, term)}
+                            </span>
+                            <span className="block text-[12px] text-shop-muted">
+                              {store.product_count === 1
+                                ? "1 product"
+                                : `${store.product_count} products`}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-[12px] font-semibold text-shop-primary">
+                            Visit store ›
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <ul className="divide-y divide-shop-hairline">
                 {suggestions.map((s, i) => (
                   <li key={s.id}>
                     <button
                       type="button"
                       role="option"
-                      aria-selected={i === cursor}
-                      onMouseEnter={() => setCursor(i)}
+                      /* Offset by the store rows above: `cursor` indexes the
+                         combined list, so a product's own position is its index
+                         plus however many stores were rendered. */
+                      aria-selected={i + stores.length === cursor}
+                      onMouseEnter={() => setCursor(i + stores.length)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => goToProduct(s.id)}
                       className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        i === cursor ? "bg-shop-surface" : ""
+                        i + stores.length === cursor ? "bg-shop-surface" : ""
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}

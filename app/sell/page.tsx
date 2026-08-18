@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import EarningsCalculator from "./EarningsCalculator";
+import HeroParticles from "./HeroParticles";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/sell" },
@@ -110,36 +111,130 @@ export default async function SellPage() {
   ];
 
   return (
-    <main className="pb-24 lg:pb-16">
-      {/* ---- Hero ---- */}
-      <section className="border-b border-shop-line bg-gradient-to-b from-pop-green-soft to-white">
-        <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-20">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-pop-green ring-1 ring-shop-line">
-              <span className="h-2 w-2 rounded-full bg-pop-green" aria-hidden />
+    <main className="pb-16">
+      {/* ---- Hero ----
+           ---- The ground ----
+
+           This used to be one flat wash of pale green fading to white, and on a
+           wide screen it read as an unpainted area rather than a designed one:
+           a single hue with no structure has nothing for the eye to land on, so
+           the whole band looked like a page that had not finished loading.
+
+           What is here now is three cheap layers, all CSS, no image files —
+           which matters on a Ugandan mobile connection, where a hero background
+           image is the largest thing a marketing page would ever download:
+
+             1. a near-white warm base,
+             2. two soft radial blooms — brand orange at the top left, the
+                green that runs through this page at the right — at very low
+                alpha, so the ground has a direction and a temperature without
+                ever competing with the white card sitting on it,
+             3. a faint dot grid, masked so it fades out before the copy, which
+                is what gives the surface texture at close range.
+
+           `isolate` + `-z-10` on the layers keeps all of it strictly behind the
+           content, so nothing here can intercept a click on the CTA.
+
+           ---- Aligned to the top, not the middle ----
+
+           `items-center` against the very tall calculator card was pushing the
+           headline a third of the way down the screen and leaving a large empty
+           block above it — the first thing a visitor saw was nothing. The
+           columns start together now, which is also what makes the two `Get
+           started` buttons land near each other. */}
+      <section className="relative isolate overflow-hidden border-b border-shop-line bg-[#fdfcfa]">
+        {/* The drifting, pointer-reactive dot field. Client-side and canvas
+            based; it draws nothing at all under `prefers-reduced-motion`. See
+            the head of the component. */}
+        <HeroParticles />
+
+        {/* The two colour blooms. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(60rem 32rem at 12% -10%, rgba(255,106,0,0.13), transparent 60%), radial-gradient(48rem 30rem at 88% 8%, rgba(22,163,74,0.12), transparent 62%)",
+          }}
+        />
+        {/* The dot grid, faded out towards the bottom so it never sits under
+            the body copy — texture at the top of the band, clean paper by the
+            time anything has to be read across it. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-[0.35]"
+          style={{
+            backgroundImage: "radial-gradient(rgba(17,24,39,0.14) 1px, transparent 1px)",
+            backgroundSize: "22px 22px",
+            maskImage: "linear-gradient(to bottom, black, transparent 65%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black, transparent 65%)",
+          }}
+        />
+
+        <div className="mx-auto grid max-w-[1200px] items-start gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:py-20">
+          <div className="lg:pt-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-[13px] font-semibold text-pop-green ring-1 ring-shop-line backdrop-blur-sm">
+              <span className="live-dot h-2 w-2 rounded-full bg-pop-green" aria-hidden />
               Now accepting new stores
             </span>
 
-            <h1 className="mt-5 text-[34px] font-extrabold leading-[1.1] tracking-tight text-shop-ink md:text-[46px]">
-              Sell your shoes and fashion to the whole of Uganda
+            {/* ---- The headline ----
+                 Bigger, tighter and set to break where the sense breaks.
+
+                 Three things are doing the work. The SIZE steps up to 60px on a
+                 desktop, which is display type rather than a large heading — on
+                 a page with one job, the sentence that states that job should be
+                 the largest thing on the screen by a distance. The LEADING drops
+                 to 0.98 and the tracking to -0.03em, because type set at 60px
+                 with reading leading looks like a paragraph that was enlarged;
+                 closing both is what makes it read as a designed line.
+
+                 And the last four words are set in the brand gradient. That is
+                 the promise the whole page rests on — reach, not a shop — so it
+                 is the phrase that gets the colour, and it is the only gradient
+                 text on the site. `pb-1` on the span because a clipped gradient
+                 crops descenders flush; the padding gives the 'g' its tail back.
+
+                 The line breaks are hand-placed with a hidden `<br>` rather than
+                 left to the browser: at this size an orphaned word on line three
+                 is the difference between a headline and some big text. */}
+            {/* 900, not 800. This is the heaviest weight Roboto has and the
+                only place on the site that uses it — see the weight array in
+                `layout.tsx`, which had to load the file for this line to be
+                anything other than a 700 pretending. At 900 the letterforms
+                close up on their own, so the tracking goes a step tighter
+                again rather than staying where the 800 wanted it. */}
+            <h1 className="mt-6 text-[38px] font-black leading-[0.98] tracking-[-0.035em] text-shop-ink md:text-[54px] lg:text-[62px]">
+              Sell your shoes
+              <br className="hidden sm:block" /> and fashion to{" "}
+              <span className="inline-block bg-gradient-to-r from-shop-primary via-shop-flame to-pop-green bg-clip-text pb-1 text-transparent">
+                the whole of Uganda
+              </span>
             </h1>
 
-            <p className="mt-4 max-w-[52ch] text-[17px] leading-relaxed text-shop-body">
+            <p className="mt-5 max-w-[50ch] text-[17px] leading-relaxed text-shop-body md:text-[18px]">
               Open a store on {brand.name}, list what you have, and let us handle the storefront,
               the payments and the delivery. No listing fees — a flat {seller.commission_rate}%
               when something sells.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/seller/register" className="btn-shop px-8 py-3.5 text-[16px]">
                 Get started
               </Link>
-              <Link href="#calculator" className="btn-shop-outline px-7 py-3.5 text-[16px]">
+              {/* White rather than transparent now that the ground has colour in
+                  it: an outline button on a tinted, textured surface loses its
+                  edge, and this is the button that answers the page's most
+                  common objection. */}
+              <Link
+                href="#calculator"
+                className="rounded-full border border-shop-line bg-white px-7 py-3.5 text-[16px] font-semibold text-shop-ink shadow-sm transition-colors hover:border-shop-ink"
+              >
                 See what you would keep
               </Link>
             </div>
 
-            <p className="mt-4 text-[14px] text-shop-muted">
+            <p className="mt-5 text-[14px] text-shop-muted">
               {formatPrice(seller.registration_fee)} a month · first month refunded if we turn you
               down · already selling?{" "}
               <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
@@ -148,7 +243,7 @@ export default async function SellPage() {
             </p>
           </div>
 
-          <div id="calculator" className="scroll-mt-28">
+          <div id="calculator" className="scroll-mt-24">
             <EarningsCalculator
               commissionRate={seller.commission_rate}
               registrationFee={seller.registration_fee}
@@ -159,7 +254,7 @@ export default async function SellPage() {
       </section>
 
       {/* ---- Benefits ---- */}
-      <section className="mx-auto max-w-[1200px] px-4 py-16 md:px-8">
+      <section id="why" className="mx-auto max-w-[1200px] px-4 py-16 scroll-mt-20 md:px-8">
         <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
           What you get
         </h2>
@@ -188,7 +283,7 @@ export default async function SellPage() {
       </section>
 
       {/* ---- How it works ---- */}
-      <section className="border-y border-shop-line bg-shop-hairline/50">
+      <section id="how-it-works" className="border-y border-shop-line bg-shop-hairline/50 scroll-mt-20">
         <div className="mx-auto max-w-[1200px] px-4 py-16 md:px-8">
           <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
             How it works
@@ -210,7 +305,7 @@ export default async function SellPage() {
 
       {/* ---- The fee, explained ---- */}
       {seller.registration_fee > 0 && (
-        <section className="mx-auto max-w-[1200px] px-4 py-16 md:px-8">
+        <section id="pricing" className="mx-auto max-w-[1200px] px-4 py-16 scroll-mt-20 md:px-8">
           <div className="grid gap-10 rounded-2xl border border-shop-line bg-white p-7 md:p-10 lg:grid-cols-[1fr_1.2fr]">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
@@ -264,7 +359,7 @@ export default async function SellPage() {
       )}
 
       {/* ---- FAQ ---- */}
-      <section className="mx-auto max-w-[820px] px-4 pb-4 md:px-8">
+      <section id="faq" className="mx-auto max-w-[820px] px-4 pb-4 scroll-mt-20 md:px-8">
         <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
           Before you apply
         </h2>

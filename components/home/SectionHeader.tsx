@@ -51,7 +51,13 @@ export default function SectionHeader({
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets
               600, and these two anchor the page. */}
-          <h2 id={id} className="heading-black text-[18px] text-shop-ink md:text-[20px]">
+          {/* 22/26, up from 18/20. With the tinted bands gone from the
+              department rails, the heading is now the ONLY thing separating one
+              section of the homepage from the next, and at 18px it was sized
+              for a page where a coloured ground was doing half that work. Outfit
+              is also a wider, rounder face than the one this was set for, so it
+              carries the extra size without the line looking heavy. */}
+          <h2 id={id} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
             {title}
           </h2>
           {subtitle && <p className="section-sub mt-0.5 text-[13.5px]">{subtitle}</p>}

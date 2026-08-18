@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Roboto, Outfit } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -92,11 +92,43 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  * what made this swap a two-line change instead of a search through two hundred
  * components, and it is what will make the next one cheap too.
  */
-const poppins = Poppins({
+const roboto = Roboto({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-poppins",
-  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-roboto",
+  // 900 is here for exactly one element: the /sell headline. It is a real
+  // file, and it has to be, because `font-synthesis-weight: none` in
+  // globals.css means a weight that was not loaded is not smeared into
+  // existence — it silently falls back to 700 and the type looks untouched.
+  // One extra file on one route is the price of the heaviest step existing.
+  weight: ["400", "500", "700", "900"],
+});
+
+/**
+ * Outfit — the DISPLAY face. Headings, section titles and prices.
+ *
+ * Two faces again, and the split is the reason it is worth the second file.
+ * Roboto keeps the reading: product names, body copy, form labels, everything
+ * a shopper works through a word at a time, where a neo-grotesque drawn for
+ * interface use is exactly right and a geometric face is not.
+ *
+ * Outfit takes the type that is FOUND rather than read — "Trending now", a
+ * price, a page headline. It is geometric, near-circular and very even in
+ * colour, which is what makes a section title legible at a glance halfway down
+ * a page of photographs, and its heavy weights stay open where Roboto's close
+ * up.
+ *
+ * Four weights, all of them used: 500 nowhere near a heading (it is there for
+ * `.category-name`-style display text), 600 for the quieter titles, 700 for
+ * the section headings, 800 for prices and the /sell hero. Nothing loads that
+ * the stylesheet does not ask for — `font-synthesis-weight: none` means an
+ * absent weight silently renders as another one rather than being faked.
+ */
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-outfit",
+  weight: ["500", "600", "700", "800"],
 });
 
 /**
@@ -284,7 +316,7 @@ export default async function RootLayout({
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
-      className={`${poppins.variable} h-full antialiased`}
+      className={`${roboto.variable} ${outfit.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

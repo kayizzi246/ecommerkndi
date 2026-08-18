@@ -30,28 +30,17 @@ export default function HomeLoading() {
             largest paint. */}
         <ProductRailSkeleton withSubtitle={false} />
 
-        {/* Daily Deals sits on its own bordered band, so its skeleton does too
-            — without the border the page would visibly gain a box when the real
-            section arrived. */}
-        <section className="rounded-2xl border border-shop-line bg-white p-4 md:p-5">
-          <div className="mb-3.5 flex flex-wrap items-center gap-3 px-3 md:px-0">
-            <div className="shimmer h-5 w-32 rounded md:h-6" />
-            <div className="shimmer h-6 w-28 rounded-full" />
-            <div className="shimmer h-7 w-36 rounded-lg" />
-          </div>
-          {/* Matches DealCarousel's gap. A skeleton whose gaps differ from the
-              real rail's is a layout shift the moment the products land. */}
-          <div className="flex gap-2 overflow-hidden sm:gap-3">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div
-                key={i}
-                className="w-[48.5%] shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
-              >
-                <ProductCardSkeleton />
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* ---- Where the Daily Deals band used to be ----
+
+            The homepage no longer draws it — see the long note in
+            `app/page.tsx` — so this skeleton must not draw one either. A
+            skeleton's only job is to reserve the height and shape the real page
+            will occupy; a bordered band here against a plain rail there is a
+            box that appears and a jump at exactly the moment the products land.
+
+            What follows Trending now is the seller-arrivals rail, which is a
+            plain rail like the rest. */}
+        <ProductRailSkeleton />
 
         {/* Promotions, New arrivals, Best sellers. */}
         <ProductRailSkeleton />
@@ -72,7 +61,7 @@ export default function HomeLoading() {
             <div className="shimmer h-5 w-36 rounded md:h-6 md:w-44" />
           </div>
           {/* The shared product-grid rhythm, for the same reason. */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 12 }, (_, i) => (
               <ProductCardSkeleton key={i} />
             ))}

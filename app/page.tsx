@@ -3,7 +3,6 @@ import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import SuperDeals from "@/components/home/SuperDeals";
-import DailyDeals from "@/components/home/DailyDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
@@ -83,7 +82,6 @@ export default async function Home() {
     sellerArrivals,
     promoProducts,
     deals,
-    dailyDeals,
     newArrivals,
     bestSellers,
     departmentRails,
@@ -278,14 +276,28 @@ export default async function Home() {
           </section>
         )}
 
-        {/* Deals sit directly under Trending: the rail above is what is popular,
-            this is what is cheap today, and those are the two reasons a shopper
-            keeps scrolling a homepage. */}
-        {/* No `fallback` any more. It used to be the whole catalogue, which is
-            what let this rail re-show products from every other section on the
-            page. `buildHomeFeed` now tops the rail up from stock nothing else
-            has claimed, so what arrives here is already final. */}
-        <DailyDeals products={dailyDeals} />
+        {/* ---- Daily Deals used to sit here, and does not any more ----
+
+            It was a carousel of the day's biggest reductions on its own tinted,
+            bordered band, directly under Trending.
+
+            What it cost was more than the band: it was the third rail of
+            products in a row, drawn differently from the two around it, saying
+            the same thing the tiles already say. Every product on it carried
+            its own −N% flag and its struck-through was-price, so the discount
+            was never information the band was adding — it was a second, louder
+            answer to a question the grid had already answered, and the tint and
+            the border were the page shouting it.
+
+            The feed still computes `dailyDeals` and `/api/app/home` still
+            serialises it, so the app is untouched and nothing in
+            `buildHomeFeed` had to be unpicked. The products themselves are not
+            lost either: the ledger hands anything unclaimed to the endless grid
+            further down, so they still appear — beside everything else, priced
+            the same way, without a band around them.
+
+            `components/home/DailyDeals.tsx` is left in place. Putting the
+            section back is one import and one line. */}
 
         {/* What is on promotion, as the products themselves.
 
@@ -347,8 +359,6 @@ export default async function Home() {
             title={department.title}
             subtitle={department.subtitle}
             chip={department.chip}
-            tone={department.tone}
-            band={department.band}
             href={department.slug ? `/category/${department.slug}` : "/categories"}
             products={department.products}
             /**

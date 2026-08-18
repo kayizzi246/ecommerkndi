@@ -88,11 +88,19 @@
  * 768px rather than a Tailwind token because this file is plain CSS; it is the
  * same `md` breakpoint the rails and the grid use, and the three have to agree
  * — the tint exists BECAUSE the rails are gone below it. */
-@media (max-width: 767px) {
-  :root {
-    --background: #f9fafb;
-  }
-}
+/* ---- The phone tint is gone: the page is white at every width ----
+ *
+ * Below 768px the ground used to be #f9fafb so that the white product cards had
+ * something to sit on. That was a coherent design and it is not the one being
+ * built now: the reference this grid is cut to puts flat white tiles on a flat
+ * white page and lets the PHOTOGRAPH's own light-grey frame be the only fill on
+ * the screen.
+ *
+ * The two changes go together and neither works alone. A white card on a white
+ * page is invisible, which is why the tile gave up its card at the same
+ * time — see the note there. What separates one tile from the next is now the
+ * grid gap and the grey image frame, on a phone exactly as on a desktop, and
+ * the shop has one ground instead of two. */
 
 @theme inline {
   --color-background: var(--background);
@@ -284,9 +292,24 @@
    * it was with Inter, which is the other reason the weight list in
    * `layout.tsx` is kept short: fewer files, sooner. */
   --font-ui:
-    var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-roboto), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
-  --font-display: var(--font-ui);
+  /* ---- The display face: Outfit ----
+   *
+   * Everything that is FOUND rather than read resolves through this token —
+   * `h1`–`h6`, `.section-title`, `.heading-black`, `.heading-800`,
+   * `.hero-display` and `.price` — so pointing it at a different family is a
+   * one-line change and cannot leave half the store on the old face. That is
+   * the whole reason the token exists, and it has now earned it twice.
+   *
+   * Product names are the deliberate exception: they are set as `<h3>` on a
+   * card and `<h1>` on a product page, and `.font-normal-heading` pulls them
+   * back to `--font-ui`. A supplier's 90-character title is body copy that
+   * happens to be marked up as a heading, and it should read like the sentences
+   * around it, not like the section title above it. */
+  --font-display:
+    var(--font-outfit), var(--font-roboto), system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Poppins draws no true tabular set — but
      the call sites are worth keeping tagged, because they are exactly the
@@ -324,12 +347,12 @@ body {
      prices and form labels a step smaller than they read comfortably at. The
      fixed [Npx] sizes scattered through the components are stepped up with
      the `text-*` scale below rather than one by one. */
-  font-size: 16px;
+  font-size: 14px;
   /* 1.6 rather than 1.55. The difference is a pixel and a half on a 16px line,
      and it is the difference between a paragraph that reads and one that has to
      be got through — descenders on one line stop crowding the caps on the next.
      Long-form pages go further still with `leading-relaxed`. */
-  line-height: 1.6;
+  line-height: 1.5;
   /* Very slightly negative, where this used to be very slightly positive.
    *
    * The old +0.004em existed because Inter and Roboto are drawn tight for
@@ -343,7 +366,7 @@ body {
    * in a 150px tile the extra width costs real characters before the ellipsis.
    * Pulling it in a fraction buys some of that width back without the type ever
    * looking cramped — there is a lot of room in this face to give up. */
-  letter-spacing: -0.006em;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   /* The five Poppins weights loaded in `layout.tsx` are every weight this
      stylesheet and the components ask for, so a synthesised bold would only
@@ -368,11 +391,11 @@ body {
  * modern product interface converges on, and 14px is the workhorse. */
 @theme {
   --text-xs: 0.75rem; /* 12px */
-  --text-sm: 0.875rem; /* 14px */
-  --text-base: 1rem; /* 16px */
-  --text-lg: 1.125rem; /* 18px */
-  --text-xl: 1.25rem; /* 20px */
-  --text-2xl: 1.5rem; /* 24px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-lg: 1rem; /* 16px */
+  --text-xl: 1.125rem; /* 18px */
+  --text-2xl: 1.25rem; /* 20px */
 }
 
 button,
@@ -418,8 +441,12 @@ h6,
      with generous sidebearings, so a heading set at its natural spacing reads
      slack above the dense product grid underneath it. On a one-face page this
      matters more, not less — tracking, weight and size are now the only things
-     separating a heading from the copy around it. */
-  letter-spacing: -0.012em;
+     separating a heading from the copy around it.
+
+     On Roboto the number is smaller: it is a neo-grotesque, already drawn tight
+     for interface use, so -0.012em would close the counters rather than take up
+     slack. -0.008em is the same gesture at the size this face needs. */
+  letter-spacing: -0.008em;
 }
 
 /* ---------- Product prices — 700, 18px ----------
@@ -433,11 +460,14 @@ h6,
  * with a utility and says why. */
 .price {
   font-family: var(--font-display);
-  /* Bold, not semibold. The price is the number a shopper scans a grid for, and
-     at 600 it sat at the same weight as the product name beside it; 700 makes
-     it the first thing read in the tile. 700 is a loaded Poppins weight, so
-     nothing is synthesised. */
-  font-weight: 700;
+  /* 800, up from 700, and on Outfit rather than the body face.
+     The price is the number a shopper scans a grid for. At 700 in the reading
+     face it sat close enough to the product name beside it that the eye had to
+     stop and sort them; Outfit at 800 is a different family AND a heavier
+     weight, so the price separates from the name on two axes at once and reads
+     first without needing to be bigger. 800 is a loaded Outfit weight — see
+     `layout.tsx` — so nothing here is synthesised. */
+  font-weight: 800;
   /* ---- 15px on a phone, 18px from 640px up ----
    *
    * The scale's price row is 18px and that is still the size on any screen with
@@ -455,21 +485,19 @@ h6,
    * coloured line in the block — without shouting over the product it belongs
    * to. Set here rather than as a utility at the call site because `.price` is
    * unlayered and would win over any `text-*` class a component tried. */
-  font-size: 15px;
+  font-size: 14px;
   /* 1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
      the descender on a comma, and UGX prices are full of them. */
   line-height: 1.1;
   /* Barely tightened. A price is read digit by digit — UGX 145,854 is not a
      word the eye takes in whole — so the space between figures has to stay open
      enough to count them. */
-  letter-spacing: -0.008em;
-  /* Poppins has no true tabular set, so this is a request the face cannot fully
-     honour — its figures are geometric and near-uniform in width anyway, which
-     is why a price column still reads as a column. Left in place because it
-     costs nothing and starts working the moment a face with real tabular
-     figures arrives. Note there is no second family to fall back on for this
-     any more: the shop is one face now, so if a grid of prices is ever seen to
-     shift a hair between rows, the fix is a different face, not `--font-ui`. */
+  letter-spacing: 0;
+  /* Outfit carries no separate tabular set either, and like Poppins before it
+     it barely needs one: the face is geometric and its figures are near-uniform
+     in width, which is why a column of UGX prices still lines up down a grid.
+     Left in place because it costs nothing and starts working the moment a face
+     with real tabular figures arrives. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -477,7 +505,7 @@ h6,
    the grid goes from 2 columns to 3 and a tile stops being 150px wide. */
 @media (min-width: 640px) {
   .price {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -513,8 +541,8 @@ h6,
  * what lets a label be found without being focused on. */
 .nav-label {
   font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 13px;
   line-height: 1.3;
 }
 
@@ -533,8 +561,8 @@ h6,
  * shopper browses rather than chrome they navigate by. */
 .category-name {
   font-family: var(--font-ui);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 400;
+  font-size: 13px;
   line-height: 1.3;
 }
 
@@ -549,8 +577,8 @@ h6,
  * so the heaviest step here is a real file rather than a smeared 700. */
 .hero-display {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  font-size: clamp(28px, 3.5vw, 40px);
   line-height: 1.1;
   /* Tighter than the headings below it. At 32px and up the letterforms already
      crowd, and display type set at reading tracking looks slack. */
@@ -575,7 +603,7 @@ h6,
      than on zero — a product name is body copy that happens to be marked up as
      a heading, and it should be spaced like the sentences around it. Kept in
      step with the `body` rule by hand; if that number moves, move this one. */
-  letter-spacing: -0.006em;
+  letter-spacing: 0;
 }
 
 /* ---------- Section titles ----------
@@ -598,8 +626,8 @@ h6,
      a rail title is 20 on a phone and 24 on a desktop without a breakpoint.
      Call sites that set their own `text-[Npx]` still win — this is the default
      for the ones that do not. */
-  font-size: clamp(20px, 1.6vw, 24px);
-  letter-spacing: -0.015em;
+  font-size: clamp(18px, 1.6vw, 20px);
+  letter-spacing: -0.01em;
   /* 1.1 clipped the descenders of a title that wrapped onto a second line. */
   line-height: 1.2;
 }
@@ -631,7 +659,7 @@ h6,
   color: var(--color-shop-body);
   /* Bold type sits loose at default spacing; this is the same correction the
      headings take, scaled down for the smaller size. */
-  letter-spacing: -0.006em;
+  letter-spacing: 0;
   line-height: 1.4;
 }
 
@@ -657,7 +685,7 @@ h6,
   /* -0.04em here was the tightest type on the site and the hardest to read:
      the two effects compound, because a heavier weight has already eaten the
      space between the letters before the tracking takes any more. */
-  letter-spacing: -0.018em;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
@@ -666,8 +694,8 @@ h6,
    which are signage rather than content. */
 .heading-800 {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.012em;
   /* A product title runs to two or three lines here; 1.25 keeps them apart. */
   line-height: 1.25;
 }

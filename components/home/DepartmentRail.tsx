@@ -85,8 +85,6 @@ export default function DepartmentRail({
   title,
   subtitle,
   chip,
-  tone,
-  band,
   href,
   products,
   /** Below this many the rail reads as a mistake rather than a department. */
@@ -97,10 +95,6 @@ export default function DepartmentRail({
   subtitle: string;
   /** The one-word label in the chip — "For him", "For her". */
   chip: string;
-  /** The department's ink, worn by the glyph and the chip. */
-  tone: string;
-  /** The `from-*` stop of the band's gradient tint. */
-  band: string;
   href: string;
   products: Product[];
   minimum?: number;
@@ -108,39 +102,50 @@ export default function DepartmentRail({
   if (products.length < minimum) return null;
 
   return (
-    <section
-      aria-labelledby={id}
-      /* Square to the screen edges on a phone — the homepage runs edge to edge
-         there, and a rounded card inset from the glass would cost the products
-         width on the narrowest screens for a corner nobody asked for. From md
-         up there is a gutter already, so the corners round. */
-      className={`overflow-hidden bg-gradient-to-b ${band} via-white to-white pt-3 md:rounded-2xl md:pt-4`}
-    >
+    // ---- The coloured band is gone ----
+    //
+    // Men, Women and Kids each sat on their own tinted gradient — blue, violet,
+    // green — fading to white, with the glyph and the chip carrying the same
+    // hue. Three washes of colour down one page, and every one of them was
+    // behind a row of product photographs, which are the things on the page
+    // that are actually supposed to carry colour.
+    //
+    // What the tint was buying was separation: a way of saying "this rail is a
+    // different kind of thing from the one above it". A heading does that
+    // better and costs nothing — these are the biggest titles on the page now,
+    // and a title that can be found at a glance is the whole job the band was
+    // hired for.
+    <section aria-labelledby={id} className="pt-4 md:pt-5">
       {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
           than using that component, so the homepage's spacing ratio has to be
           repeated here by hand or the tinted sections drift looser than the
           plain ones. See `app/page.tsx`. */}
-      <div className="mb-3 flex items-center gap-3 px-3 md:px-5">
-        {/* The glyph disc. White, so it reads as a plate sitting on the tint
-            rather than a second colour competing with it. */}
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center  rounded-full bg-white ring-1 ring-black/5 ${tone}`}
-        >
+      <div className="mb-3.5 flex items-center gap-3 px-3 md:px-5">
+        {/* The glyph, in ink and with no disc under it. The white plate existed
+            to lift it off the tint; against white it would be a circle drawn
+            around nothing. It stays because it is the one thing that tells the
+            three department rails apart at a glance while scrolling — but as a
+            mark beside the title rather than a badge in its own right. */}
+        <span className="hidden h-8 w-8 shrink-0 items-center justify-center text-shop-ink sm:flex">
           <DepartmentGlyph id={id} />
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h2 id={id} className="heading-black text-[18px] text-shop-ink md:text-[20px]">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            {/* The largest heading on the homepage, and the same size as the
+                curated rails' — see `SectionHeader`. Outfit at 700 with the
+                tracking closed up, which is what a display face is for. */}
+            <h2 id={id} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
               {title}
             </h2>
-            <span
-              className={`rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] ${tone}`}
-            >
+            {/* The chip, in the neutral the rest of the page uses. It was the
+                department's colour, and it was the last of the three things
+                repeating that hue. */}
+            <span className="rounded-full bg-shop-hairline px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-body">
               {chip}
             </span>
           </div>
-          <p className="section-sub mt-0.5 truncate text-[13px]">{subtitle}</p>
+          <p className="section-sub mt-1 truncate text-[13px]">{subtitle}</p>
         </div>
 
         {/* A pill rather than the bare "View All ›" the other sections use.

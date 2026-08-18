@@ -10,6 +10,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import CartDrawer from "@/components/CartDrawer";
 import CookieNotice from "@/components/CookieNotice";
 import ContactRail from "@/components/ContactRail";
+import { SellHeader, SellFooter } from "@/components/SellChrome";
 
 /**
  * The Seller Centre and the owner's product manager are separate application
@@ -38,6 +39,29 @@ export default function StoreChrome({
 
   if (isAppArea) {
     return <>{children}</>;
+  }
+
+  // ---- /sell is a marketing site, not a shop page ----
+  //
+  // It gets its own header and footer for the reasons written at the head of
+  // `SellChrome`: its visitor is a prospective seller reading an argument, not
+  // a shopper carrying a basket, and the storefront masthead offered them a
+  // delivery promo, a cart and eleven departments to leave through.
+  //
+  // Rendered outside the 1600px content column as well, so the hero gradient
+  // and the closing CTA can span the window the way marketing pages do. The
+  // cart drawer, contact rail, cookie notice and bottom nav are all shopper
+  // chrome and stay behind — except the cookie notice, which is a legal notice
+  // and belongs on every page a visitor can land on.
+  if (pathname === "/sell") {
+    return (
+      <>
+        <SellHeader settings={settings} />
+        <div className="flex-1">{children}</div>
+        <SellFooter settings={settings} />
+        <CookieNotice />
+      </>
+    );
   }
 
   if (pathname === "/checkout") {

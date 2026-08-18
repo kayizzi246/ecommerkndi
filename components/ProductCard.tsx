@@ -249,7 +249,21 @@ export default function ProductCard({
     // Everything is `md:` reset rather than conditionally rendered, so there is
     // still exactly ONE card component and one set of rows — the difference
     // between the two screens is four utilities, not a second tile.
-    <article className="group relative flex h-full flex-col rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
+    // ---- One flat tile, on every screen ----
+    //
+    // The white phone card written about above is gone, and so is the reason it
+    // existed: the page ground below 768px was #f9fafb, so a card was the only
+    // way to give the tile an edge. The ground is white now at every width (see
+    // the note where that media query used to be in `globals.css`), which makes
+    // a white card a white rectangle on a white page — an edge that is not
+    // there, costing 6px of padding all the way round for it.
+    //
+    // So the tile is chrome-free again, phone included, which is what the
+    // reference grid does: no border, no background, no shadow, no padding. The
+    // photograph's own light-grey frame is the only fill in the tile, the text
+    // runs flush to its left edge, and what separates one product from the next
+    // is the gap around it.
+    <article className="group relative flex h-full flex-col">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -292,11 +306,14 @@ export default function ProductCard({
               Measured off the same reference. The difference is small and it is
               the difference between a tile that looks drawn to a spec and one
               that looks approximately styled. */}
-          {/* `rounded-md` on a phone, `rounded-lg` from md — see the card's own
-              radius note above: inside a 12px card with 6px of padding, 6px is
-              the inner corner that reads as concentric. Flat tiles from md up
-              have no padding to sit inside, so they keep the 8px. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
+          {/* One radius at every width now that there is no card for the photo
+              to sit inside — the concentric-corner arithmetic that made this
+              `rounded-t-xl` on a phone went with the card.
+
+              `bg-shop-hairline` behind it is doing real work on a white page:
+              it is the frame the reference grid uses, and it is what gives a
+              product shot on white an edge without a border being drawn. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -486,11 +503,19 @@ export default function ProductCard({
            the reference. */}
       <div className="flex flex-1 flex-col gap-0 pt-2">
         <Link href={href} className="block">
-          {/* Exactly two lines, always — `h-10` is 2 × the 20px leading, and it
+          {/* Exactly two lines, always — `h-8` is 2 × the 16px leading, and it
               is a fixed height rather than a clamp so that a short name reserves
               the second line instead of pulling the price up under it. This is
-              the single biggest contributor to tiles matching. */}
-          <h3 className="font-normal-heading line-clamp-2 h-10 text-[14px] leading-[20px] text-shop-ink transition-colors hover:text-shop-primary">
+              the single biggest contributor to tiles matching.
+
+              13px, down from 14. The name is no longer competing with the price
+              for the eye: the price is a different family at 800 now (see
+              `.price` in globals.css), so the name does not need size to stay
+              subordinate — and a step down buys roughly two more characters
+              before the ellipsis on a 150px phone tile, which is the whole
+              difference between "Men's Leather Officia…" and a title a shopper
+              can act on. */}
+          <h3 className="font-normal-heading line-clamp-2 h-8 text-[13px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
             {product.name}
           </h3>
         </Link>
@@ -533,25 +558,29 @@ export default function ProductCard({
              is 22px rather than 20 to fit the taller price without clipping the
              comma in "UGX 145,854". */}
         <p className="flex h-[22px] items-baseline gap-x-1.5 overflow-hidden">
-          {/* ---- The resting price is orange now, not near-black ----
-               The reference sets every price in its brand orange-red, and it is
-               the single loudest thing about that grid: on a page of neutral
-               photographs and grey text, one saturated colour repeated in the
-               same position on every tile becomes the thing the eye tracks down
-               the page. A shopper scanning for a number finds forty of them
-               without reading a word.
+          {/* ---- The resting price is near-black, not orange ----
+               It was orange for a while, on the argument that one saturated
+               colour repeated in the same position on every tile gives the eye
+               something to track down the page.
 
-               This does bend the palette's "colour is rationed" rule, and the
-               bend is deliberate and bounded: orange appears on exactly one
-               element per tile, always the same one. Red stays reserved for a
-               DISCOUNTED price, so the colour still carries the discount — the
-               two are now orange-vs-red rather than black-vs-red, which is a
-               smaller difference than it was. The `−N%` flag on the photograph
-               and the struck-through was-price beside it are what carry that
-               signal properly; the colour is corroboration. */}
+               What that argument missed is how many prices are on a screen at
+               once here. Forty orange numbers is not one accent repeated, it is
+               a second colour field competing with the photographs, and orange
+               is also the brand — the masthead, the buttons and the links all
+               use it, so a price set in it stops reading as information and
+               starts reading as decoration.
+
+               Near-black is what the product page has always used for a resting
+               price, so the grid and the PDP now agree. The price is still the
+               first thing read in the tile: it is the only bold line in the
+               block, which is enough on a page of 400-weight grey.
+
+               Red is unchanged and still means exactly one thing — this price
+               has been reduced — with the `−N%` flag on the photograph and the
+               struck-through original beside it carrying the same signal. */}
           <span
             className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale" : "text-shop-primary"
+              discount > 0 ? "text-shop-sale" : "text-shop-ink"
             }`}
           >
             {formatPrice(product.price)}
