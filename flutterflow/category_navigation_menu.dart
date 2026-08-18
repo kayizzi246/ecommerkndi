@@ -1291,58 +1291,69 @@ class _CategoryNavigationMenuState extends State<CategoryNavigationMenu> {
     // difference is deliberate: the tabs, chips and toolbar stay pinned above
     // the grid rather than scrolling away, because on a category page they are
     // the controls the shopper came to use.
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
+    //
+    // `Material` + `DefaultTextStyle` rather than a bare `Container` — this is
+    // what stops every word on the screen wearing Flutter's double yellow
+    // debug underline. Full argument at `_screen` in
+    // `product_detail_widget.dart`.
+    return Material(
       color: _kPage,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Column(
-              children: [
-                _header(),
-                _searchArea(),
-                // Only present when this page was opened as "50% off" or
-                // "Under UGX 50,000" — and it is the way back out of that.
-                if (_hasPushedFilter) _pushedFilterBanner(),
-                _departmentTabs(),
-                if (_currentSubcategories.isNotEmpty) _subcategoryChips(),
-                _trustStrip(),
-                if (_showFilters) _filterPanel(),
-                _toolbar(),
-                Expanded(
-                  child: _error != null
-                      ? _errorState()
-                      : _loading
-                          ? _shimmerGrid()
-                          : _productGrid(),
-                ),
-                _bottomNav(),
-              ],
-            ),
-          ),
-          if (_showTop)
-            Positioned(
-              right: _pad,
-              bottom: 94,
-              child: _Press(
-                onTap: _toTop,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: const BoxDecoration(
-                    color: _kPrimary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.keyboard_arrow_up_rounded,
-                    color: _kWhite,
-                    size: 23,
-                  ),
+      child: DefaultTextStyle(
+        style: _text(size: 14, color: _kInk)
+            .copyWith(decoration: TextDecoration.none),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    _header(),
+                    _searchArea(),
+                    // Only present when this page was opened as "50% off" or
+                    // "Under UGX 50,000" — and it is the way back out of that.
+                    if (_hasPushedFilter) _pushedFilterBanner(),
+                    _departmentTabs(),
+                    if (_currentSubcategories.isNotEmpty) _subcategoryChips(),
+                    _trustStrip(),
+                    if (_showFilters) _filterPanel(),
+                    _toolbar(),
+                    Expanded(
+                      child: _error != null
+                          ? _errorState()
+                          : _loading
+                              ? _shimmerGrid()
+                              : _productGrid(),
+                    ),
+                    _bottomNav(),
+                  ],
                 ),
               ),
-            ),
-        ],
+              if (_showTop)
+                Positioned(
+                  right: _pad,
+                  bottom: 94,
+                  child: _Press(
+                    onTap: _toTop,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: _kPrimary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.keyboard_arrow_up_rounded,
+                        color: _kWhite,
+                        size: 23,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

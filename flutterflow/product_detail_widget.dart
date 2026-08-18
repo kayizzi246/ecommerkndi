@@ -634,6 +634,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// takes over from the floating back button.
   bool _stuck = false;
 
+  /// What the shopper has picked, attribute name → value.
+  ///
+  /// Empty for a product with nothing to choose, which is most of this
+  /// catalogue. Shared between the pickers in the page and the bottom sheet on
+  /// purpose: they are two views of ONE decision, so a shopper who chose 42 at
+  /// the top of the page is not asked again by the sheet at the bottom of it.
+  /// That is the whole reason this lives on the state rather than inside
+  /// either widget.
+  final Map<String, String> _chosen = <String, String>{};
+
   @override
   void initState() {
     super.initState();
@@ -698,6 +708,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _wishlisted = saved.contains(detail.id);
         _cartCount = count;
         _loading = false;
+        // Cleared on every load, including a pull-to-refresh of the SAME
+        // product. Attribute values can change under a listing — a seller
+        // sells out of 42 and edits the size list — and a selection kept
+        // across a reload can be a value that is no longer offered, which then
+        // travels all the way to the order.
+        _chosen.clear();
+        // The one-value attributes choose themselves. "Material: Cotton" is
+        // not a decision, it is a fact about the product, and asking somebody
+        // to tap the only option before they can buy is a step that exists
+        // purely because the data has a list in it. Pre-selecting means it
+        // still reaches the order line and wp-admin without ever being a
+        // question. `_pickable` below is what decides which ones remain a
+        // question.
+        for (final attribute in detail.attributes) {
+          if (attribute.values.length == 1) {
+            _chosen[attribute.name] = attribute.values.first;
+          }
+        }
       });
     } catch (e) {
       debugPrint('Kandi product load failed: $e');
@@ -772,7 +800,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// v2 called an Action and stored nothing itself, so an unwired project
   /// showed "Added to cart" over an empty basket. The write happens here now,
   /// and `onAddToCart` runs alongside it rather than instead of it.
-  Future<void> _addToCart(_Detail d, {bool silent = false}) async {
+  Future<void> _addToCart(
+    _Detail d, {
+    bool silent = false,
+    int quantity = 1,
+  }) async {
     HapticFeedback.mediumImpact();
 
     await ShoppingCartPage.addToCart(
@@ -781,6 +813,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       price: ShoppingCartPage.priceFromLabel(d.priceLabel),
       image: d.images.isNotEmpty ? d.images.first : '',
       slug: d.slug,
+      quantity: quantity,
+      // The size and colour, carried on the line. Without them the basket
+      // merges two sizes of one shoe into a single line and the order reaches
+      // wp-admin with nothing to pack against — see the note on
+      // `ShoppingCartPage.addToCart`, which had been dropping them silently.
+      options: _chosen.isEmpty ? null : Map<String, String>.from(_chosen),
     );
     widget.onAddToCart?.call(d.id, d.name, d.priceLabel);
 
@@ -819,10 +857,84 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// express checkout: a second path to an order is a second place for the
   /// delivery fee and the stock check to be got wrong. The confirmation
   /// snackbar is suppressed because the basket appearing IS the confirmation.
-  Future<void> _buyNow(_Detail d) async {
-    await _addToCart(d, silent: true);
+  Future<void> _buyNow(_Detail d, {int quantity = 1}) async {
+    await _addToCart(d, silent: true, quantity: quantity);
     if (!mounted) return;
     _openCart();
+  }
+
+  // ============================================================
+  // CHOICES — SIZE, COLOUR, AND WHATEVER ELSE THE SELLER SET
+  // ============================================================
+
+  /// The attributes that are a QUESTION, as opposed to a fact.
+  ///
+  /// Two or more values. A one-value attribute is a specification, not a
+  /// choice — it is answered for the shopper on load (see `_load`) and stays
+  /// in the Details table below, where a fact belongs.
+  ///
+  /// ---- What these used to be ----
+  ///
+  /// Nothing but a row in that table: "Size — 40, 42, 43, 44" as a comma
+  /// string, three quarters of the way down the page, with no way to act on
+  /// it. So the app could not tell the shop which size somebody wanted. The
+  /// basket line went out with no options, the order arrived in wp-admin
+  /// without a size on it, and the difference between the website and the app
+  /// was that the website could take the order and this could not.
+  ///
+  /// ---- On combinations that do not exist ----
+  ///
+  /// The website greys out the red one when red is not made in 42, because it
+  /// has `product.variations` and can check. `GET /api/app/product/:id` sends
+  /// `attributes` only — names and values, flattened — so this screen has no
+  /// way to know which pairs are real, and every option here is offered.
+  ///
+  /// That is a known gap and it is bounded rather than dangerous: the order is
+  /// still placed against WooCommerce, which is the thing that actually knows.
+  /// Closing it properly means the endpoint sending `variations`; doing it
+  /// with a guess would mean hiding combinations that DO exist, which costs
+  /// sales rather than preventing mistakes.
+  List<_Attribute> _pickable(_Detail d) =>
+      d.attributes.where((a) => a.values.length > 1).toList();
+
+  /// The first choice still outstanding, or null when everything is answered.
+  _Attribute? _missing(_Detail d) {
+    for (final attribute in _pickable(d)) {
+      if ((_chosen[attribute.name] ?? '').isEmpty) return attribute;
+    }
+    return null;
+  }
+
+  /// Add to cart, or bring the choices to the thumb first.
+  ///
+  /// This is the rule the website's `StickyBuyBar` settled on, and it is worth
+  /// restating because the two obvious alternatives are both worse.
+  ///
+  /// SCROLLING BACK UP to the pickers is safe and rude: the shopper pressed a
+  /// buy button and was given a scroll, on the screen where they had already
+  /// decided. That is where people leave.
+  ///
+  /// PICKING A DEFAULT for them is worse than rude. The wrong size is a
+  /// return, a refund, a courier leg paid twice and, most of the time, the
+  /// customer.
+  ///
+  /// So a product with nothing outstanding goes straight into the bag, and a
+  /// product with a size or a colour still unanswered opens the sheet where
+  /// the thumb already is. A shopper who chose at the top of the page is not
+  /// asked twice, because both views write to the same `_chosen`.
+  void _requestPurchase(_Detail d, {required bool buyNow}) {
+    if (!d.inStock) return;
+
+    if (_missing(d) != null) {
+      _openChoiceSheet(d, buyNow: buyNow);
+      return;
+    }
+
+    if (buyNow) {
+      _buyNow(d);
+    } else {
+      _addToCart(d);
+    }
   }
 
   /// Saves or unsaves, in the list the whole app shares.
@@ -866,15 +978,67 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
-      color: _kPage,
+    return _screen(
       child: _loading
           ? _skeleton()
           : _error != null
               ? _errorState()
               : _content(_detail!),
+    );
+  }
+
+  /// ---- The wrapper that killed the yellow underlines ----
+  ///
+  /// Every word on this screen was rendering with a double yellow underline
+  /// under it, on the phone, in production. It is not a style anybody wrote —
+  /// it is Flutter's `_kDefaultTextStyle`, the deliberately hideous fallback
+  /// used when a `Text` has NO `Material` ancestor above it. Red text, double
+  /// yellow underline, on purpose: it is meant to be impossible to miss.
+  ///
+  /// The reason only the underline showed and not the red is that every string
+  /// here goes through `_text`, `_heading`, `_price` or `_label`, and all four
+  /// set an explicit colour. `Text` MERGES its style onto the inherited default
+  /// rather than replacing it, so the colour was overridden and the
+  /// `decoration` — which none of those helpers mention — was inherited
+  /// straight through. Hence text in the right font, the right size and the
+  /// right colour, with a debug underline under it.
+  ///
+  /// This screen returned a bare `Container` at its root. A `Container` is not
+  /// a `Material`, and in FlutterFlow a custom widget is dropped into a page
+  /// whose own tree does not necessarily put one above it, so there was nothing
+  /// between these `Text`s and the framework default.
+  ///
+  /// Two layers, and both earn their place:
+  ///
+  ///   • `Material` is the real fix. It establishes the ancestor Flutter was
+  ///     looking for, and it is also what lets `showModalBottomSheet`,
+  ///     `ScaffoldMessenger` and ink effects behave normally on this screen.
+  ///
+  ///   • `DefaultTextStyle` with an explicit `decoration: TextDecoration.none`
+  ///     is the belt to that pair of braces. `Material` alone hands over
+  ///     whatever `Theme.of(context).textTheme.bodyMedium` happens to be, which
+  ///     in a FlutterFlow project is whatever the project theme says — fine
+  ///     today, and not something this file controls. Stating the base style
+  ///     outright means the answer cannot change underneath us.
+  ///
+  /// The same wrapper is on the cart, wishlist, home and category screens,
+  /// which all had the identical bare-`Container` root and the identical
+  /// underlines. The checkout, search and address screens already returned a
+  /// `Scaffold` — which contains a `Material` — which is exactly why those
+  /// three were the ones that always looked right.
+  Widget _screen({required Widget child}) {
+    return Material(
+      color: _kPage,
+      child: DefaultTextStyle(
+        style: _text(size: 14, color: _kInk).copyWith(
+          decoration: TextDecoration.none,
+        ),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          child: child,
+        ),
+      ),
     );
   }
 
@@ -897,10 +1061,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     slivers: [
                       SliverToBoxAdapter(child: _galleryBlock(d)),
                       SliverToBoxAdapter(child: _buyBlock(d)),
+                      // Directly under the price, which is where the website
+                      // puts them and where the decision is actually made. A
+                      // size list below the description is a size list nobody
+                      // reaches before they have already left.
+                      if (_pickable(d).isNotEmpty)
+                        SliverToBoxAdapter(child: _choicesBlock(d)),
                       SliverToBoxAdapter(child: _termsBlock(d)),
                       if (d.description.isNotEmpty)
                         SliverToBoxAdapter(child: _descriptionBlock(d)),
-                      if (d.attributes.isNotEmpty)
+                      if (_specs(d).isNotEmpty)
                         SliverToBoxAdapter(child: _specsBlock(d)),
                       if (d.ratingCount > 0)
                         SliverToBoxAdapter(child: _reviewsBlock(d)),
@@ -1143,6 +1313,386 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     Navigator.of(context).maybePop();
+  }
+
+  // ---------- Choices ----------
+
+  /// One option chip.
+  ///
+  /// Not a `ChoiceChip`: Material's chip carries its own theme, its own
+  /// density and its own selected colour, none of which are this shop's, and
+  /// styling one back to the palette is more code than drawing it. This is the
+  /// same treatment as the website's option buttons — a hairline at rest, the
+  /// brand orange with a tinted ground when chosen — so the two screens agree.
+  ///
+  /// 40px tall and 12px of side padding is the smallest this can be and still
+  /// clear the 44px touch target once the 4px of `Wrap` spacing either side is
+  /// counted. Size options are two characters wide; a chip sized to its text
+  /// alone would be a 20px target.
+  Widget _optionChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return _Press(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? _kPrimary.withOpacity(0.07) : _kWhite,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(
+            color: selected ? _kPrimary : _kLine,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: _text(
+            size: 13.5,
+            color: selected ? _kPrimaryInk : _kBody,
+            weight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Every outstanding choice, as labelled rows of chips.
+  ///
+  /// `onPick` rather than writing straight to `_chosen` because the bottom
+  /// sheet renders this same widget inside a `StatefulBuilder` and has to
+  /// rebuild ITSELF as well as this screen — a sheet whose chips do not
+  /// respond until it is closed and reopened reads as broken.
+  ///
+  /// The chosen value is printed beside the attribute name rather than only
+  /// shown by the highlighted chip. On a colour list of eight that runs to
+  /// three lines, "Color" alone at the top and a chip highlighted somewhere in
+  /// the middle makes a shopper hunt for what they picked; "Color · Dark
+  /// Brown" answers it where they are already looking.
+  Widget _choiceRows(
+    _Detail d, {
+    required void Function(String attribute, String value) onPick,
+    bool showError = false,
+  }) {
+    final pickable = _pickable(d);
+    if (pickable.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final attribute in pickable) ...[
+          Row(
+            children: [
+              Text(attribute.name, style: _heading(size: 14)),
+              if ((_chosen[attribute.name] ?? '').isNotEmpty) ...[
+                Text('  ·  ', style: _label(size: 13, color: _kFaint)),
+                Flexible(
+                  child: Text(
+                    _chosen[attribute.name]!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _text(size: 13, color: _kBody),
+                  ),
+                ),
+              ] else if (showError) ...[
+                const SizedBox(width: 8),
+                Text(
+                  'Choose one',
+                  style: _label(
+                    size: 12,
+                    color: _kSale,
+                    weight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final value in attribute.values)
+                _optionChip(
+                  label: value,
+                  selected: _chosen[attribute.name] == value,
+                  onTap: () => onPick(attribute.name, value),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  /// The pickers where they belong on a product page — under the price, above
+  /// the delivery terms, in the flow of the page rather than behind a button.
+  ///
+  /// The sheet is the SECOND way to reach them, for the shopper who has
+  /// scrolled past this to the reviews and decided down there. It is not the
+  /// only way, and it should not be: making somebody open a sheet to see what
+  /// sizes exist hides the answer to a question they are asking before they
+  /// have decided to buy at all.
+  Widget _choicesBlock(_Detail d) => Padding(
+        padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 0),
+        child: _choiceRows(
+          d,
+          onPick: (attribute, value) {
+            HapticFeedback.selectionClick();
+            setState(() => _chosen[attribute] = value);
+          },
+        ),
+      );
+
+  /// The choices, brought down to the thumb.
+  ///
+  /// Mirrors `components/VariantSheet.tsx`. The product identifies itself at
+  /// the top — photograph, price, and what is chosen so far — because a sheet
+  /// that slides up over a scrolled page with nothing but chips in it does not
+  /// say which product it is about.
+  ///
+  /// `isScrollControlled` with a 0.85 cap: a product with three attributes and
+  /// twelve colours is taller than the default half-screen sheet, and the cap
+  /// keeps the page visible behind it so the sheet still reads as temporary.
+  ///
+  /// The quantity stepper lives here and only here. It is the one control the
+  /// page did not have — the buy bar has always added exactly one — and the
+  /// sheet is where it costs nothing, because it is already the "confirm what
+  /// you are buying" surface.
+  Future<void> _openChoiceSheet(_Detail d, {required bool buyNow}) async {
+    HapticFeedback.selectionClick();
+
+    var quantity = 1;
+    var showError = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _kWhite,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (rootSheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            void pick(String attribute, String value) {
+              HapticFeedback.selectionClick();
+              // Both, and both are needed: `setState` so the pickers in the
+              // page behind agree with the sheet once it closes, and
+              // `setSheetState` so the chip under the finger lights up now.
+              setState(() => _chosen[attribute] = value);
+              setSheetState(() => showError = false);
+            }
+
+            return SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // The drag handle. Not decoration — it is the only
+                    // affordance saying this can be pulled away, and without
+                    // one the tap-outside is the sole way out.
+                    Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 10, bottom: 6),
+                      decoration: BoxDecoration(
+                        color: _kLine,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(_radius),
+                            child: SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: d.images.isEmpty
+                                  ? const ColoredBox(color: _kHairline)
+                                  : CachedNetworkImage(
+                                      imageUrl: d.images.first,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) =>
+                                          const ColoredBox(color: _kHairline),
+                                      errorWidget: (_, __, ___) =>
+                                          const ColoredBox(color: _kHairline),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  d.priceLabel,
+                                  style: _price(
+                                    size: 20,
+                                    color: d.discountPercent > 0
+                                        ? _kSale
+                                        : _kInk,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  d.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: _text(size: 12.5, color: _kMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _Press(
+                            onTap: () => Navigator.of(sheetContext).pop(),
+                            child: const SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: Icon(Icons.close_rounded,
+                                  size: 20, color: _kMuted),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: _kHairline),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(_pad, 16, _pad, 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _choiceRows(d, onPick: pick, showError: showError),
+                            Text('Quantity', style: _heading(size: 14)),
+                            const SizedBox(height: 9),
+                            Row(
+                              children: [
+                                _stepButton(
+                                  Icons.remove_rounded,
+                                  enabled: quantity > 1,
+                                  onTap: () =>
+                                      setSheetState(() => quantity -= 1),
+                                ),
+                                SizedBox(
+                                  width: 54,
+                                  child: Text(
+                                    '$quantity',
+                                    textAlign: TextAlign.center,
+                                    style: _heading(size: 16),
+                                  ),
+                                ),
+                                _stepButton(
+                                  Icons.add_rounded,
+                                  // Capped at what the seller says is on the
+                                  // shelf, when they said. A shopper allowed
+                                  // to order nine of something with three left
+                                  // finds out at the checkout, which is the
+                                  // worst place to find out.
+                                  enabled: d.stockQuantity == null ||
+                                      quantity < d.stockQuantity!,
+                                  onTap: () =>
+                                      setSheetState(() => quantity += 1),
+                                ),
+                                if (d.stockQuantity != null &&
+                                    d.stockQuantity! <= _kLowStockAt) ...[
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Only ${d.stockQuantity} left',
+                                    style: _label(
+                                      size: 12,
+                                      color: _kSale,
+                                      weight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(_pad, 8, _pad, 12),
+                      child: _Press(
+                        onTap: () {
+                          final missing = _missing(d);
+                          if (missing != null) {
+                            // Named, not "please complete your selection". On
+                            // a product with a size AND a colour, a generic
+                            // message leaves the shopper scanning both lists
+                            // for the one they missed.
+                            HapticFeedback.heavyImpact();
+                            setSheetState(() => showError = true);
+                            return;
+                          }
+                          Navigator.of(sheetContext).pop();
+                          if (buyNow) {
+                            _buyNow(d, quantity: quantity);
+                          } else {
+                            _addToCart(d, quantity: quantity);
+                          }
+                        },
+                        child: Container(
+                          height: 50,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _kPrimary,
+                            borderRadius: BorderRadius.circular(_radius),
+                          ),
+                          child: Text(
+                            buyNow ? 'Buy now' : 'Add to cart',
+                            style: _text(
+                              size: 15,
+                              color: _kWhite,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// The − and + of the quantity stepper.
+  Widget _stepButton(
+    IconData icon, {
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return _Press(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: _kLine),
+          color: enabled ? _kWhite : _kHairline,
+        ),
+        child: Icon(icon, size: 18, color: enabled ? _kInk : _kFaint),
+      ),
+    );
   }
 
   // ---------- Buy box ----------
@@ -1417,6 +1967,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ---------- Specs ----------
 
+  /// The attributes that belong in the Details table — the facts, not the
+  /// questions.
+  ///
+  /// The complement of `_pickable`. Size and colour used to be printed here as
+  /// comma strings AND are now chips under the price; leaving them in both
+  /// places would have the page state the same list twice, once where it can
+  /// be acted on and once where it cannot, which reads as a bug rather than as
+  /// thoroughness.
+  ///
+  /// A single-value attribute stays: "Material — Cotton" is exactly what this
+  /// table is for.
+  List<_Attribute> _specs(_Detail d) =>
+      d.attributes.where((a) => a.values.length <= 1).toList();
+
   Widget _specsBlock(_Detail d) => Padding(
         padding: const EdgeInsets.fromLTRB(_pad, 16, _pad, 4),
         child: Column(
@@ -1429,7 +1993,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             // "Occasion: Casual" to every listing including chargers and
             // blenders; one obviously invented row makes a shopper doubt the
             // real ones beside it.
-            for (final a in d.attributes)
+            for (final a in _specs(d))
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 9),
                 decoration: const BoxDecoration(
@@ -1763,11 +2327,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  // ---- Both buttons go through `_requestPurchase` now ----
+                  //
+                  // They used to call `_addToCart` and `_buyNow` directly,
+                  // which meant a shoe with four sizes went into the basket
+                  // with no size on it — silently, from the bar the shopper is
+                  // most likely to use, because it is docked and the pickers
+                  // are hundreds of pixels up the page.
+                  //
+                  // `_requestPurchase` adds straight away when there is
+                  // nothing left to answer, and otherwise slides the choices
+                  // up to the thumb. The argument for that rule, and against
+                  // the two obvious alternatives, is on that method.
                   button(
                     label: soldOut ? 'Out of stock' : 'Add to cart',
                     icon: Icons.shopping_bag_outlined,
                     filled: false,
-                    onTap: soldOut ? null : () => _addToCart(d),
+                    onTap: soldOut
+                        ? null
+                        : () => _requestPurchase(d, buyNow: false),
                   ),
                   if (!soldOut) ...[
                     const SizedBox(width: 8),
@@ -1775,7 +2353,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       label: 'Buy now',
                       icon: Icons.bolt_rounded,
                       filled: true,
-                      onTap: () => _buyNow(d),
+                      onTap: () => _requestPurchase(d, buyNow: true),
                     ),
                   ],
                 ],

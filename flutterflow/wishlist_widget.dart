@@ -758,22 +758,32 @@ class _WishlistPageState extends State<WishlistPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
+    // `Material` + `DefaultTextStyle` rather than a bare `Container` — this is
+    // what stops every word on the screen wearing Flutter's double yellow
+    // debug underline. Full argument at `_screen` in
+    // `product_detail_widget.dart`.
+    return Material(
       color: _kPage,
-      child: Column(
-        children: [
-          _header(),
-          Expanded(
-            child: _loading
-                ? _skeleton()
-                : _items.isEmpty
-                    ? _empty()
-                    : _list(),
+      child: DefaultTextStyle(
+        style: _text(size: 14, color: _kInk)
+            .copyWith(decoration: TextDecoration.none),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          child: Column(
+            children: [
+              _header(),
+              Expanded(
+                child: _loading
+                    ? _skeleton()
+                    : _items.isEmpty
+                        ? _empty()
+                        : _list(),
+              ),
+              _bottomNav(),
+            ],
           ),
-          _bottomNav(),
-        ],
+        ),
       ),
     );
   }

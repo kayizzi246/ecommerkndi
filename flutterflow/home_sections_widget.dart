@@ -1188,52 +1188,62 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   // ============================================================
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
+    // `Material` + `DefaultTextStyle` rather than a bare `Container` — this is
+    // what stops every word on the screen wearing Flutter's double yellow
+    // debug underline. Full argument at `_screen` in
+    // `product_detail_widget.dart`.
+    return Material(
       color: _kPage,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              color: _kPrimary,
-              backgroundColor: _kWhite,
-              child: CustomScrollView(
-                controller: _scroll,
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                slivers: _slivers(),
-              ),
-            ),
-          ),
-          if (_showTop)
-            Positioned(
-              right: _pad,
-              bottom: 94,
-              child: ScaleTransition(
-                scale: _fabAnim,
-                child: _Press(
-                  onTap: _toTop,
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(
-                      color: _kPrimary,
-                      shape: BoxShape.circle,
+      child: DefaultTextStyle(
+        style: _text(size: 14, color: _kInk)
+            .copyWith(decoration: TextDecoration.none),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: RefreshIndicator(
+                  onRefresh: _load,
+                  color: _kPrimary,
+                  backgroundColor: _kWhite,
+                  child: CustomScrollView(
+                    controller: _scroll,
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
-                    child: const Icon(
-                      Icons.keyboard_arrow_up_rounded,
-                      color: _kWhite,
-                      size: 23,
-                    ),
+                    slivers: _slivers(),
                   ),
                 ),
               ),
-            ),
-          Positioned(left: 0, right: 0, bottom: 0, child: _bottomNav()),
-        ],
+              if (_showTop)
+                Positioned(
+                  right: _pad,
+                  bottom: 94,
+                  child: ScaleTransition(
+                    scale: _fabAnim,
+                    child: _Press(
+                      onTap: _toTop,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: const BoxDecoration(
+                          color: _kPrimary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          color: _kWhite,
+                          size: 23,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(left: 0, right: 0, bottom: 0, child: _bottomNav()),
+            ],
+          ),
+        ),
       ),
     );
   }

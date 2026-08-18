@@ -821,6 +821,23 @@ class ShoppingCartPage extends StatefulWidget {
   /// Adds one product, merging into an existing line for the same options.
   ///
   /// The single way anything outside this file writes to the basket.
+  ///
+  /// ---- `options` was missing, and it silently cost the seller ----
+  ///
+  /// `_Cart.add` has always taken the chosen size and colour and keyed the
+  /// line on them — `12|Colour=Blue|Size=42`, the same composite key the
+  /// website uses. This public wrapper simply did not pass them through, so
+  /// every line the app ever wrote had an EMPTY options map.
+  ///
+  /// Two consequences, and the second is the expensive one. Two sizes of the
+  /// same shoe merged into one line of quantity two rather than staying two
+  /// lines. And `POST /api/checkout` receives `options` per line — so an order
+  /// placed from the app reached wp-admin with no size and no colour on it,
+  /// and somebody had to ring the customer before it could be packed.
+  ///
+  /// Optional and defaulted so nothing that called this before has to change:
+  /// a product with nothing to choose passes nothing, and gets exactly the
+  /// behaviour it had.
   static Future<void> addToCart({
     required int productId,
     required String name,
@@ -828,6 +845,7 @@ class ShoppingCartPage extends StatefulWidget {
     String image = '',
     String slug = '',
     int quantity = 1,
+    Map<String, String>? options,
   }) =>
       _Cart.add(
         productId: productId,
@@ -836,6 +854,7 @@ class ShoppingCartPage extends StatefulWidget {
         image: image,
         slug: slug,
         quantity: quantity,
+        options: options,
       );
 
   /// How many items are in the basket, from storage.
@@ -1344,25 +1363,39 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
+    // `Material` + `DefaultTextStyle` rather than a bare `Container` — this is
+    // what stops every word on the screen wearing Flutter's double yellow
+    // debug underline. The full argument is in `product_detail_widget.dart`
+    // at `_screen`; the short version is that a `Text` with no `Material`
+    // ancestor inherits a deliberately hideous fallback style, and because
+    // `_text` sets a colour but never a `decoration`, the underline was the
+    // one part of it that survived the merge.
+    return Material(
       color: _kPage,
-      child: Column(
-        children: [
-          _header(),
-          Expanded(
-            child: _loading
-                ? _skeleton()
-                : _lines.isEmpty
-                    ? _empty()
-                    : _content(),
+      child: DefaultTextStyle(
+        style: _text(size: 14, color: _kInk)
+            .copyWith(decoration: TextDecoration.none),
+        child: SizedBox(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          child: Column(
+            children: [
+              _header(),
+              Expanded(
+                child: _loading
+                    ? _skeleton()
+                    : _lines.isEmpty
+                        ? _empty()
+                        : _content(),
+              ),
+              // No tab bar under this. See the note on `onCheckout`: a basket
+              // is a step, not a destination, and four ways out of it sitting
+              // 40px under the checkout button is a tap the thumb makes by
+              // accident.
+              if (!_loading && _lines.isNotEmpty) _checkoutBar(),
+            ],
           ),
-          // No tab bar under this. See the note on `onCheckout`: a basket is a
-          // step, not a destination, and four ways out of it sitting 40px under
-          // the checkout button is a tap the thumb makes by accident.
-          if (!_loading && _lines.isNotEmpty) _checkoutBar(),
-        ],
+        ),
       ),
     );
   }
