@@ -1,11 +1,15 @@
 export function ProductCardSkeleton() {
   return (
-    <div className="p-1.5">
+    // The white-card-on-a-phone treatment, so the placeholder occupies the same
+    // shape as what replaces it. Without this the grid visibly re-draws itself
+    // when the products land — grey squares on the page ground becoming white
+    // cards — which reads as a layout bug rather than as loading.
+    <div className="rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent">
       {/* Matches ProductCard: a square photo, then the name over two lines and
           the price under it. The text bars matter — a bare square shimmering on
           its own reads as a broken image, where a square with lines beneath it
           reads as a product that has not arrived yet. */}
-      <div className="shimmer aspect-square w-full rounded-[3px]" />
+      <div className="shimmer aspect-square w-full rounded-md md:rounded-lg" />
       <div className="shimmer mt-2 h-3 w-[92%] rounded" />
       <div className="shimmer mt-1.5 h-3 w-[64%] rounded" />
       <div className="shimmer mt-2.5 h-4 w-[45%] rounded" />

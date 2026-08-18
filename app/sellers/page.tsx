@@ -4,6 +4,7 @@ import Image from "next/image";
 import { getStores, getProductsSafe, type Product, type Store } from "@/lib/woocommerce";
 import { formatPrice } from "@/lib/currency";
 import { InfoFooterCta } from "@/components/InfoPage";
+import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/sellers" },
@@ -74,6 +75,32 @@ export default async function StoresPage() {
     // photographs, so this page carries its own container and mirrors the shell's
     // heading styles rather than fighting them.
     <main className="mx-auto max-w-[1200px] px-4 pb-24 pt-6 md:px-8 lg:pb-16">
+      {/* The store directory, declared as a list of stores. Only the ones with
+          a slug and something to sell: `/sellers/<slug>` for an empty store is
+          a real page but a thin one, and the sitemap already excludes it for the
+          same reason — pointing a crawler at it here would contradict that. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Shop by store", path: "/sellers" },
+            ]),
+            itemListJsonLd(
+              "Shop by store",
+              "/sellers",
+              cards
+                .filter((card) => card.store.store_slug && card.store.product_count > 0)
+                .map((card) => ({
+                  name: card.store.store_name,
+                  path: `/sellers/${card.store.store_slug}`,
+                }))
+            ),
+          ]),
+        }}
+      />
+
       <nav className="mb-6 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-primary">
           Home

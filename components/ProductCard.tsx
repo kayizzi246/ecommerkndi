@@ -212,7 +212,44 @@ export default function ProductCard({
     // the card's radius, and the photo carries its own radius now. Leaving it
     // on a card with no background would clip the badges that deliberately sit
     // proud of the image.
-    <article className="group relative flex h-full flex-col">
+    // ---- On a PHONE the tile is a white card again; from md up it stays flat ----
+    //
+    // This does not undo the borderless decision above, it splits it by screen,
+    // because the two screens were never the same problem.
+    //
+    // DESKTOP is unchanged: a 1600px column, six tiles across, wide gaps, a dark
+    // masthead over it. The page is white, the tiles are flat on it, and the gaps
+    // do the separating. Every word of the argument above still holds there.
+    //
+    // PHONE is where it stopped working. The page ground below 768px is #f9fafb
+    // (see the `@media` block in `globals.css`), the rails are gone, and what is
+    // left is two columns running the full width of the glass. A flat tile on
+    // that tint means the PRODUCT PHOTOGRAPH — most of this catalogue shot on
+    // white — is the only white thing on the screen, so each tile reads as a
+    // picture dropped on a grey sheet with loose text under it rather than as an
+    // object. The text sits on the tint too, which is the part that looks
+    // unfinished: a price and a name floating on the page ground belong to the
+    // page, not to the photograph above them.
+    //
+    // The white card fixes both at once. It gives the whole tile — photo, name,
+    // price, rating, delivery line — one surface, so the four rows visibly
+    // belong to the picture; and because the ground is off-white and the card is
+    // white, the tile now has a real edge without a border, a shadow or a wide
+    // gap. That is the same "a tile needs exactly one separator" rule from the
+    // top of this file, satisfied by CONTRAST instead of by space, which is the
+    // cheaper way to satisfy it on a 390px screen where space is the scarce
+    // thing.
+    //
+    // `p-1.5` is 6px, and the radii are picked to match it: a 12px outer corner
+    // with 6px of padding wants a 6px inner corner, which is why the photo below
+    // is `rounded-md` on a phone and keeps its `rounded-lg` from md up. An inner
+    // radius larger than (outer − padding) is what makes a card look like two
+    // rectangles that missed each other.
+    //
+    // Everything is `md:` reset rather than conditionally rendered, so there is
+    // still exactly ONE card component and one set of rows — the difference
+    // between the two screens is four utilities, not a second tile.
+    <article className="group relative flex h-full flex-col rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -255,7 +292,11 @@ export default function ProductCard({
               Measured off the same reference. The difference is small and it is
               the difference between a tile that looks drawn to a spec and one
               that looks approximately styled. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
+          {/* `rounded-md` on a phone, `rounded-lg` from md — see the card's own
+              radius note above: inside a 12px card with 6px of padding, 6px is
+              the inner corner that reads as concentric. Flat tiles from md up
+              have no padding to sit inside, so they keep the 8px. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

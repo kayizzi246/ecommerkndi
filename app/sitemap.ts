@@ -20,7 +20,16 @@ export const revalidate = 3600;
 const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },
   { path: "/sale", priority: 0.8, changeFrequency: "daily" },
+  // The full department index. It was missing, which mattered more than its
+  // priority suggests: it is the one page that links to every category at once,
+  // so a crawler that never fetches it has to find the deeper departments by
+  // walking the homepage menu instead — and the menu is rendered behind an
+  // interaction on a phone, which is the viewport Googlebot crawls with.
+  { path: "/categories", priority: 0.6, changeFrequency: "weekly" },
   { path: "/sellers", priority: 0.5, changeFrequency: "weekly" },
+  // A real landing page, and one people search for by name ("track my order
+  // kandi"). It has its own metadata and nothing linked it from here.
+  { path: "/track-order", priority: 0.3, changeFrequency: "monthly" },
   { path: "/sell", priority: 0.5, changeFrequency: "monthly" },
   { path: "/about", priority: 0.3, changeFrequency: "yearly" },
   { path: "/careers", priority: 0.2, changeFrequency: "monthly" },
@@ -114,6 +123,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: product.date_created ? new Date(product.date_created) : now,
       changeFrequency: "weekly" as const,
       priority: 0.9,
+      /**
+       * The product's photographs, as an image sitemap entry.
+       *
+       * This is the cheapest indexing win left on this file, and it is worth
+       * saying why it is not redundant with the `<img>` on the page.
+       *
+       * Google discovers images by rendering the page — which for this shop
+       * means executing `next/image`, which emits a `srcset` of `/_next/image`
+       * URLs with the real photograph hidden in a query parameter. That is a
+       * layer of indirection between the crawler and the file, and image
+       * indexing is the surface where it costs the most: Google Images and the
+       * image column of a normal result are, for a marketplace, a meaningful
+       * share of the traffic, because people shopping for a shoe search for a
+       * picture of the shoe.
+       *
+       * Naming the source files here states them outright, on the same URL as
+       * the product they belong to, with no rendering required. It also links
+       * the photograph to the page in Google's index rather than leaving it to
+       * be inferred, which is what puts the product's own thumbnail beside its
+       * result instead of a picture from somewhere else.
+       *
+       * Capped at five per product: Google reads a bounded number and this file
+       * already carries up to 5,000 products, so an uncapped gallery is a
+       * sitemap that grows without limit for images nobody will crawl.
+       */
+      images: [...new Set([product.image, ...product.gallery])]
+        .filter((url): url is string => Boolean(url))
+        .slice(0, 5),
     })),
   ];
 }

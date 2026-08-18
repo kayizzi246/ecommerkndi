@@ -493,6 +493,52 @@ export function collectionJsonLd(
   };
 }
 
+/**
+ * An INDEX page — a list of other pages rather than a list of products.
+ *
+ * `/categories` and `/sellers` are both this shape, and both had no structured
+ * data at all, which cost more than it looks like it should.
+ *
+ * Those two pages are the shop's hubs: `/categories` is the only page that
+ * links to every department at once, and `/sellers` the only one that links to
+ * every store. The department menu that would otherwise carry those links is
+ * behind a hover on desktop and a tap on mobile, and Googlebot crawls with a
+ * phone viewport — so for a crawler these pages are close to the sole route
+ * into a large part of the site. Telling Google that each is a list of N
+ * specific destinations, by name and URL, is what makes it read them as a
+ * directory to follow rather than as one page that happens to hold links.
+ *
+ * `collectionJsonLd` above does the same job for lists of PRODUCTS and stays
+ * separate: its entries are things with prices and stock, and merging the two
+ * would mean one function guessing which kind of list it had been handed.
+ *
+ * Capped at 50 — higher than the product cap because these entries are a name
+ * and a URL rather than an offer block, and a shop with 40 departments should
+ * not have the tail of them silently dropped.
+ */
+export function itemListJsonLd(
+  name: string,
+  path: string,
+  items: { name: string; path: string }[]
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    url: absolute(path),
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: items.length,
+      itemListElement: items.slice(0, 50).map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item.name,
+        url: absolute(item.path),
+      })),
+    },
+  };
+}
+
 export function categoryJsonLd(category: ProductCategory, products: Product[]) {
   return collectionJsonLd(category.name, `/category/${category.slug}`, products);
 }

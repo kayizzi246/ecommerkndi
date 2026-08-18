@@ -212,9 +212,31 @@ export async function generateMetadata(): Promise<Metadata> {
      * once and left behind while the logo in wp-admin moved on. A shop owner
      * replacing their logo saw the tab change and the search result stay.
      */
+    /**
+     * ---- The fallback branch now names ONE url too ----
+     *
+     * It used to read `apple: "/apple-icon.png"` while `icon` and `shortcut`
+     * pointed at `/icon.png` — two different images declared on the same page,
+     * which is the exact shape of the bug the four paragraphs above exist to
+     * describe, surviving in the branch nobody looks at.
+     *
+     * It matters for search specifically. Google's favicon crawler treats
+     * `apple-touch-icon` as a candidate alongside `rel="icon"`, so a shop with
+     * no upload was still handing it two pictures and letting it choose. Both
+     * files are the same 512×512 square mark, so nothing visible was wrong —
+     * which is why it lasted. One URL, in both branches, is the rule.
+     *
+     * `public/apple-icon.png` stays on disk: it is still served at that path
+     * for anything requesting it by habit, it is simply no longer declared.
+     *
+     * No `type` or `sizes` on any of these, deliberately. `/brand-icon` proxies
+     * whatever wp-admin holds, so its content type and dimensions are whatever
+     * was uploaded — declaring `image/png` on a JPEG upload would be a lie the
+     * browser has to work around, and a wrong `sizes` is worse than none.
+     */
     icons: favicon
       ? { icon: "/brand-icon", shortcut: "/brand-icon", apple: "/brand-icon" }
-      : { icon: "/icon.png", shortcut: "/icon.png", apple: "/apple-icon.png" },
+      : { icon: "/icon.png", shortcut: "/icon.png", apple: "/icon.png" },
     // No canonical here, deliberately.
     //
     // Metadata set in a layout is *inherited* by every page under it that does

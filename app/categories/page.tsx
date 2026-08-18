@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getCategories, buildCategoryTree } from "@/lib/woocommerce";
+import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "All categories",
@@ -28,6 +29,33 @@ export default async function CategoriesPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+      {/* The department index, declared as a list of departments.
+          Every child is included, not only the top-level ones — the whole point
+          of this page for a crawler is that it is the one place the full tree is
+          reachable without opening a menu. See `itemListJsonLd`. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "All categories", path: "/categories" },
+            ]),
+            itemListJsonLd(
+              "All categories",
+              "/categories",
+              departments.flatMap((department) => [
+                { name: department.name, path: `/category/${department.slug}` },
+                ...department.children.map((child) => ({
+                  name: child.name,
+                  path: `/category/${child.slug}`,
+                })),
+              ])
+            ),
+          ]),
+        }}
+      />
+
       <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
         <Link href="/" className="hover:text-shop-ink">
           Home

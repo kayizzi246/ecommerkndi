@@ -72,7 +72,7 @@ export default function HomeLoading() {
             <div className="shimmer h-5 w-36 rounded md:h-6 md:w-44" />
           </div>
           {/* The shared product-grid rhythm, for the same reason. */}
-          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 12 }, (_, i) => (
               <ProductCardSkeleton key={i} />
             ))}

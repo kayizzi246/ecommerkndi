@@ -132,7 +132,19 @@ export default function InfiniteProducts({
           say "these are two products", while the vertical one has to separate a
           tile's last line of text from the next tile's photograph — a much
           harder join, and the one that fails first. */}
-      <ul className="grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-5 xl:grid-cols-6">
+      {/* ---- The gaps are tight again below md, and that is not a reversal ----
+          The paragraphs above are still the rule: a tile needs exactly one
+          separator. What changed is which one it gets on a phone. `ProductCard`
+          is now a WHITE card on the off-white phone ground (see its own note),
+          so below 768px the separator is contrast, not space, and 20px of row
+          gap between two cards that already have edges is just a hole in the
+          grid. 8px each way is what the marketplaces this is modelled on use
+          once their tiles have a surface.
+
+          From `md` the tile goes flat again and the wide gaps come straight
+          back — they are the ONLY separator up there, and the two settings have
+          to keep moving together or the wall of touching photographs returns. */}
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-x-4 md:gap-y-7 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />
