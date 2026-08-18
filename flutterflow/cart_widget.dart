@@ -532,26 +532,87 @@ class _Cart {
 // THE DELIVERY ADDRESS
 // ============================================================
 
-/// What the shopper typed, and the quote the shop gave for it.
+/// What the shopper typed, where it is, and who it is for.
+///
+/// ---- Why this became a JSON record ----
+///
+/// It used to be one string: the address the shopper typed. That was enough
+/// while the app only ever showed a delivery fee, and it is not enough to place
+/// an order.
+///
+/// `POST /api/checkout` prices delivery from COORDINATES, never from a fee the
+/// caller states — the same `quoteDelivery` runs again on the server, so a
+/// tampered request pays the real figure or is refused. An app holding only
+/// "Ntinda, Kampala" has nothing to send it, and the order would be created
+/// with no delivery line at all.
+///
+/// So the record carries the point as well, plus the name and phone the order
+/// needs, so the checkout does not have to ask for them a second time.
+///
+/// ---- Two keys, and the old one still works ----
+///
+/// `kandi_delivery_v2` is the record. `kandi_delivery_address` is still written
+/// with the plain address string, and still read as a fallback when there is no
+/// v2 record. That is not tidiness — an app updated in place has a shopper's
+/// address sitting under the old key, and silently forgetting it would send
+/// them back to the address form on their next order for no reason they could
+/// see. A v1 address restores as text with no point, which shows the address
+/// and asks them to confirm the location once.
 class _Delivery {
   _Delivery._();
 
+  /// The v1 key: the typed address, as a bare string.
   static const String storageKey = 'kandi_delivery_address';
 
+  /// The v2 key: the full record as JSON.
+  static const String recordKey = 'kandi_delivery_v2';
+
   static Future<String?> savedAddress() async {
+    final record = await savedRecord();
+    final address = (record?['address'] ?? '').toString().trim();
+    return address.isEmpty ? null : address;
+  }
+
+  /// The whole record, or null when nothing has been saved.
+  ///
+  /// Keys: `address`, `city`, `place`, `lat`, `lng`, `first_name`,
+  /// `last_name`, `phone`. Everything except `address` may be absent.
+  static Future<Map<String, dynamic>?> savedRecord() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final value = prefs.getString(storageKey);
-      return (value == null || value.trim().isEmpty) ? null : value.trim();
-    } catch (_) {
-      return null;
-    }
+
+      final raw = prefs.getString(recordKey);
+      if (raw != null && raw.trim().isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      }
+
+      // v1: an address with no coordinates. Returned so the shopper sees what
+      // they saved, and the checkout knows to ask for the location once.
+      final legacy = prefs.getString(storageKey);
+      if (legacy != null && legacy.trim().isNotEmpty) {
+        return <String, dynamic>{'address': legacy.trim()};
+      }
+    } catch (_) {}
+    return null;
   }
 
   static Future<void> saveAddress(String address) async {
+    final record = await savedRecord() ?? <String, dynamic>{};
+    record['address'] = address.trim();
+    await saveRecord(record);
+  }
+
+  static Future<void> saveRecord(Map<String, dynamic> record) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(storageKey, address.trim());
+      await prefs.setString(recordKey, jsonEncode(record));
+      // Kept in step so a screen still reading v1 sees the current address
+      // rather than the one before last.
+      await prefs.setString(
+        storageKey,
+        (record['address'] ?? '').toString().trim(),
+      );
     } catch (_) {}
   }
 }
@@ -782,6 +843,43 @@ class ShoppingCartPage extends StatefulWidget {
     await _Cart.load(force: true);
     return _Cart.itemCount;
   }
+
+  /// The basket's lines, as plain maps — for the checkout screen.
+  ///
+  /// ---- Why maps and not `_CartLine` ----
+  ///
+  /// `_CartLine` is a private top-level class in this file, so it cannot cross
+  /// a FlutterFlow file boundary any more than `_Cart` can (see the note at the
+  /// head of this section). A signature returning it would compile here and
+  /// fail in `KandiCheckout` with "Type '_CartLine' not found". Maps of
+  /// primitives cross; the shapes they carry are `_CartLine.toJson`, which is
+  /// also exactly what `kandi-cart-v2` holds, so the checkout is reading the
+  /// same records the site's own localStorage cart writes.
+  ///
+  /// `force: true` because the checkout is reached from screens that may have
+  /// been open while another one edited the basket. Re-reading storage costs
+  /// one `SharedPreferences` hit and removes a whole class of "I removed that
+  /// item and it still got ordered".
+  ///
+  /// Only `productId`, `quantity` and `options` are ever sent to the shop —
+  /// the rest is for drawing the screen. Prices are re-read from WooCommerce
+  /// server-side when the order is placed, so a tampered basket pays the real
+  /// total or fails.
+  static Future<List<Map<String, dynamic>>> loadLines() async {
+    final lines = await _Cart.load(force: true);
+    return lines.map((line) => line.toJson()).toList();
+  }
+
+  /// Empties the basket after an order has been paid for.
+  ///
+  /// Goes through `_Cart` rather than letting the checkout delete the
+  /// `SharedPreferences` key itself, and that is the whole point of it
+  /// existing. `_Cart` holds the lines in memory and drives `count`, which the
+  /// badge in every masthead is listening to. A checkout that wiped storage
+  /// directly would leave this screen's in-memory copy intact and the badge
+  /// showing three items over an empty basket until something happened to
+  /// force a reload.
+  static Future<void> clearCart() => _Cart.clear();
 
   /// The live count, for a badge.
   ///
