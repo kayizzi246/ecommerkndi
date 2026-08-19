@@ -150,6 +150,25 @@ export default function ProductCard({
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
 
+  /* ---- The label chip ----
+     The reference tile carries a small programme label — "Choice",
+     "SuperDeals", "Brand+" — set INSIDE the title line rather than on a row of
+     its own, and that placement is the whole reason it is affordable here. A
+     chip row would be conditional, and a conditional row is a tile that is a
+     different height from the one beside it, which is exactly what the fixed
+     rows below exist to prevent. Riding in the title's two-line clamp it costs
+     the tile no height at all, and a couple of characters of the name only on
+     the products that carry one.
+
+     Two labels, both earned from data this shop already has: `featured` is the
+     shopkeeper's own pick, and a reduction of 30% or more is a genuinely
+     unusual one. A chip on every tile is a chip that means nothing. */
+  const chip = product.featured
+    ? { label: "Choice", className: "bg-shop-ink text-white" }
+    : discount >= 30
+      ? { label: "Super Deal", className: "bg-shop-sale text-white" }
+      : null;
+
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
 
@@ -505,145 +524,47 @@ export default function ProductCard({
         <Link href={href} className="block">
           {/* Exactly two lines, always — `h-8` is 2 × the 16px leading, and it
               is a fixed height rather than a clamp so that a short name reserves
-              the second line instead of pulling the price up under it. This is
-              the single biggest contributor to tiles matching.
+              the second line instead of pulling the row below it up. This is the
+              single biggest contributor to tiles matching.
 
-              13px, down from 14. The name is no longer competing with the price
-              for the eye: the price is a different family at 800 now (see
-              `.price` in globals.css), so the name does not need size to stay
-              subordinate — and a step down buys roughly two more characters
-              before the ellipsis on a 150px phone tile, which is the whole
-              difference between "Men's Leather Officia…" and a title a shopper
-              can act on. */}
+              The chip, when there is one, sets inside this clamp — see where it
+              is computed above for why it is here and not on a row of its own.
+              It is an inline box on the title's own line, so the name flows
+              around it exactly as the reference tile's does, and a long title
+              still truncates at the end of the second line rather than being
+              pushed out of the box. */}
           <h3 className="font-normal-heading line-clamp-2 h-8 text-[13px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
+            {chip && (
+              <span
+                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[10px] font-bold leading-[15px] ${chip.className}`}
+              >
+                {chip.label}
+              </span>
+            )}
             {product.name}
           </h3>
         </Link>
 
-        {/* The money, all on one line: what it costs, what it cost, and the
-            reduction. A discounted price turns red — the one place red is
-            allowed — because at a glance the colour is the discount.
+        {/* ---- The three rows below are in the REFERENCE order, which is not
+             the order this tile used to run in ----
 
-            15px, down from 19. At 19 the price was the loudest thing in the
-            tile by a wide margin and set the tile's rhythm; the photograph is
-            meant to do that. 15 still reads first among the text — it is bold,
-            near-black and sits under a 14px name — without shouting over the
-            product it belongs to. */}
-        {/* ---- Money ----
-             What it costs, what it cost, and the reduction.
+             It was name → price → rating → delivery, with the price second and
+             the money therefore read before anything that justifies it. The
+             reference grid — and every marketplace tile modelled on it — runs
+             the other way round: the shopper is told what the thing is, what is
+             promised with it, who else has bought it, and THEN what it costs.
 
-             ---- The clipping bug this fixes ----
+             That order is not a style preference. The price is the moment of
+             decision, and a decision is easier to make once the corroboration
+             has already been read. Putting it last also puts the tile's biggest,
+             heaviest line along the bottom edge of the block, which is what
+             gives a row of these a visible baseline running across it — with the
+             price in the middle, each tile had its loudest element floating at a
+             different point in a ragged band.
 
-             The row is a fixed height, which is what keeps every tile in a rail
-             the same size. On a 382px phone showing 2.5 tiles, a tile is about
-             150px wide and the three figures — "UGX 120,000  UGX 300,000  −10%"
-             — need roughly double that. Nothing here said they could not wrap,
-             so the price broke onto a second line and the fixed height cut it in
-             half: shoppers saw "UGX" above a sliced row of digits.
+             Every row keeps its fixed height, so tiles still match exactly. */}
 
-             Two changes, and both are needed. `whitespace-nowrap` stops a price
-             ever breaking mid-number, because a price split across two lines is
-             unreadable whatever height the row is. And below `sm` the
-             struck-through original and the percentage are dropped entirely
-             rather than squeezed: the discount is already on the photograph as
-             a corner flag, so nothing is lost, and the resting price gets the
-             whole width to itself.
-
-             The price is a step smaller on a phone as well — 13px against 15 —
-             which is the size it needs to be to sit comfortably in 150px. */}
-        {/* The sizes are gone from this row.
-             `.price` and `.was-price` carry them now — 18px/700 and 12px/400,
-             the shop's type scale — so a tile cannot drift away from the rest
-             of the store the way this did when it kept its own 13/15px. The row
-             is 22px rather than 20 to fit the taller price without clipping the
-             comma in "UGX 145,854". */}
-        <p className="flex h-[22px] items-baseline gap-x-1.5 overflow-hidden">
-          {/* ---- The resting price is near-black, not orange ----
-               It was orange for a while, on the argument that one saturated
-               colour repeated in the same position on every tile gives the eye
-               something to track down the page.
-
-               What that argument missed is how many prices are on a screen at
-               once here. Forty orange numbers is not one accent repeated, it is
-               a second colour field competing with the photographs, and orange
-               is also the brand — the masthead, the buttons and the links all
-               use it, so a price set in it stops reading as information and
-               starts reading as decoration.
-
-               Near-black is what the product page has always used for a resting
-               price, so the grid and the PDP now agree. The price is still the
-               first thing read in the tile: it is the only bold line in the
-               block, which is enough on a page of 400-weight grey.
-
-               Red is unchanged and still means exactly one thing — this price
-               has been reduced — with the `−N%` flag on the photograph and the
-               struck-through original beside it carrying the same signal. */}
-          <span
-            className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale" : "text-shop-ink"
-            }`}
-          >
-            {formatPrice(product.price)}
-          </span>
-          {discount > 0 && (
-            <>
-              <span className="was-price hidden whitespace-nowrap sm:inline">
-                {formatPrice(product.regular_price)}
-              </span>
-              <span className="hidden whitespace-nowrap text-[12px] font-bold leading-none text-shop-sale sm:inline">
-                −{discount}%
-              </span>
-            </>
-          )}
-        </p>
-
-        {/* Rating and units sold — the two numbers a shopper uses to decide
-            whether anyone else has taken the risk first.
-
-            The row is always present, even with nothing in it. A product with no
-            reviews and no sales is exactly the one that would otherwise render a
-            shorter tile than its neighbours, and an empty 16px box costs less
-            than the row of ragged baselines that hiding it caused. */}
-        {/* "Reviews / sold" on the scale — 12px at the plain weight, via
-             `.meta-note`. This row was 11.5px semibold, which made corroboration
-             compete with the price above it. */}
-        {/* ---- This row is the gap between the price and the delivery line ----
-             Worth being explicit about, because it does not look like spacing
-             and it is the only spacing there is. The rows are butted together
-             with `gap-0`; what separates the price from "Only 3 left" is the
-             HEIGHT OF THIS ROW, and on the many products with no reviews and no
-             recorded sales it is an empty box.
-
-             13px, down from 16. The row cannot go to zero — it is reserved on
-             purpose so a product with no corroboration renders the same height
-             as one with plenty, which is what keeps a rail's tiles aligned. But
-             16px was the natural line box of 12px text at the 1.3 leading
-             `.meta-note` sets, not a considered number, and the row does not
-             need its text's full leading when it holds exactly one line.
-
-             `leading-none` on the two spans is what makes 13px safe: without
-             it the 15.6px line box would be clipped by `overflow-hidden` and
-             the sold count would lose its descenders. The stars are 11px and
-             fit either way. */}
-        <div className="flex h-[13px] items-center gap-x-2 overflow-hidden">
-          {product.rating_count > 0 && (
-            <span className="flex items-center gap-1">
-              <Stars rating={product.average_rating} />
-              <span className="meta-note leading-none text-shop-body">
-                {product.average_rating.toFixed(1)}
-              </span>
-            </span>
-          )}
-          {product.total_sales > 0 && (
-            <span className="meta-note leading-none text-shop-muted">
-              {compactSold(product.total_sales)} sold
-            </span>
-          )}
-        </div>
-
-        {/* The delivery promise, and the last row on every tile. `truncate` so a
-            long stock message cannot wrap into a second line and undo the
-            matching heights above it. */}
+        {/* The promise — delivery, or the stock warning that outranks it. */}
         {/* A block rather than a flex row, which is what makes `truncate` work.
             `text-overflow: ellipsis` has no effect on a flex container — the
             text was being sliced mid-word with no ellipsis to show for it
@@ -661,6 +582,100 @@ export default function ProductCard({
             /* Not "free delivery" — that depends on the basket total, and a tile
                cannot know it. Promising it here would be a lie on most orders. */
             "Fastest delivery: 1 business day"
+          )}
+        </p>
+
+        {/* Rating and units sold — the two numbers a shopper uses to decide
+            whether anyone else has taken the risk first.
+
+            The row is always present, even with nothing in it. A product with no
+            reviews and no sales is exactly the one that would otherwise render a
+            shorter tile than its neighbours, and an empty box costs less than the
+            row of ragged baselines that hiding it caused.
+
+            The reference sets the sold count FIRST and the stars after it, and
+            that is the order here now: "295 sold  ★ 4.6". Sales are the number
+            nearly every product has; a rating is the one most of this catalogue
+            is still missing, so leading with the stars left a row that began
+            with a gap on the majority of tiles.
+
+            `leading-none` on the spans is what makes a 15px row safe: without
+            it the 15.6px line box of 12px text would be clipped by
+            `overflow-hidden` and the sold count would lose its descenders. */}
+        <div className="flex h-[15px] items-center gap-x-2 overflow-hidden">
+          {product.total_sales > 0 && (
+            <span className="meta-note leading-none text-shop-muted">
+              {compactSold(product.total_sales)} sold
+            </span>
+          )}
+          {product.rating_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Stars rating={product.average_rating} />
+              <span className="meta-note leading-none text-shop-body">
+                {product.average_rating.toFixed(1)}
+              </span>
+            </span>
+          )}
+        </div>
+
+        {/* ---- The money, and now the last thing in the tile ----
+
+             All on one line: what it costs, what it cost, and the reduction. A
+             discounted price turns red — the one place red is allowed — because
+             at a glance the colour is the discount.
+
+             `mt-auto` pins it to the bottom edge of the block. With every row
+             above it at a fixed height that changes nothing in a normal grid; it
+             is insurance for a rail, where a flex row stretches its tiles to the
+             tallest one and a price that floated up mid-tile would break the
+             baseline the reordering above was for.
+
+             The sizes live in `.price` and `.was-price`, not here — the shop's
+             type scale, so a tile cannot drift away from the product page the
+             way it did when it carried its own 13/15px. The row is 24px to fit
+             the taller price without clipping the comma in "UGX 145,854".
+
+             ---- Why the struck-through original disappears below `sm` ----
+
+             On a 382px phone showing 2.5 tiles a tile is about 150px wide, and
+             the three figures — "UGX 120,000  UGX 300,000  −10%" — need roughly
+             double that. `whitespace-nowrap` stops a price ever breaking
+             mid-number, and below `sm` the original and the percentage are
+             dropped rather than squeezed: the discount is already on the
+             photograph as a corner flag, so nothing is lost and the resting
+             price gets the whole width to itself. */}
+        <p className="mt-auto flex h-6 items-baseline gap-x-1.5 overflow-hidden pt-0.5">
+          {/* ---- The resting price is near-black, not orange ----
+               It was orange for a while, on the argument that one saturated
+               colour repeated in the same position on every tile gives the eye
+               something to track down the page.
+
+               What that argument missed is how many prices are on a screen at
+               once here. Forty orange numbers is not one accent repeated, it is
+               a second colour field competing with the photographs, and orange
+               is also the brand — the masthead, the buttons and the links all
+               use it, so a price set in it stops reading as information and
+               starts reading as decoration.
+
+               Near-black is what the product page has always used for a resting
+               price, so the grid and the PDP agree. Red is unchanged and still
+               means exactly one thing — this price has been reduced. */}
+          <span
+            className={`price whitespace-nowrap ${
+              discount > 0 ? "text-shop-sale" : "text-shop-ink"
+            }`}
+          >
+            {formatPrice(product.price)}
+          </span>
+          {discount > 0 && (
+            <>
+              <span className="was-price hidden whitespace-nowrap sm:inline">
+                {formatPrice(product.regular_price)}
+              </span>
+              <span className="hidden whitespace-nowrap text-[12px] font-bold leading-none text-shop-sale sm:inline">
+                −{discount}%
+              </span>
+            </>
           )}
         </p>
       </div>

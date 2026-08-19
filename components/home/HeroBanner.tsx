@@ -221,7 +221,7 @@ export default function HeroBanner({
 
                The caps are lower than any sensible banner's natural height
                now, so they always engage and the band is a known height:
-               roughly 440px on a desktop and 240 on a phone. That is a crop,
+               roughly 560px on a desktop and 300 on a phone. That is a crop,
                and it is affordable because of the pairing with
                `object-center` — a banner is designed with its subject and its
                wording in the middle third, so what comes off is the margin at
@@ -231,7 +231,25 @@ export default function HeroBanner({
 
                The mobile caps are lower again, because a phone screen is
                shorter and the same proportion of it is a much larger share of
-               what can be seen at once. */}
+               what can be seen at once.
+
+               ---- Each cap is one step taller than it was ----
+
+               340/440 desktop and 240/380 mobile were cropping the artwork
+               rather than its margins. The banners this shop actually runs are
+               not the plain centred photographs the caps assumed: they are
+               composed layouts with a headline, a button and a script flourish
+               placed near the top edge, and at 440px the flourish was being cut
+               through the middle — the picture read as a mistake rather than as
+               a crop.
+
+               440/560 and 300/440 give those elements the room to land while
+               still capping well below a wide banner's natural height, so the
+               band is still a known size and the catalogue is still on the
+               first screen. If a future banner is cropped again the answer is
+               the same one as before — compose it wide with the wording in the
+               middle third — but the ceiling now has enough headroom that a
+               normally composed banner arrives intact. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img
             src={mobileSrc}
@@ -240,7 +258,7 @@ export default function HeroBanner({
             loading="eager"
             decoding="async"
             className={`h-auto w-full object-cover object-center md:hidden ${
-              mobileIsPortrait ? "max-h-[380px]" : "max-h-[240px]"
+              mobileIsPortrait ? "max-h-[440px]" : "max-h-[300px]"
             }`}
           />
           <img
@@ -249,7 +267,7 @@ export default function HeroBanner({
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[340px] lg:max-h-[440px]"
+            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[440px] lg:max-h-[560px]"
           />
           {/* eslint-enable @next/next/no-img-element */}
         </Link>

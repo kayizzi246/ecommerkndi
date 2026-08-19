@@ -459,45 +459,56 @@ h6,
  * the PDP, where the price is the page rather than one of forty — overrides it
  * with a utility and says why. */
 .price {
-  font-family: var(--font-display);
-  /* 800, up from 700, and on Outfit rather than the body face.
-     The price is the number a shopper scans a grid for. At 700 in the reading
-     face it sat close enough to the product name beside it that the eye had to
-     stop and sort them; Outfit at 800 is a different family AND a heavier
-     weight, so the price separates from the name on two axes at once and reads
-     first without needing to be bigger. 800 is a loaded Outfit weight — see
-     `layout.tsx` — so nothing here is synthesised. */
-  font-weight: 800;
-  /* ---- 15px on a phone, 18px from 640px up ----
+  /* ---- The UI face, not the display face ----
    *
-   * The scale's price row is 18px and that is still the size on any screen with
-   * room for it. A phone is not such a screen.
+   * The price was set in Outfit at 800, on the argument that a different family
+   * at a heavier weight separates it from the product name on two axes at once.
+   * That argument is sound and it is not why this changed.
    *
-   * At 2.5 tiles across a 390px display a tile is about 150px wide, and a UGX
-   * price is a long number — "UGX 145,854" is eleven characters before the
-   * struck-through original beside it. At 18px that row is on the edge of
-   * fitting, and it was 18px bold ORANGE as of the reference-grid pass, which
-   * made it the loudest thing on a phone screen by a wide margin: louder than
-   * the product name above it and competing with the photograph, which is
-   * supposed to be what a shopper looks at.
+   * It changed because the reference grid this tile is modelled on sets its
+   * whole card — name, promise, sold count and price — in ONE neo-grotesque,
+   * and the price reads as the largest, heaviest step of the same voice rather
+   * than as a different voice. That is what makes a marketplace tile look like
+   * a row of a catalogue instead of a small poster: the price is not a
+   * headline, it is the most important number in a block of numbers.
    *
-   * 15px still reads first among the tile's text — it is the only bold,
-   * coloured line in the block — without shouting over the product it belongs
-   * to. Set here rather than as a utility at the call site because `.price` is
-   * unlayered and would win over any `text-*` class a component tried. */
-  font-size: 14px;
-  /* 1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
+   * Outfit is untouched everywhere it belongs — section titles, hero display,
+   * headings. This is one row of the scale moving to the reading face, not the
+   * display face going away.
+   *
+   * The practical gain is figures. Roboto is drawn for interface use with
+   * narrow, even digits, so "UGX 145,854" sets meaningfully shorter than it did
+   * in a geometric face — which is the difference between a discounted price
+   * row fitting a 150px phone tile and not. */
+  font-family: var(--font-ui);
+  /* 700, the scale's price weight, and a real loaded Roboto file — see
+     `layout.tsx`. `font-synthesis-weight: none` means an unloaded weight would
+     silently render as another one rather than being faked, so 800 here would
+     have quietly been 700 anyway. */
+  font-weight: 700;
+  /* ---- 16px on a phone, 18px from 640px up ----
+   *
+   * The scale's price row is 18px and that is the size on any screen with room
+   * for it. A phone is not quite such a screen: at 2.5 tiles across a 390px
+   * display a tile is about 150px wide, and a UGX price is a long number.
+   *
+   * Both numbers are a step up from where they were (14/16), and that step is
+   * the point of the reordering in `ProductCard` — the price is the last line
+   * of the tile now, so it is the one carrying the bottom of the block and it
+   * has to be unmistakably the biggest thing in the text. In the reference the
+   * price is roughly half again the size of the product name above it, which is
+   * 13px here. */
+  font-size: 16px;
+  /* 1.1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
      the descender on a comma, and UGX prices are full of them. */
   line-height: 1.1;
   /* Barely tightened. A price is read digit by digit — UGX 145,854 is not a
      word the eye takes in whole — so the space between figures has to stay open
      enough to count them. */
   letter-spacing: 0;
-  /* Outfit carries no separate tabular set either, and like Poppins before it
-     it barely needs one: the face is geometric and its figures are near-uniform
-     in width, which is why a column of UGX prices still lines up down a grid.
-     Left in place because it costs nothing and starts working the moment a face
-     with real tabular figures arrives. */
+  /* Roboto DOES ship a tabular set, which this is the first face in a while to
+     do — a column of UGX prices down a grid now lines up because the figures
+     are actually the same width, not because they happen to be close. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -505,7 +516,7 @@ h6,
    the grid goes from 2 columns to 3 and a tile stops being 150px wide. */
 @media (min-width: 640px) {
   .price {
-    font-size: 16px;
+    font-size: 18px;
   }
 }
 
