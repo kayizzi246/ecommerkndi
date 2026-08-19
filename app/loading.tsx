@@ -25,7 +25,7 @@ import { ProductRailSkeleton, ProductCardSkeleton } from "@/components/Skeletons
 export default function HomeLoading() {
   return (
     <main className="pb-20">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-0 py-4 md:gap-7 md:px-8 md:py-5">
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-0 py-4 md:gap-7 md:px-8 md:py-5">
         {/* Trending now — the first rail, and the one carrying the page's
             largest paint. */}
         <ProductRailSkeleton withSubtitle={false} />
@@ -61,7 +61,7 @@ export default function HomeLoading() {
             <div className="shimmer h-5 w-36 rounded md:h-6 md:w-44" />
           </div>
           {/* The shared product-grid rhythm, for the same reason. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
             {Array.from({ length: 12 }, (_, i) => (
               <ProductCardSkeleton key={i} />
             ))}

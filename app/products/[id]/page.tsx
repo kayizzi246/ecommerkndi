@@ -290,7 +290,7 @@ export default async function ProductPage({
      * that could have been selling. A product page's job is to keep the buy box
      * and the reasons to use it inside one or two screens; the air between
      * blocks is the first thing that should give way. */
-    <main className="mx-auto max-w-[1600px] px-4 pb-20 pt-3 md:px-8 lg:pb-12">
+    <main className="mx-auto max-w-[var(--shell)] px-4 pb-20 pt-3 md:px-8 lg:pb-12">
       <script
         type="application/ld+json"
         // The payload is built from our own typed data, never from user input,

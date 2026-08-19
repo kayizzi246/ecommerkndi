@@ -281,26 +281,62 @@
  * their own face again, this is the one place that changes. Do not collapse
  * them into one variable to save a line. */
 :root {
-  /* Poppins first, then the metric-matched fallback Next generates for it, then
-     the system stack this shop used to run on outright.
+  /* ---- The reading face: Inter ----
+   *
+   * Inter first, then the metric-matched fallback Next generates for it, then
+   * the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Poppins, so that face is what a shopper on a
+   * screen in whatever is behind Inter, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
-   * and SF on iOS. None of those is geometric, so the swap is more visible than
-   * it was with Inter, which is the other reason the weight list in
-   * `layout.tsx` is kept short: fewer files, sooner. */
+   * and SF on iOS. All three are neo-grotesques like Inter itself, which is
+   * what makes this the cheap half of the swap: the fallback and the webfont
+   * are the same KIND of face, so the repaint moves letterforms rather than
+   * re-setting the page. Inter is variable, so the whole scale arrives in that
+   * one file — see `layout.tsx`. */
+  /* ---------- How wide the shop is ----------
+   *
+   * Every container in the store — the masthead, the nav, the search bar, the
+   * content column, the footer, the sticky buy bar — reads this one number as
+   * `max-w-[var(--shell)]`. It used to be the literal `max-w-[var(--shell)]` typed
+   * into thirteen files, which is a width that could only ever be changed by
+   * remembering all thirteen.
+   *
+   * 100% is full-bleed: the shop uses the whole window, with only the
+   * containers' own `px-4`/`md:px-8` holding content off the glass. That is
+   * what a marketplace grid wants — the page is a catalogue, and a catalogue
+   * gets better the more of it fits on a screen, where a column of prose would
+   * get worse.
+   *
+   * The product grids gain a `2xl:` column instead of wider tiles, so a big
+   * monitor shows MORE products rather than bigger ones. That pairing is the
+   * whole reason full width is safe here; without it, 1920px of six columns is
+   * a grid of enormous photographs.
+   *
+   * If the shop ever wants its old bounded look back, this is the one line:
+   * put `1600px` here and every container follows. */
+  --shell: 100%;
+
   --font-ui:
-    var(--font-roboto), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
-  /* ---- The display face: Outfit ----
+  /* ---- The display face: Poppins ----
    *
    * Everything that is FOUND rather than read resolves through this token —
    * `h1`–`h6`, `.section-title`, `.heading-black`, `.heading-800`,
    * `.hero-display` and `.price` — so pointing it at a different family is a
    * one-line change and cannot leave half the store on the old face. That is
-   * the whole reason the token exists, and it has now earned it twice.
+   * the whole reason the token exists, and it has now earned it four times over.
+   *
+   * `.price` is no longer in that list — it reads through `--font-ui` with the
+   * rest of the tile, because a price is the largest step of a block of numbers
+   * rather than a headline. See the note on `.price` below.
+   *
+   * Poppins is loaded as TWO static weights, 600 and 700 (Google ships no
+   * variable Poppins). Anything resolving through this token may therefore only
+   * ask for those two — `font-synthesis-weight: none` means a third would
+   * silently render as one of them rather than looking wrong.
    *
    * Product names are the deliberate exception: they are set as `<h3>` on a
    * card and `<h1>` on a product page, and `.font-normal-heading` pulls them
@@ -308,7 +344,7 @@
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
   --font-display:
-    var(--font-outfit), var(--font-roboto), system-ui, -apple-system,
+    var(--font-poppins), var(--font-inter), system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Poppins draws no true tabular set — but
@@ -443,10 +479,11 @@ h6,
      matters more, not less — tracking, weight and size are now the only things
      separating a heading from the copy around it.
 
-     On Roboto the number is smaller: it is a neo-grotesque, already drawn tight
-     for interface use, so -0.012em would close the counters rather than take up
-     slack. -0.008em is the same gesture at the size this face needs. */
-  letter-spacing: -0.008em;
+     It went to -0.008em while headings were set in a neo-grotesque, which is
+     drawn tight for interface use already and closed its counters at -0.012em.
+     Headings are Poppins again, so the original number comes back with them:
+     the tracking has to follow the face, not the file it happens to live in. */
+  letter-spacing: -0.012em;
 }
 
 /* ---------- Product prices — 700, 18px ----------
@@ -461,9 +498,9 @@ h6,
 .price {
   /* ---- The UI face, not the display face ----
    *
-   * The price was set in Outfit at 800, on the argument that a different family
-   * at a heavier weight separates it from the product name on two axes at once.
-   * That argument is sound and it is not why this changed.
+   * The price was set in the DISPLAY face, on the argument that a different
+   * family at a heavier weight separates it from the product name on two axes
+   * at once. That argument is sound and it is not why this changed.
    *
    * It changed because the reference grid this tile is modelled on sets its
    * whole card — name, promise, sold count and price — in ONE neo-grotesque,
@@ -472,11 +509,11 @@ h6,
    * a row of a catalogue instead of a small poster: the price is not a
    * headline, it is the most important number in a block of numbers.
    *
-   * Outfit is untouched everywhere it belongs — section titles, hero display,
-   * headings. This is one row of the scale moving to the reading face, not the
-   * display face going away.
+   * The display face is untouched everywhere it belongs — section titles, hero
+   * display, headings. This is one row of the scale moving to the reading face,
+   * not the display face going away.
    *
-   * The practical gain is figures. Roboto is drawn for interface use with
+   * The practical gain is figures. Inter is drawn for interface use with
    * narrow, even digits, so "UGX 145,854" sets meaningfully shorter than it did
    * in a geometric face — which is the difference between a discounted price
    * row fitting a 150px phone tile and not. */
@@ -484,8 +521,8 @@ h6,
   /* ---- 800, and it is a real weight rather than a smeared one ----
    *
    * 700 is the scale's price row and it was the ceiling for a practical
-   * reason: Roboto was loaded as four static instances and 800 was not one of
-   * them, so asking for it would have rendered 700 anyway —
+   * reason: the reading face was loaded as four static instances and 800 was
+   * not one of them, so asking for it would have rendered 700 anyway —
    * `font-synthesis-weight: none` refuses to fake what was not downloaded.
    *
    * The face is loaded as its VARIABLE file now (see `layout.tsx`), so every

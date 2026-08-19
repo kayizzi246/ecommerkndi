@@ -395,7 +395,7 @@ export default function HeroBanner({
            same band whether the shop uploaded a banner or is running the drawn
            fallback — otherwise switching one for the other in wp-admin moves
            the whole page down by 100px. */
-        className={`relative mx-auto flex max-w-[1600px] flex-col items-center gap-5 px-5 py-6 md:flex-row md:gap-10 md:px-10 md:py-7 ${
+        className={`relative mx-auto flex max-w-[var(--shell)] flex-col items-center gap-5 px-5 py-6 md:flex-row md:gap-10 md:px-10 md:py-7 ${
           withPhoto ? "" : "md:justify-center md:text-center"
         }`}
       >

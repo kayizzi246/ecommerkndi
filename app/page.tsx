@@ -191,7 +191,7 @@ export default async function Home() {
           sideways. Removing the gutter fixes the drift and gives the width
           back to the products. Headings and copy carry their own `px-3` so
           words never touch the glass. */}
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-5 px-0 py-3 md:gap-8 md:px-8 md:py-5">
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-0 py-3 md:gap-8 md:px-8 md:py-5">
         {/* ---- Every carousel rail, desktop only ----
          *
          * On a phone this whole block is gone and the homepage is the hero

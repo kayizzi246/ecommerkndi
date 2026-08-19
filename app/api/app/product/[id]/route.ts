@@ -33,8 +33,15 @@ import { toAppProduct, APP_CACHE_HEADERS } from "@/lib/app-api";
 
 export const revalidate = 60;
 
-/** Attribute values arrive as objects; the app only needs the names. */
-type AttributeRow = { name: string; values: string[] };
+/**
+ * One attribute, in both shapes.
+ *
+ * `values` is the old flat list and is kept for builds already parsing it;
+ * `options` carries the same names with the swatch image beside them, which is
+ * what a colour picker needs and a size picker ignores.
+ */
+type AttributeOptionRow = { name: string; image: string | null };
+type AttributeRow = { name: string; values: string[]; options: AttributeOptionRow[] };
 
 export async function GET(
   _request: Request,
@@ -82,14 +89,33 @@ export async function GET(
   ]);
 
   /**
-   * The attribute table — size, colour, material, whatever the seller filled
-   * in. Flattened to names, because the app renders a spec list and has no use
-   * for the option objects WooCommerce nests inside each attribute.
+   * The attribute table — size, colour, material, whatever the seller filled in.
+   *
+   * ---- Why this now sends `options` as well as `values` ----
+   *
+   * It used to send names only, on the reasoning that the app "renders a spec
+   * list and has no use for the option objects". That stopped being true when
+   * the app grew real size and colour pickers: a colour is the one attribute
+   * whose VALUE is not the thing a shopper is choosing. "Dark Brown" beside
+   * "Tan" beside "Oxblood" is three words to read and compare, where the
+   * website shows three swatches and the choice is made without reading
+   * anything — and the swatch image is exactly what was being thrown away here.
+   *
+   * `values` stays, unchanged and first, because a shipped build of the app is
+   * parsing it right now and an endpoint that drops a field is an endpoint that
+   * breaks every phone that has not updated. `options` is additive: same order,
+   * same names, plus the image when the seller uploaded one.
    */
   const attributes: AttributeRow[] = (product.attributes ?? [])
     .map((attribute) => ({
       name: attribute.name,
       values: attribute.options.map((option) => option.name).filter(Boolean),
+      options: attribute.options
+        .filter((option) => Boolean(option.name))
+        .map((option) => ({
+          name: option.name,
+          image: option.image ?? null,
+        })),
     }))
     .filter((row) => row.name && row.values.length > 0);
 

@@ -285,7 +285,7 @@ function MegaPanel({
          the sticky masthead above it. */
       className="absolute left-0 right-0 top-full z-50 border-t border-shop-line bg-white shadow-[0_12px_28px_-12px_rgb(0_0_0/0.25)]"
     >
-      <div className="mx-auto flex max-w-[1600px] gap-8 px-6 py-6">
+      <div className="mx-auto flex max-w-[var(--shell)] gap-8 px-6 py-6">
         {/* ---- The categories ---- */}
         <div className="min-w-0 flex-1">
           {/* Always a way to see the whole department, not only its parts. */}

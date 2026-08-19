@@ -68,7 +68,7 @@ export default function StoreChrome({
     return (
       <>
         <header className="border-b border-shop-line bg-white">
-          <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-4 md:px-8">
+          <div className="mx-auto flex max-w-[var(--shell)] items-center gap-4 px-4 py-4 md:px-8">
             <Link
               href="/cart"
               className="flex items-center gap-1.5 text-[14px] text-shop-body transition-colors hover:text-shop-ink"
@@ -106,13 +106,13 @@ export default function StoreChrome({
        * horizon, which is the job the sheet was doing.
        *
        * The wrapper itself stays, and it is not vestigial. Most pages set their
-       * own `mx-auto max-w-[1600px]` on an inner container, but the homepage's
+       * own `mx-auto max-w-[var(--shell)]` on an inner container, but the homepage's
        * hero deliberately sits OUTSIDE that container so it can span the full
        * width without fighting its `md:px-8` padding. Without this, the hero
        * would stretch across an entire ultrawide monitor while every rail
        * beneath it stopped at 1600px. This is what bounds it. */}
       <div className="flex-1">
-        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        <div className="mx-auto w-full max-w-[var(--shell)]">{children}</div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's
           one rule about where chrome belongs: the Seller Centre, admin and

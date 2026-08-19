@@ -49,7 +49,7 @@ export default async function SalePage({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* The highest-converting page on the shop, and it carried no structured
           data at all — so the one page whose entire content is discounted stock
           was the page Google understood least. The breadcrumb places it, the
@@ -155,7 +155,7 @@ export default async function SalePage({
           {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
               See the note in the category grid for why the old 1px gaps drew
               nothing on a white page. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 2xl:grid-cols-7">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

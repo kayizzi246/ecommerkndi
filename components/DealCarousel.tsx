@@ -47,7 +47,7 @@ export default function DealCarousel({
    * the shape a peek is supposed to have: obviously more to the right, nothing
    * that looks damaged.
    */
-  itemWidth = "w-[44%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]",
+  itemWidth = "w-[44%] sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%] 2xl:w-[11.9%]",
   priority = false,
   viewAll,
 }: {

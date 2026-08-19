@@ -249,7 +249,7 @@ export default function Header({
            thing they actually reached for further down the screen. What returns
            is the working row and nothing else. */}
       <div className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}>
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
@@ -304,7 +304,7 @@ export default function Header({
            should be. Nothing in `SearchBar` needed changing for this. */}
       <div className="bg-shop-nav">
       <div
-        className={`mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 md:flex-nowrap md:px-8 md:py-3.5 ${
+        className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-6 gap-y-3 px-4 md:flex-nowrap md:px-8 md:py-3.5 ${
           scrolled ? "py-2" : "py-3.5"
         }`}
       >
@@ -556,7 +556,7 @@ export default function Header({
             scrolled ? "hidden md:block" : ""
           }`}
         >
-          <div className="mx-auto flex max-w-[1600px] items-center gap-2 px-4 md:px-8">
+          <div className="mx-auto flex max-w-[var(--shell)] items-center gap-2 px-4 md:px-8">
             {/* The mega-menu is a hover surface, which needs a pointer; below lg
                 the button beside it opens the same tree as a stacked panel. */}
             <div className="hidden lg:block">
@@ -615,7 +615,7 @@ export default function Header({
             className="fixed inset-0 z-10 cursor-default bg-black/20"
           />
           <div className="absolute inset-x-0 z-20 max-h-[75vh] overflow-y-auto border-b border-shop-line bg-white">
-            <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-8">
+            <div className="mx-auto max-w-[var(--shell)] px-4 py-6 md:px-8">
               {departments.length === 0 ? (
                 <p className="py-4 text-[14px] text-shop-muted">
                   No departments yet — add product categories in WordPress and

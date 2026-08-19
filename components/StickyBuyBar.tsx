@@ -113,7 +113,7 @@ export default function StickyBuyBar({
         visible ? "translate-y-0" : "translate-y-0 lg:pointer-events-none lg:translate-y-full"
       }`}
     >
-      <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 md:gap-4 md:px-8 md:py-3">
+      <div className="mx-auto flex max-w-[var(--shell)] items-center gap-3 px-3 py-2.5 md:gap-4 md:px-8 md:py-3">
         <div className="relative hidden h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-shop-hairline sm:block">
           {product.image && (
             <Image src={product.image} alt="" fill sizes="48px" className="object-cover" />

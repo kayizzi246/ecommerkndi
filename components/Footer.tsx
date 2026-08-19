@@ -89,7 +89,7 @@ export default function Footer({
     <footer className="mt-14 bg-shop-nav text-white/70">
       {/* Service promises */}
       <div className="border-b border-white/10">
-        <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+        <div className="mx-auto grid max-w-[var(--shell)] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
           {serviceStrip.map((item) => (
             <div key={item.title}>
               <p className={`text-[15px] font-semibold ${item.tone}`}>{item.title}</p>
@@ -100,7 +100,7 @@ export default function Footer({
       </div>
 
       {/* Link columns */}
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
+      <div className="mx-auto grid max-w-[var(--shell)] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
         {shopDepartments.length > 0 && (
           <div>
             <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
@@ -217,7 +217,7 @@ export default function Footer({
 
       {/* Legal bar */}
       <div className="border-t border-white/10 bg-shop-ink">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every
               page of the site, which is what turns one mention of the name
               people search into a site-wide one. */}

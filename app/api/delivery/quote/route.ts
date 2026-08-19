@@ -1,6 +1,7 @@
 import { quoteDelivery, type LatLng } from "@/lib/delivery";
 import { describeLocation, locateAddress, mapsEnabled } from "@/lib/geocode";
 import { getDeliveryRates } from "@/lib/site-settings";
+import { APP_WRITE_CORS_HEADERS, appPreflight } from "@/lib/app-api";
 
 /**
  * Prices one delivery.
@@ -20,7 +21,7 @@ type QuoteBody = {
   subtotal?: number;
 };
 
-export async function POST(request: Request) {
+async function quote(request: Request): Promise<Response> {
   let body: QuoteBody;
   try {
     body = await request.json();
@@ -70,5 +71,39 @@ export async function POST(request: Request) {
     point,
     mapsEnabled: mapsEnabled(),
     freeDeliveryFrom: rates.freeDeliveryFrom,
+  });
+}
+
+/**
+ * ---- The exported handlers ----
+ *
+ * The work is `quote` above; these two exist so that the delivery quote can be called
+ * from a browser-hosted build of the app.
+ *
+ * `OPTIONS` answers the preflight the browser sends before any cross-origin
+ * POST carrying `Content-Type: application/json`, and `POST` copies the same
+ * permission onto the real answer — a preflight that passes and a response with
+ * no `Access-Control-Allow-Origin` on it still fails, and fails looking exactly
+ * like a network error. The reasoning behind opening these up at all is on
+ * `APP_WRITE_CORS_HEADERS`.
+ *
+ * The headers are added to a COPY of the response rather than being threaded
+ * through every `return` inside — there are a dozen of them and one forgotten
+ * on an error path is a bug nobody sees until an order fails.
+ */
+export function OPTIONS(): Response {
+  return appPreflight();
+}
+
+export async function POST(request: Request): Promise<Response> {
+  const response = await quote(request);
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(APP_WRITE_CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
   });
 }

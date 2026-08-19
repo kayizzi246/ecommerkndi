@@ -306,7 +306,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           actionVisible ? "pointer-events-none translate-y-full" : "translate-y-0"
         }`}
       >
-        <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
           <div className="relative hidden h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white sm:block">
             {/* Guarded: an imageless product stores "" here, and `next/image`
                 treats an empty src as a request for the current page. */}

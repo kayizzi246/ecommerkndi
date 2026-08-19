@@ -669,15 +669,26 @@ export default function ProductCard({
           >
             {formatPrice(product.price)}
           </span>
+          {/* ---- The struck-through original, and NOT the percentage ----
+
+               The row carried "UGX 145,000  UGX 160,000  −9%" and the third
+               figure was being cut in half: the row is `overflow-hidden` to
+               keep the tile's height honest, and three figures need about
+               double the width of a tile in a six-column grid. What a shopper
+               saw was a sliced "−(".
+
+               The percentage is the one that goes, because it is the only thing
+               in the tile said twice — the corner flag on the photograph is the
+               same number, in the same red, where it is read first. Dropping it
+               here costs no information and gives the two figures that ARE
+               distinct the whole width.
+
+               The original still disappears below `sm`, where a 150px phone
+               tile has room for one price and nothing else. */}
           {discount > 0 && (
-            <>
-              <span className="was-price hidden whitespace-nowrap sm:inline">
-                {formatPrice(product.regular_price)}
-              </span>
-              <span className="hidden whitespace-nowrap text-[12px] font-bold leading-none text-shop-sale sm:inline">
-                −{discount}%
-              </span>
-            </>
+            <span className="was-price hidden whitespace-nowrap sm:inline">
+              {formatPrice(product.regular_price)}
+            </span>
           )}
         </p>
       </div>

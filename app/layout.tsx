@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto, Outfit } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,136 +13,82 @@ import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: Poppins, one face, everywhere ----
+ * ---- The shop's type: Inter for reading, Poppins for finding ----
  *
- * ONE face rather than a display/body pair. This shop has been through the
- * system stack, Inter, Open Sans, and a Montserrat-over-Roboto pairing, and the
- * argument for landing on a single geometric face is not that pairing is wrong
- * — it is that this page is already carrying a great deal visually. A product
- * grid is photography, prices, discount flags, badges, tinted rails and orange.
- * A second typeface is one more thing competing in that frame, and the thing it
- * competes with is the merchandise. One face across headings, prices, navigation
- * and body is what makes the page read as one designed object instead of a
- * template with sections bolted on.
+ * Two faces, and the split is by JOB rather than by element:
  *
- * Poppins specifically because it is geometric and even-width, which is what
- * gives a marketplace personality next to the brand orange without the
- * headings having to shout. It is the modern-storefront idiom rather than the
- * functional-app one.
+ *   INTER   everything a shopper reads or scans a word at a time — product
+ *           names, prices, body copy, form fields, navigation, the meta lines
+ *           under a tile. It is a neo-grotesque drawn for interface use at
+ *           small sizes, which is exactly what a page of 12–14px catalogue
+ *           text is, and its figures are even enough that a column of UGX
+ *           prices lines up down a grid.
  *
- * The SCALE — which element is set at which weight and size — is the
- * AliExpress-style spec written out in full at the head of the type block in
- * `globals.css`, and it is unchanged across every one of these moves. Which
- * face carries it is a separate decision, and only that one keeps moving.
+ *   POPPINS everything that is FOUND rather than read — "Trending now", a page
+ *           headline, the hero. Geometric and near-circular, so a section title
+ *           stays legible at a glance halfway down a page of photographs, and
+ *           its weight reads as personality rather than as emphasis.
  *
- * ---- THREE COSTS, all real, all accepted deliberately ----
+ * That is the marketplace idiom: the merchandise supplies the character, the
+ * body face gets out of its way, and the display face appears only where the
+ * page needs to be navigated rather than read.
  *
- * 1. FIVE FILES, NOT ONE. Poppins is not a variable font in the version of the
- *    Google font data bundled with this Next install — it ships as static
- *    instances. Inter, Montserrat and Roboto were all variable, so each of them
- *    was ONE download covering 100–900. Poppins is one download PER WEIGHT.
+ * ---- What this costs, stated plainly ----
  *
- *    That is why the `weight` array below is exactly five entries and not the
- *    nine Google offers. Every one of them is a weight this shop actually sets:
+ * Inter is a VARIABLE font: one file covers 100–900, so every weight the shop
+ * uses — 400 body, 500, 600 product names, 700, 800 prices — is free once that
+ * file has landed. Nothing in the reading face ever needs to be argued over
+ * again.
  *
- *      400  body copy, product names, search field, was-prices, meta notes
- *      500  category names, `font-medium`
- *      600  navigation, section subtitles, buttons, `font-semibold`
- *      700  headings, prices, section titles
- *      800  hero display, product-page titles, `font-extrabold`
+ * Poppins is NOT. Google ships it as static instances, so every weight is its
+ * own download, which is why the array below is exactly two entries and not the
+ * nine on offer. 700 is the weight the heading rule in `globals.css` forces on
+ * every h1–h6, `.section-title`, `.hero-display` and `.heading-*`; 600 is the
+ * quieter step for the few titles that ask for it. There is no 400, 500 or 800
+ * Poppins in this shop, and adding one costs a Ugandan shopper another file on
+ * the critical path — check it is genuinely used first.
  *
- *    Adding a sixth costs a Ugandan shopper another file on the critical path
- *    for nothing. Before adding one, check it is genuinely used — the tally that
- *    produced this list is `font-(normal|medium|semibold|bold|extrabold)` across
- *    `app/` and `components/`, plus the `font-weight` declarations in
- *    `globals.css`. There is no 100/200/300 and no 900 anywhere in the shop.
+ * `font-synthesis-weight: none` in `globals.css` is what makes that list
+ * load-bearing rather than advisory: a weight that was not downloaded is not
+ * smeared into existence, it silently renders as a neighbour. So a Poppins
+ * weight that is missing here does not look broken, it looks *untouched* —
+ * which is far harder to notice.
  *
- * 2. WIDTH. Poppins is geometric, which means round letterforms and wide
- *    sidebearings — it sets meaningfully wider per character than Inter or
- *    Roboto. The product name row is a fixed two lines in a tile about 150px
- *    across on a phone, so a wider face fits fewer characters before the
- *    ellipsis, and a supplier's 90-character title now truncates a word or two
- *    earlier than it did. That is the price of the personality, and it is paid
- *    on every tile in the shop. If titles start looking badly clipped, the
- *    lever is the tile's name row, not the face.
- *
- * 3. FIGURES. `.price` asks for `tabular-nums` and Poppins ships no true
- *    tabular set. Its digits are geometric and near-uniform in width so a
- *    column of UGX prices still lines up in practice; the request is left in
- *    place because it costs nothing and starts working the moment the face
- *    changes again.
- *
- * What has NOT changed is the delivery, and it is the reason a webfont is
- * affordable on a Ugandan mobile connection at all:
+ * ---- The delivery, which is why a webfont is affordable at all ----
  *
  *   • `next/font/google` downloads the files at BUILD time and serves them from
  *     this origin. No request reaches Google from a shopper's browser, so there
  *     is no third-party DNS lookup or handshake on the critical path, and
  *     nothing to add to the CSP in next.config.ts.
- *   • `display: "swap"` means text paints immediately in the fallback and is
- *     repainted in Poppins when it lands. Nobody ever sees a blank page waiting
- *     on a font.
+ *   • `display: "swap"` paints text immediately in the fallback and repaints
+ *     when the face lands. Nobody waits on a blank page.
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
- *     `@font-face`, so the swap does not reflow a single price or product name.
+ *     `@font-face`, so the swap does not reflow a price or a product name.
  *
- * `variable` rather than `className`: the family is handed to CSS as
- * `--font-poppins`, which `globals.css` puts at the head of BOTH `--font-ui`
- * and `--font-display`, with the system stack still behind it as the fallback.
- * Those two names are kept even though they now resolve to one family — it is
- * what made this swap a two-line change instead of a search through two hundred
- * components, and it is what will make the next one cheap too.
+ * `variable` rather than `className`: the families are handed to CSS as
+ * `--font-inter` and `--font-poppins`, and `globals.css` points `--font-ui` and
+ * `--font-display` at them. Those two names are the seam that has now made five
+ * typeface changes a two-line edit here instead of a search through two hundred
+ * components. Do not collapse them.
  */
-const roboto = Roboto({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-roboto",
-  /* ---- No `weight` array, on purpose: this is the VARIABLE file ----
-   *
-   * It used to name four weights — 400, 500, 700, 900 — and naming any weight
-   * is what makes `next/font` fetch STATIC instances instead. That is four
-   * separate downloads, and it is the reason the list was kept short and every
-   * addition argued over: a fifth weight was a fifth file on the critical path
-   * for a shopper on a Ugandan mobile connection.
-   *
-   * Roboto ships a variable font covering 100–900 in ONE file. Omitting
-   * `weight` takes it, which is fewer requests than the four statics AND makes
-   * every step in between free — 600 for a semibold product name, 800 for a
-   * price — where before each one was a new file to justify.
-   *
-   * This matters more than it looks, because `font-synthesis-weight: none` in
-   * globals.css means a weight that was not loaded is not faked: it silently
-   * renders as a neighbouring weight and the type looks untouched. With four
-   * statics, half the scale was quietly unavailable. With the variable file
-   * there is nothing to get wrong. */
+  variable: "--font-inter",
+  /* No `weight` array on purpose: naming any weight makes `next/font` fetch
+     STATIC instances, one file each. Omitting it takes Inter's variable file —
+     one download covering 100–900, and every step of the scale free. */
 });
 
-/**
- * Outfit — the DISPLAY face. Headings, section titles and prices.
- *
- * Two faces again, and the split is the reason it is worth the second file.
- * Roboto keeps the reading: product names, body copy, form labels, everything
- * a shopper works through a word at a time, where a neo-grotesque drawn for
- * interface use is exactly right and a geometric face is not.
- *
- * Outfit takes the type that is FOUND rather than read — "Trending now", a
- * price, a page headline. It is geometric, near-circular and very even in
- * colour, which is what makes a section title legible at a glance halfway down
- * a page of photographs, and its heavy weights stay open where Roboto's close
- * up.
- *
- * Four weights, all of them used: 500 nowhere near a heading (it is there for
- * `.category-name`-style display text), 600 for the quieter titles, 700 for
- * the section headings, 800 for prices and the /sell hero. Nothing loads that
- * the stylesheet does not ask for — `font-synthesis-weight: none` means an
- * absent weight silently renders as another one rather than being faked.
- */
-const outfit = Outfit({
+const poppins = Poppins({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-outfit",
-  /* The variable file here too, and for the same reason as Roboto above: four
-     named weights are four downloads, where the variable Outfit is one file
-     covering 100–900. See the note in the Roboto block. */
+  variable: "--font-poppins",
+  /* Two files, and both are used: 700 is what the heading rule forces on every
+     h1–h6 and section title, 600 is the quieter step. Poppins has no variable
+     file, so each entry here is a real download — see the note above before
+     adding a third. */
+  weight: ["600", "700"],
 });
 
 /**
@@ -330,7 +276,7 @@ export default async function RootLayout({
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
-      className={`${roboto.variable} ${outfit.variable} h-full antialiased`}
+      className={`${inter.variable} ${poppins.variable} h-full antialiased`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media
