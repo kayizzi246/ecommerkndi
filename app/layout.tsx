@@ -96,12 +96,24 @@ const roboto = Roboto({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-roboto",
-  // 900 is here for exactly one element: the /sell headline. It is a real
-  // file, and it has to be, because `font-synthesis-weight: none` in
-  // globals.css means a weight that was not loaded is not smeared into
-  // existence — it silently falls back to 700 and the type looks untouched.
-  // One extra file on one route is the price of the heaviest step existing.
-  weight: ["400", "500", "700", "900"],
+  /* ---- No `weight` array, on purpose: this is the VARIABLE file ----
+   *
+   * It used to name four weights — 400, 500, 700, 900 — and naming any weight
+   * is what makes `next/font` fetch STATIC instances instead. That is four
+   * separate downloads, and it is the reason the list was kept short and every
+   * addition argued over: a fifth weight was a fifth file on the critical path
+   * for a shopper on a Ugandan mobile connection.
+   *
+   * Roboto ships a variable font covering 100–900 in ONE file. Omitting
+   * `weight` takes it, which is fewer requests than the four statics AND makes
+   * every step in between free — 600 for a semibold product name, 800 for a
+   * price — where before each one was a new file to justify.
+   *
+   * This matters more than it looks, because `font-synthesis-weight: none` in
+   * globals.css means a weight that was not loaded is not faked: it silently
+   * renders as a neighbouring weight and the type looks untouched. With four
+   * statics, half the scale was quietly unavailable. With the variable file
+   * there is nothing to get wrong. */
 });
 
 /**
@@ -128,7 +140,9 @@ const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-outfit",
-  weight: ["500", "600", "700", "800"],
+  /* The variable file here too, and for the same reason as Roboto above: four
+     named weights are four downloads, where the variable Outfit is one file
+     covering 100–900. See the note in the Roboto block. */
 });
 
 /**

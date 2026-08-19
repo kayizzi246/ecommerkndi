@@ -481,11 +481,24 @@ h6,
    * in a geometric face — which is the difference between a discounted price
    * row fitting a 150px phone tile and not. */
   font-family: var(--font-ui);
-  /* 700, the scale's price weight, and a real loaded Roboto file — see
-     `layout.tsx`. `font-synthesis-weight: none` means an unloaded weight would
-     silently render as another one rather than being faked, so 800 here would
-     have quietly been 700 anyway. */
-  font-weight: 700;
+  /* ---- 800, and it is a real weight rather than a smeared one ----
+   *
+   * 700 is the scale's price row and it was the ceiling for a practical
+   * reason: Roboto was loaded as four static instances and 800 was not one of
+   * them, so asking for it would have rendered 700 anyway —
+   * `font-synthesis-weight: none` refuses to fake what was not downloaded.
+   *
+   * The face is loaded as its VARIABLE file now (see `layout.tsx`), so every
+   * step from 100 to 900 is available at no extra cost, and the price can have
+   * the one it wants. 800 is what the reference grid sets: the price is the
+   * only thing in a tile that has to be read from across a room, and at 700 it
+   * sat a single step above the 600 product name directly above it. Two steps
+   * is what makes it unmistakably the loudest line in the block.
+   *
+   * Not 900. That is a display weight — it is what /sell's headline uses at
+   * 40px — and at 16px on a phone its counters close up and "UGX 145,854"
+   * starts reading as a shape rather than as figures a shopper counts. */
+  font-weight: 800;
   /* ---- 16px on a phone, 18px from 640px up ----
    *
    * The scale's price row is 18px and that is the size on any screen with room
