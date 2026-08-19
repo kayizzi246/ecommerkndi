@@ -19,6 +19,35 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 // ============================================================
+// IMAGE DELIVERY
+// ============================================================
+
+/// The `Accept` header every photograph in this screen is fetched with.
+///
+/// ---- Why an app has to say this out loud ----
+///
+/// The API now hands back image URLs pointing at the storefront's image
+/// optimiser (`/_next/image?...`) rather than at the raw WordPress upload, and
+/// that endpoint picks its output format from the REQUEST: a client that says
+/// it takes WebP gets WebP, and a client that says nothing gets the original
+/// format back, resized.
+///
+/// Dart's HTTP client — which is what `cached_network_image` uses — sends no
+/// `Accept` header at all. So without this line the app would collect the
+/// resizing and the CDN delivery and silently leave the format conversion on
+/// the table, which on this catalogue is about 45% of the bytes. Flutter
+/// decodes WebP natively on both Android and iOS, so there is nothing to lose
+/// by asking for it.
+///
+/// `image/*` after it is the fallback for any URL that is not going through
+/// the optimiser — a seller avatar on another domain, say — where the server
+/// should simply send whatever it has.
+const Map<String, String> _kImageHeaders = <String, String>{
+  'Accept': 'image/webp,image/*;q=0.8',
+};
+
+
+// ============================================================
 //  KANDI — HOME  (v4)
 //
 //  WHAT CHANGED FROM v3, AND WHY
@@ -2409,6 +2438,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
 
     return CachedNetworkImage(
       imageUrl: url,
+      httpHeaders: _kImageHeaders,
       fit: BoxFit.cover,
       // Decoded at roughly the size it is drawn. Without this a 2000px
       // WooCommerce photo is decoded at full resolution into a 150px box, and

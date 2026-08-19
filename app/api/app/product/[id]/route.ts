@@ -1,6 +1,6 @@
 import { getProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
 import { getSiteSettings } from "@/lib/site-settings";
-import { toAppProduct, APP_CACHE_HEADERS } from "@/lib/app-api";
+import { toAppProduct, appImage, APP_CACHE_HEADERS } from "@/lib/app-api";
 
 /**
  * GET /api/app/product/{idOrSlug}
@@ -114,7 +114,7 @@ export async function GET(
         .filter((option) => Boolean(option.name))
         .map((option) => ({
           name: option.name,
-          image: option.image ?? null,
+          image: option.image ? appImage(option.image, 256) : null,
         })),
     }))
     .filter((row) => row.name && row.values.length > 0);
@@ -132,7 +132,12 @@ export async function GET(
         shortDescription: product.short_description ?? "",
 
         /** Every photograph, not the six a tile is capped at. */
-        images: [product.image, ...product.gallery].filter(Boolean),
+        /* Built from the serialised product, not the raw one: `toAppProduct`
+           has already routed both the tile shot and the gallery through the
+           image optimiser, and reaching past it to `product` here would put
+           the unoptimised WordPress originals back on the one screen that
+           shows the biggest pictures. */
+        images: [appImage(product.image, 1080), ...product.gallery.slice(0, 6).map((url) => appImage(url, 1080))].filter(Boolean),
 
         attributes,
 

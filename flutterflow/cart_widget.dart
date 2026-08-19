@@ -32,6 +32,35 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
+// IMAGE DELIVERY
+// ============================================================
+
+/// The `Accept` header every photograph in this screen is fetched with.
+///
+/// ---- Why an app has to say this out loud ----
+///
+/// The API now hands back image URLs pointing at the storefront's image
+/// optimiser (`/_next/image?...`) rather than at the raw WordPress upload, and
+/// that endpoint picks its output format from the REQUEST: a client that says
+/// it takes WebP gets WebP, and a client that says nothing gets the original
+/// format back, resized.
+///
+/// Dart's HTTP client — which is what `cached_network_image` uses — sends no
+/// `Accept` header at all. So without this line the app would collect the
+/// resizing and the CDN delivery and silently leave the format conversion on
+/// the table, which on this catalogue is about 45% of the bytes. Flutter
+/// decodes WebP natively on both Android and iOS, so there is nothing to lose
+/// by asking for it.
+///
+/// `image/*` after it is the fallback for any URL that is not going through
+/// the optimiser — a seller avatar on another domain, say — where the server
+/// should simply send whatever it has.
+const Map<String, String> _kImageHeaders = <String, String>{
+  'Accept': 'image/webp,image/*;q=0.8',
+};
+
+
+// ============================================================
 //  KANDI — CART  (v3)
 //
 //  Fourth sibling of home_sections_widget.dart,
@@ -630,6 +659,12 @@ class _Quote {
   final String? place;
   final double freeDeliveryFrom;
 
+  /// The coordinates the server actually priced from — its own geocoding of a
+  /// typed address, echoed back. Held so the next quote can go by point, and so
+  /// the order is placed against the same location the fee came from.
+  final double? lat;
+  final double? lng;
+
   const _Quote({
     required this.fee,
     required this.free,
@@ -637,6 +672,8 @@ class _Quote {
     required this.label,
     required this.place,
     required this.freeDeliveryFrom,
+    required this.lat,
+    required this.lng,
   });
 
   factory _Quote.fromJson(Map<String, dynamic> j) => _Quote(
@@ -648,6 +685,12 @@ class _Quote {
         freeDeliveryFrom: (j['freeDeliveryFrom'] is num)
             ? (j['freeDeliveryFrom'] as num).toDouble()
             : 0,
+        lat: ((j['point'] as Map?)?['lat'] is num)
+            ? ((j['point'] as Map)['lat'] as num).toDouble()
+            : null,
+        lng: ((j['point'] as Map?)?['lng'] is num)
+            ? ((j['point'] as Map)['lng'] as num).toDouble()
+            : null,
       );
 }
 
@@ -971,6 +1014,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   bool _refreshing = false;
 
   String? _address;
+
+  /// The coordinates the saved address was resolved to, when there are any.
+  ///
+  /// The address screen saves them because the SERVER prices from a point, and
+  /// the cart quoting from text was throwing that away and asking the geocoder
+  /// to find the same place again — see `_quoteNow`.
+  double? _lat;
+  double? _lng;
   _Quote? _quote;
   bool _quoting = false;
   String? _quoteError;
@@ -1002,6 +1053,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
     final lines = await _Cart.load(force: true);
     _address = await _Delivery.savedAddress();
+    final record = await _Delivery.savedRecord();
+    _lat = (record?['lat'] is num) ? (record!['lat'] as num).toDouble() : null;
+    _lng = (record?['lng'] is num) ? (record!['lng'] as num).toDouble() : null;
 
     if (!mounted) return;
     setState(() {
@@ -1112,6 +1166,23 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     }
 
     try {
+      // ---- By POINT when the address screen saved one ----
+      //
+      // The endpoint takes `point` OR `address` and geocodes the second into
+      // the first, so both work — but they are not equally good, and this cart
+      // was using the worse one on every quote.
+      //
+      // A saved record already carries the coordinates the fee was priced from
+      // last time. Sending the text instead asks the geocoder to find the same
+      // place again, which costs a round trip, can land somewhere slightly
+      // different, and can simply FAIL — "kampala" typed into the address box
+      // is a whole city, and a spelling the geocoder does not recognise comes
+      // back 422 with the shopper looking at a basket that cannot be priced.
+      //
+      // Text remains the fallback for a v1 record, which is an address with no
+      // point: geocoding it here is exactly how it gets upgraded to one.
+      final byPoint = _lat != null && _lng != null;
+
       final response = await http
           .post(
             Uri.parse('$_base/api/delivery/quote'),
@@ -1119,7 +1190,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
               'Accept': 'application/json',
               'Content-Type': 'application/json',
             },
-            body: jsonEncode({'address': address, 'subtotal': _subtotal}),
+            body: jsonEncode(
+              byPoint
+                  ? {
+                      'point': {'lat': _lat, 'lng': _lng},
+                      'subtotal': _subtotal,
+                    }
+                  : {'address': address, 'subtotal': _subtotal},
+            ),
           )
           .timeout(const Duration(seconds: 20));
 
@@ -1142,6 +1220,14 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
         _quote = quote;
         if (quote.freeDeliveryFrom > 0) {
           _freeDeliveryFrom = quote.freeDeliveryFrom;
+        }
+        // The point the server actually priced from. Holding it means the next
+        // quote — after a quantity change, or after coming back from the
+        // checkout — goes by coordinates rather than re-geocoding the text,
+        // and it is the same value the order will be placed against.
+        if (quote.lat != null && quote.lng != null) {
+          _lat = quote.lat;
+          _lng = quote.lng;
         }
         _quoting = false;
       });
@@ -1249,10 +1335,60 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     await _remove(line);
   }
 
-  void _checkout() {
+  /// Leaving the basket for the checkout — through the account gate.
+  ///
+  /// ---- Two things changed here, and both were reported as bugs ----
+  ///
+  /// 1. THE BUTTON DID NOTHING WITHOUT A WIRED ACTION. This was
+  ///    `widget.onCheckout?.call(...)` and nothing else, so a project that had
+  ///    not wired that Action in the FlutterFlow panel had a "Checkout" button
+  ///    that took a tap, buzzed, and stayed exactly where it was. Every other
+  ///    control in these files grew an in-code fallback for this reason; this
+  ///    was the last one that had not, and it was the most expensive one to
+  ///    lose. The Action still fires — a project may want to log the intent or
+  ///    move a FlutterFlow page state — and `KandiCheckout` is pushed either
+  ///    way, so wiring it is now optional rather than load-bearing.
+  ///
+  /// 2. THE ACCOUNT IS ASKED FOR HERE, NOT ONLY ON THE NEXT SCREEN.
+  ///    `KandiCheckout` already refuses to render its form without a Supabase
+  ///    session — that gate stays, and it is the one that actually protects the
+  ///    order, because it is checked where the order is placed. What it could
+  ///    not do is ask at the right MOMENT: a shopper tapped Checkout, watched a
+  ///    page push in, and found a sign-in wall where they expected a form.
+  ///
+  ///    Asking here means the sign-in arrives as the answer to the tap that
+  ///    caused it. The session is re-read after the auth screen closes rather
+  ///    than trusted from a result, because the shopper may have signed in,
+  ///    backed out, or come back through an OAuth redirect — and only the
+  ///    session knows which. Somebody who backs out lands on their basket with
+  ///    everything still in it, which is the correct place to be left.
+  ///
+  ///    Signing up is one tab of that screen; this deliberately does not force
+  ///    "create an account" over "log in", because a returning customer being
+  ///    told to make a second account is how you get two accounts and one
+  ///    confused shopper.
+  Future<void> _checkout() async {
     if (!_canCheckout) return;
     HapticFeedback.mediumImpact();
+
+    if (!KandiAuthPage.isSignedIn()) {
+      await KandiAuthPage.open(context);
+      if (!mounted) return;
+      // Still signed out: they closed the sheet without finishing, or signed
+      // up into a project with email confirmation switched on, where there is
+      // no session until the link in the inbox is clicked. Either way there is
+      // nothing to move on to, and the auth screen has already said why.
+      if (!KandiAuthPage.isSignedIn()) return;
+    }
+
     widget.onCheckout?.call(_total, _itemCount, _deliveryFee ?? 0);
+
+    await KandiCheckout.open(context);
+    if (!mounted) return;
+    // The checkout empties the basket on a placed order, and may have changed
+    // the delivery address on the way through. Re-read both rather than
+    // showing a basket that is one order out of date.
+    await _load();
   }
 
   // ---------- Address sheet ----------
@@ -1353,7 +1489,16 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     if (typed == null || typed.isEmpty) return;
     await _Delivery.saveAddress(typed);
     if (!mounted) return;
-    setState(() => _address = typed);
+    setState(() {
+      _address = typed;
+      // The saved coordinates belonged to the address that was just replaced.
+      // Keeping them would price a delivery to the old place while showing the
+      // new one — and the coordinates are what the ORDER is priced from, so it
+      // would be wrong all the way to the invoice. Cleared here and replaced by
+      // whatever the next quote echoes back.
+      _lat = null;
+      _lng = null;
+    });
     _requestQuote(immediate: true);
   }
 
@@ -1728,6 +1873,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                   Colors.transparent, BlendMode.dst),
                           child: CachedNetworkImage(
                             imageUrl: line.image,
+                            httpHeaders: _kImageHeaders,
                             fit: BoxFit.cover,
                             memCacheWidth: 260,
                             fadeInDuration: const Duration(milliseconds: 150),

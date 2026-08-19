@@ -18,6 +18,35 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 // ============================================================
+// IMAGE DELIVERY
+// ============================================================
+
+/// The `Accept` header every photograph in this screen is fetched with.
+///
+/// ---- Why an app has to say this out loud ----
+///
+/// The API now hands back image URLs pointing at the storefront's image
+/// optimiser (`/_next/image?...`) rather than at the raw WordPress upload, and
+/// that endpoint picks its output format from the REQUEST: a client that says
+/// it takes WebP gets WebP, and a client that says nothing gets the original
+/// format back, resized.
+///
+/// Dart's HTTP client — which is what `cached_network_image` uses — sends no
+/// `Accept` header at all. So without this line the app would collect the
+/// resizing and the CDN delivery and silently leave the format conversion on
+/// the table, which on this catalogue is about 45% of the bytes. Flutter
+/// decodes WebP natively on both Android and iOS, so there is nothing to lose
+/// by asking for it.
+///
+/// `image/*` after it is the fallback for any URL that is not going through
+/// the optimiser — a seller avatar on another domain, say — where the server
+/// should simply send whatever it has.
+const Map<String, String> _kImageHeaders = <String, String>{
+  'Accept': 'image/webp,image/*;q=0.8',
+};
+
+
+// ============================================================
 //  KANDI — PRODUCT DETAIL  (v3)
 //
 //  Third sibling of home_sections_widget.dart and
@@ -315,15 +344,63 @@ class _Related {
       );
 }
 
+/// One value of an attribute — "42", or "Dark Brown" with the swatch that shows
+/// what dark brown looks like.
+///
+/// The image is null for almost everything: a size has no picture and does not
+/// want one. It is the whole point for a COLOUR, which is the one attribute
+/// whose value is not what the shopper is choosing — they are choosing the
+/// thing the word names, and three colour words in a row is a reading exercise
+/// where three swatches is a glance.
+class _Option {
+  final String name;
+  final String? image;
+  const _Option({required this.name, this.image});
+}
+
 class _Attribute {
   final String name;
   final List<String> values;
-  const _Attribute({required this.name, required this.values});
 
-  factory _Attribute.fromJson(Map<String, dynamic> j) => _Attribute(
-        name: (j['name'] ?? '').toString(),
-        values: _toStrings(j['values']),
-      );
+  /// The same values with their swatches. Always the same length and order as
+  /// `values` — it is built from it when the endpoint is an older one that
+  /// sends names only, so nothing downstream has to check which shape arrived.
+  final List<_Option> options;
+
+  const _Attribute({
+    required this.name,
+    required this.values,
+    required this.options,
+  });
+
+  factory _Attribute.fromJson(Map<String, dynamic> j) {
+    final values = _toStrings(j['values']);
+
+    // `options` is the newer field: [{ name, image }]. Falling back to
+    // `values` rather than requiring it means this widget keeps working
+    // against a deployment of the site that predates the swatches, which is a
+    // real state — the app and the website ship on different days.
+    final raw = j['options'];
+    final options = <_Option>[];
+    if (raw is List) {
+      for (final entry in raw) {
+        if (entry is! Map) continue;
+        final option = Map<String, dynamic>.from(entry);
+        final name = (option['name'] ?? '').toString();
+        if (name.isEmpty) continue;
+        final image = (option['image'] ?? '').toString();
+        options.add(_Option(name: name, image: image.isEmpty ? null : image));
+      }
+    }
+
+    return _Attribute(
+      name: (j['name'] ?? '').toString(),
+      values: values,
+      options: options.isNotEmpty
+          ? options
+          : values.map((v) => _Option(name: v)).toList(),
+    );
+  }
 }
 
 class _Review {
@@ -894,8 +971,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// Closing it properly means the endpoint sending `variations`; doing it
   /// with a guess would mean hiding combinations that DO exist, which costs
   /// sales rather than preventing mistakes.
+  /// ---- Why this is `isNotEmpty` and not `length > 1` ----
+  ///
+  /// It was `length > 1`, on the reasoning that a one-value attribute is a
+  /// fact rather than a question and belongs in the Details table. The
+  /// reasoning is sound and the result was wrong: the shopper's report was that
+  /// COLOURS DO NOT DISPLAY, and this is the line that hid them. A shoe made in
+  /// one colour has a one-value `Color` attribute, so the colour vanished from
+  /// the buy area entirely — and "what colour is this" is a question a shopper
+  /// asks about a photograph whether or not there is a second answer available.
+  ///
+  /// The website has always shown every attribute that has any options at all
+  /// (`AddToCartButton`: `if (attr.options.length === 0) return null`), and
+  /// this now matches it. A single-value attribute still costs nobody a tap —
+  /// it is pre-selected on load in `_load`, so it can never be the thing
+  /// `_missing` is waiting for; it is simply visible, which is the whole
+  /// difference being asked for.
   List<_Attribute> _pickable(_Detail d) =>
-      d.attributes.where((a) => a.values.length > 1).toList();
+      d.attributes.where((a) => a.values.isNotEmpty).toList();
 
   /// The first choice still outstanding, or null when everything is answered.
   _Attribute? _missing(_Detail d) {
@@ -1122,6 +1215,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               onPageChanged: (i) => setState(() => _imageIndex = i),
               itemBuilder: (_, i) => CachedNetworkImage(
                 imageUrl: images[i],
+                httpHeaders: _kImageHeaders,
                 fit: BoxFit.cover,
                 // Decoded at roughly the size it is drawn. A 2000px WooCommerce
                 // photograph decoded at full resolution is how a mid-range
@@ -1256,6 +1350,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 borderRadius: BorderRadius.circular(7),
                 child: CachedNetworkImage(
                   imageUrl: images[i],
+                  httpHeaders: _kImageHeaders,
                   fit: BoxFit.cover,
                   // Drawn at 52px on a 3x screen. Decoding these at full
                   // WooCommerce resolution would put six 2000px bitmaps in
@@ -1427,12 +1522,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     required String label,
     required bool selected,
     required VoidCallback onTap,
+    String? swatch,
   }) {
     return _Press(
       onTap: onTap,
       child: Container(
         height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        // Tighter on the left when a swatch leads, so the chip does not grow a
+        // gap the size of the image it just gained.
+        padding: EdgeInsets.only(left: swatch == null ? 14 : 6, right: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? _kPrimary.withOpacity(0.07) : _kWhite,
@@ -1442,13 +1540,44 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             width: selected ? 1.5 : 1,
           ),
         ),
-        child: Text(
-          label,
-          style: _text(
-            size: 13.5,
-            color: selected ? _kPrimaryInk : _kBody,
-            weight: selected ? FontWeight.w700 : FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ---- The colour, shown rather than named ----
+            //
+            // The swatch AND the word, not the swatch alone. A row of unlabelled
+            // squares is a guessing game for anyone who cannot distinguish two
+            // near neighbours, and it is unusable with a screen reader — the
+            // word is the accessible name of the option and it stays.
+            if (swatch != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: CachedNetworkImage(
+                  imageUrl: swatch,
+                  httpHeaders: _kImageHeaders,
+                  width: 26,
+                  height: 26,
+                  fit: BoxFit.cover,
+                  // 26px on a 3x screen. Decoding a supplier's 2000px swatch at
+                  // full size to draw a thumbnail is how a colour list with
+                  // twelve options runs a phone out of memory.
+                  memCacheWidth: 96,
+                  placeholder: (_, __) => const ColoredBox(color: _kHairline),
+                  errorWidget: (_, __, ___) =>
+                      const ColoredBox(color: _kHairline),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              label,
+              style: _text(
+                size: 13.5,
+                color: selected ? _kPrimaryInk : _kBody,
+                weight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1505,15 +1634,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ],
           ),
           const SizedBox(height: 9),
+          // ---- A Wrap, and it has to stay one ----
+          //
+          // Sizes are two characters wide and there are usually four to eight
+          // of them: they belong side by side, flowing onto a second line when
+          // they run out of room, which is what every marketplace does and what
+          // makes a size list readable at a glance. A Column of full-width rows
+          // — which is what this looked like in the build that prompted the
+          // complaint — turns four sizes into four screens' worth of scrolling
+          // and reads as a menu rather than as a set of options.
+          //
+          // `SizedBox(width: double.infinity)` above it is deliberately NOT
+          // here, and neither is `CrossAxisAlignment.stretch` on any ancestor
+          // in this file: either one forces the Wrap's children to the full
+          // width and produces exactly that stacked layout.
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final value in attribute.values)
+              for (final option in attribute.options)
                 _optionChip(
-                  label: value,
-                  selected: _chosen[attribute.name] == value,
-                  onTap: () => onPick(attribute.name, value),
+                  label: option.name,
+                  swatch: option.image,
+                  selected: _chosen[attribute.name] == option.name,
+                  onTap: () => onPick(attribute.name, option.name),
                 ),
             ],
           ),
@@ -1617,6 +1761,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   ? const ColoredBox(color: _kHairline)
                                   : CachedNetworkImage(
                                       imageUrl: d.images.first,
+                                      httpHeaders: _kImageHeaders,
                                       fit: BoxFit.cover,
                                       placeholder: (_, __) =>
                                           const ColoredBox(color: _kHairline),
@@ -2072,8 +2217,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   ///
   /// A single-value attribute stays: "Material — Cotton" is exactly what this
   /// table is for.
-  List<_Attribute> _specs(_Detail d) =>
-      d.attributes.where((a) => a.values.length <= 1).toList();
+  /// Every attribute, which is what the website's own details table prints.
+  ///
+  /// This used to be the strict complement of `_pickable` — the attributes NOT
+  /// offered as chips — so that the page could not state the same list twice.
+  /// Now that every attribute is a chip row, that rule would empty this table
+  /// completely and take "Material — Cotton" off the page with it.
+  ///
+  /// So it lists them all, exactly as `app/products/[id]/page.tsx` does. The
+  /// two blocks are not a duplicate: the chips are where a choice is MADE, near
+  /// the price and the buy button; this is the specification, read by somebody
+  /// comparing two products rather than buying one.
+  List<_Attribute> _specs(_Detail d) => d.attributes;
 
   Widget _specsBlock(_Detail d) => Padding(
         padding: const EdgeInsets.fromLTRB(_pad, 16, _pad, 4),
@@ -2217,6 +2372,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   ? const ColoredBox(color: _kHairline)
                                   : CachedNetworkImage(
                                       imageUrl: r.image,
+                                      httpHeaders: _kImageHeaders,
                                       fit: BoxFit.cover,
                                       memCacheWidth: 400,
                                       placeholder: (_, __) =>

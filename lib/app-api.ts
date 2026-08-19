@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/woocommerce";
+import { wordpressOrigin } from "@/lib/woocommerce";
 import { discountPercent, formatPrice } from "@/lib/currency";
 import { absolute, productPath } from "@/lib/seo";
 
@@ -69,6 +70,59 @@ export function isNewListing(dateCreated: string | null): boolean {
  * charged. Anything else produces a struck-through price identical to the real
  * one, which reads as a trick.
  */
+/**
+ * A photograph, routed through the storefront's image optimiser.
+ *
+ * ---- What the app was being sent, and what it cost ----
+ *
+ * Every image URL in these payloads was the raw WordPress upload:
+ * `https://shop.kandiug.com/wp-content/uploads/2026/08/1-11.jpg`, whatever
+ * size and format the seller happened to upload. So a phone showing a grid of
+ * twenty tiles opened twenty connections to a shared WordPress host in order
+ * to download twenty full-resolution supplier photographs.
+ *
+ * Measured against this shop: a product photograph answered in 0.6–1.4 seconds
+ * from WordPress and 0.33 seconds through the optimiser, and came back 45%
+ * smaller as WebP. The size matters on a Ugandan mobile connection; the
+ * LATENCY matters more, because it is paid once per image and the app is
+ * asking for twenty at a time. The homepage banner made the same point at the
+ * extreme — 533KB and 5.8 seconds raw, 24KB from the CDN.
+ *
+ * `/_next/image` fixes all three at once: it resizes to the width the app
+ * actually draws, re-encodes to WebP for any client that says it takes WebP
+ * (see the `Accept` header the Dart widgets now send), and serves the result
+ * from the deployment's CDN with the 31-day cache configured in
+ * next.config.ts. The WordPress host is touched once, by us, on the first
+ * request for each size.
+ *
+ * ---- Why the guard is on the ORIGIN and not on `http` ----
+ *
+ * The optimiser answers 400 for a host that is not in `images.remotePatterns`,
+ * and a 400 here is a broken photograph in the app rather than a slow one —
+ * strictly worse than doing nothing. So a URL is only rewritten when it is
+ * served by the WordPress install this storefront is configured against, which
+ * is the host that has to be in `remotePatterns` for the WEBSITE's own product
+ * images to work at all. Anything else — a seller avatar on another domain, a
+ * data URI, a relative path, an empty string — is passed through untouched.
+ *
+ * The result is absolute. These payloads are read by an app on another origin,
+ * where a root-relative path means nothing.
+ *
+ * `width` must be a value Next is configured to emit: the defaults are
+ * `imageSizes` (16–384) plus `deviceSizes` (640–3840). The three used here are
+ * 256 for a swatch, 640 for a tile, and 1080 for a full-width gallery frame on
+ * a phone. A width outside that set is another 400.
+ */
+export function appImage(source: string | null | undefined, width: 256 | 640 | 1080 = 640): string {
+  if (!source) return "";
+  if (!/^https?:\/\//i.test(source)) return source;
+
+  const origin = wordpressOrigin();
+  if (!origin || !source.startsWith(origin)) return source;
+
+  return absolute(`/_next/image?url=${encodeURIComponent(source)}&w=${width}&q=75`);
+}
+
 export function toAppProduct(product: Product): AppProduct {
   const reduced = product.regular_price > product.price;
 
@@ -77,8 +131,12 @@ export function toAppProduct(product: Product): AppProduct {
     name: product.name,
     slug: product.slug,
     url: absolute(productPath(product)),
-    image: product.image,
-    gallery: product.gallery.slice(0, 6),
+    /* 640 for the tile: the widest a product card is drawn in this app is
+       half a phone screen, and 640 covers that at 3x. The gallery is the
+       full-width square frame on the detail screen, which is why it gets
+       1080 — see `appImage`. */
+    image: appImage(product.image, 640),
+    gallery: product.gallery.slice(0, 6).map((url) => appImage(url, 1080)),
     price: product.price,
     wasPrice: reduced ? product.regular_price : null,
     priceLabel: formatPrice(product.price),
@@ -110,7 +168,34 @@ export function toAppProduct(product: Product): AppProduct {
  * behind it.
  */
 export const APP_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+  /* ---- Why these numbers went up ----
+   *
+   * They were `max-age=60, s-maxage=60, stale-while-revalidate=300`, which
+   * means the edge holds a payload for one minute and may serve it stale for
+   * five more. After six idle minutes the next request is a COLD one, and a
+   * cold /api/app/home is expensive: it composes seven rails, which is ten
+   * WordPress reads from a Vercel region on another continent. Measured on the
+   * live shop, a cold one took 16 seconds and one attempt timed out outright
+   * with a 524 — on the app's FIRST screen.
+   *
+   * That is the wrong thing to be strict about. This payload is a merchandising
+   * feed: rails of products in an order that changes when the shopkeeper adds
+   * stock, not a stock level or a price at the moment of purchase — both of
+   * which are re-read server-side when an order is placed, and neither of which
+   * this response is authoritative for.
+   *
+   * So the edge keeps a copy for five minutes and may serve it stale for a day
+   * while it refreshes behind the request. The practical effect is that a
+   * shopper opening the app essentially never waits for WordPress: the 16
+   * seconds is paid by a background revalidation instead of by a person. A
+   * product change still reaches the app within the five-minute window, and the
+   * shop's own purge (see `/api/revalidate`) drops the underlying data cache
+   * immediately.
+   *
+   * `max-age=60` stays small on purpose — that one is the phone's PRIVATE
+   * cache, where a stale rail cannot be refreshed by anything the server does.
+   */
+  "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400",
   // The app is not a browser and sends no Origin, but a wrapped webview build
   // might. Read-only public data, so this is safe to open up.
   "Access-Control-Allow-Origin": "*",

@@ -5,6 +5,7 @@ import {
   toAppProduct,
   APP_CACHE_HEADERS,
   type AppProduct,
+  appImage,
 } from "@/lib/app-api";
 import type { Product } from "@/lib/woocommerce";
 
@@ -185,7 +186,7 @@ export async function GET(request: Request) {
           name: department.name,
           slug: department.slug,
           count: department.count ?? 0,
-          image: department.image ?? null,
+          image: department.image ? appImage(department.image, 640) : null,
         })),
       rails,
       // The endless grid at the foot of the home screen.
