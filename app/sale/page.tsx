@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getProductsSafe } from "@/lib/woocommerce";
 import { sortProducts, toProductQuery } from "@/lib/sort-products";
 import { discountPercent, formatPrice } from "@/lib/currency";
@@ -34,6 +35,19 @@ export default async function SalePage({
     getProductsSafe({ on_sale: true, page, per_page: 24, ...toProductQuery({ sort }) }),
     getSiteSettings(),
   ]);
+
+  /**
+   * There is no page 99 of the sale, and saying so is what a 404 is for.
+   *
+   * /sale?page=99 used to render the whole page — heading, countdown,
+   * pagination — around an empty grid, which is a SOFT 404: a 200 answer with
+   * nothing behind it. Search Console counts those against the site.
+   *
+   * Page 1 is exempt on purpose. An empty first page means nothing is on sale
+   * today, which is a true and temporary state of a real page, not a URL that
+   * was never valid.
+   */
+  if (page > 1 && products.length === 0) notFound();
 
   const sorted = sortProducts(products, sort);
 

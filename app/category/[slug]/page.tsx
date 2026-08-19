@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getCategories, getProductsSafe } from "@/lib/woocommerce";
 import { getSiteSettings } from "@/lib/site-settings";
 import { absolute, breadcrumbJsonLd, collectionJsonLd, faqJsonLd } from "@/lib/seo";
@@ -77,6 +78,24 @@ export async function generateMetadata({
   return {
     title,
     description,
+    /**
+     * A real department with nothing in it yet is asked not to be indexed.
+     *
+     * Search Console was reporting ten SOFT 404s — pages answering 200 with
+     * nothing on them — and an empty category is the shape of that: a heading,
+     * a filter sidebar, and a grid with no products. Google reads the 200 and
+     * the emptiness, decides the page is a not-found in disguise, and the shop
+     * loses a little credibility for every one it finds.
+     *
+     * `follow: true` alongside it: there is nothing here to index, but the
+     * links to the rest of the shop are still worth walking.
+     *
+     * A category that does not exist AT ALL is handled harder, in the page
+     * itself — see the `notFound()` below. The difference is deliberate: an
+     * empty department is a shop still filling up and will have stock next
+     * week, where an unknown slug is a URL that was never real.
+     */
+    robots: category && count === 0 ? { index: false, follow: true } : undefined,
     alternates: { canonical: absolute(`/category/${slug}`) },
     openGraph: {
       title,
@@ -114,6 +133,64 @@ export default async function CategoryPage({
     getCategories().catch(() => []),
     getSiteSettings(),
   ]);
+
+  /**
+   * ---- Two ways this page used to answer 200 when it should not have ----
+   *
+   * Both were showing up in Search Console as SOFT 404s: a page that returns
+   * "here it is" and then shows nothing. Google counts those against the whole
+   * site, because a shop that says yes to every URL is a shop whose yes means
+   * nothing.
+   *
+   * 1. AN UNKNOWN SLUG. /category/anything-at-all rendered a full page —
+   *    masthead, sidebar, an empty grid and a heading made by replacing the
+   *    hyphens in the URL. Nothing in the file ever asked whether the category
+   *    existed. Any stale link, any typo, any crawler guessing at URLs got a
+   *    200 and a page about a department this shop has never had.
+   *
+   *    Guarded on `categories.length > 0` because that fetch is wrapped in a
+   *    `.catch(() => [])`: if WordPress is unreachable the list is empty and
+   *    EVERY slug would look unknown, which would take the whole category
+   *    section of the shop down with a 404 rather than degrade. When the list
+   *    is missing, the product count is the fallback test — a slug that
+   *    returns products is a real category whatever the tree says.
+   *
+   * 2. A PAGE PAST THE END. /category/men?page=99 rendered an empty grid with
+   *    pagination under it. There is no page 99, and saying so is what a 404
+   *    is for. Page 1 is exempt: an empty FIRST page is a real department with
+   *    no stock in it today, which is a different thing — it stays, and
+   *    `generateMetadata` above marks it `noindex` instead.
+   */
+  /**
+   * ---- Why there is no `loading.tsx` beside this file any more ----
+   *
+   * Because a `notFound()` under a Suspense boundary cannot set a status code,
+   * and this page's whole reason for calling it is the status code.
+   *
+   * Next streams the response as soon as a Suspense fallback renders, and a
+   * `loading.tsx` IS a Suspense fallback. Streaming means the headers have
+   * already gone out by the time this component runs, so the 404 that
+   * `notFound()` throws can only change the BODY. Next handles that as well as
+   * it can — it injects `<meta name="robots" content="noindex">`, which does
+   * keep the page out of the index — but the response is still a 200 with a
+   * not-found page in it, and that is the literal definition of the SOFT 404
+   * Search Console was reporting.
+   *
+   * The docs say it outright: "If you need a 404 status, for compliance or
+   * analytics, ensure the resource exists before the response body is
+   * streamed." Removing the boundary is how that is done here. The cost is the
+   * skeleton this segment used to show while its data was in flight; it is
+   * affordable now that the product reads are cached for five minutes rather
+   * than fifteen seconds, and a correct status on every bad URL is worth more
+   * to a shop that is trying to be indexed than a shimmer is.
+   *
+   * The same applies to `app/loading.tsx` and `app/products/[id]/loading.tsx`,
+   * both removed in the same pass. If you add one back here, this page starts
+   * answering 200 for categories that do not exist again.
+   */
+  const known = categories.some((entry) => entry.slug === slug);
+  if (!known && (categories.length > 0 || products.length === 0)) notFound();
+  if (page > 1 && products.length === 0) notFound();
 
   // Facets are counted before filtering so the counts stay stable as the
   // shopper narrows down; the grid itself shows the filtered, sorted page.
