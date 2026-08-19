@@ -350,8 +350,13 @@ export default async function Home() {
             want. Placed after the discount and novelty rails deliberately:
             those answer "what is worth having today", which is what keeps
             somebody scrolling, and these answer "where do I go for my own
-            things", which is what they scroll *to*. Any department the shop has
-            not created simply does not appear. */}
+            things", which is what they scroll *to*.
+
+            A department the shop has not created does not appear here, and
+            neither does one with fewer than twenty products in it — a rail is
+            an invitation to browse a section, and a section a shopper can
+            exhaust in one screen is not worth being sent to. The threshold is
+            `DEPARTMENT_CATALOGUE_MINIMUM` in lib/home-feed.ts. */}
         {departmentRails.map((department) => (
           <DepartmentRail
             key={department.id}
@@ -362,14 +367,22 @@ export default async function Home() {
             href={department.slug ? `/category/${department.slug}` : "/categories"}
             products={department.products}
             /**
-             * Two, not the four the curated rails ask for.
+             * Two, not the four the curated rails ask for — and by the time a
+             * rail gets here, this number has almost nothing left to decide.
              *
-             * A department is a promise about where things live rather than a
-             * merchandising claim, so a thin one is a shop that is still
-             * filling up — worth showing — where a two-item "Best sellers" rail
-             * would be a claim the catalogue cannot support. This shop has two
-             * men's products today; at a threshold of four the department a
-             * shopper is most likely to be looking for would be invisible.
+             * The real gate is upstream: `buildHomeFeed` now drops any
+             * department whose CATALOGUE holds fewer than twenty products, so a
+             * rail that reaches this map is one the shop genuinely has a
+             * section for. See `DEPARTMENT_CATALOGUE_MINIMUM` in
+             * lib/home-feed.ts for why the count is taken against the
+             * department's total rather than against the row.
+             *
+             * This one is the row-length guard behind it: a department is a
+             * promise about where things live rather than a merchandising
+             * claim, so a thin ROW is a department the ledger happened to strip
+             * rather than a claim the catalogue cannot support. Two is enough
+             * to say "this way", where a two-item "Best sellers" rail would be
+             * a claim about the stock itself.
              */
             minimum={departmentMinimum}
           />

@@ -617,6 +617,33 @@ h6,
   letter-spacing: 0;
 }
 
+/* ---------- Product names on a tile — 600, 13px ----------
+ * A grid tile's name and a product page's <h1> are the same string doing two
+ * different jobs, and they have wanted different type since the tile went to a
+ * single line.
+ *
+ * `.font-normal-heading` above is the PDP's answer: 400, because a
+ * 90-character supplier title set as a headline is a wall, and there it has a
+ * whole column to run in. On a tile the same title is clipped to ONE line, and
+ * one line of 400-weight grey under a photograph reads as a caption rather than
+ * as the product's name — it is the row a shopper matches against what they
+ * came looking for, and it has to hold its own against the price below it.
+ *
+ * 600 is what the reference grid sets and it is right for the same reason
+ * navigation is 600: this row is scanned, not read. It is not 700, because at
+ * 700 it would weigh the same as the price and the tile would have two loudest
+ * things in it.
+ *
+ * Unlayered, like the h1–h6 rule it has to beat — a tile name is an <h3>, so
+ * without this it would inherit the display face at 700. */
+.product-name {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  /* Undoes the heading tracking. A product name is body copy that happens to be
+     marked up as a heading and should be spaced like the sentences around it. */
+  letter-spacing: 0;
+}
+
 /* ---------- Section titles ----------
  * Bold and tight, but sentence case and not shouted — the marketplace idiom
  * rather than the fashion-poster one. On a page that is mostly product

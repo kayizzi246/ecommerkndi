@@ -95,6 +95,52 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * The product pages the shop builds ahead of time — and the reason this
+ * function exists at all.
+ *
+ * ---- What was wrong ----
+ *
+ * Without a `generateStaticParams`, Next renders a dynamic segment on EVERY
+ * request. It is not a subtlety of the docs, it is stated outright: "You must
+ * always return an array from generateStaticParams, even if it's empty.
+ * Otherwise, the route will be dynamically rendered."
+ *
+ * So the most visited page in the shop — the one every rail, every search
+ * result and every shared WhatsApp link points at — was doing a full server
+ * render per visit, and each render is four reads from a WordPress host in
+ * Uganda: the product, its reviews, the shop's settings and the related rail.
+ * A shopper waited for all of that before the first byte of HTML.
+ *
+ * ---- What this does ----
+ *
+ * The 60 most popular products are rendered at BUILD time, so a visit to one
+ * is a file being served — no WordPress, no render, no wait. The rest are not
+ * excluded: `dynamicParams` defaults to true, so a product outside the 60 is
+ * rendered the first time somebody asks for it and then cached like the others.
+ * The slow render happens once, to one visitor, instead of to all of them.
+ *
+ * Sixty rather than everything, because each one costs four WordPress requests
+ * during the build and the tail of the catalogue does not earn that — the top
+ * of a marketplace's catalogue is where nearly all the traffic goes.
+ *
+ * The params are SLUGS, because that is what the tiles link to
+ * (/products/blue-running-shoes). A numeric id still resolves at runtime for
+ * older links; those simply are not in the prerendered set.
+ *
+ * `getProductsSafe` cannot throw, so a WordPress that is unreachable during a
+ * build yields an empty list and every product falls back to being rendered on
+ * first visit. A slow shop is a worse outcome than a fast one; a build that
+ * fails because a shared host was busy is worse than both.
+ */
+export async function generateStaticParams() {
+  const { products } = await getProductsSafe({ per_page: 60, sort: "popular" });
+
+  return products.map((product) => ({
+    id: product.slug || String(product.id),
+  }));
+}
+
 export default async function ProductPage({
   params,
 }: {

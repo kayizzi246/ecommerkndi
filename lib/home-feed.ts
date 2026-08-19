@@ -98,6 +98,35 @@ class Ledger {
 /** How recent a listing must be to count as new, on the product page badge. */
 const DEPARTMENT_MINIMUM = 2;
 
+/**
+ * How many products a department must have IN THE CATALOGUE before its rail is
+ * allowed on the homepage at all.
+ *
+ * This is a different question from `DEPARTMENT_MINIMUM` above and the two are
+ * easy to confuse, so: that one asks "are there enough products to fill a row",
+ * and it is answered against the twelve this page fetched. This one asks "does
+ * this department exist yet", and it is answered against the department's total
+ * — the `total` WooCommerce returns with the page, not the length of the page.
+ *
+ * The distinction matters because a rail can look full and still be a lie. Four
+ * men's products make a perfectly respectable row of four tiles; what they
+ * cannot support is the promise the rail makes, which is "there is a men's
+ * section here, go and browse it". A shopper who taps "For men" on the strength
+ * of a full-looking row and lands on a category page with four items has been
+ * told something untrue about the shop, and that is worse than not having been
+ * told about the department at all.
+ *
+ * Twenty is the figure the shop asked for and it is a sensible one: it is about
+ * two screens of a category page on a phone, which is the point at which a
+ * department reads as somewhere to browse rather than as a shelf.
+ *
+ * Nothing is deleted by this — the departments are still in the menu, still in
+ * /categories, and still have their own pages. They are only held back from the
+ * homepage until they are worth arriving on. Raise or lower it here and both
+ * the web homepage and the app's home feed change together.
+ */
+const DEPARTMENT_CATALOGUE_MINIMUM = 20;
+
 export type DepartmentRailData = {
   id: string;
   title: string;
@@ -242,12 +271,29 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     DEPARTMENTS.map(async (department) => {
       const slug = findCategorySlug(departments, department.match);
       if (!slug) {
-        return { ...department, slug: null, products: [] as Product[] };
+        return { ...department, slug: null, products: [] as Product[], total: 0 };
       }
 
-      const { products } = await getProductsSafe({ category: slug, per_page: 12 });
-      return { ...department, slug, products };
+      /* `total` is the whole department, not this page of it — WooCommerce
+         sends the count back with every listing, so knowing whether a
+         department has twenty products costs nothing beyond the twelve tiles
+         the rail was already fetching. It is what
+         `DEPARTMENT_CATALOGUE_MINIMUM` is measured against below. */
+      const { products, total } = await getProductsSafe({ category: slug, per_page: 12 });
+      return { ...department, slug, products, total };
     })
+  );
+
+  /**
+   * Departments that are not big enough to send a shopper into yet.
+   *
+   * Filtered here rather than in the page so that the app's home feed makes the
+   * same call — a rail the web has decided is too thin to show is not a rail
+   * the app should be showing either, and this module exists precisely so that
+   * decision is made once. See `DEPARTMENT_CATALOGUE_MINIMUM`.
+   */
+  const stockedDepartments = departmentPools.filter(
+    (department) => department.total >= DEPARTMENT_CATALOGUE_MINIMUM
   );
 
   /**
@@ -393,7 +439,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * The ledger is still asked first, so a department prefers stock nothing else
    * has shown; it just falls back to its own catalogue rather than vanishing.
    */
-  const departmentRails = departmentPools.map((department) => {
+  const departmentRails = stockedDepartments.map((department) => {
     const fresh = ledger.claim(department.products, 12, DEPARTMENT_MINIMUM);
 
     return {

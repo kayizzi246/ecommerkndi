@@ -32,6 +32,29 @@ function since(iso: string): string | null {
 }
 
 /** Everything one marketplace store sells, filtered server-side by slug. */
+/**
+ * Every store page, built ahead of time.
+ *
+ * The whole point is the first line of the Next docs on this function: a
+ * dynamic segment with no `generateStaticParams` is rendered on EVERY request.
+ * Without this, each visit to a store front re-fetched the store directory and
+ * the store's products from WordPress before a byte of HTML went out.
+ *
+ * The full list rather than a slice, unlike /products/[id]: there are as many
+ * of these as the shop has sellers, which is a number in the tens, and a seller
+ * looking at their own store front is one of the people most likely to judge
+ * the shop by how fast it is.
+ *
+ * `getStores` returns [] on an older WordPress plugin, which yields an empty
+ * array here — every store then renders on first visit and is cached from
+ * there. A slower first paint is a better failure than a build that stops.
+ */
+export async function generateStaticParams() {
+  const stores = await getStores();
+
+  return stores.map((store) => ({ slug: store.store_slug }));
+}
+
 export default async function StorePage({ params }: Params) {
   const { slug } = await params;
 

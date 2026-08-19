@@ -171,13 +171,43 @@ export type Store = {
 /**
  * How long a product read is reused before the shop asks WordPress again.
  *
- * Short on purpose. A minute was long enough that a product deleted in wp-admin
- * kept appearing on the shop, which is confusing in a way that being a few
- * hundred milliseconds slower is not. WordPress also pushes a purge on every
- * product change (see kandi-storefront-settings.php), so this window is only
- * the fallback for when that push cannot get through.
+ * ---- Why this was 15 seconds, and why that was costing real time ----
+ *
+ * The window was cut to 15s because a product deleted in wp-admin kept
+ * appearing on the shop, and being a few hundred milliseconds slower looked
+ * like the cheaper problem. It was not, for a reason that is invisible until
+ * you look at which pages are rendered when:
+ *
+ *   • On a PRERENDERED page an expired window costs the shopper nothing — Next
+ *     serves the stale HTML instantly and refreshes it in the background. That
+ *     is the case the 15s was reasoned about.
+ *   • On a page rendered PER REQUEST — which /products/[id] was until the
+ *     `generateStaticParams` added alongside this change, and which /search,
+ *     /sale and /category still are — an expired entry is re-fetched INLINE.
+ *     The shopper waits for WordPress. Four reads on a product page against a
+ *     shared WordPress host is most of a second, and at a 15-second window
+ *     nearly every visit paid it: a shop with a visitor a minute missed the
+ *     cache on all four reads, every time.
+ *
+ * So the window was not buying freshness that anyone asked for; it was making
+ * the cache miss on almost every request that mattered.
+ *
+ * ---- Why 5 minutes is safe ----
+ *
+ * The window is not how the shop stays correct, and it has not been for a
+ * while. WordPress PUSHES a purge the moment anything about a product changes
+ * — save, trash, delete, and the WooCommerce CRUD hooks that a stock change
+ * fires — which lands on /api/revalidate and drops the tag below outright (see
+ * kandi-storefront-settings.php). A deleted product is gone from the shop on
+ * the next page load, not in five minutes.
+ *
+ * This number is only the fallback for when that push cannot get through: the
+ * plugin is not installed, the storefront URL was never registered, or the
+ * request was dropped. Five minutes is a reasonable ceiling for a shop running
+ * without its own purge webhook, and it is 20× fewer WordPress round trips on
+ * the request path than 15 seconds was.
  */
-const REVALIDATE_SECONDS = 15;
+const REVALIDATE_SECONDS = 300;
 
 /**
  * The storefront's own public URL, sent to WordPress on every request so the
@@ -199,11 +229,14 @@ function storefrontOrigin(): string {
 /**
  * Cache tag on every WordPress read.
  *
- * The minute-long window above is what makes the shop fast, but it is also why
- * a product added or deleted in the admin used to keep showing its old self for
- * up to a minute. Tagging the reads lets a write clear them the moment it
- * happens (see app/api/owner/[...path]/route.ts) instead of waiting the window
- * out. Kept in step with PRODUCTS_TAG in lib/owner-server.ts.
+ * The window above is what makes the shop fast, and this tag is what makes the
+ * window affordable: a product added or deleted in the admin would otherwise
+ * keep showing its old self until the window lapsed. Tagging the reads lets a
+ * write clear them the moment it happens (see app/api/owner/[...path]/route.ts
+ * and the purge the WordPress plugin pushes) instead of waiting it out — which
+ * is exactly why the window could go from 15 seconds to 5 minutes without the
+ * shop getting any staler in practice. Kept in step with PRODUCTS_TAG in
+ * lib/owner-server.ts.
  */
 const PRODUCTS_TAG = "kandi-products";
 

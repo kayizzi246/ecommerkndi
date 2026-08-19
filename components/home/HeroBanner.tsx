@@ -104,6 +104,77 @@ const FEATURES = [
   },
 ];
 
+/**
+ * The widths the hero is encoded at, and the only ones it may ask for.
+ *
+ * Every value here must appear in `images.deviceSizes` — Next's optimiser
+ * answers 400 to a width it was not configured for, and a 400 on the LCP image
+ * is a blank band at the top of the homepage. These four are all defaults; if
+ * `deviceSizes` is ever narrowed in next.config.ts, narrow this too.
+ */
+const HERO_WIDTHS = [640, 828, 1080, 1920] as const;
+
+/**
+ * A banner URL, routed through Next's image optimiser.
+ *
+ * ---- The problem this solves, measured ----
+ *
+ * The uploaded hero is whatever file the shop dropped into wp-admin, served
+ * straight from the WordPress host. On this shop that is a 533KB PNG, and the
+ * WordPress host answered it in 5.8 seconds. It is the LCP element of the
+ * homepage, it is marked `fetchPriority="high"`, and it was being fetched from
+ * a shared host in front of every shopper on a Ugandan mobile connection.
+ * Nothing else on the page — no cache window, no prerender — matters next to
+ * six seconds of blank band above the catalogue.
+ *
+ * `/_next/image` fixes all three parts of that at once: it resizes to the
+ * width actually being shown, re-encodes to WebP (see `formats` in
+ * next.config.ts), and serves the result from the deployment's CDN with the
+ * 31-day cache configured there. The same banner lands as a WebP of roughly a
+ * tenth the bytes, from an edge instead of from WordPress.
+ *
+ * ---- Why the URL is built by hand instead of using <Image> ----
+ *
+ * This is the second time `next/image` has been taken off this element, and
+ * the reason it came off the first time has not changed: `<Image>` requires
+ * `width` and `height`, it writes them onto the tag, and the rendered box then
+ * follows THOSE numbers rather than the file's own proportions. The hero is a
+ * file of unknown shape — a wide campaign banner or a tall phone crop, uploaded
+ * by a shopkeeper — sized by `h-auto` plus a max-height cap precisely so that
+ * whatever arrives is shown at its own aspect ratio. Declaring a ratio we do
+ * not know is what cropped the artwork.
+ *
+ * The optimiser is a plain URL endpoint, so an `<img>` can use it directly and
+ * keep `h-auto` exactly as it was. The endpoint is public API — the shape of
+ * these URLs is in the `next/image` docs — and the `srcSet` below is the same
+ * set of widths `<Image>` would have emitted.
+ *
+ * `q=75` is the optimiser's default quality and the one value certain to be
+ * accepted; a quality outside the configured set is another 400.
+ *
+ * A src that is not an absolute http(s) URL is returned untouched: the built-in
+ * hero's own artwork is a local file, and a data: URI would be nonsense to send
+ * through a resizer.
+ */
+function optimised(src: string, width: number): string {
+  if (!/^https?:\/\//i.test(src)) return src;
+
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=75`;
+}
+
+/**
+ * The same banner at every configured width, for the browser to choose from.
+ *
+ * `sizes="100vw"` at the call site is the truth — the hero is full-bleed — so a
+ * 390px phone takes the 640 and a desktop takes the 1920, and neither pays for
+ * the other's file.
+ */
+function heroSrcSet(src: string): string | undefined {
+  if (!/^https?:\/\//i.test(src)) return undefined;
+
+  return HERO_WIDTHS.map((width) => `${optimised(src, width)} ${width}w`).join(", ");
+}
+
 export default function HeroBanner({
   settings,
   /** Where SHOP NOW goes. The sale page by default — the banner is about price. */
@@ -252,7 +323,9 @@ export default function HeroBanner({
                normally composed banner arrives intact. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img
-            src={mobileSrc}
+            src={optimised(mobileSrc, 1080)}
+            srcSet={heroSrcSet(mobileSrc)}
+            sizes="100vw"
             alt={image_alt}
             fetchPriority="high"
             loading="eager"
@@ -262,7 +335,9 @@ export default function HeroBanner({
             }`}
           />
           <img
-            src={desktopSrc}
+            src={optimised(desktopSrc, 1920)}
+            srcSet={heroSrcSet(desktopSrc)}
+            sizes="100vw"
             alt={image_alt}
             fetchPriority="high"
             loading="eager"

@@ -520,20 +520,53 @@ export default function ProductCard({
            first line of the name is the one piece of vertical spacing in this
            block that is not simply a row's own leading, and at 8px it matches
            the reference. */}
-      <div className="flex flex-1 flex-col gap-0 pt-2">
-        <Link href={href} className="block">
-          {/* Exactly two lines, always — `h-8` is 2 × the 16px leading, and it
-              is a fixed height rather than a clamp so that a short name reserves
-              the second line instead of pulling the row below it up. This is the
-              single biggest contributor to tiles matching.
+      {/* ---- Detail ----
+           Three rows now, and only the first is guaranteed: the name, then
+           corroboration where there is any, then the price.
 
-              The chip, when there is one, sets inside this clamp — see where it
-              is computed above for why it is here and not on a row of its own.
-              It is an inline box on the title's own line, so the name flows
-              around it exactly as the reference tile's does, and a long title
-              still truncates at the end of the second line rather than being
-              pushed out of the box. */}
-          <h3 className="font-normal-heading line-clamp-2 h-8 text-[13px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
+           ---- What came out, and why the tile did not fall apart ----
+
+           This block used to reserve a fixed height for EVERY row, including
+           the ones with nothing in them, so that a product with no reviews
+           rendered exactly as tall as one with plenty and a rail's tiles all
+           matched. That reasoning was sound and the mechanism is no longer
+           needed, because `mt-auto` on the price row does the same job better:
+           the tiles in a grid row are already stretched to a common height, so
+           pinning the price to the bottom edge lines the prices up whether or
+           not the rows above them are there.
+
+           With alignment paid for elsewhere, the empty boxes were just space —
+           and space under a tile is what pushed the price down out of the
+           first screen. Every row is conditional now and the block is as short
+           as the product's own information.
+
+           ---- The delivery line is gone ----
+
+           "Fastest delivery: 1 business day" sat on every tile in the shop. A
+           line that never varies is not information; it is a claim the shopper
+           has read forty times by the second screen, and it was costing 16px
+           on every tile to say nothing. The stock warnings it shared a row with
+           DO vary, so they stay — but only on the products they apply to. */}
+      <div className="flex flex-1 flex-col gap-0 pt-1.5">
+        <Link href={href} className="block">
+          {/* ---- One line, 600 weight ----
+
+              Two lines were reserved here so that a short name still held the
+              second one and the price below it never moved. The price is
+              bottom-pinned now, so the second line was buying nothing and
+              costing 16px on every tile — and a truncated second line is where
+              a supplier's keyword-stuffed title does its worst reading.
+
+              One line at 600 is what the reference sets, and the weight is the
+              compensation for the lost line: the name has to be findable at a
+              glance in a row it now shares with nothing. `.product-name`
+              carries the family and weight — see `globals.css` for why it is
+              not `.font-normal-heading` like the product page's <h1>.
+
+              `truncate` rather than `line-clamp-1`: on a single line they look
+              identical, and `truncate` is one property that also guarantees the
+              row cannot wrap in the first place. */}
+          <h3 className="product-name truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[10px] font-bold leading-[15px] ${chip.className}`}
@@ -545,95 +578,64 @@ export default function ProductCard({
           </h3>
         </Link>
 
-        {/* ---- The three rows below are in the REFERENCE order, which is not
-             the order this tile used to run in ----
-
-             It was name → price → rating → delivery, with the price second and
-             the money therefore read before anything that justifies it. The
-             reference grid — and every marketplace tile modelled on it — runs
-             the other way round: the shopper is told what the thing is, what is
-             promised with it, who else has bought it, and THEN what it costs.
-
-             That order is not a style preference. The price is the moment of
-             decision, and a decision is easier to make once the corroboration
-             has already been read. Putting it last also puts the tile's biggest,
-             heaviest line along the bottom edge of the block, which is what
-             gives a row of these a visible baseline running across it — with the
-             price in the middle, each tile had its loudest element floating at a
-             different point in a ragged band.
-
-             Every row keeps its fixed height, so tiles still match exactly. */}
-
-        {/* The promise — delivery, or the stock warning that outranks it. */}
-        {/* A block rather than a flex row, which is what makes `truncate` work.
-            `text-overflow: ellipsis` has no effect on a flex container — the
-            text was being sliced mid-word with no ellipsis to show for it
-            ("Fastest delivery: 1 business d"). The low-stock variant keeps its
-            dot by being an inline-flex span *inside* the block. */}
-        <p className="h-4 truncate text-[12px] font-medium leading-4 text-shop-success">
-          {soldOut ? (
-            "Back in stock soon"
-          ) : lowStock ? (
-            <span className="inline-flex items-center gap-1.5 align-top text-shop-sale">
-              <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-sale" aria-hidden />
-              Only {product.stock_quantity} left
-            </span>
-          ) : (
-            /* Not "free delivery" — that depends on the basket total, and a tile
-               cannot know it. Promising it here would be a lie on most orders. */
-            "Fastest delivery: 1 business day"
-          )}
-        </p>
+        {/* The stock warning, on the products that have one and nowhere else. */}
+        {(soldOut || lowStock) && (
+          <p className="truncate text-[12px] font-medium leading-4 text-shop-sale">
+            {soldOut ? (
+              "Back in stock soon"
+            ) : (
+              <span className="inline-flex items-center gap-1.5 align-top">
+                <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-sale" aria-hidden />
+                Only {product.stock_quantity} left
+              </span>
+            )}
+          </p>
+        )}
 
         {/* Rating and units sold — the two numbers a shopper uses to decide
             whether anyone else has taken the risk first.
 
-            The row is always present, even with nothing in it. A product with no
-            reviews and no sales is exactly the one that would otherwise render a
-            shorter tile than its neighbours, and an empty box costs less than the
-            row of ragged baselines that hiding it caused.
+            The sold count leads and the stars follow, which is the reference's
+            order and the right one here: sales are the number nearly every
+            product has, and a rating is the one most of this catalogue is still
+            missing, so leading with the stars left a row that began with a gap
+            on the majority of tiles.
 
-            The reference sets the sold count FIRST and the stars after it, and
-            that is the order here now: "295 sold  ★ 4.6". Sales are the number
-            nearly every product has; a rating is the one most of this catalogue
-            is still missing, so leading with the stars left a row that began
-            with a gap on the majority of tiles.
-
-            `leading-none` on the spans is what makes a 15px row safe: without
-            it the 15.6px line box of 12px text would be clipped by
-            `overflow-hidden` and the sold count would lose its descenders. */}
-        <div className="flex h-[15px] items-center gap-x-2 overflow-hidden">
-          {product.total_sales > 0 && (
-            <span className="meta-note leading-none text-shop-muted">
-              {compactSold(product.total_sales)} sold
-            </span>
-          )}
-          {product.rating_count > 0 && (
-            <span className="flex items-center gap-1">
-              <Stars rating={product.average_rating} />
-              <span className="meta-note leading-none text-shop-body">
-                {product.average_rating.toFixed(1)}
+            `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
+            1.3 leading would otherwise open a 15.6px box under a tile that is
+            trying to be short. */}
+        {(product.total_sales > 0 || product.rating_count > 0) && (
+          <div className="flex items-center gap-x-2 overflow-hidden py-[3px]">
+            {product.total_sales > 0 && (
+              <span className="meta-note leading-none text-shop-muted">
+                {compactSold(product.total_sales)} sold
               </span>
-            </span>
-          )}
-        </div>
+            )}
+            {product.rating_count > 0 && (
+              <span className="flex items-center gap-1">
+                <Stars rating={product.average_rating} />
+                <span className="meta-note leading-none text-shop-body">
+                  {product.average_rating.toFixed(1)}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
 
-        {/* ---- The money, and now the last thing in the tile ----
+        {/* ---- The money, and the last thing in the tile ----
 
              All on one line: what it costs, what it cost, and the reduction. A
              discounted price turns red — the one place red is allowed — because
              at a glance the colour is the discount.
 
-             `mt-auto` pins it to the bottom edge of the block. With every row
-             above it at a fixed height that changes nothing in a normal grid; it
-             is insurance for a rail, where a flex row stretches its tiles to the
-             tallest one and a price that floated up mid-tile would break the
-             baseline the reordering above was for.
+             `mt-auto` is what holds the grid together now that every row above
+             it can be absent. A grid row stretches its tiles to a common
+             height, so pinning the price to the bottom of each one puts all the
+             prices in a row on the same line — which is the alignment the fixed
+             row heights used to buy, at no cost in space.
 
-             The sizes live in `.price` and `.was-price`, not here — the shop's
-             type scale, so a tile cannot drift away from the product page the
-             way it did when it carried its own 13/15px. The row is 24px to fit
-             the taller price without clipping the comma in "UGX 145,854".
+             The size and weight live in `.price` and `.was-price` — the shop's
+             type scale — so a tile cannot drift away from the product page.
 
              ---- Why the struck-through original disappears below `sm` ----
 
@@ -644,7 +646,7 @@ export default function ProductCard({
              dropped rather than squeezed: the discount is already on the
              photograph as a corner flag, so nothing is lost and the resting
              price gets the whole width to itself. */}
-        <p className="mt-auto flex h-6 items-baseline gap-x-1.5 overflow-hidden pt-0.5">
+        <p className="mt-auto flex items-baseline gap-x-1.5 overflow-hidden pt-[3px]">
           {/* ---- The resting price is near-black, not orange ----
                It was orange for a while, on the argument that one saturated
                colour repeated in the same position on every tile gives the eye
