@@ -115,3 +115,55 @@ export const APP_CACHE_HEADERS = {
   // might. Read-only public data, so this is safe to open up.
   "Access-Control-Allow-Origin": "*",
 } as const;
+
+/**
+ * The CORS headers a WRITE endpoint the app calls has to send.
+ *
+ * ---- The bug this exists to fix ----
+ *
+ * The app priced delivery by POSTing JSON to `/api/delivery/quote`, and on the
+ * FlutterFlow WEB build every one of those requests died before it reached the
+ * server. The cart said "Could not price delivery. Check your connection." with
+ * a perfectly good connection, and the checkout could not place an order at all.
+ *
+ * The reason is a preflight. A native app sends no `Origin` and CORS never
+ * applies to it, which is why this went unnoticed — but a build running at
+ * kandistyles.flutterflow.app IS a browser, and a cross-origin POST carrying
+ * `Content-Type: application/json` is not a "simple request": the browser sends
+ * an `OPTIONS` preflight first and refuses to send the POST unless that
+ * preflight comes back with permission. These routes answered the preflight
+ * with a 405 and no headers, so the POST was never made.
+ *
+ * The read-only endpoints above were already open, which is exactly why the
+ * product and home screens worked while everything that WROTE anything did not
+ * — a split that looks like a flaky network and is not one.
+ *
+ * ---- On opening these up ----
+ *
+ * `*` and not a list of origins, deliberately. Neither route authenticates with
+ * a cookie: the quote takes a place and a subtotal and gives back a number the
+ * server recalculates when the order is placed, and the checkout is a public
+ * endpoint that already treats everything in its body as untrusted. There is no
+ * ambient authority for a hostile page to borrow, which is the thing an origin
+ * allowlist protects. And `*` cannot be combined with credentials — the browser
+ * refuses — so this cannot start carrying a session later without somebody
+ * having to change this line and read this note.
+ *
+ * `Vary: Origin` because a CDN must not hand a cached preflight for one origin
+ * to another.
+ */
+export const APP_WRITE_CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Accept",
+  // A day. The preflight answer for these routes never changes, and paying a
+  // round trip for it before every quote is most of what makes a fee feel slow
+  // on a Ugandan mobile connection.
+  "Access-Control-Max-Age": "86400",
+  Vary: "Origin",
+} as const;
+
+/** The 204 a preflight expects. Every route the app POSTs to exports this. */
+export function appPreflight(): Response {
+  return new Response(null, { status: 204, headers: APP_WRITE_CORS_HEADERS });
+}
