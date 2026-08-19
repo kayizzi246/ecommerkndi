@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProductsSafe, getStores } from "@/lib/woocommerce";
+import { appImage } from "@/lib/app-api";
 
 /** Stores in the panel are a shortcut, not a directory — three is the ceiling. */
 const STORE_LIMIT = 3;
@@ -65,7 +66,14 @@ export async function GET(request: Request) {
     suggestions: products.map((p) => ({
       id: p.id,
       name: p.name,
-      image: p.image,
+      /* The suggestion thumbnail is drawn at about 40px, in a dropdown that
+         opens while somebody is still typing — so it is the one image in the
+         shop that most needs to be small and soonest. 256 through the optimiser
+         is a few kilobytes from the CDN against a full supplier photograph from
+         WordPress. Used by the app's search screen and the website's own
+         search bar, which is why it is fixed here rather than at either call
+         site. See `appImage`. */
+      image: appImage(p.image, 256),
       price: p.price,
       regular_price: p.regular_price,
       on_sale: p.on_sale,
