@@ -344,7 +344,14 @@ export default function ProductCard({
               `bg-shop-hairline` behind it is doing real work: it is the frame
               the reference grid uses, and it is what gives a product shot on
               white an edge without a border being drawn. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
+          {/* 8:9 rather than square. Most of the catalogue is shot portrait, so a
+              square box was letterboxing the goods with `bg-shop-hairline` down
+              the sides; a shade taller gives the product back that room without
+              the tile turning into the tall poster shape a fashion-only shop
+              uses. Anything genuinely square still fills the box — `object-cover`
+              crops the long edge, and 8:9 is close enough to 1:1 that what
+              comes off is margin. */}
+          <div className="relative aspect-[8/9] w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

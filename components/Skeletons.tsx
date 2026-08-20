@@ -10,7 +10,7 @@ export function ProductCardSkeleton() {
           short sold-and-rating line, then the price. The text bars matter — a
           bare square shimmering on its own reads as a broken image, where a
           square with lines beneath it reads as a product on its way. */}
-      <div className="shimmer aspect-square w-full rounded-md md:rounded-lg" />
+      <div className="shimmer aspect-[8/9] w-full rounded-md md:rounded-lg" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
