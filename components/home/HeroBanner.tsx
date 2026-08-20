@@ -304,14 +304,15 @@ export default function HeroBanner({
                shorter and the same proportion of it is a much larger share of
                what can be seen at once.
 
-               ---- Desktop is a flat 340px band ----
+               ---- Desktop is a flat 400px band ----
 
                440/560 was still half a laptop screen, and the shop asked for
                the banner to stop being the page. One number at every desktop
                width is the answer, so the band does not grow as the window
                does and the first rail of products is on the first screen at
-               any size. 280 was the first attempt and read as a letterbox;
-               340 is the settled figure.
+               any size. 280 was the first attempt and read as a letterbox,
+               340 was still tight; 400 is the settled figure — a third off the
+               old 560 with the artwork still reading as a banner.
 
                That is a harder crop than before, so the guidance to compose
                wide with the wording in the middle third is now the thing that
@@ -339,7 +340,7 @@ export default function HeroBanner({
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[340px] lg:max-h-[340px]"
+            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[400px] lg:max-h-[400px]"
           />
           {/* eslint-enable @next/next/no-img-element */}
         </Link>
@@ -392,7 +393,7 @@ export default function HeroBanner({
            the shop uploaded a banner or is running the drawn fallback —
            otherwise switching one for the other in wp-admin moves the whole
            page up or down. From md the padding is 16px and the photograph is
-           fixed at 308px, which puts the band at the same 340px the uploaded
+           fixed at 368px, which puts the band at the same 400px the uploaded
            banner is capped to. The type and the feature discs come down a step
            with it so the copy column still fits inside that height rather than
            being clipped by the section's `overflow-hidden`. */
@@ -437,13 +438,13 @@ export default function HeroBanner({
                "SPEND LESS" on one line at 360px. */}
           <h2
             id="hero-heading"
-            className="mt-3 font-heading text-[34px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-shop-ink sm:text-[46px] md:mt-2.5 md:text-[42px] lg:text-[50px]"
+            className="mt-3 font-heading text-[34px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-shop-ink sm:text-[46px] md:mt-3 md:text-[46px] lg:text-[56px]"
           >
             Buy more
             <span className="block text-shop-primary">Spend less</span>
           </h2>
 
-          <p className="mt-3.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-body md:mt-2.5 md:text-[16px]">
+          <p className="mt-3.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-body md:mt-3 md:text-[16px]">
             More items. Better deals.
             <br className="hidden sm:block" /> Unbeatable prices on{" "}
             <span className="font-bold text-shop-ink">everything you love</span>.
@@ -475,7 +476,7 @@ export default function HeroBanner({
                this shop: the deals are the rails below, delivery is countrywide
                and the terms are in the footer. Nothing here invents a promise
                the checkout does not keep. */}
-          <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-4 md:mt-5 md:gap-x-6">
+          <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-4 md:mt-6 md:gap-x-7">
             {FEATURES.map((feature, index) => (
               <li
                 key={feature.label}
@@ -508,7 +509,7 @@ export default function HeroBanner({
         {/* ---- The photograph, and the disc button over it ----
              Rendered only when the cutout exists. See `hasModelCutout`. */}
         {withPhoto && (
-          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[308px] md:w-auto">
+          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[368px] md:w-auto">
             <Image
               src="/hero-model.png"
               alt=""
@@ -525,7 +526,7 @@ export default function HeroBanner({
                  visit — the case `priority` was made for. */
               priority
               className="h-auto w-full object-contain md:h-full md:w-auto"
-              sizes="(min-width: 768px) 260px, 260px"
+              sizes="(min-width: 768px) 320px, 260px"
             />
 
             {/* The SHOP NOW disc — desktop only, for the reasons on the phone
@@ -537,7 +538,7 @@ export default function HeroBanner({
                 focus ring. */}
             <Link
               href={href}
-              className="btn-shop absolute -right-2 top-2 hidden h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-center text-[14px] font-bold uppercase leading-tight text-white transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-shop-primary-ink md:flex md:h-[96px] md:w-[96px] md:text-[14px]"
+              className="btn-shop absolute -right-2 top-2 hidden h-[92px] w-[92px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-shop-primary to-shop-ember text-center text-[14px] font-bold uppercase leading-tight text-white transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-shop-primary-ink md:flex md:h-[104px] md:w-[104px] md:text-[15px]"
             >
               Shop
               <span>Now</span>
