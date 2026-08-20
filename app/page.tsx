@@ -138,7 +138,11 @@ export default async function Home() {
            already opens with `py-3 md:py-5`. 8 + 12 = the 20px phone gap, and
            12 + 20 = the 32px desktop one. Three numbers, one result; if any of
            them moves the hero drifts out of step with the rails beneath it. */}
-      <div className="mb-2 md:mb-3">
+      {/* The phone gutter applies here too, so the banner stops where the grid
+          below it stops. A full-bleed hero over an inset grid reads as a
+          mistake, not as a full-bleed hero. From md up the container's own
+          `md:px-8` takes over and this cancels itself. */}
+      <div className="mb-2 px-3 md:mb-3 md:px-0">
         <HeroBanner settings={settings} />
       </div>
       {/* The page opens on merchandise.
@@ -182,16 +186,26 @@ export default async function Home() {
           If a future change makes this feel crowded again, move BOTH numbers,
           not one. The moment the between-gap stops being roughly 2.5× the
           header gap, the page reverts to a stream of tiles. */}
-      {/* Edge to edge on a phone, padded from md up.
+      {/* ---- A 12px gutter on a phone, 32px from md up ----
 
-          The side gutter used to be 12px, which bought nothing: it cost a
-          product card most of its width on a 390px screen while the rails
-          bled past it anyway with a 16px negative margin — 4px wider than the
-          screen on each side, which is what made the whole page drift
-          sideways. Removing the gutter fixes the drift and gives the width
-          back to the products. Headings and copy carry their own `px-3` so
-          words never touch the glass. */}
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-0 py-3 md:gap-8 md:px-8 md:py-5">
+          The gutter was removed once and the reason it was removed is worth
+          keeping: it cost a product card most of its width on a 390px screen
+          while the rails bled past it anyway with a 16px negative margin — 4px
+          wider than the screen on each side, which is what made the whole page
+          drift sideways.
+
+          The bleeding rails are gone (there is not a negative margin left in
+          the codebase), so the gutter costs only what it says it costs, and it
+          now has a job it did not have then: the tiles are white cards on an
+          off-white ground, and a card running into the glass reads as a card
+          that was cut off. 12px is a thumb's width of page showing down each
+          edge — enough for the cards to sit ON the page rather than in a hole
+          punched through it.
+
+          Headings and copy inside no longer carry their own `px-3`: this is
+          their gutter now, and doubling it would have set every section title
+          24px in from a grid that starts at 12. */}
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-3 py-3 md:gap-8 md:px-8 md:py-5">
         {/* ---- Every carousel rail, desktop only ----
          *
          * On a phone this whole block is gone and the homepage is the hero

@@ -126,7 +126,7 @@ export default function CategoryIntro({
   return (
     <section
       aria-labelledby="category-about"
-      className="mt-12 border-t border-shop-line px-3 pt-8 md:px-0"
+      className="mt-12 border-t border-shop-line pt-8"
     >
       {/* An `<h2>`, never a second `<h1>`. The heading above the grid is the
           page's subject; this is a section of it. */}

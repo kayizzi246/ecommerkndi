@@ -268,21 +268,32 @@ export default function ProductCard({
     // Everything is `md:` reset rather than conditionally rendered, so there is
     // still exactly ONE card component and one set of rows — the difference
     // between the two screens is four utilities, not a second tile.
-    // ---- One flat tile, on every screen ----
+    // ---- The white phone card is back, and the page tint with it ----
     //
-    // The white phone card written about above is gone, and so is the reason it
-    // existed: the page ground below 768px was #f9fafb, so a card was the only
-    // way to give the tile an edge. The ground is white now at every width (see
-    // the note where that media query used to be in `globals.css`), which makes
-    // a white card a white rectangle on a white page — an edge that is not
-    // there, costing 6px of padding all the way round for it.
+    // Both halves of the argument above are live again, because both halves
+    // moved together: the ground below 768px is #f9fafb once more (see the
+    // `@media` block in `globals.css`), so a white card has something to be
+    // white AGAINST, and the tile gets an edge from contrast rather than from a
+    // border, a shadow or a wide gap — which is the cheap way to satisfy the
+    // "exactly one separator" rule at the top of this file on a 390px screen
+    // where space is the scarce thing.
     //
-    // So the tile is chrome-free again, phone included, which is what the
-    // reference grid does: no border, no background, no shadow, no padding. The
-    // photograph's own light-grey frame is the only fill in the tile, the text
-    // runs flush to its left edge, and what separates one product from the next
-    // is the gap around it.
-    <article className="group relative flex h-full flex-col">
+    // The card is also what puts the four text rows on the photograph's own
+    // surface. Loose on the tint they belong to the page; on the card they
+    // belong to the picture, which is the difference between a grid of objects
+    // and a grid of pictures with words near them.
+    //
+    // `p-1.5` is 6px, and the radii are picked to match: a 12px outer corner
+    // with 6px of padding wants a 6px inner corner, which is why the photo below
+    // is `rounded-md` on a phone and keeps `rounded-lg` from md up. An inner
+    // radius larger than (outer − padding) is what makes a card look like two
+    // rectangles that missed each other.
+    //
+    // DESKTOP is untouched. Everything is `md:` reset, so from 768px up the tile
+    // is the flat, chrome-free one the notes above describe — one component and
+    // one set of rows, with four utilities between the two screens rather than a
+    // second tile.
+    <article className="group relative flex h-full flex-col rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -325,14 +336,15 @@ export default function ProductCard({
               Measured off the same reference. The difference is small and it is
               the difference between a tile that looks drawn to a spec and one
               that looks approximately styled. */}
-          {/* One radius at every width now that there is no card for the photo
-              to sit inside — the concentric-corner arithmetic that made this
-              `rounded-t-xl` on a phone went with the card.
+          {/* Two radii, because there are two tiles. Inside the phone card the
+              photo takes the concentric inner corner — 12px outer minus 6px of
+              padding is 6px, which is `rounded-md`. From md up the card is gone
+              and the photograph carries the tile's own 8px corner.
 
-              `bg-shop-hairline` behind it is doing real work on a white page:
-              it is the frame the reference grid uses, and it is what gives a
-              product shot on white an edge without a border being drawn. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
+              `bg-shop-hairline` behind it is doing real work: it is the frame
+              the reference grid uses, and it is what gives a product shot on
+              white an edge without a border being drawn. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

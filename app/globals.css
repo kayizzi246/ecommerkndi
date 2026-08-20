@@ -88,19 +88,33 @@
  * 768px rather than a Tailwind token because this file is plain CSS; it is the
  * same `md` breakpoint the rails and the grid use, and the three have to agree
  * — the tint exists BECAUSE the rails are gone below it. */
-/* ---- The phone tint is gone: the page is white at every width ----
+/* ---- And so it is back: off-white below 768px ----
  *
- * Below 768px the ground used to be #f9fafb so that the white product cards had
- * something to sit on. That was a coherent design and it is not the one being
- * built now: the reference this grid is cut to puts flat white tiles on a flat
- * white page and lets the PHOTOGRAPH's own light-grey frame be the only fill on
- * the screen.
+ * The tint was removed once, on the argument that the reference grid puts flat
+ * white tiles on a flat white page and lets the photograph's own grey frame be
+ * the only fill on the screen. That is a coherent design; it is not the one
+ * this shop is running.
  *
- * The two changes go together and neither works alone. A white card on a white
- * page is invisible, which is why the tile gave up its card at the same
- * time — see the note there. What separates one tile from the next is now the
- * grid gap and the grey image frame, on a phone exactly as on a desktop, and
- * the shop has one ground instead of two. */
+ * The tint and the card go together and neither works alone — that is the whole
+ * lesson of the four reversals above. Turning the ground off-white without
+ * giving the tile a white card puts the merchandise on a grey sheet with loose
+ * text under it; giving the tile a white card on a white page draws a rectangle
+ * nobody can see. Both moved this time, and the pair is what the phone grid is
+ * now built on: an off-white page, white cards on it, and a gutter down each
+ * side so the cards stop short of the glass.
+ *
+ * Phones only. Everything in the `--background` note above still holds from
+ * 768px up: a desktop page has a dark masthead, wide gaps and six columns doing
+ * the structuring, and a tint there would only grey the photography.
+ *
+ * 768px rather than a Tailwind token because this file is plain CSS; it is the
+ * same `md` breakpoint the tile's card and the page gutter use, and the three
+ * have to agree. */
+@media (max-width: 767px) {
+  :root {
+    --background: #f9fafb;
+  }
+}
 
 @theme inline {
   --color-background: var(--background);

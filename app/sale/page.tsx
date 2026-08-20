@@ -63,7 +63,7 @@ export default async function SalePage({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* The highest-converting page on the shop, and it carried no structured
           data at all — so the one page whose entire content is discounted stock
           was the page Google understood least. The breadcrumb places it, the
@@ -82,7 +82,7 @@ export default async function SalePage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
+      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>

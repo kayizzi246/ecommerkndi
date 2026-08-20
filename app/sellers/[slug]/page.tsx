@@ -94,7 +94,7 @@ export default async function StorePage({ params }: Params) {
   ];
 
   return (
-    <main className="w-full px-0 pb-24 pt-4 md:px-8 lg:pb-16">
+    <main className="w-full px-3 pb-24 pt-4 md:px-8 lg:pb-16">
       {/* A store page ranks for the store's own name — often how a seller's
           existing customers look for them — so it says what it is in the form
           Google reads, and names its products rather than leaving them to be
@@ -121,7 +121,7 @@ export default async function StorePage({ params }: Params) {
         }}
       />
 
-      <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
+      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-primary">
           Home
         </Link>
@@ -210,7 +210,7 @@ export default async function StorePage({ params }: Params) {
         </div>
       ) : (
         <>
-          <h2 className="mb-3 mt-7 px-3 text-[16px] font-bold text-shop-ink md:px-0 md:text-[18px]">
+          <h2 className="mb-3 mt-7 text-[16px] font-bold text-shop-ink md:text-[18px]">
             Everything from this store
             <span className="ml-2 text-[14px] font-normal text-shop-muted">
               {products.length} {products.length === 1 ? "item" : "items"}

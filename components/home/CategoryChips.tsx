@@ -23,7 +23,7 @@ export default function CategoryChips({ categories }: { categories: ProductCateg
 
   return (
     <nav aria-label="Shop by department">
-      <ul className="flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:px-0">
+      <ul className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <li className="shrink-0">
           <Link
             href="/search"

@@ -1,16 +1,16 @@
 export function ProductCardSkeleton() {
   return (
-    // Flat, like the tile it stands in for. This used to draw a white card with
-    // padding on a phone, which was right while ProductCard did the same; the
-    // tile is chrome-free at every width now, and a placeholder that is a
-    // different shape from what replaces it makes the grid visibly re-draw
-    // itself when the products land — which reads as a layout bug, not loading.
-    <div>
+    // A white card on a phone and flat from md up, because that is what
+    // `ProductCard` is again — the padding and both radii are copied from it
+    // deliberately. A placeholder that is a different shape from what replaces
+    // it makes the grid visibly re-draw itself when the products land, which
+    // reads as a layout bug rather than as loading.
+    <div className="rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
       {/* Matches ProductCard row for row: a square photo, ONE line of name, the
           short sold-and-rating line, then the price. The text bars matter — a
           bare square shimmering on its own reads as a broken image, where a
           square with lines beneath it reads as a product on its way. */}
-      <div className="shimmer aspect-square w-full rounded-lg" />
+      <div className="shimmer aspect-square w-full rounded-md md:rounded-lg" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
@@ -24,7 +24,7 @@ export function ProductCardSkeleton() {
  */
 export function SectionHeaderSkeleton({ withSubtitle = true }: { withSubtitle?: boolean }) {
   return (
-    <div className="mb-3.5 flex items-end justify-between gap-4 px-3 md:px-0">
+    <div className="mb-3.5 flex items-end justify-between gap-4">
       <div className="min-w-0 flex-1">
         <div className="shimmer h-5 w-40 rounded md:h-6 md:w-52" />
         {withSubtitle && <div className="shimmer mt-2 h-3 w-56 rounded" />}

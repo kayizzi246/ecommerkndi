@@ -28,7 +28,7 @@ export default async function CategoriesPage() {
   const departments = buildCategoryTree(categories);
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-4 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* The department index, declared as a list of departments.
           Every child is included, not only the top-level ones — the whole point
           of this page for a crawler is that it is the one place the full tree is
@@ -56,7 +56,7 @@ export default async function CategoriesPage() {
         }}
       />
 
-      <nav className="mb-4 flex items-center gap-2 px-3 text-[13px] text-shop-muted md:px-0">
+      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -64,7 +64,7 @@ export default async function CategoriesPage() {
         <span className="text-shop-ink">All categories</span>
       </nav>
 
-      <header className="mb-5 px-3 md:px-0">
+      <header className="mb-5">
         <h1 className="heading-black text-[24px] text-shop-ink md:text-[28px]">All categories</h1>
         <p className="section-sub mt-1 text-[14.5px]">
           {departments.length > 0
