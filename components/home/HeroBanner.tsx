@@ -304,21 +304,34 @@ export default function HeroBanner({
                shorter and the same proportion of it is a much larger share of
                what can be seen at once.
 
-               ---- Desktop is a flat 400px band ----
+               ---- Desktop is a flat 450px band ----
 
                440/560 was still half a laptop screen, and the shop asked for
                the banner to stop being the page. One number at every desktop
                width is the answer, so the band does not grow as the window
                does and the first rail of products is on the first screen at
                any size. 280 was the first attempt and read as a letterbox,
-               340 was still tight; 400 is the settled figure — a third off the
-               old 560 with the artwork still reading as a banner.
+               340 was still tight and 400 held for a while; 450 is the
+               settled figure — a fifth off the old 560, so a rail of products
+               still opens on the first screen, with enough band left for
+               artwork that carries detail rather than only a slogan.
 
                That is a harder crop than before, so the guidance to compose
                wide with the wording in the middle third is now the thing that
                makes a banner work rather than a nicety. The phone caps are
                unchanged — a phone shows the banner much narrower, so its
-               natural height is already close to the band. */}
+               natural height is already close to the band, and the cap there
+               mostly never fires.
+
+               ---- The phone banner is full bleed ----
+
+               The homepage keeps a 12px gutter down each side on a phone so
+               the product cards read as cards. The hero is the one block that
+               opts out of it: the page hands this section the full width (see
+               `app/page.tsx`), so the artwork runs edge to edge while the grid
+               below it stays inset. A banner is a picture and not a card, and
+               a picture with a sliver of page showing beside it reads as a
+               layout mistake rather than as a hero. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img
             src={optimised(mobileSrc, 1080)}
@@ -340,7 +353,7 @@ export default function HeroBanner({
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[400px] lg:max-h-[400px]"
+            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[450px] lg:max-h-[450px]"
           />
           {/* eslint-enable @next/next/no-img-element */}
         </Link>
@@ -393,10 +406,14 @@ export default function HeroBanner({
            the shop uploaded a banner or is running the drawn fallback —
            otherwise switching one for the other in wp-admin moves the whole
            page up or down. From md the padding is 16px and the photograph is
-           fixed at 368px, which puts the band at the same 400px the uploaded
-           banner is capped to. The type and the feature discs come down a step
-           with it so the copy column still fits inside that height rather than
-           being clipped by the section's `overflow-hidden`. */
+           fixed at 418px, which puts the band at the same 450px the uploaded
+           banner is capped to. The two numbers move TOGETHER: raising the
+           cap without raising the photograph leaves the drawn hero short of
+           the uploaded one by exactly the difference.
+
+           The type and the feature discs come down a step with it so the copy
+           column still fits inside that height rather than being clipped by
+           the section's `overflow-hidden`. */
         className={`relative mx-auto flex max-w-[var(--shell)] flex-col items-center gap-5 px-5 py-6 md:flex-row md:gap-8 md:px-10 md:py-4 ${
           withPhoto ? "" : "md:justify-center md:text-center"
         }`}
@@ -509,7 +526,7 @@ export default function HeroBanner({
         {/* ---- The photograph, and the disc button over it ----
              Rendered only when the cutout exists. See `hasModelCutout`. */}
         {withPhoto && (
-          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[368px] md:w-auto">
+          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[418px] md:w-auto">
             <Image
               src="/hero-model.png"
               alt=""

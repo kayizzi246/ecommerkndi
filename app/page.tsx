@@ -138,11 +138,19 @@ export default async function Home() {
            already opens with `py-3 md:py-5`. 8 + 12 = the 20px phone gap, and
            12 + 20 = the 32px desktop one. Three numbers, one result; if any of
            them moves the hero drifts out of step with the rails beneath it. */}
-      {/* The phone gutter applies here too, so the banner stops where the grid
-          below it stops. A full-bleed hero over an inset grid reads as a
-          mistake, not as a full-bleed hero. From md up the container's own
-          `md:px-8` takes over and this cancels itself. */}
-      <div className="mb-2 px-3 md:mb-3 md:px-0">
+      {/* No phone gutter here, unlike every other block on the page.
+
+          This carried `px-3` so the banner stopped where the grid below it
+          stopped, on the reasoning that a full-bleed hero over an inset grid
+          reads as a mistake. On a real handset it is the other way round: the
+          banner is a photograph, not a card, and 12px of page showing down
+          each side of it looks like a card that failed to fill its slot. Full
+          bleed is what a hero is for, and the inset grid beneath it then reads
+          as the content the hero frames.
+
+          From md up the container's own `md:px-8` would inset this, which is
+          why the hero sits outside that container — see the note above. */}
+      <div className="mb-2 md:mb-3">
         <HeroBanner settings={settings} />
       </div>
       {/* The page opens on merchandise.
