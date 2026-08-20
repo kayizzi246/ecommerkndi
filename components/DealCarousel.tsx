@@ -43,16 +43,17 @@ export default function DealCarousel({
    * the middle of its price rather than through its photograph — which reads as
    * a broken layout rather than as an invitation to swipe.
    *
-   * 47% now, and every width above it went up by the same step. The tiles were
+   * 49% now, and every width above it went up by the same step. The tiles were
    * asked to show the goods bigger, and a rail tile has only one lever for that
    * — a photograph here is exactly as wide as its column. The peek survives the
-   * change: 47% still slices the third tile across its image rather than
-   * landing on a whole number of tiles.
+   * change: at 49% the third tile is still sliced across its image, though
+   * this is the ceiling — at 50% two tiles fill the viewport exactly and the
+   * peek that makes the rail look swipeable disappears.
    *
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[47%] sm:w-[33%] md:w-[25.5%] lg:w-[20.5%] xl:w-[17.5%] 2xl:w-[13.2%]",
+  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[27%] lg:w-[21.5%] xl:w-[18.5%] 2xl:w-[14%]",
   priority = false,
   viewAll,
 }: {
@@ -144,7 +145,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 47vw,(max-width: 768px) 33vw, (max-width: 1024px) 25.5vw, (max-width: 1280px) 20.5vw, 18vw"
+              sizes="(max-width: 640px) 49vw,(max-width: 768px) 34.5vw, (max-width: 1024px) 27vw, (max-width: 1280px) 21.5vw, 19vw"
             />
           </div>
         ))}
