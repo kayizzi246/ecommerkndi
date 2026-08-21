@@ -111,7 +111,13 @@ export async function generateMetadata(): Promise<Metadata> {
     // shoppers here share — shows no picture at all.
     metadataBase: new URL(siteUrl()),
     title: {
-      default: `${brand} | Online Shopping in Uganda — Fast Delivery, Pay on Delivery`,
+      // One separator, and it is the pipe. This carried a pipe AND an em dash
+      // — "Brand | Online Shopping in Uganda — Fast Delivery, Pay on Delivery"
+      // — which is two punctuation marks doing one job, and the dash is the
+      // one that renders as a stray line in a browser tab where the title is
+      // clipped to about 25 characters. It also pushed the string past 70,
+      // where Google truncates.
+      default: `${brand} | Online Shopping in Uganda, Pay on Delivery`,
       template: `%s | ${brand}`,
     },
     description: settings.brand.tagline

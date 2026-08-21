@@ -201,17 +201,24 @@
    * footer happened to share, and sharing it means the next masthead change
    * repaints the footer by accident.
    *
-   * The hue is warmer than gray-900 as well as darker. #111827 is a BLUE
-   * near-black — gray-900 carries a slate cast — and under a page of orange
-   * chrome and warm product photography it reads as cold. This is the same
-   * value of black taken round to the warm side, which is what the reference
-   * marketplace footers use and what stops the bottom of the page looking
-   * like a different site's.
+   * It is black, and it went there in two steps: #111827 (gray-900, a BLUE
+   * near-black with a slate cast that read as cold under a page of orange
+   * chrome), then a warm #221c17, then #000. Black has no cast to be wrong,
+   * which is the argument for it — under warm product photography and an
+   * orange masthead, any tinted near-black is a third hue on the page and the
+   * eye reads it as one.
    *
-   * White type on it is 16.9:1, so every step of white already in the footer
-   * (100, 90, 70, 55) keeps the contrast it had on gray-900. */
-  --color-shop-footer: #221c17;
-  --color-shop-footer-deep: #17120f; /* the legal bar under it */
+   * It is also the highest contrast this surface can have: white type on #000
+   * is 21:1, so all four steps of white already in the footer (100, 90, 70,
+   * 55) gain contrast rather than lose it. The 55 step is the one that
+   * mattered — support hours and an address at 55% of white were 9.3:1 on
+   * gray-900 and are 11.6:1 here. */
+  --color-shop-footer: #000000;
+  /* The legal bar goes a step LIGHTER, which only looks backwards. The band
+     above it is already #000: there is nothing darker to separate it with, so
+     the strip lifts by a hair instead and the `border-white/10` above it does
+     the rest of the work. */
+  --color-shop-footer-deep: #0a0a0a;
 
   /* Kept for the odd accent that still wants it (seller badges, chart series). */
   --color-shop-olive: #6f7c02;
@@ -275,6 +282,18 @@
    * clears 4.8:1. */
   --color-shop-sale-price: #dc2626; /* a reduced price, and nothing else */
   --color-shop-success: #16a34a;
+  /* ---- The saving on a tile ----
+   *
+   * Green, because money kept is good news and green is the only hue on this
+   * page that says so — red is the price, orange is the brand, and near-black
+   * is everything else.
+   *
+   * It is a step darker than `shop-success` above, and that is contrast
+   * rather than taste. #16a34a is 3.1:1 on white, which is fine behind a tick
+   * on a delivery line at 14px and not fine for 11px bold type a shopper is
+   * meant to read at a glance. #15803d clears 4.6:1 and is the same green a
+   * step down the ramp, so the two read as one colour doing two jobs. */
+  --color-shop-save: #15803d;
   --color-shop-successbg: #f0fdf4;
   --color-shop-warning: #f59e0b;
   --color-shop-error: #e53935;
@@ -752,28 +771,31 @@ h6,
   letter-spacing: 0;
 }
 
-/* ---------- Product names on a tile — 600, 13px ----------
+/* ---------- Product names on a tile — 400, 13px ----------
  * A grid tile's name and a product page's <h1> are the same string doing two
- * different jobs, and they have wanted different type since the tile went to a
- * single line.
+ * different jobs. They now agree on the weight and differ only in size.
  *
- * `.font-normal-heading` above is the PDP's answer: 400, because a
- * 90-character supplier title set as a headline is a wall, and there it has a
- * whole column to run in. On a tile the same title is clipped to ONE line, and
- * one line of 400-weight grey under a photograph reads as a caption rather than
- * as the product's name — it is the row a shopper matches against what they
- * came looking for, and it has to hold its own against the price below it.
+ * This was 600, on the argument that one clipped line of 400 under a
+ * photograph reads as a caption rather than as the product's name. What that
+ * missed is what the tile is FOR. A shopper scanning a grid is matching
+ * pictures and prices; the name is what they read to confirm the match, and
+ * confirming is reading, not scanning. At 600 every name in the grid was
+ * competing with the price beside it and with the forty other names on the
+ * screen, which is forty things shouting and none of them heard.
  *
- * 600 is what the reference grid sets and it is right for the same reason
- * navigation is 600: this row is scanned, not read. It is not 700, because at
- * 700 it would weigh the same as the price and the tile would have two loudest
- * things in it.
+ * 400 puts the emphasis where the tile's own hierarchy wants it: photograph
+ * first, price second, name third and legible. It is also what every
+ * marketplace this grid is modelled on sets — Temu, AliExpress and Amazon all
+ * run tile titles at regular weight with the price bold beneath.
+ *
+ * The colour still carries it. `text-shop-ink` is near-black, not the grey a
+ * caption would take, so 400 here is quiet rather than secondary.
  *
  * Unlayered, like the h1–h6 rule it has to beat — a tile name is an <h3>, so
  * without this it would inherit the display face at 700. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: 400;
   /* Undoes the heading tracking. A product name is body copy that happens to be
      marked up as a heading and should be spaced like the sentences around it. */
   letter-spacing: 0;

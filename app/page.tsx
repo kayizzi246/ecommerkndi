@@ -38,6 +38,16 @@ import type { Metadata } from "next";
  * `title.absolute` rather than a plain string: a plain one would be run through
  * the layout's `%s | {brand}` template and come out with the brand twice.
  *
+ * ---- One separator ----
+ *
+ * This read "KandiUg — Online Shopping in Uganda | {brand}", with an em dash
+ * and a pipe in the same string. A browser tab clips a title to roughly 25
+ * characters, so what a shopper actually saw beside the favicon was "KandiUg —
+ * Onl…": the brand, then a dash hanging off it. Nothing separates the query
+ * from the phrase now — "KandiUg Online Shopping in Uganda" reads as one thing
+ * because it IS one thing — and the pipe stays where it is earning its keep,
+ * between the searched name and the registered one.
+ *
  * A function rather than a constant so the registered name still comes from
  * wp-admin — a shop that renames itself should not need a redeploy.
  */
@@ -48,7 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     alternates: { canonical: "/" },
     title: {
-      absolute: `KandiUg — Online Shopping in Uganda | ${brand}`,
+      absolute: `KandiUg Online Shopping in Uganda | ${brand}`,
     },
     description:
       `KandiUg (${brand}) is a Ugandan online marketplace for shoes, fashion, ` +
@@ -56,7 +66,7 @@ export async function generateMetadata(): Promise<Metadata> {
       `${settings.commerce.returns_days}-day returns.`,
     openGraph: {
       type: "website",
-      title: `KandiUg — Online Shopping in Uganda`,
+      title: `KandiUg Online Shopping in Uganda`,
       description:
         `Shop shoes, fashion, electronics and more on KandiUg. Fast delivery ` +
         `across Uganda, pay on delivery, ${settings.commerce.returns_days}-day returns.`,

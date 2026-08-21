@@ -323,7 +323,7 @@ export default async function CategoryPage({
                   more air than columns because a grid is scanned downwards, so
                   the join that was actually failing was a tile's last line of
                   text against the next tile's picture. */}
-              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

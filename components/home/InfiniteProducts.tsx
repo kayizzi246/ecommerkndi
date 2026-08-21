@@ -107,8 +107,8 @@ export default function InfiniteProducts({
 
   return (
     <>
-      {/* Five across from the tablet step up, stepping down to two on a phone.
-          In the 1500px shell that leaves each photograph around 277px, which is
+      {/* Six across on a desktop, five on a tablet, two on a phone. In the
+          1500px shell six columns leave each photograph around 229px, which is
           a product picture a shopper can judge a garment from rather than one
           they have to open to see. Gaps are
           tight on purpose, and tighter still on a phone: a dense grid reads as
@@ -162,31 +162,25 @@ export default function InfiniteProducts({
 
           `lg:grid-cols-5` is gone rather than kept beside it: it would now be
           restating what `md` already set, and a redundant step is how a
-          breakpoint ramp drifts. The ramp is 2 → 3 → 5, and it must stay
+          breakpoint ramp drifts. The ramp is 2 → 3 → 5 → 6, and it must stay
           monotonic — the rail in `DealCarousel` mirrors these counts and the
           two are meant to agree on any given screen. */}
-      {/* ---- Five is the TOP of the ramp now, not the middle ----
+      {/* ---- Six is the top of the ramp, and where it stops ----
 
-          The ramp used to keep climbing above the tablet step: 6 at `xl`, then
-          8 at `2xl` (briefly 7). That was the full-bleed shop, where a wider
-          window was spent on more products rather than bigger ones, and at
-          1920px of window eight columns still left a 228px picture.
+          The ramp once climbed to 8 at `2xl`. That was the full-bleed shop,
+          where a wider window was spent on more products rather than bigger
+          ones — eight columns of a 1920px window still left a 228px picture.
 
-          Two things ended it. The shell is bounded at 1500px, so the width
-          being shared out stopped growing — eight columns of 1436px is a 172px
-          tile, smaller than this shop's own PHONE tile. And the reference
-          grid this card is modelled on runs five across at desktop widths with
-          a large picture, which is the arrangement a shopper can actually
-          judge a garment from.
+          The shell is bounded at 1500px now, so the width being shared out
+          stopped growing, and the same eight columns of 1436px is a 172px
+          tile: smaller than this shop's own PHONE tile. Six is the count that
+          fits the bounded shell at a size a shopper can judge a garment from —
+          229px, against the 277px five would give and the 172px eight did.
 
-          So the count stops at five and 1436px buys SIZE instead: a 277px
-          photograph, more than the product page's own thumbnail. The rows are
-          endless, so nothing is lost from the catalogue — a shopper sees fewer
-          products per screen and scrolls, which is the trade being made.
-
-          `xl:` and `2xl:` are removed rather than set to 5 beside `md:`. A
-          step that restates its neighbour is how this ramp drifts. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5">
+          It stops at `xl`. There is no `2xl:` step, because above 1500px the
+          shell is not growing and a seventh column would only make the
+          pictures smaller for no more page. */}
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

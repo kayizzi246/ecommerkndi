@@ -216,10 +216,10 @@ export default function Footer({
       </div>
 
       {/* Legal bar */}
-      {/* The legal bar goes a step darker than the footer above it rather than
-          to `shop-ink`, which is the type colour and a different hue now that
-          the footer is warm. Same relationship as before: one surface, two
-          values, the quieter one at the bottom. */}
+      {/* The legal bar is its own token rather than `shop-ink`, which is the
+          TYPE colour and only ever coincidentally the same value. Now that the
+          footer is black the strip lifts a hair instead of dropping — see the
+          token in `globals.css` — and the hairline above carries the join. */}
       <div className="border-t border-white/10 bg-shop-footer-deep">
         <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every

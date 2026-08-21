@@ -8,6 +8,21 @@ import TileCartButton from "@/components/TileCartButton";
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
 
+/**
+ * What it takes to be called "Top rated" on a tile.
+ *
+ * Two thresholds rather than one, because either alone is meaningless. A 5.0
+ * from a single review is not a verdict, and a 4.5 with no count behind it is
+ * arithmetic on a sample of one. Three reviews is the smallest number where a
+ * shopper's own reading of "other people bought this and were fine" holds.
+ *
+ * Deliberately not tuned to make the badge common. A label that most of the
+ * catalogue carries tells a shopper nothing, which is the same reason the
+ * Super Deal chip needs 30% rather than any reduction at all.
+ */
+const TOP_RATED_AT = 4.5;
+const TOP_RATED_REVIEWS = 3;
+
 /** "2.2K sold" — the compact form marketplaces print beside a price. */
 function compactSold(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -105,20 +120,20 @@ function Stars({ rating }: { rating: number }) {
  * The grid widths, since most cards are in a grid. A rail passes its own —
  * see below for why that is worth the prop.
  *
- * One entry per column count in the grid ramp (2 → 3 → 5), and the two have to
- * be edited together. The 768–1024 band is the one that caught this out: it
- * read 33vw while the grid there had gone to five columns, so every iPad was
- * downloading an image about two-thirds wider than the box it was painted
- * into. See the breakpoint note in `InfiniteProducts`.
+ * One entry per column count in the grid ramp (2 → 3 → 5 → 6), and the two
+ * have to be edited together. The 768–1024 band is the one that caught this
+ * out: it read 33vw while the grid there had gone to five columns, so every
+ * iPad was downloading an image about two-thirds wider than the box it was
+ * painted into. See the breakpoint note in `InfiniteProducts`.
  *
  * The last entry is a PIXEL value rather than a `vw`, and that is the shell
- * being bounded. Above 1500px the grid stops growing — 1436px of content, five
- * columns, a 277px tile — so the box is the same size on a 1600px laptop and
+ * being bounded. Above 1500px the grid stops growing — 1436px of content, six
+ * columns, a 229px tile — so the box is the same size on a 1600px laptop and
  * on a 2560px monitor. A `vw` there would over-order on the wide one and
- * under-order on the narrow one; 290px is simply what the box measures.
+ * under-order on the narrow one; 240px is simply what the box measures.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1500px) 20vw, 290px";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 20vw, (max-width: 1500px) 17vw, 240px";
 
 export default function ProductCard({
   product,
@@ -157,6 +172,12 @@ export default function ProductCard({
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
+  /* The reduction as money rather than as a ratio — see the row itself for
+     why the tile carries both. Guarded on `on_sale` through `discount` so a
+     bad `regular_price` in WooCommerce cannot print a negative saving. */
+  const saving =
+    discount > 0 ? Math.max(0, product.regular_price - product.price) : 0;
+
   const soldOut = product.stock_status === "outofstock";
   const lowStock =
     !soldOut && product.stock_quantity !== null && product.stock_quantity <= LOW_STOCK_AT;
@@ -174,14 +195,26 @@ export default function ProductCard({
      the tile no height at all, and a couple of characters of the name only on
      the products that carry one.
 
-     Two labels, both earned from data this shop already has: `featured` is the
-     shopkeeper's own pick, and a reduction of 30% or more is a genuinely
-     unusual one. A chip on every tile is a chip that means nothing. */
+     Three labels, each earned from data this shop already has: `featured` is
+     the shopkeeper's own pick, a reduction of 30% or more is a genuinely
+     unusual one, and a 4.5 average over three or more reviews is the one
+     signal on a tile that comes from other shoppers rather than from the shop.
+     A chip on every tile is a chip that means nothing, which is what the
+     thresholds are for — `TOP_RATED_AT` needs a real rating AND enough of
+     them, because a single five-star review is not evidence of anything.
+
+     The order is the order of usefulness to a shopper who has not decided yet:
+     the shop's own pick, then a deep cut, then the crowd's verdict. */
+  const topRated =
+    product.rating_count >= TOP_RATED_REVIEWS && product.average_rating >= TOP_RATED_AT;
+
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }
     : discount >= 30
       ? { label: "Super Deal", className: "bg-shop-primary-ink text-white" }
-      : null;
+      : topRated
+        ? { label: "Top rated", className: "bg-shop-surface text-shop-ink" }
+        : null;
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
@@ -611,7 +644,7 @@ export default function ProductCard({
            DO vary, so they stay — but only on the products they apply to. */}
       <div className="flex flex-1 flex-col gap-0 pt-1.5">
         <Link href={href} className="block">
-          {/* ---- One line, 600 weight ----
+          {/* ---- One line, plain weight ----
 
               Two lines were reserved here so that a short name still held the
               second one and the price below it never moved. The price is
@@ -619,11 +652,11 @@ export default function ProductCard({
               costing 16px on every tile — and a truncated second line is where
               a supplier's keyword-stuffed title does its worst reading.
 
-              One line at 600 is what the reference sets, and the weight is the
-              compensation for the lost line: the name has to be findable at a
-              glance in a row it now shares with nothing. `.product-name`
-              carries the family and weight — see `globals.css` for why it is
-              not `.font-normal-heading` like the product page's <h1>.
+              The weight went 600 → 400 with the grid: a name is what confirms
+              a match the photograph and the price already made, and forty
+              semibold names on a screen is forty things competing with the
+              prices under them. `.product-name` carries the family and weight
+              — see `globals.css` for the full argument.
 
               `truncate` rather than `line-clamp-1`: on a single line they look
               identical, and `truncate` is one property that also guarantees the
@@ -708,7 +741,42 @@ export default function ProductCard({
              dropped rather than squeezed: the discount is already on the
              photograph as a corner flag, so nothing is lost and the resting
              price gets the whole width to itself. */}
-        <p className="mt-auto flex items-baseline gap-x-1.5 overflow-hidden pt-[3px]">
+        {/* ---- What the shopper keeps, in money ----
+
+             A reduction is on the tile twice already — the corner flag says
+             "−35%" and the struck-through original says what it was — and both
+             of those are ratios a shopper has to do arithmetic on. This is the
+             same fact as the number they would arrive at: what stays in their
+             pocket.
+
+             It is the row worth adding because a percentage is a comparison
+             and a sum is a decision. "−35%" is read against other tiles;
+             "Save UGX 19,000" is read against what else that money buys, which
+             is the thought that ends in a purchase.
+
+             Only on discounted tiles, so it costs nothing on the rest — and it
+             sits ABOVE the price rather than in it, because that row is
+             `overflow-hidden` and a third figure inside it is what produced
+             the sliced "−(" the percentage was removed for.
+
+             Green, and it is the only green in the grid. The price below is
+             red and the corner flag and chip are orange, so this row is the
+             one place on a tile where a third hue is doing work rather than
+             decorating: red is what it costs, green is what it saves. That
+             pairing is the oldest one in retail and it needs no explaining.
+
+             `shop-save` rather than `shop-success` — 11px bold needs the
+             darker step to clear AA. See the token in `globals.css`. */}
+        {saving > 0 && (
+          <p className="mt-auto truncate pt-[3px] text-[11px] font-bold leading-4 text-shop-save">
+            Save {formatPrice(saving)}
+          </p>
+        )}
+        <p
+          className={`flex items-baseline gap-x-1.5 overflow-hidden pt-[3px] ${
+            saving > 0 ? "" : "mt-auto"
+          }`}
+        >
           {/* ---- The resting price is near-black, not orange ----
                It was orange for a while, on the argument that one saturated
                colour repeated in the same position on every tile gives the eye
