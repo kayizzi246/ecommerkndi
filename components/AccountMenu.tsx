@@ -52,7 +52,7 @@ export default function AccountMenu() {
           className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
         >
           <Avatar customer={customer} />
-          <span className="hidden max-w-[90px] truncate text-[14px] xl:inline">
+          <span className="hidden max-w-[90px] truncate text-[13px] xl:inline">
             {customer.name.split(" ")[0]}
           </span>
         </Link>
@@ -73,7 +73,7 @@ export default function AccountMenu() {
             <circle cx="12" cy="8" r="3.75" />
             <path strokeLinecap="round" d="M4.5 20.1a7.5 7.5 0 0 1 15 0" />
           </svg>
-          <span className="hidden max-w-[90px] truncate text-[14px] xl:inline">
+          <span className="hidden max-w-[90px] truncate text-[13px] xl:inline">
             {loading ? "" : "Sign in"}
           </span>
         </button>

@@ -206,9 +206,23 @@ export default function CuratedNav({
                  the deal language everywhere else (the corner flags, the Super
                  Deal chips, reduced prices) moved to `shop-primary-ink` with
                  it. See the corner-flag note in `ProductCard`. */
-              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-2.5 text-[14.5px] font-bold transition-colors ${
+              /* ---- 13.5px at 400, down from 14.5 at 700 ----
+
+                 A department row set in bold is a row of shouted words, and at
+                 700 every entry was competing with the masthead above it and
+                 with the product names below. The reference for this row is
+                 not a marketplace's own nav; it is the top bar of a modern
+                 commerce product — Shopify, Stripe, Linear — where navigation
+                 is small, plain-weight and dark, and the colour and the
+                 spacing do the separating.
+
+                 The active state moves off weight and onto colour, which is
+                 what makes 400 affordable here: a bolded item in a row of
+                 regular ones is a size change that shifts its neighbours, and
+                 an orange one in a row of near-black ones is not. */
+              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-normal transition-colors ${
                 entry.hot
-                  ? "text-shop-primary-ink"
+                  ? "font-medium text-shop-primary-ink"
                   : isOpen
                     ? "text-shop-flame"
                     : "text-shop-ink hover:text-shop-flame"

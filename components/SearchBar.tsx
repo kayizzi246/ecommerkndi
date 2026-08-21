@@ -257,7 +257,7 @@ export default function SearchBar() {
             id="search-scope"
             value={scope}
             onChange={(event) => setScope(event.target.value)}
-            className="hidden max-w-[130px] shrink-0 cursor-pointer truncate border-r border-shop-line bg-transparent py-2.5 pr-2 text-[14px] font-semibold text-shop-ink focus:outline-none sm:block"
+            className="hidden max-w-[130px] shrink-0 cursor-pointer truncate border-r border-shop-line bg-transparent py-2.5 pr-2 text-[13px] font-normal text-shop-ink focus:outline-none sm:block"
           >
             <option value="">All</option>
             {SCOPES.map((entry) => (
@@ -325,7 +325,7 @@ export default function SearchBar() {
                 // which is what replays the animation — a CSS animation on a
                 // persistent node only ever runs once.
                 key={prompt}
-                className="ticker-line block truncate text-[15px] text-shop-muted"
+                className="ticker-line block truncate text-[14px] text-shop-muted"
               >
                 {SEARCH_PROMPTS[prompt]}
               </span>
@@ -353,7 +353,7 @@ export default function SearchBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="flex h-11 w-14 shrink-0 items-center justify-center self-stretch bg-shop-flame text-white transition-colors hover:bg-shop-primary"
+            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-flame text-white transition-colors hover:bg-shop-primary"
           >
             <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path

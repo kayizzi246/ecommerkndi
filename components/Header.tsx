@@ -256,12 +256,18 @@ export default function Header({
            thing they actually reached for further down the screen. What returns
            is the working row and nothing else. */}
       <div className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}>
-        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[12px] md:px-8">
+        {/* 11.5px, and the lines inside are plain rather than semibold. This
+            strip is the smallest thing on the page and it was set in the same
+            weight as the navigation under it, which is what made three bands
+            of chrome read as three headlines. A promise bar is read once on
+            arrival; it does not need to be heavy to be seen, it needs to be
+            small and orange, which it is. */}
+        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[11.5px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
               onClick={openDrawer}
-              className="truncate font-semibold transition-opacity hover:opacity-85"
+              className="truncate font-medium transition-opacity hover:opacity-85"
             >
               Add {formatPrice(awayFromFreeDelivery)} more for FREE delivery ›
             </button>
@@ -270,11 +276,11 @@ export default function Header({
                carries the delivery threshold and the returns window — a party
                popper next to it makes the whole row read as marketing rather
                than as the shop telling you what you will be charged. */
-            <span className="truncate font-semibold">
+            <span className="truncate font-medium">
               Delivery on this order is free
             </span>
           ) : (
-            <SalesTicker messages={settings.ticker} className="min-w-0 font-semibold" />
+            <SalesTicker messages={settings.ticker} className="min-w-0 font-medium" />
           )}
 
           <div className="hidden shrink-0 items-center gap-5 sm:flex">
@@ -294,7 +300,7 @@ export default function Header({
                 type on white clears 6.4:1. */}
             <Link
               href={settings.promo.cta_url}
-              className="rounded-full bg-white px-2.5 py-0.5 font-bold text-shop-primary-ink transition-opacity hover:opacity-90"
+              className="rounded-full bg-white px-2.5 py-0.5 font-semibold text-shop-primary-ink transition-opacity hover:opacity-90"
             >
               {settings.promo.cta_label} ›
             </Link>
@@ -549,7 +555,7 @@ export default function Header({
             {/* The running total only once there is one. An empty basket
                 reading "UGX 0" is a figure that tells the shopper nothing and
                 puts a zero in the masthead of every first visit. */}
-            <span className="hidden whitespace-nowrap text-left text-[13px] leading-tight lg:block">
+            <span className="hidden whitespace-nowrap text-left text-[12.5px] leading-tight lg:block">
               Cart
               {count > 0 && (
                 <>
@@ -598,7 +604,7 @@ export default function Header({
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-1.5 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-1.5 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
+              className="my-1.5 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[13px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -614,14 +620,14 @@ export default function Header({
                 costs one link at the end of a row that has room for it. */}
             <Link
               href="/sell"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[14px] font-semibold text-shop-primary hover:text-shop-primary-dark lg:block"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-medium text-shop-primary hover:text-shop-primary-dark lg:block"
             >
               Sell on Kandi
             </Link>
 
             <Link
               href="/sellers"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[14px] text-shop-body hover:text-shop-flame xl:block"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[13.5px] text-shop-body hover:text-shop-flame xl:block"
             >
               Shop by store →
             </Link>

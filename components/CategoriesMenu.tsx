@@ -75,7 +75,10 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
         // Bold and inked, matching the curated links it sits beside — this is
         // the entry to the whole department tree and should not be the lightest
         // thing in the row.
-        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-3 text-[14.5px] font-bold transition-colors ${
+        /* Matched to the department links beside it — 13.5px at 400, colour
+           rather than weight for the open state. The two are one row and a
+           half-pixel of disagreement between them reads as a mistake. */
+        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-normal transition-colors ${
           open ? "text-shop-flame" : "text-shop-ink hover:text-shop-flame"
         }`}
       >
