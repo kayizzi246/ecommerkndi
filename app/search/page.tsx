@@ -144,7 +144,7 @@ export default async function SearchPage({
             <>
               {/* 8/16 on a phone, 12/24 from sm — the shared product-grid
                   rhythm. See the note in the category grid. */}
-              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5">
                 {visible.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

@@ -193,6 +193,25 @@
   --color-shop-nav: #111827;
   --color-shop-nav-dark: #000000;
   --color-shop-band: #111827;
+  /* ---- The footer ground ----
+   *
+   * The footer used to paint itself `shop-nav` — gray-900, #111827, the same
+   * near-black the masthead was. The masthead is white now, so that token is
+   * no longer "the shop's dark chrome"; it is one component's colour that the
+   * footer happened to share, and sharing it means the next masthead change
+   * repaints the footer by accident.
+   *
+   * The hue is warmer than gray-900 as well as darker. #111827 is a BLUE
+   * near-black — gray-900 carries a slate cast — and under a page of orange
+   * chrome and warm product photography it reads as cold. This is the same
+   * value of black taken round to the warm side, which is what the reference
+   * marketplace footers use and what stops the bottom of the page looking
+   * like a different site's.
+   *
+   * White type on it is 16.9:1, so every step of white already in the footer
+   * (100, 90, 70, 55) keeps the contrast it had on gray-900. */
+  --color-shop-footer: #221c17;
+  --color-shop-footer-deep: #17120f; /* the legal bar under it */
 
   /* Kept for the odd accent that still wants it (seller badges, chart series). */
   --color-shop-olive: #6f7c02;
@@ -230,8 +249,31 @@
    * The whole deal language moved to `--color-shop-primary-ink` — the brand,
    * at the one weight of it that passes AA as small text. Red kept the job it
    * can only do once: form errors, failed payments, and the stock warning on a
-   * tile. Do not put it back on a price. */
-  --color-shop-sale: #e53935; /* errors and warnings — never a price */
+   * tile. It is not a DECORATION colour here — but see the price token
+   * below, which is the one place red still carries a commercial meaning. */
+  --color-shop-sale: #e53935; /* errors and warnings */
+
+  /* ---- Red on a reduced price ----
+   *
+   * A discounted price is red across the whole shop — grid, rails, product
+   * page. This is the colour every marketplace this shop competes with uses
+   * for a reduction, and it is not a colour a shopper has to learn.
+   *
+   * Problem 1 from the note above — a tile carrying a red flag, a red chip
+   * AND a red price on an orange site — is answered by rationing the other
+   * two rather than the price: the corner flag and the Super Deal chip are
+   * brand orange, so the red on a tile is the price and nothing else. The
+   * RESTING price is still near-black, which is what keeps this an exception
+   * on the page rather than a second colour field.
+   *
+   * Problem 2 — red meaning both "good news" and "something went wrong" — is
+   * answered by the two being separate tokens with separate jobs. An error is
+   * never drawn in this one, and a price is never drawn in the one above.
+   *
+   * #dc2626 rather than #e53935 because a price is small text: 15px at 800
+   * weight is not "large" under WCAG, #e53935 is 4.2:1 on white and this
+   * clears 4.8:1. */
+  --color-shop-sale-price: #dc2626; /* a reduced price, and nothing else */
   --color-shop-success: #16a34a;
   --color-shop-successbg: #f0fdf4;
   --color-shop-warning: #f59e0b;
@@ -337,20 +379,24 @@
    * into thirteen files, which is a width that could only ever be changed by
    * remembering all thirteen.
    *
-   * 100% is full-bleed: the shop uses the whole window, with only the
-   * containers' own `px-4`/`md:px-8` holding content off the glass. That is
-   * what a marketplace grid wants — the page is a catalogue, and a catalogue
-   * gets better the more of it fits on a screen, where a column of prose would
-   * get worse.
+   * 1500px is a bounded shop. It was 100% — full bleed, the whole window —
+   * and the thing that changed the answer was the hero. An uploaded banner is
+   * a fixed picture with its wording baked into the pixels, so it has a width
+   * it was drawn for; on a 1920px window a full-bleed one is either a 787px
+   * letterbox or it gets capped and then visibly stops short of the page it
+   * sits on. 1500 is a width that artwork can fill: the banner spans the shell
+   * edge to edge, at its own ratio, uncropped, and the grid below it starts
+   * and ends on the same two edges.
    *
-   * The product grids gain a `2xl:` column instead of wider tiles, so a big
-   * monitor shows MORE products rather than bigger ones. That pairing is the
-   * whole reason full width is safe here; without it, 1920px of six columns is
-   * a grid of enormous photographs.
+   * The product grids still gain a `2xl:` column instead of wider tiles, so a
+   * big monitor shows MORE products rather than bigger ones. That pairing is
+   * what keeps the page reading as a catalogue at this width too — it now
+   * stops short of the glass instead of running into it.
    *
-   * If the shop ever wants its old bounded look back, this is the one line:
-   * put `1600px` here and every container follows. */
-  --shell: 100%;
+   * If the shop ever wants full bleed back, this is still the one line: put
+   * `100%` here and every container follows. The hero reads the same token,
+   * so the banner goes back to spanning the window with it. */
+  --shell: 1500px;
 
   --font-ui:
     var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,

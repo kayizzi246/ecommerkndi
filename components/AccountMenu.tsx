@@ -49,7 +49,7 @@ export default function AccountMenu() {
           // now, where the body grey is about 2.3:1 and effectively invisible.
           // If this is ever reused on a light surface it needs a prop; today it
           // is not, so it takes the row's palette directly.
-          className="flex items-center gap-2 text-white transition-colors hover:text-shop-primary"
+          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
         >
           <Avatar customer={customer} />
           <span className="hidden max-w-[90px] truncate text-[14px] xl:inline">
@@ -67,7 +67,7 @@ export default function AccountMenu() {
           // now, where the body grey is about 2.3:1 and effectively invisible.
           // If this is ever reused on a light surface it needs a prop; today it
           // is not, so it takes the row's palette directly.
-          className="flex items-center gap-2 text-white transition-colors hover:text-shop-primary"
+          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
         >
           <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
             <circle cx="12" cy="8" r="3.75" />
@@ -85,7 +85,7 @@ export default function AccountMenu() {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-label="Account menu"
-          className="ml-1 text-white/70 transition-colors hover:text-shop-primary"
+          className="ml-1 text-shop-muted transition-colors hover:text-shop-primary"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />

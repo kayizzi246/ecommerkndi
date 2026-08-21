@@ -200,15 +200,20 @@ export default function Header({
     // the masthead and the grid scrolling under it, and something has to say
     // where one ends and the other begins.
     //
-    // That used to be a `shadow-sm`, and it is no longer needed at all. The
-    // masthead is gray-900 now: against a white page it is the highest-contrast
-    // edge on the screen, and a soft grey shadow under a near-black bar is a
-    // smudge nobody can see doing a job the colour already did. Every other
-    // shadow on the storefront's page surfaces came off in the same pass; this
-    // is the one that was genuinely load-bearing before the header went dark,
-    // which is why it is called out rather than just deleted.
+    // That used to be a `shadow-sm`. It came off when the masthead went
+    // gray-900, on the argument that a near-black bar against a white page is
+    // already the highest-contrast edge on the screen and a soft grey shadow
+    // under it is a smudge doing a job the colour had done.
+    //
+    // The masthead is white again, so the colour is not doing that job any
+    // more — but the answer is still not a shadow. It is `border-b`: a
+    // hairline is what separates every other white surface in this shop from
+    // the one below it, and the department bar under this already ends in the
+    // same rule. On a phone, where that bar folds away, this border IS the
+    // line between the masthead and the grid scrolling under it, which is what
+    // the shadow was there for.
     <header
-      className={`sticky top-0 z-40 bg-shop-nav transition-transform duration-300 ease-out motion-reduce:transition-none ${
+      className={`sticky top-0 z-40 border-b border-shop-line bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
         slidUp ? "-translate-y-full" : "translate-y-0"
       }`}
     >
@@ -220,8 +225,9 @@ export default function Header({
            nobody), then near-black (read, but receded), then yellow. Yellow
            worked — black on #facc15 is 11:1 — and its only fault was being a
            second brand colour in a shop that has one. Orange says the same
-           thing in the shop's own hue, and now that the row beneath it is
-           gray-900 it is the strip rather than the type that does the shouting.
+           thing in the shop's own hue: the strip rather than the type is what
+           does the shouting, which is why it survives the row beneath it going
+           from gray-900 back to white.
 
            Type is near-black, not white, and this is not negotiable: orange is
            a light hue, white on #ff6a00 is 2.9:1 and genuinely hard to read at
@@ -229,7 +235,8 @@ export default function Header({
            above it. Near-black on this orange is 5.5:1.
 
            `bg-shop-primary` rather than a redefined `--color-shop-nav`: that
-           token paints this masthead's working row, the footer and the admin
+           token no longer paints anything on this header — the working row
+           below is white again — but it is still the footer and the admin
            masthead, where white text on near-black is correct.
 
            Once there is something in the cart the rotating line gives way to
@@ -249,7 +256,7 @@ export default function Header({
            thing they actually reached for further down the screen. What returns
            is the working row and nothing else. */}
       <div className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}>
-        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-2 text-[12px] md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[12px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
@@ -295,21 +302,42 @@ export default function Header({
         </div>
       </div>
       {/* ---- Main row ----
-           Gray-900, roomy, and dominated by the search field — the marketplace
+           White, tight, and dominated by the search field — the marketplace
            masthead. Search is the primary way into a catalogue this size, so it
            takes the whole middle of the row and grows with the window instead
            of sitting at a fixed width. Below md it wraps to its own line.
 
-           The dark ground is doing work for the search field specifically.
-           `SearchBar` is a white pill with an orange submit button; on the
-           white row it used to sit on, that was a white box on white
-           distinguished only by a hairline border. On this it is the brightest
-           object on the screen, which is what the most-used control in the shop
-           should be. Nothing in `SearchBar` needed changing for this. */}
-      <div className="bg-shop-nav">
+           ---- The ground was gray-900 and is white again ----
+
+           The dark row was doing one specific job: `SearchBar` is a white pill
+           with an orange submit button, and on a dark ground it is the
+           brightest object on the screen, which is what the most-used control
+           in the shop should be.
+
+           What it cost was three things at once — an uploaded logo needed a
+           white plate to survive it, every label in the row had to be white,
+           and the shop's chrome ran near-black over orange over white in three
+           bands before a single product appeared. The masthead is now one
+           surface with the department bar below it.
+
+           The search field keeps its prominence without the dark ground
+           because it already carries `border-2`: a two-pixel edge that turns
+           brand orange on focus, plus the solid orange submit button, is a
+           louder object on a white row than anything else in the chrome. That
+           border is not decorative now — thinning it puts the field back to
+           white-on-white.
+
+           ---- Tighter ----
+
+           py-2, from py-3.5, and `gap-x-4` between the row's three blocks,
+           from `gap-x-6`. The row is logo, field, account and cart; none of
+           them needs 28px of air above and below to be found, and the height
+           saved is height the first row of products gets on the opening
+           screen. The scrolled state comes down with it, to py-1.5. */}
+      <div className="bg-white">
       <div
-        className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-6 gap-y-3 px-4 md:flex-nowrap md:px-8 md:py-3.5 ${
-          scrolled ? "py-2" : "py-3.5"
+        className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-4 gap-y-2 px-4 md:flex-nowrap md:px-8 md:py-2 ${
+          scrolled ? "py-1.5" : "py-2"
         }`}
       >
         <Link
@@ -320,45 +348,44 @@ export default function Header({
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
             // not necessarily in `next.config` remotePatterns.
-            // Back down to 36/40px, from 48/56.
+            // 36/44px. It went 48/56 → 36/40 → here.
             //
-            // It was raised on the argument that the wordmark has to be
-            // recognised rather than read, and was losing that contest to the
-            // search field. The contest was the mistake: on a marketplace
-            // masthead the search field is *supposed* to win. Tmall, Taobao and
-            // AliExpress all set their logo at roughly a third the height of
-            // their search bar, because a shopper who has arrived already knows
-            // whose site they are on and what they came to do is type. A large
-            // logo also pushes the field narrower on precisely the laptop widths
-            // where the query needs the room.
+            // The argument for coming down still holds and is not being
+            // reversed: on a marketplace masthead the search field is supposed
+            // to win, and Tmall, Taobao and AliExpress all set their logo at
+            // roughly a third the height of their search bar. What changed
+            // underneath it is the row — white now, and py-2 rather than
+            // py-3.5. On a near-black band the mark was the only bright object
+            // at its end of the row and 40px was plenty; on white, in a
+            // shorter row, the same 40px reads as a small mark floating in a
+            // thin strip.
+            //
+            // 44px is one step, not a return to 56: the field still wins, and
+            // the logo is still under half its height. Anything taller starts
+            // setting the row's height by itself, which is how this ended up
+            // at 56 the first time.
             //
             // `w-auto` with a max width means a wide logo grows into the space
             // rather than distorting, and the intrinsic size stays generous so
             // the file is never upscaled.
             //
-            // ---- The white plate, and why an uploaded logo needs one ----
+            // ---- The white plate is gone with the dark row ----
             //
-            // The row behind this is gray-900 now. What gets uploaded in
-            // wp-admin is somebody's existing logo file, and the overwhelming
-            // majority of those are dark artwork on a transparent or white
-            // background, because they were drawn for a white page. Dropped
-            // straight onto a near-black row, a dark-on-transparent logo is
-            // invisible and a white-background one is a bright rectangle with
-            // hard edges.
+            // This used to be a padded white card behind the logo, and it was
+            // load-bearing while the masthead was gray-900: what gets uploaded
+            // in wp-admin is somebody's existing logo file, and most of those
+            // are dark artwork on a transparent background because they were
+            // drawn for a white page. On a near-black row such a logo is
+            // invisible, and a white-background one is a bright rectangle with
+            // hard edges. The plate made both cases correct without knowing
+            // which it had.
             //
-            // The plate makes both cases correct without knowing which one it
-            // has: any logo, on any background, on its own small white card. It
-            // is the treatment used wherever a brand mark has to sit on a dark
-            // chrome it was not drawn for, and it is deliberate rather than
-            // apologetic — rounded, padded, aligned with the search pill beside
-            // it.
-            //
-            // The alternative was asking every shop owner to upload a second,
-            // light-on-transparent version for dark backgrounds. That is the
-            // correct answer for a design system and the wrong one for a
-            // wp-admin field somebody fills in once, since the failure mode is
-            // a shop with no visible logo and no clue why.
-            <span className="flex items-center rounded-lg bg-white px-2.5 py-1.5">
+            // The row is white now, which is the background those files were
+            // drawn for, so the plate would be a white card on a white row —
+            // visible only as the rounded corner it does not need. Put it back
+            // in the same commit as any future dark masthead; the two belong
+            // together.
+            <span className="flex items-center">
               <Image
                 src={settings.brand.logo_url}
                 alt={brandName(settings)}
@@ -366,7 +393,7 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-7 w-auto max-w-[140px] object-contain md:h-8 md:max-w-[170px]"
+                className="h-9 w-auto max-w-[150px] object-contain md:h-11 md:max-w-[190px]"
               />
             </span>
           ) : (
@@ -377,9 +404,9 @@ export default function Header({
                   it stays crisp at any size and costs no extra request. */}
               <span className="flex items-center gap-1">
                 <svg
-                  // Scaled down with the uploaded-logo branch above, so a shop
-                  // that has not uploaded one gets the same masthead proportions.
-                  className="h-9 w-9 md:h-10 md:w-10"
+                  // Scaled with the uploaded-logo branch above, so a shop that
+                  // has not uploaded one gets the same masthead proportions.
+                  className="h-10 w-10 md:h-12 md:w-12"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -424,9 +451,9 @@ export default function Header({
                   ended early. Orange on this ground is 5.9:1 and white is
                   16.1:1, so both halves read and the two-tone wordmark survives
                   the move intact. */}
-              <span className="font-heading text-[21px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[24px]">
+              <span className="font-heading text-[23px] font-bold leading-none tracking-[-0.03em] text-shop-flame md:text-[27px]">
                 {settings.brand.name}
-                <span className="text-white">{settings.brand.suffix}</span>
+                <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
             </>
           )}
@@ -480,7 +507,7 @@ export default function Header({
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
               aria-expanded={false}
-              className="text-white transition-colors hover:text-shop-primary md:hidden"
+              className="text-shop-ink transition-colors hover:text-shop-primary md:hidden"
             >
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path
@@ -502,7 +529,7 @@ export default function Header({
             type="button"
             onClick={openDrawer}
             aria-label="Open cart"
-            className="flex items-center gap-2 text-white transition-colors hover:text-shop-primary"
+            className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
           >
             <span className="relative">
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -515,7 +542,7 @@ export default function Header({
                   defined by the page; on gray-900 an orange disc sitting
                   directly against a white cart glyph smudges into it at 18px,
                   and the ring cuts them apart. */}
-              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-primary px-1 text-[11px] font-bold text-white ring-2 ring-shop-nav">
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-primary px-1 text-[11px] font-bold text-white ring-2 ring-white">
                 {count > 9 ? "9+" : count}
               </span>
             </span>
@@ -540,7 +567,7 @@ export default function Header({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
-            className="text-white transition-colors hover:text-shop-primary lg:hidden"
+            className="text-shop-ink transition-colors hover:text-shop-primary lg:hidden"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -571,7 +598,7 @@ export default function Header({
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-2 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-2 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
+              className="my-1.5 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-4 py-1.5 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -587,14 +614,14 @@ export default function Header({
                 costs one link at the end of a row that has room for it. */}
             <Link
               href="/sell"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-3 text-[14px] font-semibold text-shop-primary hover:text-shop-primary-dark lg:block"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[14px] font-semibold text-shop-primary hover:text-shop-primary-dark lg:block"
             >
               Sell on Kandi
             </Link>
 
             <Link
               href="/sellers"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-3 text-[14px] text-shop-body hover:text-shop-flame xl:block"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[14px] text-shop-body hover:text-shop-flame xl:block"
             >
               Shop by store →
             </Link>

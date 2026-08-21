@@ -163,9 +163,9 @@ const HERO_WIDTHS = [640, 828, 1080, 1920] as const;
  * `width` and `height`, it writes them onto the tag, and the rendered box then
  * follows THOSE numbers rather than the file's own proportions. The hero is a
  * file of unknown shape — a wide campaign banner or a tall phone crop, uploaded
- * by a shopkeeper — sized by `h-auto` plus a max-height cap precisely so that
- * whatever arrives is shown at its own aspect ratio. Declaring a ratio we do
- * not know is what cropped the artwork.
+ * by a shopkeeper — sized by a width and `h-auto` precisely so that whatever
+ * arrives is shown at its own aspect ratio. Declaring a ratio we do not know
+ * is what cropped the artwork.
  *
  * The optimiser is a plain URL endpoint, so an `<img>` can use it directly and
  * keep `h-auto` exactly as it was. The endpoint is public API — the shape of
@@ -251,6 +251,47 @@ export default function HeroBanner({
   if (mobileSrc && desktopSrc) {
     return (
       <section aria-label={image_alt || "Featured offer"}>
+        {/* ---- Preload, because this is the LCP element ----
+         *
+         * React 19 hoists a `<link>` rendered anywhere in the tree into the
+         * document head, so these two lines put the banner's fetch at the top
+         * of the HTML — ahead of the stylesheet, the fonts and the whole
+         * component tree the browser would otherwise have to parse before it
+         * discovered the `<img>` below.
+         *
+         * The hero sits under a header, a nav bar and an announcement strip.
+         * None of that is heavy, but the discovery order is still "parse the
+         * chrome, then find the image, then open the connection", and on a
+         * Ugandan mobile connection that ordering is worth several hundred
+         * milliseconds on the one element the page is judged by.
+         *
+         * `media` is what keeps this from undoing the `<picture>` above: a
+         * phone evaluates only the first line and a desktop only the second,
+         * so exactly one banner is preloaded and it is the same one that will
+         * be painted. `imageSrcSet` and `imageSizes` have to match the tag
+         * they are preloading EXACTLY — a mismatch means the browser picks a
+         * different candidate and the preload is a second download rather than
+         * a head start, which is worse than not preloading at all. Change
+         * these and the `<picture>` below in the same edit.
+         */}
+        <link
+          rel="preload"
+          as="image"
+          media="(max-width: 767px)"
+          href={optimised(mobileSrc, 1080)}
+          imageSrcSet={heroSrcSet(mobileSrc)}
+          imageSizes="100vw"
+          fetchPriority="high"
+        />
+        <link
+          rel="preload"
+          as="image"
+          media="(min-width: 768px)"
+          href={optimised(desktopSrc, 1920)}
+          imageSrcSet={heroSrcSet(desktopSrc)}
+          imageSizes="(min-width: 1500px) 1436px, 100vw"
+          fetchPriority="high"
+        />
         <Link href={image_href || "/sale"} className="block">
           {/* ---- Why two <Image>s and not one with a srcset ----
                `next/image` chooses between sizes of the SAME picture. These are
@@ -259,16 +300,22 @@ export default function HeroBanner({
                is art direction, and art direction is a `<picture>`-shaped
                problem rather than a `srcset`-shaped one.
 
-               Rendering both and letting CSS pick looks wasteful and is not:
-               `hidden` on the wrapper means the browser never fetches the image
-               inside it, because it has no layout box. Only one is ever
-               downloaded.
+               This used to be two `<img>`s, one hidden per breakpoint, on the
+               belief that `display: none` stops the fetch. It does not. Chrome
+               and Firefox both download an eager `<img>` inside a hidden
+               container, so the LCP element of the homepage was fetching TWO
+               banners on every device, both at `fetchPriority="high"`,
+               competing with each other for the one connection that matters.
+               On the shipped artwork that is most of a hundred kilobytes of a
+               phone's first screen spent on a file it will never paint.
 
-               When only ONE file has been uploaded both of these point at it,
-               and that is deliberate rather than wasteful. The hidden one is
-               never fetched, and if the visible one changes across a resize the
-               URL is identical so it comes from cache. It keeps the markup to a
-               single shape instead of three conditional branches. */}
+               `<picture>` is the primitive that actually decides: the browser
+               evaluates `media` on the `<source>` and fetches exactly one
+               resource. Same art direction, half the bytes.
+
+               When only ONE file has been uploaded, both entries point at it
+               and the URL is identical, so a resize across 768px repaints from
+               cache rather than fetching again. */}
           {/* ---- Why these are plain <img> and not next/image ----
 
                This is the fix for a banner arriving with its bottom row cut
@@ -302,113 +349,126 @@ export default function HeroBanner({
                This is the first element on the page and almost certainly its
                LCP, so it must not be lazy.
 
-               ---- NOTHING IS CROPPED ANY MORE ----
+               ---- The crop, and why it is back ----
 
-               This is the fix for the bottom row of the banner arriving
-               sliced in half, and it is worth being precise about what was
-               wrong, because the old arrangement looked reasonable.
+               The banner once arrived with its bottom row sliced in half. It
+               was `object-cover` plus `max-h-[450px]` on a full-BLEED
+               element: on a 1920px screen a 2.44:1 banner wanted to be 787px
+               tall, the cap said 450, and 337px of artwork went. That was
+               fixed by removing the crop, and then the band was fixed at 450,
+               which puts a crop back on a shorter band.
 
-               It was `object-cover` plus `max-h-[450px]` on a full-width
-               element. `object-cover` means "fill this box, cut off whatever
-               does not fit" — so on a 1920px screen a 2.44:1 banner wanted to
-               be 787px tall, the cap said 450, and 337px of artwork was
-               discarded. `object-center` split the loss evenly, which is why
-               the shop lost the quarter-disc off the top AND the row of
-               feature pills off the bottom at the same time.
+               The difference between the two is the width the shop is being
+               asked to draw for. The old arrangement cropped whatever was
+               uploaded to a ratio nobody had been told — a moving one, since
+               the box was as wide as the window. This one is a stated box:
+               1436 x 450, about 3.2:1, the same on every screen from 1500 up.
+               A banner made at that ratio is shown whole. A banner made at
+               2.44:1 loses its outer bands, which on the shipped artwork
+               means the dotted corner and the feature strip.
 
-               The band height was not the problem. It had been tuned down
-               through 280, 340, 400 and 450 for a good reason — the first rail
-               of products has to open on the first screen — and 450 is the
-               settled figure. The problem was reaching that height by cutting
-               the picture instead of by sizing it.
+               So the rule to hold on to is that the band height and the
+               upload ratio are ONE decision. Changing 450 here without
+               telling the shop the new ratio is what produced the sliced
+               banner the first time.
 
-               ---- The arrangement that fixes it ----
+               ---- Where it landed: the shell wide, 450px tall ----
 
-               Two maximums and no crop:
+               The banner is `w-full` inside a `max-w-[var(--shell)]` wrapper
+               carrying the shell's own `md:px-8` gutter, so the artwork
+               starts and ends exactly where the product grid below it does.
+               With `--shell: 1500px` that box is 1436 CSS pixels wide.
 
-                 max-h-[450px]   the band the shop tuned
-                 max-w-[1100px]  450 x 2.44, the width that height implies
-                 w-auto h-auto   let the browser satisfy both, in ratio
+               The old `max-w-[1100px]` is gone and is not coming back. It
+               existed to survive full bleed: with `--shell: 100%` a 2.44:1
+               banner on a 1920px window wanted to be 787px tall, so the pair
+               of caps held it to 450 by making it 1100 wide — uncropped and
+               correct, but visibly narrower than the page it sat on, which is
+               the part that read as broken. A bounded shell removes that
+               problem: the banner and the grid share two edges.
 
-               An `<img>` given both maxima and neither fixed dimension scales
-               itself down until it fits inside them, preserving its own
-               aspect ratio. Whichever constraint binds first is the one that
-               decides the size; the other has slack. So the whole banner is
-               always on screen, at whatever shape it was uploaded, and the
-               band is never taller than 450.
-
-               The two numbers are a PAIR, derived from the shape the admin
-               screen asks for. Changing the height cap without recomputing
-               the width from it does not break anything — the image just
-               stops filling the width — but it does mean the band quietly
-               gets shorter than the number says.
-
-               A wider upload than 2.44:1 is bound by the width and comes in
-               under 450, which is the right behaviour: a 4:1 banner has less
-               to say vertically and should not be stretched to fill a band.
-               A squarer one is bound by the height and comes in narrower than
-               1100, with page ground either side.
+               The HEIGHT is a different decision, made after this one and
+               against the grain of the section above. 1436 at 2.44:1 is a
+               588px band, which is most of a laptop screen before a single
+               product appears, so the band is pinned at 450 and the picture
+               is `object-cover`ed into it. That is a crop, knowingly — see
+               the note on the tag itself for exactly what it costs and for
+               the upload ratio that costs nothing.
 
                `mx-auto` centres it, and `md:rounded-2xl` gives it the same
                corner as the department rails below, so a banner narrower than
                the window reads as a deliberate hero rather than as an image
                that failed to load full width.
 
-               ---- The phone banner is full bleed ----
-
-               The homepage keeps a 12px gutter down each side on a phone so
-               the product cards read as cards. The hero is the one block that
-               opts out of it: the page hands this section the full width (see
-               `app/page.tsx`), so the artwork runs edge to edge while the grid
-               below it stays inset. A banner is a picture and not a card, and
-               a picture with a sliver of page showing beside it reads as a
-               layout mistake rather than as a hero.
-
-               It also needs no cap of its own. A phone is 390px wide, so a
-               2.44:1 banner is 160px tall there and a purpose-made portrait
-               crop is about 520 — both are heights a shop chose by choosing
-               that file, and neither is the 787px runaway the desktop cap
-               exists to prevent. `w-full` with no `object-cover` shows each of
-               them whole.
-
                The `mobileIsPortrait` flag that used to pick between a 440 and
                a 300 cap is gone with the caps. The art direction it was part
-               of is not: two tags still exist here because a phone crop and a
-               desktop crop are two different pictures, which is a
+               of is not: there are still two entries below because a phone
+               crop and a desktop crop are two different pictures, which is a
                `<picture>`-shaped problem and not a `srcSet`-shaped one. */}
-          {/* eslint-disable @next/next/no-img-element */}
-          <img
-            src={optimised(mobileSrc, 1080)}
-            srcSet={heroSrcSet(mobileSrc)}
-            sizes="100vw"
-            alt={image_alt}
-            fetchPriority="high"
-            loading="eager"
-            decoding="async"
-            className="h-auto w-full md:hidden"
-          />
-          <img
-            src={optimised(desktopSrc, 1920)}
-            srcSet={heroSrcSet(desktopSrc)}
-            /* The banner is never wider than 1100 CSS pixels now, so this is
-               the honest figure — `100vw` would have a 1920px monitor
-               downloading the 1920 file to paint an 1100px box. A 2x display
-               still picks the 1920 from the srcSet, which is what it needs. */
-            sizes="1100px"
-            alt={image_alt}
-            fetchPriority="high"
-            loading="eager"
-            decoding="async"
-            /* `min(100%, 1100px)` rather than a flat 1100: between 768px and
-               1100px the window is the narrower of the two constraints, and a
-               bare `max-w-[1100px]` on a `w-auto` image would let the 1993px
-               intrinsic width overflow the page on a small laptop. Keeping
-               both dimensions `auto` with a maximum on each is the case CSS
-               defines as ratio-preserving; giving either one a fixed value is
-               how the aspect ratio gets broken again. */
-            className="mx-auto hidden h-auto max-h-[450px] w-auto max-w-[min(100%,1100px)] md:block md:rounded-2xl"
-          />
-          {/* eslint-enable @next/next/no-img-element */}
+          {/* ---- The wrapper is the shell ----
+              `max-w-[var(--shell)]` plus the same `md:px-8` every other
+              container on the page carries, so from md up the banner's two
+              edges are the product grid's two edges. Below md it has no
+              padding, and that is what makes the phone banner full bleed: the
+              homepage keeps a 12px gutter so its product cards read as cards,
+              and the hero is the one block that opts out — a picture with a
+              sliver of page down each side reads as a layout mistake rather
+              than as a hero. */}
+          <div className="mx-auto w-full max-w-[var(--shell)] md:px-8">
+            <picture>
+              {/* The desktop crop, from 768px up. `sizes` is the painted box:
+                  1436 CSS pixels on any window from 1500 up, and the window
+                  itself below that. A flat `100vw` would have a 1920px monitor
+                  download the 1920 file for a 1436px box; this asks for the
+                  file that fits, and a 2x display still takes the 1920 from
+                  the srcSet, which is what it needs. */}
+              <source
+                media="(min-width: 768px)"
+                srcSet={heroSrcSet(desktopSrc) ?? optimised(desktopSrc, 1920)}
+                sizes="(min-width: 1500px) 1436px, 100vw"
+              />
+              {/* The `<img>` carries the PHONE crop and is also the element a
+                  matching `<source>` paints into, so its classes describe both
+                  states.
+
+                  Below md: `h-auto w-full`, the whole picture at its own
+                  ratio. A phone is 390px wide, so a 2.44:1 banner is 160px
+                  tall there and a purpose-made portrait crop is about 520 —
+                  both are heights a shop chose by choosing that file, and
+                  neither needs a cap.
+
+                  From md: a 450px band, full width, square corners. Both
+                  dimensions are fixed — `w-full` and `h-[450px]` — so the box
+                  stops following the file's own ratio, and `object-cover` is
+                  what keeps that from stretching the artwork. It crops
+                  instead: at 1436 wide a 2.44:1 upload wants 588px, the band
+                  shows 450, and `object-center` takes the 450 out of the
+                  middle. Around an eighth of such a file is lost off the top
+                  and the same off the bottom.
+
+                  That crop is a real cost, so it is worth saying where it
+                  lands: a band this short shows a whole picture only if the
+                  picture is drawn for it. 1436 x 450 is about 3.2:1, so a
+                  banner uploaded at that ratio (2880 x 900 for a 2x screen)
+                  fills the band with nothing cropped. A 2.44:1 file loses its
+                  outer bands — on the shipped artwork, the dotted corner off
+                  the top and the feature strip off the bottom.
+
+                  No `rounded-2xl`: at 450px the band reads as a strip of page
+                  rather than as a card on it, and a rounded strip reads as a
+                  card that failed to fill its slot. */}
+              <img
+                src={optimised(mobileSrc, 1080)}
+                srcSet={heroSrcSet(mobileSrc)}
+                sizes="100vw"
+                alt={image_alt}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
+                className="h-auto w-full md:h-[450px] md:object-cover md:object-center"
+              />
+            </picture>
+          </div>
         </Link>
       </section>
     );
@@ -455,14 +515,22 @@ export default function HeroBanner({
       />
 
       <div
-        /* Sized to the image cap above, so the hero is the same band whether
-           the shop uploaded a banner or is running the drawn fallback —
-           otherwise switching one for the other in wp-admin moves the whole
-           page up or down. From md the padding is 16px and the photograph is
-           fixed at 418px, which puts the band at the same 450px the uploaded
-           banner is capped to. The two numbers move TOGETHER: raising the
-           cap without raising the photograph leaves the drawn hero short of
-           the uploaded one by exactly the difference.
+        /* A 450px band: 16px of padding from md around a photograph fixed at
+           418px. This used to be the same height as the uploaded banner,
+           which was capped at 450 — switching one for the other in wp-admin
+           moved nothing on the page.
+
+           The pairing still holds, by a different route. The uploaded banner
+           is a fixed 450px band now — a stated height with the picture
+           `object-cover`ed into it, rather than a cap a ratio might not
+           reach — so the two heroes are the same height again and switching
+           one for the other in wp-admin still moves nothing.
+
+           They have to be changed TOGETHER, and this one is the harder half:
+           it is TYPE — headline, badge, three promises and a button — and
+           type does not rescale with its container the way a photograph does.
+           Moving the band means retuning the scale in the copy column below,
+           not editing this number on its own.
 
            The type and the feature discs come down a step with it so the copy
            column still fits inside that height rather than being clipped by

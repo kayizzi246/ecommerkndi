@@ -53,21 +53,23 @@ export default function DealCarousel({
    * ---- 2xl shows eight ----
    *
    * The top step is the one width here that is not a plain percentage, because
-   * eight is a count rather than a proportion and the gaps stop being a
-   * rounding error at that density. Eight tiles have eight 16px gaps between
-   * them and the peek — `sm:gap-4` on the track — which is 128px of a 1856px
-   * monitor, most of a ninth tile, and a percentage that ignores it lands on
-   * seven-and-a-bit.
+   * five is a count rather than a proportion and the gaps stop being a rounding
+   * error once the tile is this wide. Five tiles have five 16px gaps between
+   * them and the peek — `sm:gap-4` on the track — which is 80px of a 1436px
+   * shell, and a percentage that ignores it lands most of a tile short.
    *
-   * 8.5, not 8: the divisor carries the peek that every other step here
-   * carries. Eight tiles sit clear of the right edge and the ninth is sliced
+   * 5.5, not 5: the divisor carries the peek that every other step here
+   * carries. Five tiles sit clear of the right edge and the sixth is sliced
    * down its photograph, so a rail on a large monitor still says there is more
    * this way rather than reading as a finished row.
    *
-   * This is the pairing the `--shell: 100%` note in `globals.css` describes: a
-   * wide monitor is spent on MORE products, not bigger ones. 14% was 260px a
-   * tile at 1920px, which is a product photograph larger than the product page
-   * shows.
+   * Five rather than the eight this step used to hold. Two things changed
+   * under it: `--shell` is 1500px rather than 100%, so eight columns of a
+   * 1436px shell is a 172px tile — smaller than this shop's phone tile — and
+   * the grid below settled at five across with a large picture. The rail and
+   * the grid have to agree on any given screen, so this follows it. A wide
+   * monitor now buys a bigger photograph rather than more of them, which is
+   * the reverse of what the old note here said and is deliberate.
    *
    * ---- The middle of the ramp was rebuilt around the tablet step ----
    *
@@ -76,11 +78,14 @@ export default function DealCarousel({
    * grid directly below it shows five. The two are the same products in the
    * same card at the same moment on the same screen, and they disagreed.
    *
-   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 5 → 6 → 8.
+   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 5.
    *
    *   md   17.5%  five, from 768px — the tablet step
-   *   xl   15%    six, from 1280px
-   *   2xl  /8.5   eight
+   *   2xl  /5.5   five, at a size the bounded shell can afford
+   *
+   * `xl` is gone with the grid's own `xl:grid-cols-6`: five is the count from
+   * the tablet step up, and the only thing 2xl changes is that the tiles stop
+   * being a percentage of a window that has stopped growing.
    *
    * `lg` is deliberately absent. A rail at `lg` would have to show either five
    * (what `md` already sets) or six (what `xl` sets), and a step that repeats
@@ -100,7 +105,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[17.5%] xl:w-[15%] 2xl:w-[calc((100%-128px)/8.5)]",
+  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[17.5%] 2xl:w-[calc((100%-80px)/5.5)]",
   priority = false,
   viewAll,
 }: {
@@ -192,7 +197,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 17.5vw, (max-width: 1536px) 15vw, 12vw"
+              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1500px) 17.5vw, 270px"
             />
           </div>
         ))}

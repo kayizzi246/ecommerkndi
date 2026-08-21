@@ -86,7 +86,7 @@ export default function Footer({
   const socialLinks = Object.entries(social).filter(([, url]) => Boolean(url));
 
   return (
-    <footer className="mt-14 bg-shop-nav text-white/70">
+    <footer className="mt-14 bg-shop-footer text-white/70">
       {/* Service promises */}
       <div className="border-b border-white/10">
         <div className="mx-auto grid max-w-[var(--shell)] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
@@ -216,7 +216,11 @@ export default function Footer({
       </div>
 
       {/* Legal bar */}
-      <div className="border-t border-white/10 bg-shop-ink">
+      {/* The legal bar goes a step darker than the footer above it rather than
+          to `shop-ink`, which is the type colour and a different hue now that
+          the footer is warm. Same relationship as before: one surface, two
+          values, the quieter one at the bottom. */}
+      <div className="border-t border-white/10 bg-shop-footer-deep">
         <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every
               page of the site, which is what turns one mention of the name

@@ -206,7 +206,7 @@ export default function CuratedNav({
                  the deal language everywhere else (the corner flags, the Super
                  Deal chips, reduced prices) moved to `shop-primary-ink` with
                  it. See the corner-flag note in `ProductCard`. */
-              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-3 text-[14.5px] font-bold transition-colors ${
+              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-2.5 text-[14.5px] font-bold transition-colors ${
                 entry.hot
                   ? "text-shop-primary-ink"
                   : isOpen

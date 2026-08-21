@@ -105,14 +105,20 @@ function Stars({ rating }: { rating: number }) {
  * The grid widths, since most cards are in a grid. A rail passes its own —
  * see below for why that is worth the prop.
  *
- * One entry per column count in the grid ramp (2 → 3 → 5 → 6 → 8), and the two
- * have to be edited together. The 768–1024 band is the one that caught this
- * out: it read 33vw while the grid there had gone to five columns, so every
- * iPad was downloading an image about two-thirds wider than the box it was
- * painted into. See the breakpoint note in `InfiniteProducts`.
+ * One entry per column count in the grid ramp (2 → 3 → 5), and the two have to
+ * be edited together. The 768–1024 band is the one that caught this out: it
+ * read 33vw while the grid there had gone to five columns, so every iPad was
+ * downloading an image about two-thirds wider than the box it was painted
+ * into. See the breakpoint note in `InfiniteProducts`.
+ *
+ * The last entry is a PIXEL value rather than a `vw`, and that is the shell
+ * being bounded. Above 1500px the grid stops growing — 1436px of content, five
+ * columns, a 277px tile — so the box is the same size on a 1600px laptop and
+ * on a 2560px monitor. A `vw` there would over-order on the wide one and
+ * under-order on the narrow one; 290px is simply what the box measures.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 20vw, (max-width: 1536px) 17vw, 12vw";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1500px) 20vw, 290px";
 
 export default function ProductCard({
   product,
@@ -352,14 +358,23 @@ export default function ProductCard({
               `bg-shop-hairline` behind it is doing real work: it is the frame
               the reference grid uses, and it is what gives a product shot on
               white an edge without a border being drawn. */}
-          {/* 8:9 rather than square. Most of the catalogue is shot portrait, so a
-              square box was letterboxing the goods with `bg-shop-hairline` down
-              the sides; a shade taller gives the product back that room without
-              the tile turning into the tall poster shape a fashion-only shop
-              uses. Anything genuinely square still fills the box — `object-cover`
-              crops the long edge, and 8:9 is close enough to 1:1 that what
-              comes off is margin. */}
-          <div className="relative aspect-[8/9] w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
+          {/* 5:6, one step taller than the 8:9 it was and two from the square
+              it started as. Most of the catalogue is shot portrait, so a square
+              box was letterboxing the goods with `bg-shop-hairline` down the
+              sides; each step taller gives the product back that room.
+
+              The step to 5:6 is the grid going to five columns. At eight
+              columns the box was 172px wide and every extra pixel of height was
+              a taller sliver; at 277px the picture is the thing a shopper
+              actually reads the tile by, and 0.833 gives a garment on a model
+              the vertical room the shape of the photograph assumes. It is still
+              short of the 2:3 poster a fashion-only shop uses — this catalogue
+              is half homeware, and a rice cooker in a 2:3 box is mostly floor.
+
+              Anything genuinely square still fills the box: `object-cover`
+              crops the long edge, and at 5:6 what comes off a square source is
+              about 8% of its height, which is margin. */}
+          <div className="relative aspect-[5/6] w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -709,23 +724,33 @@ export default function ProductCard({
                Near-black is what the product page has always used for a resting
                price, so the grid and the PDP agree.
 
-               ---- A reduced price is brand orange, not red ----
+               ---- A reduced price is RED ----
 
                The argument above is about the RESTING price and it is
                untouched: forty orange numbers would still be a second colour
-               field. A reduced price is a different case, because only some
-               tiles have one — it is the exception on the page, which is what
-               makes a colour on it read as information.
+               field, so a price with no reduction behind it stays near-black.
 
-               It was red until now. The full reasoning is on the corner flag
-               above; the short version is that a tile carrying a red flag, a
-               red chip and a red price on an orange site was running two
-               colour families at once. `shop-primary-ink` is the brand at a
-               weight that passes AA as text (5.9:1 on white, where #ff6a00
-               would be 2.9:1 and unreadable at 14px). */}
+               A reduced price is the other case. Only some tiles carry one, so
+               it is the exception on the page rather than a colour field, and
+               that is the condition under which a colour reads as information.
+               Red is the colour every marketplace this shop competes with uses
+               for it, and a shopper does not have to learn it.
+
+               This went orange for a while, on the argument that a tile
+               carrying a red flag, a red chip and a red price on an orange
+               site was running two colour families at once. That is a real
+               risk and the answer is to ration the OTHER two — the corner flag
+               and the Super Deal chip are brand orange, so the red on a tile
+               is the price and nothing else.
+
+               `shop-sale-price` is #dc2626 rather than the #e53935 the shop
+               uses for errors: a price is small text (15px at 800 is not
+               "large" under WCAG), #e53935 is 4.2:1 on white and this clears
+               4.8:1. The two reds being separate tokens is also what keeps
+               "reduced" and "something went wrong" from sharing a colour. */}
           <span
             className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-primary-ink" : "text-shop-ink"
+              discount > 0 ? "text-shop-sale-price" : "text-shop-ink"
             }`}
           >
             {formatPrice(product.price)}
