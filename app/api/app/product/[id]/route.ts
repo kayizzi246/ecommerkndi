@@ -39,9 +39,40 @@ export const revalidate = 60;
  * `values` is the old flat list and is kept for builds already parsing it;
  * `options` carries the same names with the swatch image beside them, which is
  * what a colour picker needs and a size picker ignores.
+ *
+ * `value` is the swatch COLOUR — the hex or CSS colour word the seller set on
+ * the term, which is what the website's `ColorSwatch` fills its dots with
+ * (`option.value || option.name.toLowerCase()`). The app was being sent the
+ * image and not this, so a shop that had coloured its terms rather than
+ * photographed them gave the app nothing to draw and it fell back to printing
+ * the word. Both are sent now, and the client prefers the photograph when
+ * there is one, exactly as the site does.
  */
-type AttributeOptionRow = { name: string; image: string | null };
+type AttributeOptionRow = {
+  name: string;
+  value: string | null;
+  image: string | null;
+};
 type AttributeRow = { name: string; values: string[]; options: AttributeOptionRow[] };
+
+/**
+ * One buyable combination — { Size: "42", Color: "Black" } and whether it is on
+ * the shelf.
+ *
+ * ---- Why this is now sent ----
+ *
+ * The website greys out and strikes through the combinations that do not
+ * exist: pick Red and the sizes Red was never made in go dead, because
+ * `AddToCartButton` has `product.variations` to check against. The app had no
+ * such field, so every option was offered as if available — and the only place
+ * a shopper found out otherwise was a rejected order.
+ *
+ * The shape is deliberately the same as the website's `ProductVariation`
+ * (attribute name → chosen value, plus a stock flag) rather than something
+ * app-shaped, so the availability rule can be the same rule in both clients
+ * instead of two implementations that drift.
+ */
+type VariationRow = { attributes: Record<string, string>; inStock: boolean };
 
 export async function GET(
   _request: Request,
@@ -114,10 +145,29 @@ export async function GET(
         .filter((option) => Boolean(option.name))
         .map((option) => ({
           name: option.name,
+          value: option.value ?? null,
           image: option.image ? appImage(option.image, 256) : null,
         })),
     }))
     .filter((row) => row.name && row.values.length > 0);
+
+  /**
+   * Which combinations are real, and which of those are in stock.
+   *
+   * Sent whole rather than pre-collapsed into "these options are dead",
+   * because availability depends on what the shopper has picked SO FAR — Red
+   * may be made in 42 and not in 44, so the answer for 44 changes the moment
+   * Red is chosen. Only the client knows the current selection, so only the
+   * client can compute it, and it needs the table to do so.
+   *
+   * A simple product has no variations and gets an empty array, which the
+   * client reads as "everything is available" — the same fallback the website
+   * takes when `product.variations` is undefined.
+   */
+  const variations: VariationRow[] = (product.variations ?? []).map((variation) => ({
+    attributes: variation.attributes,
+    inStock: variation.is_in_stock,
+  }));
 
   return Response.json(
     {
@@ -140,6 +190,7 @@ export async function GET(
         images: [appImage(product.image, 1080), ...product.gallery.slice(0, 6).map((url) => appImage(url, 1080))].filter(Boolean),
 
         attributes,
+        variations,
 
         /** Who is selling it, when it is a marketplace listing. */
         seller: product.seller

@@ -1371,18 +1371,29 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
     if (!_canCheckout) return;
     HapticFeedback.mediumImpact();
 
-    if (!KandiAuthPage.isSignedIn()) {
+    // `ensureSignedIn` first, because this may be the first thing in the app
+    // to ask: the session lives on the device, and the synchronous check reads
+    // memory only, so on a cold start it says "signed out" for a shopper who
+    // signed in last week and sends them to sign in again.
+    if (!await KandiAuthPage.ensureSignedIn()) {
+      if (!mounted) return;
       await KandiAuthPage.open(context);
       if (!mounted) return;
-      // Still signed out: they closed the sheet without finishing, or signed
-      // up into a project with email confirmation switched on, where there is
-      // no session until the link in the inbox is clicked. Either way there is
-      // nothing to move on to, and the auth screen has already said why.
+      // Still signed out: they backed out without finishing. There is nothing
+      // to move on to, and the sign-in screen has already said why.
+      //
+      // The synchronous check is the right one HERE — the disk has just been
+      // read, and if they signed in a moment ago the session is in memory.
       if (!KandiAuthPage.isSignedIn()) return;
     }
 
     widget.onCheckout?.call(_total, _itemCount, _deliveryFee ?? 0);
 
+    // Guarded because every path to here now crosses an await — the session is
+    // read from the device before the gate, so even a signed-in shopper has
+    // been through one. A basket disposed while that was in flight would push
+    // the checkout onto a dead `context`.
+    if (!mounted) return;
     await KandiCheckout.open(context);
     if (!mounted) return;
     // The checkout empties the basket on a placed order, and may have changed

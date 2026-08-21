@@ -15,6 +15,19 @@ type CallOptions = {
   method?: string;
   body?: unknown;
   authenticated?: boolean;
+  /**
+   * A bearer token supplied by the caller, instead of read from the cookie.
+   *
+   * The phone app has no cookie jar. It holds the WordPress token itself and
+   * sends it as an `Authorization` header, so the routes under
+   * `/api/app/auth/*` pass it through here rather than going via
+   * `cookies()` — which on those requests would find nothing and answer 401 to
+   * a shopper who is perfectly well signed in.
+   *
+   * When set, the cookie is not consulted at all. When absent, behaviour is
+   * exactly what it was.
+   */
+  token?: string;
 };
 
 /** Calls a `kandi/v1/customers/*` endpoint with the shared secret attached. */
@@ -32,7 +45,7 @@ export async function callCustomerApi(
  */
 export async function callKandiApi(
   path: string,
-  { method = "GET", body, authenticated = true }: CallOptions = {}
+  { method = "GET", body, authenticated = true, token }: CallOptions = {}
 ): Promise<{ status: number; data: unknown }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -40,11 +53,14 @@ export async function callKandiApi(
   };
 
   if (authenticated) {
-    const token = (await cookies()).get(CUSTOMER_COOKIE)?.value;
-    if (!token) {
+    // The caller's token wins over the cookie. A browser request carries no
+    // `token` and behaves as before; an app request carries one and never
+    // touches `cookies()`.
+    const bearer = token ?? (await cookies()).get(CUSTOMER_COOKIE)?.value;
+    if (!bearer) {
       return { status: 401, data: { message: "Not signed in." } };
     }
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${bearer}`;
   }
 
   let response: Response;

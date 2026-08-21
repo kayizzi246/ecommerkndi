@@ -177,6 +177,41 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //  NOTE ON THE SUPABASE IMPORT ABOVE: FlutterFlow writes that
 //  header itself and rewrites it on every save, so it stays.
 //  Nothing in this file uses Supabase any more.
+//
+//  WHAT CHANGED IN v3.1 — THE OPTION PICKERS
+//  -----------------------------------------------------------
+//  The report was that the size and colour rows "don't look
+//  good". They also did not work the way the website's do, and
+//  the two problems had one cause: the app was being sent less
+//  than the website reads.
+//
+//  1. COLOURS ARE SHOWN, NOT SPELLED. A colour attribute whose
+//     every value has a swatch now renders as the website's
+//     discs — `app/products/[id]/ColorSwatch.tsx` — 36px, ringed
+//     when chosen, with the chosen name printed once against the
+//     label above the row. The swatch comes from the seller's
+//     photograph where there is one and from their hex or colour
+//     word where there is not; `_kColourWords` is what makes the
+//     word case work, because CSS knows the named colours for
+//     free and Flutter does not. A row where only SOME values
+//     have a swatch stays as chips rather than mixing the two.
+//
+//  2. COMBINATIONS THAT DO NOT EXIST ARE DEAD. The endpoint now
+//     sends `variations`, so `_available` applies the website's
+//     own rule: pick Red and the sizes Red was never made in
+//     grey out and take a stroke through them, live, as the
+//     choice is made. Picking something that invalidates an
+//     earlier answer clears that answer rather than leaving a
+//     pair that cannot be bought.
+//
+//  3. EVERY TAP ANSWERS. A live option ticks — haptic AND the
+//     system click, so it lands with the ringer off or the phone
+//     in a bag — and a dead one buzzes differently and says why.
+//     A picker where half the taps do nothing at all is the
+//     thing that reads as broken.
+//
+//  4. THE SIZE ROW CARRIES ITS CHART. EU/UK/US beside the label
+//     as on the website, and the size guide table with it.
 // ============================================================
 
 // ============================================================
@@ -313,6 +348,143 @@ List<String> _toStrings(dynamic raw) {
       .toList();
 }
 
+// ============================================================
+// SWATCH COLOURS
+// ============================================================
+
+/// The colour words this app can paint.
+///
+/// ---- Why a table and not a parser ----
+///
+/// The website fills a swatch with `option.value || option.name.toLowerCase()`
+/// and hands it to CSS, which knows every one of the 148 named colours for
+/// free. Flutter has no such lookup, so a colour attribute whose terms were
+/// typed as words rather than given hexes — which is most shops, because
+/// typing "Navy" is what a seller does — had nothing to draw and the app fell
+/// back to printing the word.
+///
+/// This is the subset a clothing and homeware catalogue actually uses, with
+/// the wardrobe words shoppers write that CSS has never heard of ("cream",
+/// "nude", "wine", "charcoal") mapped to the shade they mean. A word that is
+/// not here resolves to null and that option renders as a labelled chip, which
+/// is the correct outcome — an unrecognised word drawn as a grey circle is
+/// worse than the word itself.
+const Map<String, Color> _kColourWords = <String, Color>{
+  'black': Color(0xFF000000),
+  'white': Color(0xFFFFFFFF),
+  'grey': Color(0xFF808080),
+  'gray': Color(0xFF808080),
+  'charcoal': Color(0xFF36454F),
+  'silver': Color(0xFFC0C0C0),
+  'red': Color(0xFFFF0000),
+  'maroon': Color(0xFF800000),
+  'wine': Color(0xFF722F37),
+  'burgundy': Color(0xFF800020),
+  'pink': Color(0xFFFFC0CB),
+  'hotpink': Color(0xFFFF69B4),
+  'fuchsia': Color(0xFFFF00FF),
+  'magenta': Color(0xFFFF00FF),
+  'purple': Color(0xFF800080),
+  'violet': Color(0xFFEE82EE),
+  'lilac': Color(0xFFC8A2C8),
+  'lavender': Color(0xFFE6E6FA),
+  'blue': Color(0xFF0000FF),
+  'navy': Color(0xFF000080),
+  'royalblue': Color(0xFF4169E1),
+  'skyblue': Color(0xFF87CEEB),
+  'teal': Color(0xFF008080),
+  'turquoise': Color(0xFF40E0D0),
+  'cyan': Color(0xFF00FFFF),
+  'aqua': Color(0xFF00FFFF),
+  'green': Color(0xFF008000),
+  'olive': Color(0xFF808000),
+  'lime': Color(0xFF00FF00),
+  'mint': Color(0xFF98FF98),
+  'khaki': Color(0xFFF0E68C),
+  'yellow': Color(0xFFFFFF00),
+  'gold': Color(0xFFFFD700),
+  'mustard': Color(0xFFFFDB58),
+  'orange': Color(0xFFFFA500),
+  'peach': Color(0xFFFFE5B4),
+  'coral': Color(0xFFFF7F50),
+  'brown': Color(0xFFA52A2A),
+  'chocolate': Color(0xFFD2691E),
+  'tan': Color(0xFFD2B48C),
+  'camel': Color(0xFFC19A6B),
+  'beige': Color(0xFFF5F5DC),
+  'cream': Color(0xFFFFFDD0),
+  'ivory': Color(0xFFFFFFF0),
+  'nude': Color(0xFFE3BC9A),
+  'bronze': Color(0xFFCD7F32),
+  'copper': Color(0xFFB87333),
+  'rosegold': Color(0xFFB76E79),
+  'denim': Color(0xFF1560BD),
+  'indigo': Color(0xFF4B0082),
+  'salmon': Color(0xFFFA8072),
+  'transparent': Color(0x00000000),
+  'multicolor': Color(0xFF9E9E9E),
+  'multicolour': Color(0xFF9E9E9E),
+};
+
+/// A seller's colour, as something Flutter can paint — or null.
+///
+/// Takes `#RRGGBB`, `#RGB`, `#AARRGGBB`, the same without the hash, and the
+/// words above. Returns null for anything else, INCLUDING a size: "42" is
+/// technically valid hex and would come back as a colour if this were only a
+/// hex parser, which is why the caller only asks about colour attributes and
+/// why two- and four-digit strings are refused here as well.
+Color? _parseColour(String? raw) {
+  if (raw == null) return null;
+
+  var value = raw.trim().toLowerCase();
+  if (value.isEmpty) return null;
+
+  // Spaces and hyphens are how the same shade gets written three ways —
+  // "Rose Gold", "rose-gold", "rosegold" — and all three mean the swatch.
+  final word = value.replaceAll(RegExp(r'[\s_-]'), '');
+  final named = _kColourWords[word];
+  if (named != null) return named;
+
+  if (value.startsWith('#')) value = value.substring(1);
+  if (!RegExp(r'^[0-9a-f]+$').hasMatch(value)) return null;
+
+  if (value.length == 3) {
+    final expanded = value.split('').map((c) => '$c$c').join();
+    return Color(0xFF000000 | int.parse(expanded, radix: 16));
+  }
+  if (value.length == 6) {
+    return Color(0xFF000000 | int.parse(value, radix: 16));
+  }
+  if (value.length == 8) {
+    return Color(int.parse(value, radix: 16));
+  }
+  return null;
+}
+
+/// Whether this attribute is the one whose value is a thing to look at rather
+/// than a word to read.
+///
+/// The website tests `attr.name.toLowerCase() === 'color'`. Both spellings and
+/// the plurals are accepted here because a Ugandan seller filling in wp-admin
+/// is as likely to type "Colour" as "Color", and an attribute that misses this
+/// test loses its swatches entirely.
+bool _isColourAttribute(String name) {
+  final n = name.trim().toLowerCase();
+  return n == 'color' || n == 'colour' || n == 'colors' || n == 'colours';
+}
+
+/// Whether this attribute gets the EU/UK/US selector beside it — the website's
+/// list, unchanged.
+bool _isSizeAttribute(String name) {
+  final n = name.trim().toLowerCase();
+  return n == 'size' || n == 'sizes' || n == 'shoe size';
+}
+
+/// The size charts the selector offers. Mirrors `SIZE_SYSTEMS` in
+/// `components/AddToCartButton.tsx` — and, as there, it labels which chart the
+/// seller's own numbers are being read against rather than converting them.
+const List<String> _kSizeSystems = <String>['EU', 'UK', 'US'];
+
 /// A related product, in the same flattened shape the other screens parse.
 class _Related {
   final int id;
@@ -355,7 +527,21 @@ class _Related {
 class _Option {
   final String name;
   final String? image;
-  const _Option({required this.name, this.image});
+
+  /// The colour the seller set on the term, resolved to something paintable —
+  /// `#8B4513` or the word "Navy" — and null for everything that is not a
+  /// colour or is a colour this app cannot name.
+  ///
+  /// Preferred BELOW `image` when both exist, which is the website's order:
+  /// a photograph of the fabric says more about "Olive" than a flat olive
+  /// circle does, and a seller who bothered to upload one meant it to be seen.
+  final Color? swatch;
+
+  const _Option({required this.name, this.image, this.swatch});
+
+  /// Whether this option can be shown as a dot at all, rather than as a word
+  /// on a chip.
+  bool get hasSwatch => image != null || swatch != null;
 }
 
 class _Attribute {
@@ -373,10 +559,30 @@ class _Attribute {
     required this.options,
   });
 
+  /// True when this is Colour, Color, or a plural of either.
+  bool get isColour => _isColourAttribute(name);
+
+  /// True when this is the row that gets the EU/UK/US selector.
+  bool get isSize => _isSizeAttribute(name);
+
+  /// Whether this row should be drawn as circles rather than chips.
+  ///
+  /// EVERY option has to be showable as a dot, not just some of them. A row of
+  /// six circles and two words is not a colour picker, it is a bug that looks
+  /// like one — and it is the exact state a half-filled attribute produces,
+  /// where the seller gave hexes to the shades they had photographs of and
+  /// left the rest. All or nothing keeps the row readable either way: eight
+  /// dots, or eight chips that each carry their own small dot where one is
+  /// known.
+  bool get showAsSwatches =>
+      isColour && options.isNotEmpty && options.every((o) => o.hasSwatch);
+
   factory _Attribute.fromJson(Map<String, dynamic> j) {
     final values = _toStrings(j['values']);
+    final name = (j['name'] ?? '').toString();
+    final colourAttribute = _isColourAttribute(name);
 
-    // `options` is the newer field: [{ name, image }]. Falling back to
+    // `options` is the newer field: [{ name, value, image }]. Falling back to
     // `values` rather than requiring it means this widget keeps working
     // against a deployment of the site that predates the swatches, which is a
     // real state — the app and the website ship on different days.
@@ -386,20 +592,83 @@ class _Attribute {
       for (final entry in raw) {
         if (entry is! Map) continue;
         final option = Map<String, dynamic>.from(entry);
-        final name = (option['name'] ?? '').toString();
-        if (name.isEmpty) continue;
+        final optionName = (option['name'] ?? '').toString();
+        if (optionName.isEmpty) continue;
         final image = (option['image'] ?? '').toString();
-        options.add(_Option(name: name, image: image.isEmpty ? null : image));
+        options.add(
+          _Option(
+            name: optionName,
+            image: image.isEmpty ? null : image,
+            // The seller's hex first, the option's own word second — which is
+            // precisely `option.value || option.name.toLowerCase()`, the
+            // fallback the website's `ColorSwatch` has always used. Only ever
+            // attempted on a colour attribute, so a size of "42" or a material
+            // called "Silver" is never mistaken for a shade.
+            swatch: colourAttribute
+                ? (_parseColour(option['value']?.toString()) ??
+                    _parseColour(optionName))
+                : null,
+          ),
+        );
       }
     }
 
     return _Attribute(
-      name: (j['name'] ?? '').toString(),
+      name: name,
       values: values,
       options: options.isNotEmpty
           ? options
-          : values.map((v) => _Option(name: v)).toList(),
+          : values
+              .map((v) => _Option(
+                    name: v,
+                    swatch: colourAttribute ? _parseColour(v) : null,
+                  ))
+              .toList(),
     );
+  }
+}
+
+/// One combination the seller actually built — `{Size: "42", Color: "Black"}`
+/// — and whether it is on the shelf.
+///
+/// ---- What this closes ----
+///
+/// Until now this screen offered every value of every attribute, because the
+/// endpoint sent the attribute lists flattened and nothing about which pairs
+/// were real. So a shoe made in black up to 45 and in red only up to 41 let a
+/// shopper pick Red and 44, and the first thing that knew better was the order.
+/// The website has never had that problem — it reads `product.variations` and
+/// crosses the dead options out — and this is the same table, sent to the app
+/// for the same purpose.
+class _Variation {
+  /// Attribute name → the value this combination is. An attribute the
+  /// combination does not mention is one it matches ANY value of.
+  final Map<String, String> attributes;
+  final bool inStock;
+
+  const _Variation({required this.attributes, required this.inStock});
+
+  factory _Variation.fromJson(Map<String, dynamic> j) {
+    final chosen = <String, String>{};
+    final raw = j['attributes'];
+    if (raw is Map) {
+      raw.forEach((key, value) {
+        final name = (key ?? '').toString();
+        final v = (value ?? '').toString();
+        if (name.isNotEmpty && v.isNotEmpty) chosen[name] = v;
+      });
+    }
+
+    // `inStock` is what this endpoint sends; `is_in_stock` is the WooCommerce
+    // spelling, accepted so a payload that ever reaches here straight from the
+    // shop is read rather than treated as sold out.
+    final flag = j.containsKey('inStock') ? j['inStock'] : j['is_in_stock'];
+
+    // Absent means in stock. A missing flag on a combination the seller built
+    // should not hide it: the checkout re-checks stock against WooCommerce
+    // anyway, so the cost of being wrong this way is a rejected order, and the
+    // cost of being wrong the other way is a product nobody can buy at all.
+    return _Variation(attributes: chosen, inStock: flag != false);
   }
 }
 
@@ -445,6 +714,12 @@ class _Detail {
   final String description;
   final List<_Attribute> attributes;
 
+  /// Which combinations of those attributes the seller actually built. Empty
+  /// for a simple product, and empty is read as "everything is available" —
+  /// the same fallback the website takes when `product.variations` is
+  /// undefined.
+  final List<_Variation> variations;
+
   final List<_Review> reviews;
   final List<_Related> related;
 
@@ -472,6 +747,7 @@ class _Detail {
     required this.sellerName,
     required this.description,
     required this.attributes,
+    required this.variations,
     required this.reviews,
     required this.related,
     required this.returnsDays,
@@ -529,6 +805,7 @@ class _Detail {
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim(),
       attributes: list(p['attributes'], _Attribute.fromJson),
+      variations: list(p['variations'], _Variation.fromJson),
       reviews: list(r['latest'], _Review.fromJson),
       related: list(json['related'], _Related.fromJson),
       returnsDays: _toInt(c['returnsDays']),
@@ -544,7 +821,19 @@ class _Detail {
 class _Press extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
-  const _Press({required this.child, this.onTap});
+
+  /// Suppresses the built-in press tick, for a control that plays its OWN
+  /// feedback in the handler.
+  ///
+  /// The option pickers need this. A variation chip has two outcomes — taken,
+  /// or refused because that combination was never made — and they have to
+  /// feel different: the tick fires for one and the rejection buzz for the
+  /// other. Left to the default, every dead option would tick as though it had
+  /// been chosen on the way down and then do nothing, which is the single most
+  /// confusing thing a picker can do.
+  final bool silent;
+
+  const _Press({required this.child, this.onTap, this.silent = false});
 
   static const double _scale = 0.97;
 
@@ -564,7 +853,9 @@ class _PressState extends State<_Press> {
       // across the app. Silent for a disabled button: a sold-out "Add to cart"
       // that buzzes has told the finger it worked.
       onTapDown: (_) {
-        if (widget.onTap != null) HapticFeedback.selectionClick();
+        if (widget.onTap != null && !widget.silent) {
+          HapticFeedback.selectionClick();
+        }
         setState(() => _down = true);
       },
       onTapUp: (_) => setState(() => _down = false),
@@ -961,16 +1252,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   ///
   /// ---- On combinations that do not exist ----
   ///
-  /// The website greys out the red one when red is not made in 42, because it
-  /// has `product.variations` and can check. `GET /api/app/product/:id` sends
-  /// `attributes` only — names and values, flattened — so this screen has no
-  /// way to know which pairs are real, and every option here is offered.
-  ///
-  /// That is a known gap and it is bounded rather than dangerous: the order is
-  /// still placed against WooCommerce, which is the thing that actually knows.
-  /// Closing it properly means the endpoint sending `variations`; doing it
-  /// with a guess would mean hiding combinations that DO exist, which costs
-  /// sales rather than preventing mistakes.
+  /// This used to say the endpoint sent `attributes` only, so every option was
+  /// offered whether or not the seller had built it. `GET /api/app/product/:id`
+  /// now sends `variations` as well, and `_available` below applies the
+  /// website's rule to it — see there.
   /// ---- Why this is `isNotEmpty` and not `length > 1` ----
   ///
   /// It was `length > 1`, on the reasoning that a one-value attribute is a
@@ -989,6 +1274,121 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// difference being asked for.
   List<_Attribute> _pickable(_Detail d) =>
       d.attributes.where((a) => a.values.isNotEmpty).toList();
+
+  /// Whether this value can still be bought, given what is chosen so far.
+  ///
+  /// The website's rule, line for line (`AddToCartButton.isOptionAvailable`):
+  /// a value is offered when SOME variation is in stock, is that value for
+  /// this attribute, and agrees with every OTHER attribute the shopper has
+  /// already answered. The last clause is what makes the row live rather than
+  /// static — pick Red and the sizes Red was never made in go dead in place.
+  ///
+  /// Two departures from the web version, both deliberate:
+  ///
+  /// • A product with no variations is a simple product and everything is
+  ///   available. Same as the site.
+  ///
+  /// • A variation that does not mention an attribute matches ANY value of it.
+  ///   WooCommerce writes an empty string for "any size", and the server drops
+  ///   the key rather than passing an unnamed option through. Treating that
+  ///   absence as a mismatch — which is what a plain `==` does, and what the
+  ///   website does today — crosses out every size on a product whose
+  ///   variations are colour-only. Being generous here can at worst offer a
+  ///   combination the checkout then declines; being strict silently makes the
+  ///   product unbuyable, which is the more expensive way to be wrong.
+  bool _available(_Detail d, String attribute, String option) {
+    if (d.variations.isEmpty) return true;
+
+    bool agrees(_Variation variation, String name, String value) {
+      final actual = variation.attributes[name];
+      return actual == null || actual.isEmpty || actual == value;
+    }
+
+    return d.variations.any((variation) {
+      if (!variation.inStock) return false;
+      if (!agrees(variation, attribute, option)) return false;
+
+      for (final entry in _chosen.entries) {
+        if (entry.key == attribute || entry.value.isEmpty) continue;
+        if (!agrees(variation, entry.key, entry.value)) return false;
+      }
+      return true;
+    });
+  }
+
+  /// Taking a choice, with the tick under the finger.
+  ///
+  /// ---- The feedback ----
+  ///
+  /// `selectionClick` is the tick a picker makes — the same one a scroll wheel
+  /// makes as a value passes under the line — and it is the right one here for
+  /// the reason it exists: choosing a size is moving through a set, not
+  /// confirming something. The system click plays with it, so the choice lands
+  /// on a phone with haptics turned off and on a phone held in a bag; on iOS
+  /// `SystemSoundType.click` is silent by design, which is why the haptic is
+  /// not left to carry it alone.
+  ///
+  /// ---- Why picking can UNPICK something else ----
+  ///
+  /// Choosing Red when 44 is already selected and Red was never made in 44
+  /// leaves a pair that cannot be bought. The website leaves it — the chip
+  /// simply goes dead under the shopper while still reading as chosen — and
+  /// the order is stopped later. Here the stale answer is dropped and asked
+  /// again, because the alternative is a buy button that refuses with
+  /// everything apparently answered.
+  void _pick(_Detail d, String attribute, String value, {VoidCallback? after}) {
+    HapticFeedback.selectionClick();
+    SystemSound.play(SystemSoundType.click);
+
+    setState(() {
+      _chosen[attribute] = value;
+
+      for (final other in _pickable(d)) {
+        if (other.name == attribute) continue;
+        final chosen = _chosen[other.name];
+        if (chosen == null || chosen.isEmpty) continue;
+        if (!_available(d, other.name, chosen)) _chosen.remove(other.name);
+      }
+    });
+
+    after?.call();
+  }
+
+  /// Tapping something that cannot be bought.
+  ///
+  /// A dead chip that does nothing at all reads as a broken chip. This says
+  /// what happened — the buzz is deliberately the rejection pattern rather
+  /// than the selection tick, so the finger knows before the eye does — and
+  /// names the combination, because "unavailable" on its own leaves the
+  /// shopper to work out which of their two choices is the problem.
+  void _rejectOption(String attribute, String option) {
+    HapticFeedback.heavyImpact();
+    SystemSound.play(SystemSoundType.alert);
+
+    final chosenElsewhere = _chosen.entries
+        .where((e) => e.key != attribute && e.value.isNotEmpty)
+        .map((e) => e.value)
+        .join(', ');
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            chosenElsewhere.isEmpty
+                ? '$option is sold out'
+                : '$option is not available in $chosenElsewhere',
+            style: _text(size: 13.5, color: _kWhite, weight: FontWeight.w600),
+          ),
+          backgroundColor: _kInk,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+        ),
+      );
+  }
 
   /// The first choice still outstanding, or null when everything is answered.
   _Attribute? _missing(_Detail d) {
@@ -1506,95 +1906,430 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ---------- Choices ----------
 
+  /// The size chart the numbers beside it are being read against.
+  ///
+  /// The website puts this select beside the Size label
+  /// (`components/AddToCartButton.tsx`), and it is here for the same reason:
+  /// a Ugandan shopper buying imported stock is looking at a number that could
+  /// be any of three systems, and the shop knowing which one it means is the
+  /// difference between one delivery and two. Like the website, it labels the
+  /// chart rather than converting between them — the sizes on the chips are
+  /// the seller's own, and silently rewriting them would be inventing stock
+  /// that was never listed.
+  String _sizeSystem = _kSizeSystems.first;
+
+  /// A colour, shown as the thing itself.
+  ///
+  /// This is `app/products/[id]/ColorSwatch.tsx`: a 36px disc, a ring drawn
+  /// OUTSIDE it when chosen so the colour keeps its whole area and the dot
+  /// never changes size, and a cross through it when that colour cannot be had
+  /// in what else is chosen.
+  ///
+  /// ---- Why the dot and not a chip with a word ----
+  ///
+  /// The complaint that started this was that the variations "don't look
+  /// good", and a column of grey word-buttons is exactly what a colour list
+  /// should not be: "Dark Brown" beside "Tan" beside "Oxblood" is three words
+  /// to read and compare where three discs is a glance. The name is not
+  /// discarded — it is printed once, live, next to the attribute label above
+  /// the row ("Colour: Tan"), which is where the website puts it too, and it
+  /// is the semantic label on this control so a screen reader still announces
+  /// the word.
+  ///
+  /// The outer box is 44px so the touch target clears the minimum even though
+  /// the visible disc is 36.
+  Widget _swatchDot({
+    required _Option option,
+    required bool selected,
+    required bool available,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: available,
+      label: available ? option.name : '${option.name}, unavailable',
+      child: _Press(
+        onTap: onTap,
+        // The tick is suppressed on the disc itself and played by the handler
+        // instead, because a dead option has to buzz DIFFERENTLY rather than
+        // not at all — see `_rejectOption`.
+        silent: true,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? _kInk : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          padding: const EdgeInsets.all(3),
+          child: Opacity(
+            opacity: available ? 1 : 0.4,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ClipOval(
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: option.image != null
+                        ? CachedNetworkImage(
+                            imageUrl: option.image!,
+                            httpHeaders: _kImageHeaders,
+                            fit: BoxFit.cover,
+                            // 36px on a 3x screen. Decoding a supplier's
+                            // 2000px swatch at full size to draw a thumbnail
+                            // is how a colour list with twelve options runs a
+                            // phone out of memory.
+                            memCacheWidth: 128,
+                            placeholder: (_, __) =>
+                                ColoredBox(color: option.swatch ?? _kHairline),
+                            errorWidget: (_, __, ___) =>
+                                ColoredBox(color: option.swatch ?? _kHairline),
+                          )
+                        : ColoredBox(color: option.swatch ?? _kHairline),
+                  ),
+                ),
+                // The hairline. Without it a white swatch on a white page is
+                // an invisible option, which is the one colour every clothing
+                // catalogue has.
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0x1A000000)),
+                  ),
+                ),
+                // Crossed out, the website's two strokes. Drawn in white with
+                // a dark companion beneath so the cross is visible on a black
+                // swatch and on a cream one alike.
+                if (!available) ...[
+                  _strike(width: 36, angle: 0.785, color: const Color(0x99FFFFFF)),
+                  _strike(width: 36, angle: -0.785, color: const Color(0x99FFFFFF)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The single stroke through an option that cannot be bought.
+  Widget _strike({
+    required double width,
+    required double angle,
+    required Color color,
+  }) =>
+      Transform.rotate(
+        angle: angle,
+        child: Container(width: width, height: 1.4, color: color),
+      );
+
   /// One option chip.
   ///
   /// Not a `ChoiceChip`: Material's chip carries its own theme, its own
   /// density and its own selected colour, none of which are this shop's, and
   /// styling one back to the palette is more code than drawing it. This is the
   /// same treatment as the website's option buttons — a hairline at rest, the
-  /// brand orange with a tinted ground when chosen — so the two screens agree.
+  /// brand orange with a tinted ground when chosen, a grey ground and a stroke
+  /// through it when the combination does not exist — so the two screens
+  /// agree.
   ///
-  /// 40px tall and 12px of side padding is the smallest this can be and still
-  /// clear the 44px touch target once the 4px of `Wrap` spacing either side is
-  /// counted. Size options are two characters wide; a chip sized to its text
-  /// alone would be a 20px target.
+  /// 44px tall rather than the 40 this was: it is the platform minimum for a
+  /// touch target, it matches the swatch discs beside it on a product that has
+  /// both, and a size chip is two characters wide so nothing else is holding
+  /// the height up. `minWidth` 52 is the website's figure, and it is what stops
+  /// "S" and "XXL" rendering as two very different buttons.
   Widget _optionChip({
     required String label,
     required bool selected,
+    required bool available,
     required VoidCallback onTap,
-    String? swatch,
+    String? swatchImage,
+    Color? swatchColour,
   }) {
+    final hasSwatch = swatchImage != null || swatchColour != null;
+
+    final Color border = !available
+        ? _kHairline
+        : selected
+            ? _kPrimary
+            : _kLine;
+    final Color ground = !available
+        ? _kSurface
+        : selected
+            ? _kPrimary.withOpacity(0.07)
+            : _kWhite;
+    final Color ink = !available
+        ? _kFaint
+        : selected
+            ? _kPrimaryInk
+            : _kBody;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: available,
+      label: available ? label : '$label, unavailable',
+      child: _Press(
+        onTap: onTap,
+        silent: true,
+        child: Container(
+          height: 44,
+          constraints: const BoxConstraints(minWidth: 52),
+          // Tighter on the left when a swatch leads, so the chip does not grow
+          // a gap the size of the dot it just gained.
+          padding: EdgeInsets.only(left: hasSwatch ? 8 : 14, right: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: ground,
+            borderRadius: BorderRadius.circular(_radius),
+            border: Border.all(
+              color: border,
+              width: selected && available ? 1.5 : 1,
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ---- The colour, shown as well as named ----
+                  //
+                  // This is the fallback row: a colour attribute where only
+                  // SOME terms carry a swatch renders as chips rather than
+                  // discs, and the ones that do have a colour still show it.
+                  if (hasSwatch) ...[
+                    Opacity(
+                      opacity: available ? 1 : 0.4,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: swatchColour ?? _kHairline,
+                          border: Border.all(color: const Color(0x1A000000)),
+                          image: swatchImage == null
+                              ? null
+                              : DecorationImage(
+                                  image: CachedNetworkImageProvider(
+                                    swatchImage,
+                                    headers: _kImageHeaders,
+                                  ),
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    label,
+                    style: _text(
+                      size: 14,
+                      color: ink,
+                      weight: selected && available
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              // The website's single stroke at -18°, in its own grey.
+              if (!available)
+                Positioned.fill(
+                  child: Center(
+                    child: LayoutBuilder(
+                      builder: (_, constraints) => _strike(
+                        width: constraints.maxWidth * 0.82,
+                        angle: -0.314,
+                        color: const Color(0xFFCFCFCF),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The EU / UK / US selector that sits beside the Size label.
+  Widget _sizeSystemPicker() {
     return _Press(
-      onTap: onTap,
+      onTap: () async {
+        final picked = await showModalBottomSheet<String>(
+          context: context,
+          backgroundColor: _kWhite,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          builder: (sheetContext) => SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_pad, 16, _pad, 8),
+                  child: Row(
+                    children: [
+                      Text('Size chart', style: _heading(size: 16)),
+                      const Spacer(),
+                      Text(
+                        'Sizes shown are the seller’s own',
+                        style: _label(size: 11.5, color: _kFaint),
+                      ),
+                    ],
+                  ),
+                ),
+                for (final system in _kSizeSystems)
+                  _Press(
+                    onTap: () => Navigator.of(sheetContext).pop(system),
+                    child: Container(
+                      width: double.infinity,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: _pad, vertical: 14),
+                      child: Row(
+                        children: [
+                          Text(
+                            system,
+                            style: _text(
+                              size: 15,
+                              color: system == _sizeSystem ? _kPrimaryInk : _kBody,
+                              weight: system == _sizeSystem
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (system == _sizeSystem)
+                            const Icon(Icons.check_rounded,
+                                size: 18, color: _kPrimary),
+                        ],
+                      ),
+                    ),
+                  ),
+                // ---- The size guide ----
+                //
+                // The same table the website puts behind its "Size guide"
+                // link, and the same advice with it. It is here rather than
+                // behind a second link because the question it answers — "am I
+                // an M or an L" — is asked at the moment the size row is being
+                // looked at, and this sheet is already open at that moment.
+                //
+                // Generic body measurements, stated as such. It is not the
+                // seller's own chart, and the line above the table says the
+                // numbers on the chips are theirs, so nothing here claims to
+                // be a measurement of the item in the photograph.
+                const Divider(height: 1, color: _kHairline),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(_pad, 14, _pad, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Size guide', style: _heading(size: 14)),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Sizes follow the brand’s own chart, so they differ a '
+                        'little between labels. Between two sizes, take the '
+                        'larger one.',
+                        style: _text(size: 12.5, color: _kMuted, height: 1.4),
+                      ),
+                      const SizedBox(height: 12),
+                      for (final row in const [
+                        ['Size', 'Chest (cm)', 'Waist (cm)'],
+                        ['XS', '82–86', '66–70'],
+                        ['S', '86–92', '70–76'],
+                        ['M', '92–98', '76–82'],
+                        ['L', '98–104', '82–88'],
+                        ['XL', '104–112', '88–96'],
+                      ])
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: _kHairline),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              for (var i = 0; i < row.length; i++)
+                                Expanded(
+                                  flex: i == 0 ? 2 : 3,
+                                  child: Text(
+                                    row[i],
+                                    style: _text(
+                                      size: 12.5,
+                                      // The header row is the one whose first
+                                      // cell is the word rather than a size.
+                                      color: row[0] == 'Size' ? _kMuted : _kBody,
+                                      weight: i == 0
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+
+        if (picked != null && mounted) {
+          HapticFeedback.selectionClick();
+          SystemSound.play(SystemSoundType.click);
+          setState(() => _sizeSystem = picked);
+        }
+      },
       child: Container(
-        height: 40,
-        // Tighter on the left when a swatch leads, so the chip does not grow a
-        // gap the size of the image it just gained.
-        padding: EdgeInsets.only(left: swatch == null ? 14 : 6, right: 14),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? _kPrimary.withOpacity(0.07) : _kWhite,
-          borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(
-            color: selected ? _kPrimary : _kLine,
-            width: selected ? 1.5 : 1,
-          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _kLine),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ---- The colour, shown rather than named ----
-            //
-            // The swatch AND the word, not the swatch alone. A row of unlabelled
-            // squares is a guessing game for anyone who cannot distinguish two
-            // near neighbours, and it is unusable with a screen reader — the
-            // word is the accessible name of the option and it stays.
-            if (swatch != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: CachedNetworkImage(
-                  imageUrl: swatch,
-                  httpHeaders: _kImageHeaders,
-                  width: 26,
-                  height: 26,
-                  fit: BoxFit.cover,
-                  // 26px on a 3x screen. Decoding a supplier's 2000px swatch at
-                  // full size to draw a thumbnail is how a colour list with
-                  // twelve options runs a phone out of memory.
-                  memCacheWidth: 96,
-                  placeholder: (_, __) => const ColoredBox(color: _kHairline),
-                  errorWidget: (_, __, ___) =>
-                      const ColoredBox(color: _kHairline),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: _text(
-                size: 13.5,
-                color: selected ? _kPrimaryInk : _kBody,
-                weight: selected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
+            Text(_sizeSystem, style: _text(size: 13, color: _kBody)),
+            const SizedBox(width: 4),
+            const Icon(Icons.expand_more_rounded, size: 16, color: _kMuted),
           ],
         ),
       ),
     );
   }
 
-  /// Every outstanding choice, as labelled rows of chips.
+  /// Every outstanding choice, as labelled rows of swatches and chips.
   ///
   /// `onPick` rather than writing straight to `_chosen` because the bottom
   /// sheet renders this same widget inside a `StatefulBuilder` and has to
   /// rebuild ITSELF as well as this screen — a sheet whose chips do not
   /// respond until it is closed and reopened reads as broken.
   ///
-  /// The chosen value is printed beside the attribute name rather than only
-  /// shown by the highlighted chip. On a colour list of eight that runs to
-  /// three lines, "Color" alone at the top and a chip highlighted somewhere in
-  /// the middle makes a shopper hunt for what they picked; "Color · Dark
-  /// Brown" answers it where they are already looking.
+  /// ---- The label line ----
+  ///
+  /// "Colour: Tan", the website's exact treatment: the attribute name set
+  /// quietly and the CHOSEN VALUE beside it in the ink weight, because the
+  /// value is the answer and the name is only the question. Before a choice is
+  /// made it reads "Select a colour", which is a prompt rather than a label —
+  /// on a colour list of eight running to two lines, a bare "Colour" at the top
+  /// leaves a shopper hunting the rows for a highlight to work out what they
+  /// picked.
   Widget _choiceRows(
     _Detail d, {
     required void Function(String attribute, String value) onPick,
@@ -1608,19 +2343,33 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       children: [
         for (final attribute in pickable) ...[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(attribute.name, style: _heading(size: 14)),
-              if ((_chosen[attribute.name] ?? '').isNotEmpty) ...[
-                Text('  ·  ', style: _label(size: 13, color: _kFaint)),
-                Flexible(
-                  child: Text(
-                    _chosen[attribute.name]!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _text(size: 13, color: _kBody),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: _text(size: 14, color: _kMuted),
+                    children: [
+                      TextSpan(text: '${attribute.name}: '),
+                      TextSpan(
+                        text: (_chosen[attribute.name] ?? '').isNotEmpty
+                            ? _chosen[attribute.name]
+                            : 'Select a ${attribute.name.toLowerCase()}',
+                        style: _text(
+                          size: 14,
+                          color: (_chosen[attribute.name] ?? '').isNotEmpty
+                              ? _kInk
+                              : _kFaint,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ] else if (showError) ...[
+              ),
+              if (showError && (_chosen[attribute.name] ?? '').isEmpty) ...[
                 const SizedBox(width: 8),
                 Text(
                   'Choose one',
@@ -1631,9 +2380,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
               ],
+              if (attribute.isSize) ...[
+                const SizedBox(width: 8),
+                _sizeSystemPicker(),
+              ],
             ],
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 10),
           // ---- A Wrap, and it has to stay one ----
           //
           // Sizes are two characters wide and there are usually four to eight
@@ -1649,19 +2402,49 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           // in this file: either one forces the Wrap's children to the full
           // width and produces exactly that stacked layout.
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: attribute.showAsSwatches ? 4 : 8,
+            runSpacing: attribute.showAsSwatches ? 4 : 8,
             children: [
               for (final option in attribute.options)
-                _optionChip(
-                  label: option.name,
-                  swatch: option.image,
-                  selected: _chosen[attribute.name] == option.name,
-                  onTap: () => onPick(attribute.name, option.name),
+                Builder(
+                  builder: (_) {
+                    final available =
+                        _available(d, attribute.name, option.name);
+                    final selected = _chosen[attribute.name] == option.name;
+
+                    // One handler for both shapes: a live option takes the
+                    // choice, a dead one says why. Neither is silent, which is
+                    // the whole difference between a disabled control and a
+                    // broken one.
+                    void tap() {
+                      if (!available) {
+                        _rejectOption(attribute.name, option.name);
+                        return;
+                      }
+                      onPick(attribute.name, option.name);
+                    }
+
+                    return attribute.showAsSwatches
+                        ? _swatchDot(
+                            option: option,
+                            selected: selected,
+                            available: available,
+                            onTap: tap,
+                          )
+                        : _optionChip(
+                            label: option.name,
+                            selected: selected,
+                            available: available,
+                            swatchImage: attribute.isColour ? option.image : null,
+                            swatchColour:
+                                attribute.isColour ? option.swatch : null,
+                            onTap: tap,
+                          );
+                  },
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
         ],
       ],
     );
@@ -1679,10 +2462,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 0),
         child: _choiceRows(
           d,
-          onPick: (attribute, value) {
-            HapticFeedback.selectionClick();
-            setState(() => _chosen[attribute] = value);
-          },
+          // `_pick` rather than a bare `setState`: it carries the tick and the
+          // click, and it drops any other answer the new one has just made
+          // impossible. See its note.
+          onPick: (attribute, value) => _pick(d, attribute, value),
         ),
       );
 
@@ -1718,12 +2501,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             void pick(String attribute, String value) {
-              HapticFeedback.selectionClick();
-              // Both, and both are needed: `setState` so the pickers in the
-              // page behind agree with the sheet once it closes, and
-              // `setSheetState` so the chip under the finger lights up now.
-              setState(() => _chosen[attribute] = value);
-              setSheetState(() => showError = false);
+              // Both, and both are needed: `_pick` calls `setState` so the
+              // pickers in the page behind agree with the sheet once it
+              // closes, and `setSheetState` so the chip under the finger
+              // lights up now — and so the rest of the row re-evaluates what
+              // is still available against the choice just made.
+              _pick(
+                d,
+                attribute,
+                value,
+                after: () => setSheetState(() => showError = false),
+              );
             }
 
             return SafeArea(

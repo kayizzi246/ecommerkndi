@@ -419,6 +419,61 @@ function toProduct(raw: unknown): Product {
 
   const seller = obj(product.seller);
 
+  const attributes: ProductAttribute[] = arr(product.attributes).map((entry) => {
+    const attribute = obj(entry);
+    return {
+      name: str(attribute.name),
+      options: arr(attribute.options).map((raw_option) => {
+        if (typeof raw_option === "string") return { name: raw_option };
+        const option = obj(raw_option);
+        return {
+          name: str(option.name) || str(option.label),
+          value: option.value == null ? undefined : str(option.value),
+          image: str(option.image) || str(option.image_url) || undefined,
+        };
+      }),
+    };
+  });
+
+  /**
+   * The value a variation names, said the way the option list says it.
+   *
+   * ---- The mismatch this exists to absorb ----
+   *
+   * WooCommerce stores a variation's choice for a TAXONOMY attribute as the
+   * term's slug — `dark-brown` — while the option list beside it carries the
+   * term's name, `Dark Brown`. Everything downstream compares the two with
+   * `===`: the website's `isOptionAvailable` asks whether any variation has
+   * `attributes[attrName] === optionName`, and the app now asks the same
+   * question of the same table.
+   *
+   * With slugs on one side and names on the other that comparison never
+   * matches, and the failure is silent and total in the worst direction — no
+   * variation matches ANY option, so every size and colour on a variable
+   * product renders crossed out and unbuyable. Custom (non-taxonomy)
+   * attributes store the name and were fine, which is why this only shows up
+   * on shops whose sizes and colours are real attribute terms.
+   *
+   * Matching by slug both ways rather than un-slugging: names are not
+   * recoverable from slugs (`dark-brown` could be "Dark Brown" or "dark
+   * brown"), but a name always slugifies to the slug WooCommerce made from it.
+   * A value with no match — an attribute the seller has since deleted — is
+   * passed through untouched, so it simply matches nothing rather than
+   * becoming something else.
+   */
+  const slugify = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, "-");
+
+  const canonicalOption = (attributeName: string, rawValue: string): string => {
+    const attribute = attributes.find((item) => item.name === attributeName);
+    if (!attribute) return rawValue;
+    const match = attribute.options.find(
+      (option) =>
+        option.name === rawValue || slugify(option.name) === slugify(rawValue)
+    );
+    return match ? match.name : rawValue;
+  };
+
   return {
     id: num(product.id),
     name: str(product.name),
@@ -435,26 +490,18 @@ function toProduct(raw: unknown): Product {
     date_created: str(product.date_created) || null,
     short_description: str(product.short_description ?? product.shortDescription),
     categories,
-    attributes: arr(product.attributes).map((entry) => {
-      const attribute = obj(entry);
-      return {
-        name: str(attribute.name),
-        options: arr(attribute.options).map((raw_option) => {
-          if (typeof raw_option === "string") return { name: raw_option };
-          const option = obj(raw_option);
-          return {
-            name: str(option.name) || str(option.label),
-            value: option.value == null ? undefined : str(option.value),
-            image: str(option.image) || str(option.image_url) || undefined,
-          };
-        }),
-      };
-    }),
+    attributes,
     variations: Array.isArray(product.variations)
       ? product.variations.map((entry) => {
           const variation = obj(entry);
+          const chosen = obj(variation.attributes);
           return {
-            attributes: obj(variation.attributes) as Record<string, string>,
+            attributes: Object.fromEntries(
+              Object.entries(chosen).map(([name, value]) => [
+                name,
+                canonicalOption(name, str(value)),
+              ])
+            ) as Record<string, string>,
             is_in_stock: Boolean(variation.is_in_stock ?? variation.in_stock),
           };
         })

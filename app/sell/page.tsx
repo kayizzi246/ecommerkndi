@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import EarningsCalculator from "./EarningsCalculator";
-import HeroParticles from "./HeroParticles";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/sell" },
@@ -12,67 +11,166 @@ export const metadata: Metadata = {
     "Open a store on Kandi and reach shoppers across Uganda. No listing fees, one flat commission, and payouts you request yourself.",
 };
 
+/* ============================================================================
+   /sell — the seller prospectus
+   ============================================================================
+
+   ---- What this page was, and why it was rebuilt ----
+
+   It was a software company's landing page: a pointer-reactive particle canvas
+   behind the hero, two radial colour blooms and a masked dot grid stacked under
+   that, a headline whose last four words ran through a three-stop gradient, six
+   benefit cards each with its own pastel icon tile in a different hue, four
+   numbered circles in a row, and a green-to-blue gradient band at the foot with
+   a white pill in it.
+
+   Every one of those is a decoration applied to the page rather than a decision
+   about it, and together they are the house style of a template — which is the
+   problem, because the reader is a shopkeeper deciding whether to hand a
+   business to strangers. A page that looks generated suggests the operation
+   behind it might be too. The particle field was the clearest tell: nothing
+   else on this marketplace moves on its own, anywhere.
+
+   They also contradicted the shop's own written rules. `globals.css` calls
+   `--color-shop-ember` "the second stop of the one gradient allowed"; this page
+   had three. It set its headline in `font-black`, and Poppins is downloaded at
+   600 and 700 only, so with `font-synthesis-weight: none` the 900 was rendering
+   as 700 — a design decision that existed solely in the comment explaining it.
+   That comment credited the weight to Roboto, which is a fallback in the stack
+   and was never downloaded either.
+
+   ---- What replaced it ----
+
+   The subject of this page is money: a fee, a commission, a payout interval.
+   So the FIGURES are the artwork. There is no illustration, no gradient and no
+   background texture anywhere on the page. The graphic interest comes from a
+   ruled terms table under the hero that sets the whole offer in large tabular
+   numerals — the first thing a seller wants to know, and the last thing a
+   template leads with.
+
+   Three devices carry the rest, used consistently:
+
+     1. RULES, NOT CARDS. Related things are separated by hairlines and share a
+        column grid, the way a prospectus or a price list does it. A white
+        rounded box around every group is what made the old page read as six
+        identical objects with nothing to say about their order.
+
+     2. A LEFT SPINE. From lg, each section puts its heading in a 220px margin
+        column with the content beside it, instead of centring a heading over a
+        grid. Centred-head-then-three-cards is the shape the eye now reads as
+        machine-made, and the asymmetry puts the section title at the top left,
+        where somebody scanning down a long page is actually looking.
+
+     3. ONE ACCENT. Brand orange appears on the primary buttons, the short rule
+        above each section label, and the step figures. Nothing else is
+        coloured. The old page used six hues — green, blue, violet, orange,
+        pink and a second green — picked to fill a grid rather than to mean
+        anything.
+
+   The copy is largely the old page's, which was never the problem: it is
+   specific, it states real numbers and it admits what the fee is for. It has
+   been re-cut into the new structure and given the one section a template will
+   never write — who should NOT apply.
+
+   ---- The ground ----
+
+   `#faf9f6`, a warm near-white, with white kept for the panels that have to
+   lift off it. A literal rather than a token because it is this page only: the
+   storefront is white paper because it is a catalogue of photographs, and this
+   page is a document.
+   ============================================================================ */
+
+/**
+ * The section label that sits in the left spine.
+ *
+ * A short orange rule, the label, and optionally a line of standfirst. From lg
+ * it becomes the margin column and sticks to the top of the viewport while its
+ * section scrolls past, so a reader always knows which part of the argument
+ * they are in — a long page's table of contents, without a menu.
+ */
+function SectionHead({ title, note }: { title: string; note?: string }) {
+  return (
+    <div className="lg:sticky lg:top-[92px]">
+      <span aria-hidden className="block h-[3px] w-7 bg-shop-primary" />
+      <h2 className="mt-4 text-[24px] font-bold leading-tight tracking-[-0.02em] text-shop-ink md:text-[28px]">
+        {title}
+      </h2>
+      {note && (
+        <p className="mt-3 max-w-[34ch] text-[15px] leading-relaxed text-shop-body">{note}</p>
+      )}
+    </div>
+  );
+}
+
 export default async function SellPage() {
   const settings = await getSiteSettings();
-  const { seller, commerce, brand } = settings;
+  const { seller, commerce, brand, support } = settings;
 
-  const benefits = [
+  /* The offer, as four figures. This is the hero's artwork — see the note at
+     the head of the file. `detail` is the qualifier that stops each number
+     reading as a slogan: "10%" alone is a marketing figure, "of each item you
+     actually sell" makes it a term of business. */
+  const terms = [
+    {
+      label: "Monthly fee",
+      value: formatPrice(seller.registration_fee),
+      detail: "first month refunded if we turn you down",
+    },
+    {
+      label: "Commission",
+      value: `${seller.commission_rate}%`,
+      detail: "of each item you actually sell",
+    },
+    { label: "Listing fees", value: "None", detail: "list as many products as you like" },
+    {
+      label: "Payouts",
+      value: `Every ${seller.payout_days} days`,
+      detail: "requested by you, to mobile money or a bank",
+    },
+  ];
+
+  /* Six terms of the deal, set as a definition list because that is what they
+     are. The old page gave each one a coloured icon tile; not one of those
+     icons carried meaning the two-word title did not already carry. */
+  const included = [
     {
       title: "No listing fees, ever",
-      copy: `List as many products as you like. We only earn when you do — a flat ${seller.commission_rate}% of each item sold, and nothing else.`,
-      tone: "text-pop-green",
-      bg: "bg-pop-green-soft",
-      icon: "M12 3v18M8 7h6.5a2.5 2.5 0 0 1 0 5H9.5a2.5 2.5 0 0 0 0 5H16",
+      copy: `List as many products as you like. We earn when you do — a flat ${seller.commission_rate}% of each item sold, and nothing else.`,
     },
     {
       title: "Delivery is handled",
-      copy: `We collect, deliver nationwide and carry the free-delivery promise over ${formatPrice(commerce.free_delivery_from)}. You pack the parcel; we do the rest.`,
-      tone: "text-pop-blue",
-      bg: "bg-pop-blue-soft",
-      icon: "M3 6h2.2l2 10.5h11.1L20 9H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8.5 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
+      copy: `We collect the parcel, deliver anywhere in Uganda, and carry the free-delivery promise over ${formatPrice(commerce.free_delivery_from)}. You pack it; we move it.`,
     },
     {
-      title: "You get paid on your say-so",
-      copy: `Earnings clear once an order completes. Request a payout whenever you want it — settled every ${seller.payout_days} days to mobile money or your bank.`,
-      tone: "text-pop-violet",
-      bg: "bg-pop-violet-soft",
-      icon: "M3 7h18v10H3V7Zm0 4h18M7 15h3",
+      title: "You are paid on your say-so",
+      copy: `Earnings clear once an order completes. Ask for a payout whenever you want it — settled every ${seller.payout_days} days to mobile money or your bank.`,
     },
     {
-      title: "Real numbers, not vanity charts",
-      copy: "Revenue, units, best sellers, what is running out of stock and exactly what you are owed — updated as orders land.",
-      tone: "text-pop-orange",
-      bg: "bg-pop-orange-soft",
-      icon: "M4 19V5m0 14h16M8 19v-6m4 6V9m4 10v-4",
+      title: "Numbers you can act on",
+      copy: "Revenue, units, best sellers, what is running out of stock and exactly what you are owed, updated as orders land. Not a wall of charts.",
     },
     {
-      title: "Your brand stays yours",
-      copy: "Your store gets its own page and its own name on every product you sell. Shoppers know who they are buying from.",
-      tone: "text-pop-pink",
-      bg: "bg-pop-red-soft",
-      icon: "M4 5h6v6H4V5Zm10 0h6v6h-6V5ZM4 13h6v6H4v-6Zm10 0h6v6h-6v-6Z",
+      title: "Your name stays on your goods",
+      copy: "Your store gets its own page and its own name on every product you list. A shopper knows who they bought from, and comes back to you rather than to us.",
     },
     {
-      title: "Payment risk is on us",
-      copy: "Cash on delivery, MTN MoMo, Airtel Money and cards are all collected by Kandi. You are never chasing a customer for money.",
-      tone: "text-pop-green",
-      bg: "bg-pop-green-soft",
-      icon: "M12 3 4 6v6c0 4.5 3.3 7.9 8 9 4.7-1.1 8-4.5 8-9V6l-8-3Zm-2 9 1.8 1.8L15 10",
+      title: "The payment risk is ours",
+      copy: "Cash on delivery, MTN MoMo, Airtel Money and cards are all collected by Kandi. You are never the one chasing a customer for money.",
     },
   ];
 
   const steps = [
     {
       title: "Apply",
-      copy: "Five short steps: your store, you, your password, your first month, done. About three minutes.",
+      copy: "Five short steps: your store, you, your password, your first month. About three minutes.",
     },
     {
-      title: "Pay your first month",
-      copy: `${formatPrice(seller.registration_fee)} a month by mobile money, quoting the reference we give you.`,
+      title: "Pay the first month",
+      copy: `${formatPrice(seller.registration_fee)} by mobile money, quoting the reference we give you.`,
     },
     {
-      title: "We check and approve",
-      copy: "A person reviews every application. Usually same day, and we email you either way.",
+      title: "We check it",
+      copy: "A person reads every application. Usually the same day, and we email you either way.",
     },
     {
       title: "List and sell",
@@ -81,10 +179,27 @@ export default async function SellPage() {
   ];
 
   const feeCovers = [
-    "Verifying your identity and your business, so shoppers can trust every store on the marketplace",
+    "Verifying your identity and your business, so a shopper can trust every store on the marketplace",
     "Setting up your store page, your seller account and your payout details",
-    "The first review of your listings — photos, descriptions and pricing checked by a person",
-    "Onboarding support: someone walks you through your first listing and your first payout",
+    "The first review of your listings — photographs, descriptions and pricing, read by a person",
+    "Onboarding: someone walks you through your first listing and your first payout",
+  ];
+
+  /* The section no template writes. Turning the wrong applicant away before
+     they pay is worth more than the fee is, and a page confident enough to
+     print its own exclusions is the strongest trust signal available to it. */
+  const apply = [
+    "You have stock now, or can get it within a few days of a sale",
+    "You sell genuine goods and photograph them yourself",
+    "You are in footwear or fashion — that is where the shoppers here are",
+    "You can pack a parcel the day the order lands",
+  ];
+
+  const doNot = [
+    "You have nothing to sell yet and are testing an idea",
+    "You are reselling goods you have never seen or handled",
+    "Your photographs came from the supplier rather than from you",
+    "You deal in copies — a store selling them is closed the day we find out",
   ];
 
   const faqs = [
@@ -111,299 +226,364 @@ export default async function SellPage() {
   ];
 
   return (
-    <main className="pb-16">
-      {/* ---- Hero ----
-           ---- The ground ----
-
-           This used to be one flat wash of pale green fading to white, and on a
-           wide screen it read as an unpainted area rather than a designed one:
-           a single hue with no structure has nothing for the eye to land on, so
-           the whole band looked like a page that had not finished loading.
-
-           What is here now is three cheap layers, all CSS, no image files —
-           which matters on a Ugandan mobile connection, where a hero background
-           image is the largest thing a marketing page would ever download:
-
-             1. a near-white warm base,
-             2. two soft radial blooms — brand orange at the top left, the
-                green that runs through this page at the right — at very low
-                alpha, so the ground has a direction and a temperature without
-                ever competing with the white card sitting on it,
-             3. a faint dot grid, masked so it fades out before the copy, which
-                is what gives the surface texture at close range.
-
-           `isolate` + `-z-10` on the layers keeps all of it strictly behind the
-           content, so nothing here can intercept a click on the CTA.
-
-           ---- Aligned to the top, not the middle ----
-
-           `items-center` against the very tall calculator card was pushing the
-           headline a third of the way down the screen and leaving a large empty
-           block above it — the first thing a visitor saw was nothing. The
-           columns start together now, which is also what makes the two `Get
-           started` buttons land near each other. */}
-      <section className="relative isolate overflow-hidden border-b border-shop-line bg-[#fdfcfa]">
-        {/* The drifting, pointer-reactive dot field. Client-side and canvas
-            based; it draws nothing at all under `prefers-reduced-motion`. See
-            the head of the component. */}
-        <HeroParticles />
-
-        {/* The two colour blooms. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(60rem 32rem at 12% -10%, rgba(255,106,0,0.13), transparent 60%), radial-gradient(48rem 30rem at 88% 8%, rgba(22,163,74,0.12), transparent 62%)",
-          }}
-        />
-        {/* The dot grid, faded out towards the bottom so it never sits under
-            the body copy — texture at the top of the band, clean paper by the
-            time anything has to be read across it. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 opacity-[0.35]"
-          style={{
-            backgroundImage: "radial-gradient(rgba(17,24,39,0.14) 1px, transparent 1px)",
-            backgroundSize: "22px 22px",
-            maskImage: "linear-gradient(to bottom, black, transparent 65%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black, transparent 65%)",
-          }}
-        />
-
-        <div className="mx-auto grid max-w-[1200px] items-start gap-10 px-4 py-14 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:py-20">
-          <div className="lg:pt-2">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-[13px] font-semibold text-pop-green ring-1 ring-shop-line backdrop-blur-sm">
-              <span className="live-dot h-2 w-2 rounded-full bg-pop-green" aria-hidden />
-              Now accepting new stores
-            </span>
-
-            {/* ---- The headline ----
-                 Bigger, tighter and set to break where the sense breaks.
-
-                 Three things are doing the work. The SIZE steps up to 60px on a
-                 desktop, which is display type rather than a large heading — on
-                 a page with one job, the sentence that states that job should be
-                 the largest thing on the screen by a distance. The LEADING drops
-                 to 0.98 and the tracking to -0.03em, because type set at 60px
-                 with reading leading looks like a paragraph that was enlarged;
-                 closing both is what makes it read as a designed line.
-
-                 And the last four words are set in the brand gradient. That is
-                 the promise the whole page rests on — reach, not a shop — so it
-                 is the phrase that gets the colour, and it is the only gradient
-                 text on the site. `pb-1` on the span because a clipped gradient
-                 crops descenders flush; the padding gives the 'g' its tail back.
-
-                 The line breaks are hand-placed with a hidden `<br>` rather than
-                 left to the browser: at this size an orphaned word on line three
-                 is the difference between a headline and some big text. */}
-            {/* 900, not 800. This is the heaviest weight Roboto has and the
-                only place on the site that uses it — see the weight array in
-                `layout.tsx`, which had to load the file for this line to be
-                anything other than a 700 pretending. At 900 the letterforms
-                close up on their own, so the tracking goes a step tighter
-                again rather than staying where the 800 wanted it. */}
-            <h1 className="mt-6 text-[38px] font-black leading-[0.98] tracking-[-0.035em] text-shop-ink md:text-[54px] lg:text-[62px]">
-              Sell your shoes
-              <br className="hidden sm:block" /> and fashion to{" "}
-              <span className="inline-block bg-gradient-to-r from-shop-primary via-shop-flame to-pop-green bg-clip-text pb-1 text-transparent">
-                the whole of Uganda
-              </span>
-            </h1>
-
-            <p className="mt-5 max-w-[50ch] text-[17px] leading-relaxed text-shop-body md:text-[18px]">
-              Open a store on {brand.name}, list what you have, and let us handle the storefront,
-              the payments and the delivery. No listing fees — a flat {seller.commission_rate}%
-              when something sells.
-            </p>
-
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/seller/register" className="btn-shop px-8 py-3.5 text-[16px]">
-                Get started
-              </Link>
-              {/* White rather than transparent now that the ground has colour in
-                  it: an outline button on a tinted, textured surface loses its
-                  edge, and this is the button that answers the page's most
-                  common objection. */}
-              <Link
-                href="#calculator"
-                className="rounded-full border border-shop-line bg-white px-7 py-3.5 text-[16px] font-semibold text-shop-ink shadow-sm transition-colors hover:border-shop-ink"
-              >
-                See what you would keep
-              </Link>
-            </div>
-
-            <p className="mt-5 text-[14px] text-shop-muted">
-              {formatPrice(seller.registration_fee)} a month · first month refunded if we turn you
-              down · already selling?{" "}
-              <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-          <div id="calculator" className="scroll-mt-24">
-            <EarningsCalculator
-              commissionRate={seller.commission_rate}
-              registrationFee={seller.registration_fee}
-              payoutDays={seller.payout_days}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Benefits ---- */}
-      <section id="why" className="mx-auto max-w-[1200px] px-4 py-16 scroll-mt-20 md:px-8">
-        <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
-          What you get
-        </h2>
-        <p className="mx-auto mt-3 max-w-[55ch] text-center text-[16px] leading-relaxed text-shop-muted">
-          Everything a shop needs to trade online, without building any of it yourself.
-        </p>
-
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {benefits.map((benefit) => (
-            <div
-              key={benefit.title}
-              className="rounded-2xl border border-shop-line bg-white p-6 transition-colors hover:border-shop-primary/40"
-            >
-              <span
-                className={`flex h-11 w-11 items-center justify-center rounded-xl ${benefit.bg} ${benefit.tone}`}
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d={benefit.icon} />
-                </svg>
-              </span>
-              <h3 className="mt-4 text-[18px] font-extrabold text-shop-ink">{benefit.title}</h3>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-shop-body">{benefit.copy}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ---- How it works ---- */}
-      <section id="how-it-works" className="border-y border-shop-line bg-shop-hairline/50 scroll-mt-20">
-        <div className="mx-auto max-w-[1200px] px-4 py-16 md:px-8">
-          <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
-            How it works
-          </h2>
-
-          <ol className="mt-10 grid gap-6 md:grid-cols-4">
-            {steps.map((step, index) => (
-              <li key={step.title} className="relative">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-shop-primary text-[17px] font-semibold text-white">
-                  {index + 1}
-                </span>
-                <h3 className="mt-4 text-[17px] font-extrabold text-shop-ink">{step.title}</h3>
-                <p className="mt-1.5 text-[15px] leading-relaxed text-shop-body">{step.copy}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* ---- The fee, explained ---- */}
-      {seller.registration_fee > 0 && (
-        <section id="pricing" className="mx-auto max-w-[1200px] px-4 py-16 scroll-mt-20 md:px-8">
-          <div className="grid gap-10 rounded-2xl border border-shop-line bg-white p-7 md:p-10 lg:grid-cols-[1fr_1.2fr]">
+    <main className="bg-[#faf9f6]">
+      {/* ================= Hero ================= */}
+      <section className="border-b border-shop-line">
+        <div className="mx-auto max-w-[1200px] px-4 pb-12 pt-12 md:px-8 md:pb-16 md:pt-16">
+          {/* 1.05 / 0.95 rather than a clean half and half. The copy column
+              carries a display headline and wants the extra measure; the
+              calculator is a fixed set of controls and does not. Equal columns
+              are the proportion a layout falls into when nobody chose one. */}
+          <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
-                Straight answer
+              {/* An eyebrow, not a status pill. The old one was a white lozenge
+                  with a pulsing green dot reading "Now accepting new stores" —
+                  a live indicator for something that is not live data, which is
+                  decoration wearing the clothes of information. This says who
+                  the page is for, which is the job an eyebrow has. */}
+              <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-shop-primary-ink">
+                For shop owners in Uganda
               </p>
-              <h2 className="mt-2 text-[26px] font-extrabold leading-tight text-shop-ink md:text-[30px]">
-                What the {formatPrice(seller.registration_fee)} a month is for
-              </h2>
-              <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
-                It is a subscription, not a deposit and not commission in advance. It pays for the
-                shopfront your products sit in — the storefront, the photography standards, the
-                delivery network and the support line — for as long as you are trading here.
+
+              {/* ---- The headline ----
+                   Set in ink at 700, the heaviest Poppins weight the site
+                   actually downloads, with no coloured phrase and no gradient.
+                   Restraint is the point: the one saturated thing in this
+                   viewport should be the button the page is asking you to
+                   press, and a headline competing with it costs the page its
+                   only strong signal.
+
+                   The break is hand-placed so the line divides where the sense
+                   does — "Sell your shoes and fashion" is the offer, "to the
+                   whole of Uganda" is the reach. Left to the browser it broke
+                   after "to", stranding a preposition, which reads as text that
+                   was enlarged rather than type that was set. */}
+              <h1 className="mt-5 text-[36px] font-bold leading-[1.02] tracking-[-0.03em] text-shop-ink md:text-[50px] lg:text-[56px]">
+                Sell your shoes and fashion
+                <br className="hidden sm:block" /> to the whole of Uganda.
+              </h1>
+
+              <p className="mt-6 max-w-[52ch] text-[17px] leading-[1.6] text-shop-body">
+                Open a store on {brand.name} and list what you have. We run the storefront, take
+                the payments and deliver the parcel — you pack it. There is nothing to build and
+                nothing to host.
               </p>
-              <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
-                Stop paying and nothing is lost: your listings simply stop showing to shoppers when
-                the month runs out. Your account, your products and your order history stay exactly
-                as they are, and paying again puts everything straight back.
-              </p>
-              <p className="mt-3 text-[16px] leading-relaxed text-shop-body">
-                It also does a second job: it is why every store here is real. A marketplace that
-                is free to join fills up with accounts that list a counterfeit and vanish, and it
-                is the honest sellers who pay for that in lost trust.
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                {/* The house button: an 8px rectangle, the same one the
+                    storefront uses on every product page. The old page drew
+                    pills here, which matched nothing else on the site. */}
+                <Link href="/seller/register" className="btn-shop px-7 py-3.5 text-[16px]">
+                  Start selling
+                </Link>
+                <Link href="#calculator" className="btn-shop-outline px-6 py-3.5 text-[16px]">
+                  Work out what you would keep
+                </Link>
+              </div>
+
+              <p className="mt-6 text-[14px] leading-relaxed text-shop-muted">
+                Already selling with us?{" "}
+                <Link
+                  href="/seller/login"
+                  className="font-semibold text-shop-ink underline underline-offset-4 hover:text-shop-primary"
+                >
+                  Sign in to your dashboard
+                </Link>
               </p>
             </div>
 
-            <ul className="space-y-3">
-              {feeCovers.map((item) => (
-                <li
-                  key={item}
-                  className="flex gap-3 rounded-xl border border-shop-line p-4 text-[15px] leading-relaxed text-shop-body"
-                >
-                  <svg
-                    className="mt-0.5 h-5 w-5 shrink-0 text-pop-green"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
-                  </svg>
-                  {item}
+            <div id="calculator" className="scroll-mt-24">
+              <EarningsCalculator
+                commissionRate={seller.commission_rate}
+                registrationFee={seller.registration_fee}
+                payoutDays={seller.payout_days}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ---- The terms ----
+             The page's one piece of artwork, and it is a table.
+
+             A seller's first question is what this costs, and the honest answer
+             is four numbers. Setting them large, in tabular figures, on a rule
+             does two jobs at once: it gives the hero the graphic weight the
+             particle field was there to provide, and it puts the least
+             flattering fact about the offer — a monthly fee — in the largest
+             type on the page. A page that leads with its price reads as a page
+             with nothing to hide.
+
+             `divide-x` only from md; below that the cells stack two-up and
+             vertical rules would be dividing nothing. */}
+        <div className="border-t border-shop-ink/85 bg-white">
+          <dl className="mx-auto grid max-w-[1200px] grid-cols-2 divide-shop-line px-4 md:grid-cols-4 md:divide-x md:px-8">
+            {terms.map((term) => (
+              <div key={term.label} className="py-6 md:px-6 md:py-7 md:first:pl-0 md:last:pr-0">
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-shop-muted">
+                  {term.label}
+                </dt>
+                <dd className="mt-2 text-[26px] font-bold leading-none tracking-[-0.02em] text-shop-ink tabular-nums md:text-[30px]">
+                  {term.value}
+                </dd>
+                <dd className="mt-2 max-w-[26ch] text-[13px] leading-snug text-shop-muted">
+                  {term.detail}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ================= What you get ================= */}
+      <section id="why" className="scroll-mt-20 border-b border-shop-line">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[220px_1fr] lg:gap-16">
+          <SectionHead
+            title="What you get"
+            note="Everything a shop needs to trade online, none of it built by you."
+          />
+
+          {/* A definition list on hairlines. Each row is title-left,
+              copy-right from sm, which lets the eye run down the titles alone
+              and stop at the one it cares about. A grid of six cards has no
+              such reading order, because every card is the same object. */}
+          <dl className="divide-y divide-shop-line border-t border-shop-line">
+            {included.map((item) => (
+              <div
+                key={item.title}
+                className="grid gap-1.5 py-5 sm:grid-cols-[minmax(0,13rem)_1fr] sm:gap-8 md:py-6"
+              >
+                <dt className="text-[17px] font-bold leading-snug tracking-[-0.01em] text-shop-ink">
+                  {item.title}
+                </dt>
+                <dd className="text-[15px] leading-[1.65] text-shop-body">{item.copy}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ================= How it works ================= */}
+      <section id="how-it-works" className="scroll-mt-20 border-b border-shop-line bg-white">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[220px_1fr] lg:gap-16">
+          <SectionHead title="How it works" note="Four steps, and a person at the third one." />
+
+          <div>
+            {/* Figures, not filled circles. `01` set in the brand orange above
+                the step title is a printed-sequence device and it survives at
+                any width. Four orange discs in a row is the shape every
+                template draws, and on a phone they stack into a column of
+                bullets that has lost its sequence.
+
+                The 1px gaps in the grid are the rules: `gap-px` over an ink
+                line ground draws hairlines between cells at every breakpoint
+                without needing a different divide- utility per column count. */}
+            <ol className="grid gap-px border-t border-shop-line bg-shop-line md:grid-cols-2 lg:grid-cols-4">
+              {steps.map((step, index) => (
+                <li key={step.title} className="bg-white pb-6 pt-5 md:px-5 md:first:pl-0">
+                  <span className="text-[13px] font-bold tracking-[0.08em] text-shop-primary tabular-nums">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="mt-2 text-[17px] font-bold tracking-[-0.01em] text-shop-ink">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1.5 text-[15px] leading-[1.6] text-shop-body">{step.copy}</p>
                 </li>
               ))}
-              <li className="rounded-xl bg-pop-green-soft p-4 text-[15px] font-semibold leading-relaxed text-pop-green">
-                Turned down? You get your first {formatPrice(seller.registration_fee)} back within
-                five working days.
-              </li>
-            </ul>
+            </ol>
+
+            {/* The slow part, stated rather than hidden. Every marketplace that
+                lets anyone list instantly ends up policing counterfeits
+                afterwards, and the sellers who lose from that are the honest
+                ones. Saying so here is also the argument for the fee, three
+                sections early. */}
+            <p className="mt-8 border-l-2 border-shop-primary pl-4 text-[15px] leading-[1.7] text-shop-body">
+              None of this is automatic. A person approves your store and a person reads your first
+              listings, which is slower than a form that lets anybody in — and it is the reason a
+              shopper trusts the stores that get through it.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= The fee ================= */}
+      {seller.registration_fee > 0 && (
+        <section id="pricing" className="scroll-mt-20 border-b border-shop-line">
+          <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[220px_1fr] lg:gap-16">
+            <SectionHead
+              title={`What the ${formatPrice(seller.registration_fee)} a month is for`}
+              note="A straight answer, because it is the question that stops most people applying."
+            />
+
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+              <div className="space-y-4 text-[15px] leading-[1.7] text-shop-body">
+                <p>
+                  It is a subscription, not a deposit and not commission in advance. It pays for
+                  the shopfront your products sit in — the storefront, the photography standards,
+                  the delivery network and the support line — for as long as you are trading here.
+                </p>
+                <p>
+                  Stop paying and nothing is lost. Your listings stop showing to shoppers when the
+                  month runs out; your account, your products and your order history stay exactly
+                  as they are, and paying again puts everything straight back.
+                </p>
+                <p>
+                  It does a second job as well. It is why every store here is real: a marketplace
+                  that is free to join fills up with accounts that list one counterfeit and vanish,
+                  and it is the honest sellers who pay for that in lost trust.
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-shop-muted">
+                  What it covers
+                </p>
+                {/* Numbered rows on hairlines. The old version put a green tick
+                    in a circle beside each line and finished with a pale green
+                    box — but a tick means "done", and none of these are done.
+                    They are things bought. */}
+                <ol className="mt-3 divide-y divide-shop-line border-y border-shop-line">
+                  {feeCovers.map((item, index) => (
+                    <li key={item} className="flex gap-4 py-4">
+                      <span className="mt-0.5 shrink-0 text-[13px] font-bold text-shop-primary tabular-nums">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-[15px] leading-[1.6] text-shop-body">{item}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-5 text-[15px] font-semibold leading-relaxed text-shop-ink">
+                  Turned down? Your first {formatPrice(seller.registration_fee)} comes back within
+                  five working days.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
       )}
 
-      {/* ---- FAQ ---- */}
-      <section id="faq" className="mx-auto max-w-[820px] px-4 pb-4 scroll-mt-20 md:px-8">
-        <h2 className="text-center text-[26px] font-extrabold tracking-tight text-shop-ink md:text-[32px]">
-          Before you apply
-        </h2>
+      {/* ================= Who it is for ================= */}
+      <section className="border-b border-shop-line bg-white">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[220px_1fr] lg:gap-16">
+          <SectionHead
+            title="Who this is for"
+            note="We do turn applications down, and it is cheaper for everybody if that happens before you pay."
+          />
 
-        <div className="mt-8 divide-y divide-shop-hairline rounded-2xl border border-shop-line bg-white px-6">
-          {faqs.map((faq) => (
-            <details key={faq.q} className="group py-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[16px] font-semibold text-shop-ink">
-                {faq.q}
-                <span className="shrink-0 text-[20px] leading-none text-shop-muted transition-transform group-open:rotate-45">
-                  +
-                </span>
-              </summary>
-              <p className="mt-2.5 text-[15px] leading-relaxed text-shop-body">{faq.a}</p>
-            </details>
-          ))}
+          <div className="grid gap-10 md:grid-cols-2 md:gap-12">
+            <div>
+              <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-shop-ink">
+                Apply if
+              </h3>
+              <ul className="mt-4 divide-y divide-shop-line border-t border-shop-line">
+                {apply.map((item) => (
+                  <li key={item} className="py-3.5 text-[15px] leading-[1.6] text-shop-body">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* The second column is set a step lighter than the first, which is
+                the whole visual argument: these are the ones to walk away from,
+                and they should read as the quieter list rather than as a
+                mirror-image feature grid. */}
+            <div>
+              <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-shop-muted">
+                Do not apply if
+              </h3>
+              <ul className="mt-4 divide-y divide-shop-line border-t border-shop-line">
+                {doNot.map((item) => (
+                  <li key={item} className="py-3.5 text-[15px] leading-[1.6] text-shop-muted">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-
-        <p className="mt-6 text-center text-[15px] text-shop-muted">
-          The full rules are in the{" "}
-          <Link href="/seller-policies" className="font-semibold text-shop-primary hover:underline">
-            seller policies
-          </Link>
-          .
-        </p>
       </section>
 
-      {/* ---- Closing CTA ---- */}
-      <section className="mx-auto max-w-[1200px] px-4 pt-14 md:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-pop-green to-pop-blue px-7 py-9 text-white md:px-12">
+      {/* ================= FAQ ================= */}
+      <section id="faq" className="scroll-mt-20 border-b border-shop-line">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[220px_1fr] lg:gap-16">
+          <SectionHead title="Before you apply" />
+
           <div>
-            <h2 className="text-[24px] font-extrabold leading-tight md:text-[30px]">
-              Set your store up today
-            </h2>
-            <p className="mt-2 max-w-[46ch] text-[16px] text-white/90">
-              Three minutes to apply. Most applications are reviewed the same day.
+            {/* Native `<details>` on hairlines rather than inside a card. No
+                JavaScript, and it prints. */}
+            <div className="divide-y divide-shop-line border-y border-shop-line">
+              {faqs.map((faq) => (
+                <details key={faq.q} className="group py-4">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-[16px] font-semibold leading-snug text-shop-ink">
+                    {faq.q}
+                    <span
+                      aria-hidden
+                      className="mt-1 shrink-0 text-[18px] font-normal leading-none text-shop-muted transition-transform group-open:rotate-45"
+                    >
+                      +
+                    </span>
+                  </summary>
+                  <p className="mt-3 max-w-[68ch] text-[15px] leading-[1.7] text-shop-body">
+                    {faq.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+
+            <p className="mt-6 text-[15px] text-shop-muted">
+              The full rules are in the{" "}
+              <Link
+                href="/seller-policies"
+                className="font-semibold text-shop-ink underline underline-offset-4 hover:text-shop-primary"
+              >
+                seller policies
+              </Link>
+              .
             </p>
           </div>
-          <Link
-            href="/seller/register"
-            className="rounded-full bg-white px-9 py-3.5 text-[16px] font-semibold text-pop-green transition-opacity hover:opacity-90"
-          >
-            Get started ›
-          </Link>
+        </div>
+      </section>
+
+      {/* ================= Closing ================= */}
+      {/* Ink, not a gradient. The site already owns this colour — it is
+          `--color-shop-band`, the storefront's dark bar — so the page closes on
+          something the reader has seen elsewhere on the brand rather than on a
+          green-to-blue wash that appears here and nowhere else.
+
+          The phone number matters as much as the button does. A reader's last
+          unanswered question is whether there is a person at the other end, and
+          a number they can dial answers it in a way a Contact link does not. */}
+      <section className="bg-shop-band">
+        <div className="mx-auto max-w-[1200px] px-4 py-14 md:px-8 md:py-16">
+          <div className="grid items-end gap-8 md:grid-cols-[1fr_auto] md:gap-12">
+            <div>
+              <h2 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-white md:text-[34px]">
+                Set your store up today
+              </h2>
+              <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-white/70">
+                Three minutes to apply, {formatPrice(seller.registration_fee)} for the first month,
+                and most applications are reviewed the same day.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 md:items-end">
+              <Link href="/seller/register" className="btn-shop px-8 py-3.5 text-[16px]">
+                Start selling
+              </Link>
+              {support.phone && (
+                <p className="text-[14px] text-white/60">
+                  Or talk to someone first:{" "}
+                  <a
+                    href={`tel:${support.phone.replace(/\s+/g, "")}`}
+                    className="font-semibold text-white underline underline-offset-4"
+                  >
+                    {support.phone}
+                  </a>
+                  {support.hours ? `, ${support.hours.toLowerCase()}` : null}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </section>
     </main>

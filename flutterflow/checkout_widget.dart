@@ -350,7 +350,15 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     // order for somebody who is about to be sent away to sign in, and reading
     // storage first would flash a fully drawn checkout for a frame before the
     // gate replaced it.
-    if (!KandiAuthPage.isSignedIn()) {
+    //
+    // `ensureSignedIn`, not `isSignedIn`. The session lives on the device and
+    // the synchronous check answers from memory alone — so on a COLD START,
+    // which is exactly what this is, it says "signed out" for a shopper who
+    // signed in last week and shows them a gate they have already passed. The
+    // await reads the saved token first, and checks it against the shop once
+    // per launch so a token the shop stopped honouring cannot walk somebody
+    // all the way to the payment step.
+    if (!await KandiAuthPage.ensureSignedIn()) {
       if (!mounted) return;
       setState(() {
         _signedIn = false;
@@ -1463,9 +1471,14 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     if (!mounted) return;
 
     if (!KandiAuthPage.isSignedIn()) {
-      // Backed out, or signed up with email confirmation still pending — see
-      // the note in `_handleSignUp` over there. The gate stays; nothing is
-      // said, because they know what they just did.
+      // Backed out without finishing. The gate stays; nothing is said, because
+      // they know what they just did.
+      //
+      // There is no longer a second reason to be here. Sign-up used to return
+      // no session while an emailed confirmation link went unclicked, so a
+      // shopper could complete the form and still land back on this gate; the
+      // shop's own accounts issue the session immediately, so creating one now
+      // either signs you in or fails loudly.
       return;
     }
 

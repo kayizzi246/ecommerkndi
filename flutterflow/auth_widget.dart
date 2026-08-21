@@ -9,128 +9,429 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
 // ============================================================
-//  KANDI — AUTH
+//  KANDI — SIGN IN  (v3)
 //
-//  Sibling of cart_widget.dart, checkout_widget.dart and
-//  delivery_address_widget.dart.
+//  Sibling of product_detail_widget.dart, cart_widget.dart and
+//  checkout_widget.dart. Same brand, same type, same API, same
+//  conventions. Nothing is shared between the files because
+//  FlutterFlow gives custom widgets no common library to import
+//  from — each is a standalone paste.
+//
+//  WHAT CHANGED FROM v2, AND WHY
+//  -----------------------------------------------------------
+//  1. IT SIGNS INTO THE SHOP, NOT INTO SUPABASE. v2 called
+//     `Supabase.instance.client.auth.signInWithPassword(...)`
+//     against a Supabase project. The shop's accounts are
+//     WordPress users — that is what the website signs into,
+//     what the orders are attached to, and what wp-admin can
+//     see.
+//
+//     Two account systems for one shop is not a slow migration,
+//     it is a broken promise: a shopper who registered on
+//     kandiug.com could not sign into the app with those
+//     details, and one who registered in the app did not exist
+//     on the website. Both were told "invalid email or
+//     password", which is the message you get when the account
+//     is fine and the app is asking the wrong building.
+//
+//     This version talks to the storefront:
+//
+//         POST {_kApiBaseUrl}/api/app/auth/login
+//         POST {_kApiBaseUrl}/api/app/auth/register
+//         POST {_kApiBaseUrl}/api/app/auth/forgot
+//         GET  {_kApiBaseUrl}/api/app/auth/me
+//
+//     which are the same WordPress endpoints, the same rate
+//     limits and the same shopper-facing error text the website
+//     uses. One account, two doors.
+//
+//  2. NO CODE, NO INBOX, NO COMING BACK LATER. v2's sign-up went
+//     through Supabase with email confirmation on, so creating
+//     an account returned NO session — the shopper was sent to
+//     their inbox to find a message and click a link, and the
+//     app they were mid-purchase in was now two app switches
+//     away. Most people do not come back, and the ones who do
+//     have lost the basket they were carrying.
+//
+//     Registering now signs you in on the spot. The only mail
+//     this screen can still send is a password reset, which is
+//     the one case where the email IS the answer rather than an
+//     obstacle in front of it — and it sends a LINK, so it is
+//     one tap from the message to the page, not six digits
+//     copied between two apps.
+//
+//  3. ONE SCREEN INSTEAD OF THREE. v2 was a landing page with
+//     two social buttons, then a "Continue with email" button,
+//     which opened a bottom sheet, which had its own tabs. Four
+//     taps before a shopper could type their address, on the
+//     screen standing between them and paying.
+//
+//     It is now one form. The fields are on the page, the button
+//     underneath them is the action, and the only choice is
+//     whether the account already exists — one row of two tabs,
+//     because that genuinely is two different intentions.
+//
+//  4. BRAND AND TYPE. v2 used Fraunces headings, DM Sans body,
+//     a red `_goldDeep` and an ivory page. Matched to the
+//     storefront and to the product page: Inter, white page,
+//     orange #ff6a00, red reserved strictly for errors.
+//
+//  ---- WHAT WENT, AND WHAT WOULD BRING IT BACK ----
+//
+//  THE APPLE AND GOOGLE BUTTONS ARE GONE. They were Supabase
+//  OAuth (`signInWithOAuth(OAuthProvider.google)`), and with
+//  Supabase out of this app they could not do anything but fail.
+//  A one-tap button that never signs anybody in is worse on this
+//  screen than no button at all, because it is the tap most
+//  people reach for first.
+//
+//  The server side of Google sign-in already exists and is
+//  waiting: `POST /api/auth/google` verifies a Google ID token
+//  and returns the same WordPress session these routes do. To
+//  turn it on here needs three things that cannot be done from
+//  this file — the `google_sign_in` package in the FlutterFlow
+//  pubspec, an OAuth client id per platform in the Firebase /
+//  Google Cloud console, and an `/api/app/auth/google` route
+//  that mirrors the website's. That is a configuration job, not
+//  a code one, which is exactly why it is written down here
+//  instead of half-built.
+//
+//  THE `_CartMerge` CLASS IS GONE. It moved a basket from
+//  `kandi_cart_anonymous` to `kandi_cart_<userId>`. Nothing in
+//  this app has ever used those keys — the basket every screen
+//  reads is `kandi-cart-v2`, per device — so it was a no-op
+//  running against keys that are always empty. Signing in does
+//  not change which basket you are looking at, and now nothing
+//  in this file implies that it does.
 //
 //  SETUP  (FlutterFlow)
 //  -----------------------------------------------------------
 //  • Custom Widget name:  KandiAuthPage   (must match the class)
 //  • Dependencies (Settings ▸ Pubspec):
+//        http: ^1.2.0
 //        google_fonts: ^6.1.0
-//        supabase_flutter: ^2.0.0
 //        shared_preferences: ^2.2.2
+//    `supabase_flutter` is no longer needed BY THIS FILE. Leave
+//    it in the pubspec if any other screen still imports it.
 //  • Parameters — all optional:
-//        width, height       double?
-//        onLoginSuccess      Action
-//        onSignUpSuccess     Action
+//        width, height     double?
+//        onLoginSuccess    Action
+//        onSignUpSuccess   Action
 //
-//  WHY THE CHECKOUT NOW DEPENDS ON THIS
+//  WHY THE CART AND THE CHECKOUT DEPEND ON THIS
 //  -----------------------------------------------------------
-//  `KandiCheckout` refuses to render its form until there is a
-//  Supabase session, and sends the shopper here when there is
-//  not. That is a reversal of a decision written into the head
-//  of that file — "a shopper does not need an account to buy" —
-//  and it was made deliberately, so the reasoning on both sides
-//  is recorded at `_authGate` over there rather than lost.
+//  `KandiCheckout` refuses to render its form without a session
+//  and sends the shopper here; the basket does the same before
+//  it opens the checkout. What this screen must keep doing:
 //
-//  What this screen must keep doing for that to work:
-//
-//    • `Navigator.pop` on success. The checkout pushes this and
-//      awaits the pop, then re-reads the session. If this screen
-//      ever stops popping, the checkout waits forever.
-//    • Leave `onLoginSuccess` / `onSignUpSuccess` optional. The
-//      checkout does not pass them — it watches the session
-//      itself, which is the only thing that cannot lie.
-//
-//  ---- The cart merge, and the key mismatch it has ----
-//
-//  `_CartMerge` moves an anonymous basket onto the account at
-//  `kandi_cart_<userId>`, reading `kandi_cart_anonymous`.
-//
-//  NOTHING ELSE IN THIS APP USES THOSE KEYS. The basket every
-//  other screen reads and writes is `kandi-cart-v2`, per device,
-//  no account — see the long note at the head of `cart_widget.dart`.
-//  So this merge currently runs against keys that are always
-//  empty and is a no-op.
-//
-//  It is left in place rather than deleted because it is
-//  harmless, it is wrapped in its own try/catch, and it is the
-//  right shape for the day this shop does move the basket
-//  server-side. It is recorded here so nobody later reads it as
-//  evidence that the basket is per-account. It is not. Signing
-//  in does not currently change which basket you are looking at.
-//
-//  Supabase hardening kept from the original:
-//   • ONE auth-state listener (created in initState, cancelled
-//     in dispose) — the older code attached a new listener on
-//     every social-button tap, causing duplicate callbacks and
-//     memory leaks.
-//   • Success handled exactly once via a guard flag.
-//   • Proper email regex validation, autofill hints, and
-//     keyboard actions (next / done submits the form).
+//    • `Navigator.pop` on success. Both callers push this and
+//      await the pop, then re-read the session. If this screen
+//      stops popping, they wait forever.
+//    • Keep `isSignedIn()` synchronous. It is called during a
+//      build and during `_load`, where there is nowhere to put
+//      an await.
+//    • Keep `ensureSignedIn()` the thing a caller awaits on a
+//      COLD START. The token lives on disk; a synchronous check
+//      before it has been read answers "signed out" for a
+//      shopper who is signed in, and shows them a gate they
+//      have already passed.
 // ============================================================
 
-// ---------- Shared palette ----------
-const Color _gold = Color(0xFFFF6A00);
-const Color _goldDeep = Color(0xFFE62E04);
-const Color _goldTint = Color(0xFFFFF1E6);
-const Color _ink = Color(0xFF191919);
-const Color _inkSoft = Color(0xFF424242);
-const Color _muted = Color(0xFF757575);
-const Color _ivory = Color(0xFFF5F5F5);
-const Color _sand = Color(0xFFEFEFEF);
-const Color _hairline = Color(0xFFE8E8E8);
-const Color _ember = Color(0xFFFF4747);
-const Color _emberTint = Color(0xFFFFECEC);
-const Color _leaf = Color(0xFF16A34A);
-const Color _leafTint = Color(0xFFDCFCE7);
-const Color _white = Colors.white;
+// ============================================================
+// CONFIG — keep identical to the other widgets
+// ============================================================
 
-TextStyle _displayStyle({double size = 20, Color color = _ink}) =>
-    GoogleFonts.fraunces(
+/// The live storefront origin. No trailing slash.
+const String _kApiBaseUrl = 'https://kandiug.com';
+
+// ============================================================
+// BRAND — matched to app/globals.css
+// ============================================================
+
+const Color _kPrimary = Color(0xFFFF6A00);
+
+/// Darkened orange that clears 4.6:1 with white text on it.
+const Color _kPrimaryInk = Color(0xFFB34A00);
+
+/// Errors only on this screen. There are no discounts here.
+const Color _kSale = Color(0xFFE53935);
+const Color _kSaleBg = Color(0xFFFEF2F2);
+
+const Color _kInk = Color(0xFF171717);
+const Color _kBody = Color(0xFF475569);
+const Color _kMuted = Color(0xFF64748B);
+const Color _kFaint = Color(0xFF94A3B8);
+const Color _kLine = Color(0xFFE5E7EB);
+const Color _kHairline = Color(0xFFF3F4F6);
+const Color _kSurface = Color(0xFFFAFAFA);
+const Color _kSuccess = Color(0xFF16A34A);
+const Color _kSuccessBg = Color(0xFFF0FDF4);
+const Color _kWhite = Colors.white;
+const Color _kPage = Colors.white;
+
+// ============================================================
+// TYPE — Inter, matching the website
+// ============================================================
+
+TextStyle _heading({
+  double size = 20,
+  Color color = _kInk,
+  FontWeight weight = FontWeight.w800,
+  double? height,
+}) =>
+    GoogleFonts.inter(
       fontSize: size,
-      fontWeight: FontWeight.w700,
+      fontWeight: weight,
       color: color,
-      height: 1.15,
-      letterSpacing: -0.3,
+      height: height ?? 1.2,
+      letterSpacing: size * -0.018,
     );
 
-TextStyle _bodyStyle(
-        {double size = 13,
-        Color color = _inkSoft,
-        FontWeight weight = FontWeight.w500}) =>
-    GoogleFonts.dmSans(
-        fontSize: size, fontWeight: weight, color: color, height: 1.4);
+TextStyle _text({
+  double size = 14,
+  Color color = _kBody,
+  FontWeight weight = FontWeight.w500,
+  double? height,
+}) =>
+    GoogleFonts.inter(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: height ?? 1.45,
+      letterSpacing: size * 0.004,
+    );
 
-TextStyle _labelStyle(
-        {double size = 11,
-        Color color = _muted,
-        FontWeight weight = FontWeight.w600,
-        double spacing = 0.3}) =>
-    GoogleFonts.dmSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        letterSpacing: spacing);
+TextStyle _label({
+  double size = 11.5,
+  Color color = _kMuted,
+  FontWeight weight = FontWeight.w600,
+}) =>
+    GoogleFonts.inter(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      height: 1.25,
+      letterSpacing: 0.2,
+    );
 
-final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@([\w\-]+\.)+[A-Za-z]{2,}$');
+/// Deliberately permissive.
+///
+/// It rejects the typo everybody actually makes — a missing `@`, a missing
+/// dot, a trailing space — and nothing else. A stricter pattern on a sign-in
+/// form is a way of refusing service to somebody with a perfectly valid
+/// address that the regex has not heard of, and the server checks it properly
+/// anyway.
+final RegExp _kEmailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 
-// ---------- Press feedback ----------
+/// The shortest password the shop accepts, matching WordPress and the website.
+///
+/// The app used to ask for six. One account system cannot have two minimums:
+/// a password accepted on the phone was then rejected by the same shop's
+/// website, and the shopper had no way to know which of the two was lying.
+const int _kMinPassword = 8;
+
+// ============================================================
+// SESSION
+// ============================================================
+
+/// The signed-in shopper, on this device.
+///
+/// ---- Why a bearer token and not a cookie ----
+///
+/// The website keeps this exact token in an httpOnly cookie, so no script on
+/// the page can read it. That defence has no counterpart in an installed app,
+/// and the mechanism does not survive the trip: Dart's `http` client keeps no
+/// cookie jar, so a cookie-based sign-in would succeed and then be forgotten
+/// before the next request. `/api/app/auth/*` therefore hands the token over
+/// in the body, and it lives here.
+///
+/// ---- On SharedPreferences ----
+///
+/// Not the Keychain or the Android Keystore, which is what a banking app would
+/// use. This token is worth a shopper's order history and saved addresses, on
+/// a device that is already unlocked, and `flutter_secure_storage` is a fourth
+/// dependency and a platform configuration step for each. It is a deliberate
+/// trade rather than an oversight, and it is the same one the website makes by
+/// keeping the session in a cookie the device also stores in the clear.
+class _KandiSession {
+  static const String _kToken = 'kandi_auth_token';
+  static const String _kExpires = 'kandi_auth_expires';
+  static const String _kCustomer = 'kandi_auth_customer';
+
+  static String? _token;
+  static DateTime? _expires;
+  static Map<String, dynamic>? _customer;
+
+  /// Whether the disk has been read yet in this process.
+  static bool _restored = false;
+
+  /// Whether the token has been checked against the server in this process.
+  static bool _verified = false;
+
+  static bool get isActive {
+    final token = _token;
+    if (token == null || token.isEmpty) return false;
+
+    // An expiry in the past is a session that is already over. Checked here
+    // rather than only at the server so a shopper who has been away for two
+    // months meets the sign-in screen rather than a checkout that fails at the
+    // last step for reasons it cannot explain.
+    final expires = _expires;
+    if (expires != null && expires.isBefore(DateTime.now())) return false;
+
+    return true;
+  }
+
+  static String? get token => isActive ? _token : null;
+  static Map<String, dynamic>? get customer => isActive ? _customer : null;
+
+  /// Reads the saved session off disk. Cheap to call repeatedly.
+  static Future<void> restore() async {
+    if (_restored) return;
+    _restored = true;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _token = prefs.getString(_kToken);
+
+      final expires = prefs.getString(_kExpires);
+      _expires = expires == null ? null : DateTime.tryParse(expires);
+
+      final customer = prefs.getString(_kCustomer);
+      if (customer != null && customer.isNotEmpty) {
+        final decoded = jsonDecode(customer);
+        if (decoded is Map) _customer = Map<String, dynamic>.from(decoded);
+      }
+    } catch (e) {
+      debugPrint('Kandi session restore failed: $e');
+    }
+  }
+
+  static Future<void> save({
+    required String token,
+    DateTime? expires,
+    Map<String, dynamic>? customer,
+  }) async {
+    _token = token;
+    _expires = expires;
+    _customer = customer;
+    _restored = true;
+    // A token that has just come from the server does not need checking
+    // against the server.
+    _verified = true;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kToken, token);
+      if (expires != null) {
+        await prefs.setString(_kExpires, expires.toIso8601String());
+      } else {
+        await prefs.remove(_kExpires);
+      }
+      if (customer != null) {
+        await prefs.setString(_kCustomer, jsonEncode(customer));
+      } else {
+        await prefs.remove(_kCustomer);
+      }
+    } catch (e) {
+      debugPrint('Kandi session save failed: $e');
+    }
+  }
+
+  static Future<void> clear() async {
+    _token = null;
+    _expires = null;
+    _customer = null;
+    _restored = true;
+    _verified = false;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kToken);
+      await prefs.remove(_kExpires);
+      await prefs.remove(_kCustomer);
+    } catch (e) {
+      debugPrint('Kandi session clear failed: $e');
+    }
+  }
+
+  /// Asks the shop whether this token is still anybody.
+  ///
+  /// Runs once per app launch, because a token is good for thirty days and a
+  /// lot can happen in thirty days that the saved string knows nothing about:
+  /// the password changed on the website, the account closed, the token
+  /// expired while the phone was off. It also brings back a name edited on the
+  /// website, which is how that reaches the app at all.
+  ///
+  /// ---- Only a 401 signs anybody out ----
+  ///
+  /// A timeout, a 500, a Ugandan mobile connection dropping mid-request: none
+  /// of those are evidence that the session is invalid, and treating them as
+  /// such would sign shoppers out every time the network hiccuped. The stored
+  /// session is kept and the question is asked again next launch.
+  static Future<void> verify() async {
+    await restore();
+    if (_verified || _token == null) return;
+    _verified = true;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${_base()}/api/app/auth/me'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      ).timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 401) {
+        await clear();
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded is Map) {
+          final map = Map<String, dynamic>.from(decoded);
+          // `/me` answers with the customer either at the top level or under a
+          // `customer` key depending on the WordPress build. Both are read so
+          // a plugin update cannot quietly blank the shopper's name.
+          final customer = map['customer'] is Map
+              ? Map<String, dynamic>.from(map['customer'] as Map)
+              : map;
+          _customer = customer;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_kCustomer, jsonEncode(customer));
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      // Offline, or the shop is having a moment. The session stands.
+      debugPrint('Kandi session verify skipped: $e');
+    }
+  }
+
+  static String _base() => _kApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+}
+
+// ============================================================
+// PRESS
+// ============================================================
+
 class _Press extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
-  final double scale;
-  const _Press({required this.child, this.onTap, this.scale = 0.97});
+  const _Press({required this.child, this.onTap});
+
+  static const double _scale = 0.97;
 
   @override
   State<_Press> createState() => _PressState();
@@ -143,120 +444,36 @@ class _PressState extends State<_Press> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
+      // The press tick, on the way down and only for a live control — the same
+      // one every other screen in this app uses, so a press feels identical
+      // throughout. Silent for a disabled button: a greyed-out "Sign in" that
+      // buzzes has told the finger it worked.
+      onTapDown: (_) {
+        if (widget.onTap != null) HapticFeedback.selectionClick();
+        setState(() => _down = true);
+      },
       onTapUp: (_) => setState(() => _down = false),
       onTapCancel: () => setState(() => _down = false),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: _down ? widget.scale : 1.0,
+        scale: _down ? _Press._scale : 1.0,
         duration: const Duration(milliseconds: 110),
         curve: Curves.easeOut,
-        child: AnimatedOpacity(
-          opacity: _down ? 0.85 : 1.0,
-          duration: const Duration(milliseconds: 110),
-          child: widget.child,
-        ),
+        child: widget.child,
       ),
     );
   }
 }
 
-/// ============================================================
-/// CART MERGE — moves the anonymous cart onto the user account
+// ============================================================
+// WIDGET
+// ============================================================
+
+/// The class name is `KandiAuthPage`, and it must stay that.
 ///
-/// Reads `kandi_cart_anonymous`, writes `kandi_cart_<userId>`.
-/// NEITHER KEY IS THE APP'S BASKET — see the header. This is a
-/// no-op today and kept for the day the basket moves per-account.
-/// ============================================================
-class _CartMerge {
-  static const String _prefix = 'kandi_cart_';
-  static const String _anonKey = 'kandi_cart_anonymous';
-
-  static Future<void> mergeAnonToUser(String userId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final anonJson = prefs.getString(_anonKey);
-
-      if (anonJson == null || anonJson.isEmpty) {
-        await _migrateOld(userId, prefs);
-        return;
-      }
-
-      final List<dynamic> anonItems = jsonDecode(anonJson);
-      if (anonItems.isEmpty) {
-        await _migrateOld(userId, prefs);
-        return;
-      }
-
-      final userKey = '$_prefix$userId';
-      final userJson = prefs.getString(userKey);
-      List<Map<String, dynamic>> userItems = [];
-
-      if (userJson != null && userJson.isNotEmpty) {
-        final List<dynamic> decoded = jsonDecode(userJson);
-        userItems = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
-      }
-
-      for (final anonItem in anonItems) {
-        final item = Map<String, dynamic>.from(anonItem);
-        final idx = userItems.indexWhere((i) =>
-            i['product_id'] == item['product_id'] &&
-            i['size'] == item['size'] &&
-            i['color'] == item['color']);
-
-        if (idx >= 0) {
-          userItems[idx]['quantity'] =
-              (userItems[idx]['quantity'] ?? 1) + (item['quantity'] ?? 1);
-        } else {
-          item['id'] = DateTime.now().millisecondsSinceEpoch + userItems.length;
-          userItems.add(item);
-        }
-      }
-
-      await prefs.setString(userKey, jsonEncode(userItems));
-      await prefs.remove(_anonKey);
-      await _migrateOld(userId, prefs);
-
-      debugPrint('Cart merge complete: ${userItems.length} items');
-    } catch (e) {
-      debugPrint('Cart merge error: $e');
-    }
-  }
-
-  static Future<void> _migrateOld(
-      String userId, SharedPreferences prefs) async {
-    try {
-      final oldKey = 'local_cart_items_$userId';
-      final oldJson = prefs.getString(oldKey);
-      if (oldJson != null && oldJson.isNotEmpty) {
-        final List<dynamic> oldItems = jsonDecode(oldJson);
-        if (oldItems.isEmpty) return;
-
-        final newKey = '$_prefix$userId';
-        final existingJson = prefs.getString(newKey);
-        List<Map<String, dynamic>> items = [];
-
-        if (existingJson != null && existingJson.isNotEmpty) {
-          final List<dynamic> decoded = jsonDecode(existingJson);
-          items = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
-        }
-
-        for (final old in oldItems) {
-          items.add(Map<String, dynamic>.from(old));
-        }
-
-        await prefs.setString(newKey, jsonEncode(items));
-        await prefs.remove(oldKey);
-      }
-    } catch (e) {
-      debugPrint('Migration error: $e');
-    }
-  }
-}
-
-/// ============================================================
-/// KANDI AUTH PAGE
-/// ============================================================
+/// FlutterFlow generates the call site from the Custom Widget's NAME, and the
+/// basket and the checkout both reach this file through statics on this class
+/// — which is the only symbol that crosses a FlutterFlow file boundary.
 class KandiAuthPage extends StatefulWidget {
   const KandiAuthPage({
     super.key,
@@ -266,36 +483,77 @@ class KandiAuthPage extends StatefulWidget {
     this.onSignUpSuccess,
   });
 
-  final double? width, height;
+  final double? width;
+  final double? height;
+
+  /// Fired after a successful sign-in, alongside the pop rather than instead
+  /// of it. Optional: the callers watch the session, which is the only thing
+  /// that cannot lie.
   final Future Function()? onLoginSuccess;
+
+  /// Fired after a successful registration. Same contract.
   final Future Function()? onSignUpSuccess;
 
-  /// True when somebody is signed in on this device.
+  /// Whether somebody is signed in on this device, right now.
   ///
-  /// A static on the widget class because that is the only symbol FlutterFlow
-  /// exports from this file — the checkout calls this to decide whether to
-  /// draw its form or its gate.
+  /// Synchronous, because it is called from `build` and from `_load` where
+  /// there is nowhere to put an await — and it answers from memory only. On a
+  /// COLD START, before anything has read the disk, that memory is empty and
+  /// this returns false for a shopper who is perfectly well signed in.
   ///
-  /// Reads `currentSession` rather than `currentUser`: a user object can
-  /// linger after a session has expired, and "there is a user object" is not
-  /// the same claim as "this device can authenticate right now".
-  static bool isSignedIn() {
-    try {
-      return Supabase.instance.client.auth.currentSession != null;
-    } catch (_) {
-      // Supabase not initialised in this project. Treated as signed out rather
-      // than crashing the screen that asked — the gate then shows, the button
-      // opens this page, and the failure is visible instead of silent.
-      return false;
-    }
+  /// So a caller that might be the first thing to ask should await
+  /// `ensureSignedIn()` instead. This one is for the re-checks afterwards.
+  static bool isSignedIn() => _KandiSession.isActive;
+
+  /// Whether somebody is signed in, having first read the saved session off
+  /// disk and — once per launch — checked it against the shop.
+  ///
+  /// This is what a cold start should call. The disk read is what makes the
+  /// answer true; the server check is what stops a shopper walking into a
+  /// checkout on a token the shop stopped honouring a week ago.
+  static Future<bool> ensureSignedIn() async {
+    await _KandiSession.restore();
+    if (!_KandiSession.isActive) return false;
+    await _KandiSession.verify();
+    return _KandiSession.isActive;
   }
 
-  /// Opens the auth screen and resolves when it closes.
+  /// The shopper's WordPress bearer token, or null.
+  ///
+  /// Exposed for the screens that will eventually send it — an order attached
+  /// to the account, an address book that follows the shopper between their
+  /// phone and the website. Nothing sends it today.
+  static String? token() => _KandiSession.token;
+
+  /// The shopper's display name, or null. Used to greet them, and available to
+  /// the checkout so it can prefill the name and email it currently asks every
+  /// signed-in shopper to type again.
+  static String? customerName() {
+    final value = _KandiSession.customer?['name'];
+    final name = value?.toString().trim() ?? '';
+    return name.isEmpty ? null : name;
+  }
+
+  /// The shopper's email address, or null.
+  static String? customerEmail() {
+    final value = _KandiSession.customer?['email'];
+    final email = value?.toString().trim() ?? '';
+    return email.isEmpty ? null : email;
+  }
+
+  /// Signs out on this device.
+  ///
+  /// Local only, and deliberately: there is no app endpoint that revokes a
+  /// WordPress token, and a sign-out that fails because the network is down is
+  /// a sign-out that did not happen — which is the wrong way for this
+  /// particular action to fail, especially on a shared phone.
+  static Future<void> signOut() => _KandiSession.clear();
+
+  /// Opens the sign-in screen and resolves when it closes.
   ///
   /// The caller re-checks `isSignedIn()` afterwards rather than trusting a
-  /// result from here: the shopper may have signed in, backed out, or signed
-  /// in through the OAuth redirect while this was open, and the session is the
-  /// only thing that knows which.
+  /// result from here: the shopper may have signed in, or backed out, and the
+  /// session is the only thing that knows which.
   static Future<void> open(BuildContext context) {
     return Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const KandiAuthPage()),
@@ -306,136 +564,294 @@ class KandiAuthPage extends StatefulWidget {
   State<KandiAuthPage> createState() => _KandiAuthPageState();
 }
 
-class _KandiAuthPageState extends State<KandiAuthPage>
-    with SingleTickerProviderStateMixin {
-  bool _loading = false;
-  bool _authHandled = false;
-  String? _errorMsg;
-  String? _successMsg;
+/// Which of the two things the shopper is here to do.
+enum _Mode { signIn, register }
 
-  StreamSubscription<AuthState>? _authSub;
-  late AnimationController _introCtrl;
+class _KandiAuthPageState extends State<KandiAuthPage> {
+  static const double _pad = 20.0;
+  static const double _radius = 10.0;
 
-  SupabaseClient get _db => Supabase.instance.client;
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _introCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 650),
-    )..forward();
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
 
-    // ONE listener for the whole page — handles OAuth redirects
-    // (Google / Apple) coming back into the app.
-    _authSub = _db.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedIn &&
-          data.session != null &&
-          mounted &&
-          !_authHandled) {
-        _handleAuthSuccess(data.session!.user.id);
-      }
-    });
-  }
+  _Mode _mode = _Mode.signIn;
+  bool _busy = false;
+  bool _showPassword = false;
+
+  String? _error;
+  String? _notice;
+
+  bool get _isRegister => _mode == _Mode.register;
 
   @override
   void dispose() {
-    _authSub?.cancel();
-    _introCtrl.dispose();
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
-  void _showError(String msg) {
+  String get _base => _kApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+
+  // ==========================================================
+  // THE TWO REQUESTS
+  // ==========================================================
+
+  /// Posts to one of the auth routes and returns the decoded body.
+  ///
+  /// One helper for all three because they answer in one shape: a `message` on
+  /// anything that went wrong, a `token` on anything that went right. Writing
+  /// that out three times is three chances to handle a 429 in two different
+  /// ways.
+  Future<({int status, Map<String, dynamic> body})> _post(
+    String path,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse('$_base$path'),
+          headers: const {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 20));
+
+    Map<String, dynamic> body = <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is Map) body = Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      // A gateway error page rather than JSON. `body` stays empty and the
+      // caller falls back to its own wording.
+    }
+
+    return (status: response.statusCode, body: body);
+  }
+
+  /// Sign in, or create the account and sign in. One path, because from the
+  /// shopper's side they are the same act with a different starting point.
+  Future<void> _submit() async {
+    if (_busy) return;
+
+    final name = _name.text.trim();
+    final email = _email.text.trim();
+    final password = _password.text;
+
+    // Validated here as well as on the server, so the answer is instant
+    // instead of a round trip to a shared host in Uganda. The server still
+    // refuses anything that arrives another way.
+    if (_isRegister && name.isEmpty) {
+      _fail('Enter your name so we know who to address the delivery to.');
+      _nameFocus.requestFocus();
+      return;
+    }
+    if (!_kEmailPattern.hasMatch(email)) {
+      _fail('That email address does not look right.');
+      _emailFocus.requestFocus();
+      return;
+    }
+    if (password.isEmpty) {
+      _fail('Enter your password.');
+      _passwordFocus.requestFocus();
+      return;
+    }
+    // Only on the way IN. An existing account with a shorter password must
+    // still be able to sign in — telling somebody their real password is "too
+    // short" at the sign-in screen is a dead end with no action behind it.
+    if (_isRegister && password.length < _kMinPassword) {
+      _fail('Use at least $_kMinPassword characters for your password.');
+      _passwordFocus.requestFocus();
+      return;
+    }
+
+    // The keyboard comes down before the request goes out, so the button the
+    // shopper just pressed and the message that answers it are both visible.
+    FocusScope.of(context).unfocus();
+    HapticFeedback.mediumImpact();
+
+    setState(() {
+      _busy = true;
+      _error = null;
+      _notice = null;
+    });
+
+    try {
+      final result = await _post(
+        _isRegister ? '/api/app/auth/register' : '/api/app/auth/login',
+        _isRegister
+            ? {'name': name, 'email': email, 'password': password}
+            : {'email': email, 'password': password},
+      );
+
+      final token = result.body['token']?.toString() ?? '';
+
+      if (result.status == 200 && token.isNotEmpty) {
+        final expires = result.body['expiresAt']?.toString();
+        final customer = result.body['customer'] is Map
+            ? Map<String, dynamic>.from(result.body['customer'] as Map)
+            : null;
+
+        await _KandiSession.save(
+          token: token,
+          expires: expires == null ? null : DateTime.tryParse(expires),
+          customer: customer,
+        );
+
+        if (!mounted) return;
+        HapticFeedback.mediumImpact();
+
+        // Both fire, and the pop is what the basket and the checkout are
+        // awaiting — see the header note. The Action runs first so a project
+        // that wired one has done its work before this screen goes away.
+        if (_isRegister) {
+          await widget.onSignUpSuccess?.call();
+        } else {
+          await widget.onLoginSuccess?.call();
+        }
+
+        if (!mounted) return;
+
+        // Cleared before the pop, not after it. `maybePop` does nothing when
+        // this screen is the root of its navigator — which is how FlutterFlow
+        // renders a custom widget dropped straight onto a page — and a button
+        // left spinning on a shopper who is now signed in is the one outcome
+        // here that looks like a failure and is not.
+        setState(() => _busy = false);
+        Navigator.of(context).maybePop();
+        return;
+      }
+
+      // ---- The account already exists ----
+      //
+      // WordPress answers 409 to a registration for an address it already
+      // knows. Rather than printing that and leaving the shopper to work out
+      // what to do, the form flips itself to Sign in with the address still in
+      // the box: the next thing they need is the one thing now in front of
+      // them.
+      if (_isRegister && result.status == 409) {
+        setState(() {
+          _mode = _Mode.signIn;
+          _busy = false;
+          _notice =
+              'You already have an account with that email. Enter your password to sign in.';
+        });
+        _passwordFocus.requestFocus();
+        return;
+      }
+
+      _fail(
+        result.body['message']?.toString() ??
+            'Could not sign you in. Please try again.',
+      );
+    } catch (e) {
+      debugPrint('Kandi auth failed: $e');
+      // Deliberately not the raw exception: a shopper cannot act on
+      // "SocketException: Failed host lookup".
+      _fail('Could not reach the shop. Check your connection and try again.');
+    }
+  }
+
+  /// The reset email.
+  ///
+  /// A link, not a code — one tap from the message to the page that sets the
+  /// password, rather than six digits copied between two apps. And the reply
+  /// is the same whether or not the address has an account, which is why the
+  /// confirmation is worded the way it is: anything more specific would let
+  /// anybody test addresses against this shop.
+  Future<void> _resetPassword() async {
+    if (_busy) return;
+
+    final email = _email.text.trim();
+    if (!_kEmailPattern.hasMatch(email)) {
+      _fail('Enter your email address first, and we will send you a link.');
+      _emailFocus.requestFocus();
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    HapticFeedback.lightImpact();
+
+    setState(() {
+      _busy = true;
+      _error = null;
+      _notice = null;
+    });
+
+    try {
+      final result = await _post('/api/app/auth/forgot', {'email': email});
+      if (!mounted) return;
+
+      if (result.status == 429) {
+        _fail(result.body['message']?.toString() ??
+            'Too many attempts. Please wait a few minutes.');
+        return;
+      }
+
+      setState(() {
+        _busy = false;
+        _notice =
+            'If that address has an account, a reset link is on its way. Open it, '
+            'set a new password, then come back and sign in.';
+      });
+    } catch (e) {
+      debugPrint('Kandi reset failed: $e');
+      _fail('Could not reach the shop. Check your connection and try again.');
+    }
+  }
+
+  void _fail(String message) {
     HapticFeedback.heavyImpact();
     if (!mounted) return;
     setState(() {
-      _errorMsg = msg;
-      _successMsg = null;
-    });
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _errorMsg = null);
+      _busy = false;
+      _notice = null;
+      _error = message;
     });
   }
 
-  void _showSuccess(String msg) {
-    if (!mounted) return;
+  void _switchMode(_Mode mode) {
+    if (_mode == mode) return;
+    HapticFeedback.selectionClick();
+    SystemSound.play(SystemSoundType.click);
     setState(() {
-      _successMsg = msg;
-      _errorMsg = null;
+      _mode = mode;
+      // The messages belonged to the other mode. An error about a password
+      // that is too short, still sitting there after switching to Sign in,
+      // reads as a complaint about the password they are about to type.
+      _error = null;
+      _notice = null;
     });
   }
 
-  Future<void> _handleAuthSuccess(String userId,
-      {bool isSignUp = false}) async {
-    if (_authHandled) return;
-    _authHandled = true;
-
-    HapticFeedback.mediumImpact();
-    await _CartMerge.mergeAnonToUser(userId);
-    _showSuccess(isSignUp ? 'Account created — welcome!' : 'Welcome back!');
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    if (isSignUp) {
-      await widget.onSignUpSuccess?.call();
-    } else {
-      await widget.onLoginSuccess?.call();
-    }
-
-    // ---- The pop that the checkout gate is waiting on ----
-    //
-    // This screen is pushed by `KandiCheckout` when there is no session, and
-    // that push is awaited: the checkout re-reads the session the moment this
-    // route closes. Without this, a shopper who signed in successfully would
-    // sit on a "Welcome back!" screen with no way forward but the back button,
-    // which is the one gesture that reads as "cancel".
-    //
-    // `maybePop` rather than `pop` because this is also a page in its own
-    // right — reached from the account tab, where it is the FIRST route and
-    // has nothing to pop to. `maybePop` returns false there and leaves the
-    // screen up, which is correct.
-    //
-    // After the FlutterFlow actions, not before: `onLoginSuccess` may navigate
-    // somewhere itself, and popping first would tear this route down
-    // underneath it.
-    if (mounted) Navigator.of(context).maybePop();
-  }
-
-  Future<void> _signInWithOAuth(OAuthProvider provider) async {
-    HapticFeedback.mediumImpact();
-    if (!mounted) return;
-    setState(() => _loading = true);
-    try {
-      await _db.auth.signInWithOAuth(
-        provider,
-        redirectTo: 'io.supabase.kandiapp://login-callback',
-      );
-      // Success is handled by the single listener in initState.
-    } catch (e) {
-      _showError(provider == OAuthProvider.google
-          ? 'Google sign in failed — please try again'
-          : 'Apple sign in failed — please try again');
-    }
-    if (mounted) setState(() => _loading = false);
-  }
+  // ==========================================================
+  // BUILD
+  // ==========================================================
 
   @override
   Widget build(BuildContext context) {
     // ---- `Material` + `DefaultTextStyle`, not a bare `Container` ----
     //
-    // Without a `Material` ancestor every `Text` on this screen inherits
-    // Flutter's debug fallback and wears a double yellow underline — the same
-    // fault that was on the product, cart, wishlist, home and category
-    // screens. The full argument is at `_screen` in
-    // `product_detail_widget.dart`.
+    // Without a `Material` ancestor every `Text` inherits Flutter's debug
+    // fallback and wears a double yellow underline. The full argument is at
+    // `_screen` in `product_detail_widget.dart`.
     //
-    // It bites harder here than anywhere else, because this screen is the
-    // first thing a new shopper sees after being told they must sign in to
-    // buy. Underlined text on a form asking for a password does not read as a
-    // rendering quirk; it reads as a page that is not what it claims to be.
+    // It bites hardest here, on the screen standing between a new shopper and
+    // paying: underlined text on a form asking for a password does not read as
+    // a rendering quirk, it reads as a page that is not what it claims to be.
     return Material(
-      color: _ivory,
+      color: _kPage,
       child: DefaultTextStyle(
-        style: _bodyStyle(size: 13, color: _inkSoft)
+        style: _text(size: 14, color: _kInk)
             .copyWith(decoration: TextDecoration.none),
         child: SizedBox(
           width: widget.width ?? double.infinity,
@@ -443,72 +859,41 @@ class _KandiAuthPageState extends State<KandiAuthPage>
           child: SafeArea(
             child: Column(
               children: [
-                _buildHeader(),
+                _topBar(),
                 Expanded(
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: FadeTransition(
-                      opacity: CurvedAnimation(
-                          parent: _introCtrl, curve: Curves.easeOut),
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.04),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                            parent: _introCtrl, curve: Curves.easeOutCubic)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 22),
-                            Container(width: 26, height: 2.5, color: _gold),
-                            const SizedBox(height: 12),
-                            Text('Log in or sign up',
-                                style: _displayStyle(size: 26)),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Save your wishlist, track orders and check out faster.',
-                              style: _bodyStyle(size: 13, color: _muted),
-                            ),
-                            const SizedBox(height: 24),
-                            if (_errorMsg != null)
-                              _buildMessage(_errorMsg!, isError: true),
-                            if (_successMsg != null)
-                              _buildMessage(_successMsg!, isError: false),
-                            _socialBtn(
-                              onTap: _loading
-                                  ? null
-                                  : () => _signInWithOAuth(OAuthProvider.apple),
-                              icon:
-                                  const Icon(Icons.apple, size: 24, color: _ink),
-                              label: 'Continue with Apple',
-                            ),
-                            const SizedBox(height: 10),
-                            _socialBtn(
-                              onTap: _loading
-                                  ? null
-                                  : () =>
-                                      _signInWithOAuth(OAuthProvider.google),
-                              icon: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CustomPaint(painter: _GooglePainter()),
-                              ),
-                              label: 'Continue with Google',
-                            ),
-                            const SizedBox(height: 22),
-                            _buildDivider(),
-                            const SizedBox(height: 22),
-                            _buildEmailButton(),
-                            const SizedBox(height: 18),
-                            _buildTrustRow(),
-                          ],
-                        ),
-                      ),
+                    // `always` rather than the default: the form is short
+                    // enough to fit without scrolling, and when the keyboard is
+                    // up the shopper still needs to be able to push the fields
+                    // clear of it.
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(_pad, 4, _pad, 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _intro(),
+                        const SizedBox(height: 18),
+                        _modeTabs(),
+                        const SizedBox(height: 20),
+                        if (_error != null) ...[
+                          _banner(_error!, isError: true),
+                          const SizedBox(height: 14),
+                        ],
+                        if (_notice != null) ...[
+                          _banner(_notice!, isError: false),
+                          const SizedBox(height: 14),
+                        ],
+                        _form(),
+                        const SizedBox(height: 18),
+                        _submitButton(),
+                        const SizedBox(height: 14),
+                        _footNote(),
+                      ],
                     ),
                   ),
                 ),
-                _buildFooter(),
               ],
             ),
           ),
@@ -517,966 +902,381 @@ class _KandiAuthPageState extends State<KandiAuthPage>
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Text('kandi', style: _displayStyle(size: 26)),
-              const SizedBox(width: 6),
-              Container(
-                width: 7,
-                height: 7,
-                decoration:
-                    const BoxDecoration(color: _gold, shape: BoxShape.circle),
-              ),
-            ],
-          ),
-          _Press(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: _white,
-                shape: BoxShape.circle,
-                border: Border.all(color: _hairline, width: 1),
-              ),
-              child: const Icon(Icons.close_rounded, size: 18, color: _ink),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessage(String msg, {required bool isError}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: isError ? _emberTint : _leafTint,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: (isError ? _ember : _leaf).withOpacity(0.4), width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isError
-                ? Icons.error_outline_rounded
-                : Icons.check_circle_outline_rounded,
-            color: isError ? _ember : _leaf,
-            size: 19,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(msg,
-                style: _bodyStyle(size: 12.5, color: isError ? _ember : _leaf)),
-          ),
-          GestureDetector(
-            onTap: () => setState(() {
-              _errorMsg = null;
-              _successMsg = null;
-            }),
-            child: Icon(Icons.close_rounded,
-                size: 17, color: isError ? _ember : _leaf),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _socialBtn({
-    required VoidCallback? onTap,
-    required Widget icon,
-    required String label,
-  }) {
-    return _Press(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: _white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _hairline, width: 1.2),
-        ),
+  Widget _topBar() => Padding(
+        padding: const EdgeInsets.fromLTRB(8, 6, _pad, 2),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            icon,
-            const SizedBox(width: 12),
-            Text(label,
-                style: GoogleFonts.dmSans(
-                    fontSize: 14.5, fontWeight: FontWeight.w600, color: _ink)),
+            _Press(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.of(context).maybePop();
+              },
+              child: const SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(Icons.arrow_back_rounded, size: 22, color: _kInk),
+              ),
+            ),
+            const Spacer(),
+            // The shop's name, set as the wordmark rather than as a heading:
+            // this screen is reached from inside the app, so it is a reminder
+            // of where you are, not a title.
+            Text(
+              'kandi',
+              style: _heading(size: 19, color: _kPrimary, weight: FontWeight.w800),
+            ),
           ],
         ),
+      );
+
+  Widget _intro() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _isRegister ? 'Create your account' : 'Welcome back',
+            style: _heading(size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            // Says what the account is FOR. "Sign in to continue" tells a
+            // shopper only that something is in their way; this tells them
+            // what they get for the thirty seconds it costs.
+            _isRegister
+                ? 'One step. Track your orders, save your delivery address, and '
+                    'check out faster next time.'
+                : 'Sign in to track your orders and check out with the details '
+                    'you saved.',
+            style: _text(size: 13.5, color: _kMuted, height: 1.5),
+          ),
+        ],
+      );
+
+  /// The only choice on the screen: do you have an account already.
+  ///
+  /// A two-tab segment rather than the "Don't have an account? Sign up" link
+  /// at the bottom of most forms. The link is smaller than a thumb, it is at
+  /// the far end of the screen from where the eye starts, and it changes the
+  /// meaning of everything above it without being anywhere near it. Two tabs
+  /// at the top say what the form is before it is read.
+  Widget _modeTabs() {
+    Widget tab(String label, _Mode mode) {
+      final active = _mode == mode;
+      return Expanded(
+        child: _Press(
+          onTap: () => _switchMode(mode),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? _kWhite : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: active ? _kLine : Colors.transparent,
+              ),
+            ),
+            child: Text(
+              label,
+              style: _text(
+                size: 14,
+                color: active ? _kInk : _kMuted,
+                weight: active ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _kSurface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _kHairline),
+      ),
+      child: Row(
+        children: [
+          tab('Sign in', _Mode.signIn),
+          const SizedBox(width: 4),
+          tab('Create account', _Mode.register),
+        ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Row(
+  Widget _form() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Only asked for when creating an account, and asked for FIRST,
+          // because it is the one field that is not a credential — it is the
+          // friendly question, and it is what the delivery note gets addressed
+          // to.
+          if (_isRegister) ...[
+            _field(
+              label: 'Your name',
+              controller: _name,
+              focus: _nameFocus,
+              hint: 'e.g. Sarah Namuli',
+              keyboard: TextInputType.name,
+              textCapitalization: TextCapitalization.words,
+              autofill: const [AutofillHints.name],
+              action: TextInputAction.next,
+              onSubmitted: (_) => _emailFocus.requestFocus(),
+              icon: Icons.person_outline_rounded,
+            ),
+            const SizedBox(height: 14),
+          ],
+          _field(
+            label: 'Email',
+            controller: _email,
+            focus: _emailFocus,
+            hint: 'you@example.com',
+            keyboard: TextInputType.emailAddress,
+            autofill: const [AutofillHints.email],
+            action: TextInputAction.next,
+            onSubmitted: (_) => _passwordFocus.requestFocus(),
+            icon: Icons.mail_outline_rounded,
+          ),
+          const SizedBox(height: 14),
+          _field(
+            label: 'Password',
+            controller: _password,
+            focus: _passwordFocus,
+            hint: _isRegister ? 'At least $_kMinPassword characters' : '••••••••',
+            obscure: !_showPassword,
+            keyboard: TextInputType.visiblePassword,
+            autofill: [
+              _isRegister ? AutofillHints.newPassword : AutofillHints.password
+            ],
+            // `done` submits. On a two-field form the keyboard's own button is
+            // the fastest way to finish, and a shopper who has just typed a
+            // password should not have to dismiss the keyboard to find the
+            // button it is covering.
+            action: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+            icon: Icons.lock_outline_rounded,
+            // Shown rather than hidden, on request. Typing a password blind on
+            // a phone keyboard is where most sign-in failures are actually
+            // made — and this is a shopping account, not a bank.
+            trailing: _Press(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _showPassword = !_showPassword);
+              },
+              child: SizedBox(
+                width: 46,
+                height: 46,
+                child: Icon(
+                  _showPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 19,
+                  color: _kMuted,
+                ),
+              ),
+            ),
+          ),
+          if (!_isRegister) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _Press(
+                onTap: _busy ? null : _resetPassword,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    'Forgot your password?',
+                    style: _text(
+                      size: 13,
+                      color: _kPrimaryInk,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+
+  Widget _field({
+    required String label,
+    required TextEditingController controller,
+    required FocusNode focus,
+    required IconData icon,
+    String? hint,
+    bool obscure = false,
+    TextInputType? keyboard,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<String>? autofill,
+    TextInputAction action = TextInputAction.next,
+    void Function(String)? onSubmitted,
+    Widget? trailing,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(child: Divider(color: _hairline, thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('or', style: _labelStyle(size: 12, color: _muted)),
+        Text(label, style: _label(size: 12.5, color: _kBody)),
+        const SizedBox(height: 6),
+        // `AnimatedBuilder` on the focus node so the border can answer the
+        // finger. A field that looks identical whether or not it has the
+        // keyboard is a field a shopper taps twice.
+        AnimatedBuilder(
+          animation: focus,
+          builder: (_, __) => Container(
+            decoration: BoxDecoration(
+              color: _kWhite,
+              borderRadius: BorderRadius.circular(_radius),
+              border: Border.all(
+                color: focus.hasFocus ? _kPrimary : _kLine,
+                width: focus.hasFocus ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 8),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: focus.hasFocus ? _kPrimary : _kFaint,
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focus,
+                    obscureText: obscure,
+                    keyboardType: keyboard,
+                    textCapitalization: textCapitalization,
+                    autofillHints: autofill,
+                    textInputAction: action,
+                    onSubmitted: onSubmitted,
+                    enabled: !_busy,
+                    style: _text(size: 15, color: _kInk),
+                    cursorColor: _kPrimary,
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: _text(size: 14.5, color: _kFaint),
+                      isDense: true,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
+                ),
+                if (trailing != null) trailing else const SizedBox(width: 12),
+              ],
+            ),
+          ),
         ),
-        const Expanded(child: Divider(color: _hairline, thickness: 1)),
       ],
     );
   }
 
-  /// Primary CTA — ink block with gold frame, same as the
-  /// flash-sale ticket / Apply buttons across the app.
-  Widget _buildEmailButton() {
+  Widget _submitButton() {
+    final label = _isRegister ? 'Create account' : 'Sign in';
+
     return _Press(
-      onTap: _loading ? null : _showEmailBottomSheet,
+      onTap: _busy ? null : _submit,
       child: Container(
-        height: 54,
+        height: 52,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _ink,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _gold, width: 1.3),
+          color: _busy ? _kHairline : _kPrimary,
+          borderRadius: BorderRadius.circular(_radius),
+        ),
+        child: _busy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(_kMuted),
+                ),
+              )
+            : Text(
+                label,
+                style: _text(
+                  size: 15.5,
+                  color: _kWhite,
+                  weight: FontWeight.w700,
+                ),
+              ),
+      ),
+    );
+  }
+
+  /// What the shopper is agreeing to, and what they are not.
+  ///
+  /// The line about no verification email is deliberate and it is not
+  /// boilerplate: the previous version of this screen sent people to their
+  /// inbox, so anybody who tried the app before is braced for it. Saying that
+  /// it does not happen removes the hesitation before the button rather than
+  /// after it.
+  Widget _footNote() => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _kSurface,
+          borderRadius: BorderRadius.circular(_radius),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.email_outlined, size: 20, color: _gold),
-            const SizedBox(width: 10),
-            Text('Continue with Email',
-                style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: _gold,
-                    letterSpacing: 0.2)),
+            const Icon(Icons.lock_outline_rounded, size: 15, color: _kSuccess),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _isRegister
+                    ? 'No verification email, no code to type — you are signed '
+                        'in as soon as you tap the button. Your details are '
+                        'used only for your orders.'
+                    : 'The same account as kandiug.com. Your details are used '
+                        'only for your orders.',
+                style: _text(size: 12.5, color: _kMuted, height: 1.45),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTrustRow() {
-    Widget item(IconData i, String t) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(i, size: 13, color: _goldDeep),
-            const SizedBox(width: 5),
-            Text(t, style: _labelStyle(size: 10, color: _inkSoft)),
-          ],
-        );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: _hairline, width: 1),
-          bottom: BorderSide(color: _hairline, width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          item(Icons.lock_outline_rounded, 'Secure sign in'),
-          Container(width: 1, height: 12, color: _hairline),
-          item(Icons.shopping_bag_outlined, 'Cart is saved'),
-          Container(width: 1, height: 12, color: _hairline),
-          item(Icons.bolt_rounded, 'Faster checkout'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          style: _bodyStyle(size: 11.5, color: _muted),
-          children: [
-            const TextSpan(
-                text:
-                    'By signing up or logging into your account, you accept the '),
-            TextSpan(
-              text: 'Terms & Conditions',
-              style: GoogleFonts.dmSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: _goldDeep),
-            ),
-            const TextSpan(text: ' and '),
-            TextSpan(
-              text: 'Privacy & Cookie Policy',
-              style: GoogleFonts.dmSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: _goldDeep),
-            ),
-            const TextSpan(text: '.'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEmailBottomSheet() {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _EmailAuthSheet(
-        onLoginSuccess: (userId) async {
-          Navigator.pop(ctx);
-          await _handleAuthSuccess(userId);
-        },
-        onSignUpSuccess: (userId) async {
-          Navigator.pop(ctx);
-          await _handleAuthSuccess(userId, isSignUp: true);
-        },
-        onShowMessage: (msg, isError) {
-          if (isError) {
-            _showError(msg);
-          } else {
-            _showSuccess(msg);
-          }
-        },
-      ),
-    );
-  }
-}
-
-/// ============================================================
-/// EMAIL AUTH BOTTOM SHEET — login & sign-up flow
-/// ============================================================
-class _EmailAuthSheet extends StatefulWidget {
-  const _EmailAuthSheet({
-    required this.onLoginSuccess,
-    required this.onSignUpSuccess,
-    required this.onShowMessage,
-  });
-
-  final Future<void> Function(String userId) onLoginSuccess;
-  final Future<void> Function(String userId) onSignUpSuccess;
-  final void Function(String message, bool isError) onShowMessage;
-
-  @override
-  State<_EmailAuthSheet> createState() => _EmailAuthSheetState();
-}
-
-class _EmailAuthSheetState extends State<_EmailAuthSheet> {
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
-  final _confirmPassCtrl = TextEditingController();
-
-  bool _isSignUpMode = false;
-  bool _loading = false;
-  bool _showPassword = false;
-  bool _showConfirmPassword = false;
-  String? _sheetError;
-  int _passStrength = 0; // 0–3
-
-  SupabaseClient get _db => Supabase.instance.client;
-
-  @override
-  void initState() {
-    super.initState();
-    _passwordCtrl.addListener(_updateStrength);
-  }
-
-  @override
-  void dispose() {
-    _passwordCtrl.removeListener(_updateStrength);
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
-    _nameCtrl.dispose();
-    _confirmPassCtrl.dispose();
-    super.dispose();
-  }
-
-  void _updateStrength() {
-    final p = _passwordCtrl.text;
-    int s = 0;
-    if (p.length >= 6) s++;
-    if (p.length >= 10) s++;
-    if (RegExp(r'[0-9]').hasMatch(p) &&
-        RegExp(r'[A-Za-z]').hasMatch(p) &&
-        (RegExp(r'[^A-Za-z0-9]').hasMatch(p) || RegExp(r'[A-Z]').hasMatch(p))) {
-      s++;
-    }
-    if (s != _passStrength && mounted) setState(() => _passStrength = s);
-  }
-
-  void _setSheetError(String? msg) {
-    HapticFeedback.heavyImpact();
-    if (!mounted) return;
-    setState(() => _sheetError = msg);
-    if (msg != null) {
-      Future.delayed(const Duration(seconds: 4), () {
-        if (mounted) setState(() => _sheetError = null);
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: _ivory,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom: bottomInset + 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: _hairline,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Segmented Login / Sign up toggle
-              Container(
-                height: 46,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: _sand,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _hairline),
-                ),
-                child: Row(
-                  children: [
-                    _segTab('Log In', !_isSignUpMode, () {
-                      if (_isSignUpMode) _switchMode(false);
-                    }),
-                    _segTab('Sign Up', _isSignUpMode, () {
-                      if (!_isSignUpMode) _switchMode(true);
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              Text(
-                _isSignUpMode ? 'Create your account' : 'Welcome back',
-                style: _displayStyle(size: 21),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                _isSignUpMode
-                    ? 'A minute now, faster checkout forever.'
-                    : 'Enter your email and password to continue.',
-                style: _bodyStyle(size: 13, color: _muted),
-              ),
-              const SizedBox(height: 18),
-
-              if (_sheetError != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _emberTint,
-                    borderRadius: BorderRadius.circular(10),
-                    border:
-                        Border.all(color: _ember.withOpacity(0.4), width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline_rounded,
-                          color: _ember, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(_sheetError!,
-                            style: _bodyStyle(size: 12.5, color: _ember)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              if (_isSignUpMode) ...[
-                _fieldLabel('Full name'),
-                _buildTextField(
-                  controller: _nameCtrl,
-                  hint: 'Enter your full name',
-                  icon: Icons.person_outline_rounded,
-                  keyboardType: TextInputType.name,
-                  textInputAction: TextInputAction.next,
-                  autofill: const [AutofillHints.name],
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              _fieldLabel('Email'),
-              _buildTextField(
-                controller: _emailCtrl,
-                hint: 'you@example.com',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autofill: const [AutofillHints.email],
-              ),
-              const SizedBox(height: 14),
-
-              _fieldLabel(_isSignUpMode ? 'Create password' : 'Password'),
-              _buildTextField(
-                controller: _passwordCtrl,
-                hint: _isSignUpMode
-                    ? 'At least 6 characters'
-                    : 'Enter your password',
-                icon: Icons.lock_outline_rounded,
-                obscure: !_showPassword,
-                textInputAction:
-                    _isSignUpMode ? TextInputAction.next : TextInputAction.done,
-                onSubmitted: _isSignUpMode ? null : (_) => _handleLogin(),
-                autofill: const [AutofillHints.password],
-                suffix: GestureDetector(
-                  onTap: () => setState(() => _showPassword = !_showPassword),
-                  child: Icon(
-                    _showPassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: _muted,
-                    size: 20,
-                  ),
-                ),
-              ),
-
-              // Password strength (sign-up only)
-              if (_isSignUpMode && _passwordCtrl.text.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (int i = 0; i < 3; i++) ...[
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: 3.5,
-                          decoration: BoxDecoration(
-                            color: i < _passStrength
-                                ? (_passStrength == 1
-                                    ? _ember
-                                    : _passStrength == 2
-                                        ? _gold
-                                        : _leaf)
-                                : _hairline,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      if (i < 2) const SizedBox(width: 5),
-                    ],
-                    const SizedBox(width: 10),
-                    Text(
-                      _passStrength <= 1
-                          ? 'Weak'
-                          : _passStrength == 2
-                              ? 'Good'
-                              : 'Strong',
-                      style: _labelStyle(
-                          size: 10.5,
-                          color: _passStrength <= 1
-                              ? _ember
-                              : _passStrength == 2
-                                  ? _goldDeep
-                                  : _leaf,
-                          weight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ],
-
-              if (_isSignUpMode) ...[
-                const SizedBox(height: 14),
-                _fieldLabel('Confirm password'),
-                _buildTextField(
-                  controller: _confirmPassCtrl,
-                  hint: 'Re-enter your password',
-                  icon: Icons.lock_outline_rounded,
-                  obscure: !_showConfirmPassword,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _handleSignUp(),
-                  suffix: GestureDetector(
-                    onTap: () => setState(
-                        () => _showConfirmPassword = !_showConfirmPassword),
-                    child: Icon(
-                      _showConfirmPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: _muted,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
-
-              if (!_isSignUpMode) ...[
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: _handleForgotPassword,
-                    child: Text(
-                      'Forgot password?',
-                      style: GoogleFonts.dmSans(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: _goldDeep),
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 22),
-
-              // Main CTA — ink block with gold frame
-              _Press(
-                onTap: _loading
-                    ? null
-                    : (_isSignUpMode ? _handleSignUp : _handleLogin),
-                child: Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: _loading ? _ink.withOpacity(0.75) : _ink,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _gold, width: 1.3),
-                  ),
-                  child: Center(
-                    child: _loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: _gold,
-                            ),
-                          )
-                        : Text(
-                            _isSignUpMode ? 'Create Account' : 'Log In',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: _gold,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _isSignUpMode
-                        ? 'Already have an account? '
-                        : "Don't have an account? ",
-                    style: _bodyStyle(size: 13, color: _muted),
-                  ),
-                  GestureDetector(
-                    onTap: () => _switchMode(!_isSignUpMode),
-                    child: Text(
-                      _isSignUpMode ? 'Log In' : 'Sign Up',
-                      style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: _goldDeep),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _switchMode(bool signUp) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _isSignUpMode = signUp;
-      _sheetError = null;
-      _passwordCtrl.clear();
-      _confirmPassCtrl.clear();
-      _passStrength = 0;
-    });
-  }
-
-  Widget _segTab(String label, bool active, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: active ? _ink : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 13.5,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: active ? _gold : _inkSoft,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _fieldLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Text(text,
-          style: _labelStyle(
-              size: 12, color: _ink, weight: FontWeight.w600, spacing: 0.1)),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-    Widget? suffix,
-    TextInputType? keyboardType,
-    TextInputAction? textInputAction,
-    void Function(String)? onSubmitted,
-    List<String>? autofill,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      onSubmitted: onSubmitted,
-      autofillHints: autofill,
-      style: _bodyStyle(size: 14.5, color: _ink, weight: FontWeight.w500),
-      cursorColor: _goldDeep,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: _bodyStyle(size: 14, color: _muted),
-        filled: true,
-        fillColor: _white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-        prefixIcon: Icon(icon, color: _muted, size: 20),
-        suffixIcon: suffix != null
-            ? Padding(padding: const EdgeInsets.only(right: 12), child: suffix)
-            : null,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _hairline, width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _gold, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleLogin() async {
-    final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text;
-
-    if (!_emailRegex.hasMatch(email)) {
-      _setSheetError('Please enter a valid email address');
-      return;
-    }
-    if (password.length < 6) {
-      _setSheetError('Password must be at least 6 characters');
-      return;
-    }
-
-    HapticFeedback.mediumImpact();
-    setState(() => _loading = true);
-
-    try {
-      final response = await _db.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-      if (response.session != null && response.user != null) {
-        await widget.onLoginSuccess(response.user!.id);
-        return;
-      } else {
-        _setSheetError('Invalid email or password');
-      }
-    } on AuthException catch (e) {
-      final m = e.message.toLowerCase();
-      if (m.contains('invalid')) {
-        _setSheetError('Invalid email or password');
-      } else if (m.contains('confirm') || m.contains('verify')) {
-        _setSheetError('Please verify your email first — check your inbox');
-      } else if (m.contains('rate') || m.contains('too many')) {
-        _setSheetError('Too many attempts — try again in a minute');
-      } else {
-        _setSheetError(e.message);
-      }
-    } catch (e) {
-      _setSheetError('Connection problem — check your internet');
-    }
-
-    if (mounted) setState(() => _loading = false);
-  }
-
-  Future<void> _handleSignUp() async {
-    final name = _nameCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    final password = _passwordCtrl.text;
-    final confirmPass = _confirmPassCtrl.text;
-
-    if (name.length < 2) {
-      _setSheetError('Please enter your full name');
-      return;
-    }
-    if (!_emailRegex.hasMatch(email)) {
-      _setSheetError('Please enter a valid email address');
-      return;
-    }
-    if (password.length < 6) {
-      _setSheetError('Password must be at least 6 characters');
-      return;
-    }
-    if (password != confirmPass) {
-      _setSheetError('Passwords do not match');
-      return;
-    }
-
-    HapticFeedback.mediumImpact();
-    setState(() => _loading = true);
-
-    try {
-      final response = await _db.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': name, 'display_name': name},
       );
 
-      if (response.user != null) {
-        // Best-effort profile row; ignore if the table/policy differs.
-        try {
-          await _db.from('profiles').upsert({
-            'id': response.user!.id,
-            'email': email,
-            'full_name': name,
-            'display_name': name,
-            'created_at': DateTime.now().toIso8601String(),
-          });
-        } catch (_) {}
-
-        if (response.session != null) {
-          await widget.onSignUpSuccess(response.user!.id);
-          return;
-        } else {
-          // Email confirmation is ON in Supabase — no session yet.
-          //
-          // This is the one path that does NOT satisfy the checkout gate, and
-          // it must not pretend otherwise: there is no session, so
-          // `isSignedIn()` is still false and the gate will still be there
-          // when they get back. The message says to check their inbox, which
-          // is the only thing that moves them forward.
-          if (mounted) Navigator.pop(context);
-          widget.onShowMessage(
-              'Almost there! Check $email to verify your account', false);
-          return;
-        }
-      } else {
-        _setSheetError('Failed to create account — please try again');
-      }
-    } on AuthException catch (e) {
-      final m = e.message.toLowerCase();
-      if (m.contains('already') || m.contains('registered')) {
-        _setSheetError('This email is already registered — try logging in');
-      } else if (m.contains('rate') || m.contains('too many')) {
-        _setSheetError('Too many attempts — try again in a minute');
-      } else {
-        _setSheetError(e.message);
-      }
-    } catch (e) {
-      _setSheetError('Connection problem — check your internet');
-    }
-
-    if (mounted) setState(() => _loading = false);
-  }
-
-  void _handleForgotPassword() {
-    HapticFeedback.lightImpact();
-    _showForgotPasswordSheet();
-  }
-
-  void _showForgotPasswordSheet() {
-    final resetCtrl = TextEditingController(text: _emailCtrl.text);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: _ivory,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 16,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+  Widget _banner(String message, {required bool isError}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: isError ? _kSaleBg : _kSuccessBg,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(
+            color: isError ? _kSale.withOpacity(0.25) : _kSuccess.withOpacity(0.25),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _hairline,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
+              size: 17,
+              color: isError ? _kSale : _kSuccess,
             ),
-            const SizedBox(height: 20),
-            Text('Reset password', style: _displayStyle(size: 19)),
-            const SizedBox(height: 6),
-            Text(
-              "We'll email you a link to set a new password.",
-              style: _bodyStyle(size: 13, color: _muted),
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              controller: resetCtrl,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              style:
-                  _bodyStyle(size: 14.5, color: _ink, weight: FontWeight.w500),
-              cursorColor: _goldDeep,
-              decoration: InputDecoration(
-                hintText: 'you@example.com',
-                hintStyle: _bodyStyle(size: 14, color: _muted),
-                filled: true,
-                fillColor: _white,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-                prefixIcon:
-                    const Icon(Icons.email_outlined, color: _muted, size: 20),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _hairline, width: 1.2),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _gold, width: 1.5),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            _Press(
-              onTap: () async {
-                final email = resetCtrl.text.trim();
-                if (!_emailRegex.hasMatch(email)) {
-                  widget.onShowMessage('Enter a valid email address', true);
-                  Navigator.pop(ctx);
-                  return;
-                }
-                Navigator.pop(ctx);
-                try {
-                  await _db.auth.resetPasswordForEmail(email);
-                  widget.onShowMessage('Reset link sent to $email', false);
-                } catch (e) {
-                  widget.onShowMessage('Failed to send reset email', true);
-                }
-              },
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  color: _ink,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _gold, width: 1.3),
-                ),
-                child: Center(
-                  child: Text(
-                    'Send Reset Link',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: _gold,
-                    ),
-                  ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                message,
+                style: _text(
+                  size: 13,
+                  color: isError ? _kSale : _kSuccess,
+                  weight: FontWeight.w600,
+                  height: 1.4,
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Google "G" — drawn locally so no network fetch is needed.
-class _GooglePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height), -0.5, 1.5, true, paint);
-
-    paint.color = const Color(0xFF34A853);
-    canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height), 1.0, 1.0, true, paint);
-
-    paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height), 2.0, 0.8, true, paint);
-
-    paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(
-        Rect.fromLTWH(0, 0, size.width, size.height), 2.8, 0.8, true, paint);
-
-    paint.color = Colors.white;
-    canvas.drawCircle(
-        Offset(size.width / 2, size.height / 2), size.width * 0.35, paint);
-
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawRect(
-        Rect.fromLTWH(size.width * 0.5, size.height * 0.38, size.width * 0.45,
-            size.height * 0.24),
-        paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+      );
 }
