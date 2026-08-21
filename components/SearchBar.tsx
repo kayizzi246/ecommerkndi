@@ -497,7 +497,7 @@ export default function SearchBar() {
                       </span>
                       <span
                         className={`shrink-0 text-[14px] font-semibold ${
-                          s.on_sale ? "text-shop-sale" : "text-shop-ink"
+                          s.on_sale ? "text-shop-primary-ink" : "text-shop-ink"
                         }`}
                       >
                         {formatPrice(s.price)}

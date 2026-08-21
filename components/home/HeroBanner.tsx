@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Image from "next/image";
 import Link from "next/link";
+import { formatPrice } from "@/lib/currency";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /**
@@ -81,28 +82,50 @@ function hasModelCutout() {
   }
 }
 
-/** The three promises along the foot of the banner. */
-const FEATURES = [
-  {
-    label: "BIG DEALS",
-    detail: "Everyday",
-    // A price tag.
-    path: "M20.6 13.4 12 4.8A2 2 0 0 0 10.6 4H5a1 1 0 0 0-1 1v5.6a2 2 0 0 0 .6 1.4l8.6 8.6a2 2 0 0 0 2.8 0l4.6-4.6a2 2 0 0 0 0-2.6Z",
-    dot: true,
-  },
-  {
-    label: "FAST DELIVERY",
-    detail: "Across Uganda",
-    // A delivery van.
-    path: "M3 7h10v8H3zM13 10h4l3 3v2h-7zM7 19a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 7 19Zm10 0a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 17 19Z",
-  },
-  {
-    label: "SAFE & SECURE",
-    detail: "Shopping",
-    // A shield with a tick.
-    path: "M12 3.5 5 6v5.5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6l-7-2.5Zm-.7 11.6L8.6 12.4l1.3-1.3 1.4 1.4 3.5-3.5 1.3 1.3-4.8 4.8Z",
-  },
-];
+/**
+ * The three promises along the foot of the banner.
+ *
+ * ---- Why these are a function of settings and not three constants ----
+ *
+ * They used to be "BIG DEALS / Everyday", "FAST DELIVERY / Across Uganda" and
+ * "SAFE & SECURE / Shopping", and every one of those is a slogan rather than a
+ * fact. None of them told a shopper anything they could act on: "Everyday" is
+ * not a claim, "Across Uganda" is not a timeframe, and "SAFE & SECURE
+ * Shopping" is what a page says when it has nothing specific to offer. Three
+ * capitalised abstractions in a row is the single loudest tell that copy was
+ * generated rather than written by somebody who knows the business.
+ *
+ * The shop has real numbers for all three — the delivery threshold and the
+ * returns window are in Store Settings, and the delivery window is on the
+ * shipping page — so the banner now prints those instead. They also stay
+ * correct when the shopkeeper changes them, which a hardcoded slogan cannot.
+ *
+ * The three icons are unchanged: a price tag, a van and a shield still match
+ * what is being said beside them.
+ */
+function features(settings: SiteSettings) {
+  return [
+    {
+      label: `Free delivery over ${formatPrice(settings.commerce.free_delivery_from)}`,
+      detail: "On every order that reaches it",
+      // A price tag.
+      path: "M20.6 13.4 12 4.8A2 2 0 0 0 10.6 4H5a1 1 0 0 0-1 1v5.6a2 2 0 0 0 .6 1.4l8.6 8.6a2 2 0 0 0 2.8 0l4.6-4.6a2 2 0 0 0 0-2.6Z",
+      dot: true,
+    },
+    {
+      label: "Kampala in 1–2 days",
+      detail: "Upcountry within five",
+      // A delivery van.
+      path: "M3 7h10v8H3zM13 10h4l3 3v2h-7zM7 19a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 7 19Zm10 0a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 17 19Z",
+    },
+    {
+      label: `${settings.commerce.returns_days} days to send it back`,
+      detail: "Faulty or wrong, we pay both ways",
+      // A shield with a tick.
+      path: "M12 3.5 5 6v5.5c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6l-7-2.5Zm-.7 11.6L8.6 12.4l1.3-1.3 1.4 1.4 3.5-3.5 1.3 1.3-4.8 4.8Z",
+    },
+  ];
+}
 
 /**
  * The widths the hero is encoded at, and the only ones it may ask for.
@@ -224,8 +247,6 @@ export default function HeroBanner({
    */
   const mobileSrc = narrow || wide;
   const desktopSrc = wide || narrow;
-  /** True when the image on phones is a purpose-made portrait crop. */
-  const mobileIsPortrait = Boolean(narrow);
 
   if (mobileSrc && desktopSrc) {
     return (
@@ -281,47 +302,57 @@ export default function HeroBanner({
                This is the first element on the page and almost certainly its
                LCP, so it must not be lazy.
 
-               ---- The height cap, which now engages on purpose ----
+               ---- NOTHING IS CROPPED ANY MORE ----
 
-               `h-auto` still means natural height, and the caps are what stop
-               it: at 1600px wide a 2.4:1 banner is 655px tall and a 3:1 banner
-               is 533px, and the old caps sat ABOVE both, so they never fired
-               and the banner took most of the first screen. A shopper arriving
-               on this page scrolled past one picture to reach the catalogue,
-               which is the thing they came for.
+               This is the fix for the bottom row of the banner arriving
+               sliced in half, and it is worth being precise about what was
+               wrong, because the old arrangement looked reasonable.
 
-               The caps are lower than any sensible banner's natural height
-               now, so they always engage and the band is a known height:
-               roughly 560px on a desktop and 300 on a phone. That is a crop,
-               and it is affordable because of the pairing with
-               `object-center` — a banner is designed with its subject and its
-               wording in the middle third, so what comes off is the margin at
-               the top and bottom. The guidance to upload a wide, centred image
-               is what makes this safe; a banner with copy running to its top
-               edge will lose it.
+               It was `object-cover` plus `max-h-[450px]` on a full-width
+               element. `object-cover` means "fill this box, cut off whatever
+               does not fit" — so on a 1920px screen a 2.44:1 banner wanted to
+               be 787px tall, the cap said 450, and 337px of artwork was
+               discarded. `object-center` split the loss evenly, which is why
+               the shop lost the quarter-disc off the top AND the row of
+               feature pills off the bottom at the same time.
 
-               The mobile caps are lower again, because a phone screen is
-               shorter and the same proportion of it is a much larger share of
-               what can be seen at once.
+               The band height was not the problem. It had been tuned down
+               through 280, 340, 400 and 450 for a good reason — the first rail
+               of products has to open on the first screen — and 450 is the
+               settled figure. The problem was reaching that height by cutting
+               the picture instead of by sizing it.
 
-               ---- Desktop is a flat 450px band ----
+               ---- The arrangement that fixes it ----
 
-               440/560 was still half a laptop screen, and the shop asked for
-               the banner to stop being the page. One number at every desktop
-               width is the answer, so the band does not grow as the window
-               does and the first rail of products is on the first screen at
-               any size. 280 was the first attempt and read as a letterbox,
-               340 was still tight and 400 held for a while; 450 is the
-               settled figure — a fifth off the old 560, so a rail of products
-               still opens on the first screen, with enough band left for
-               artwork that carries detail rather than only a slogan.
+               Two maximums and no crop:
 
-               That is a harder crop than before, so the guidance to compose
-               wide with the wording in the middle third is now the thing that
-               makes a banner work rather than a nicety. The phone caps are
-               unchanged — a phone shows the banner much narrower, so its
-               natural height is already close to the band, and the cap there
-               mostly never fires.
+                 max-h-[450px]   the band the shop tuned
+                 max-w-[1100px]  450 x 2.44, the width that height implies
+                 w-auto h-auto   let the browser satisfy both, in ratio
+
+               An `<img>` given both maxima and neither fixed dimension scales
+               itself down until it fits inside them, preserving its own
+               aspect ratio. Whichever constraint binds first is the one that
+               decides the size; the other has slack. So the whole banner is
+               always on screen, at whatever shape it was uploaded, and the
+               band is never taller than 450.
+
+               The two numbers are a PAIR, derived from the shape the admin
+               screen asks for. Changing the height cap without recomputing
+               the width from it does not break anything — the image just
+               stops filling the width — but it does mean the band quietly
+               gets shorter than the number says.
+
+               A wider upload than 2.44:1 is bound by the width and comes in
+               under 450, which is the right behaviour: a 4:1 banner has less
+               to say vertically and should not be stretched to fill a band.
+               A squarer one is bound by the height and comes in narrower than
+               1100, with page ground either side.
+
+               `mx-auto` centres it, and `md:rounded-2xl` gives it the same
+               corner as the department rails below, so a banner narrower than
+               the window reads as a deliberate hero rather than as an image
+               that failed to load full width.
 
                ---- The phone banner is full bleed ----
 
@@ -331,7 +362,20 @@ export default function HeroBanner({
                `app/page.tsx`), so the artwork runs edge to edge while the grid
                below it stays inset. A banner is a picture and not a card, and
                a picture with a sliver of page showing beside it reads as a
-               layout mistake rather than as a hero. */}
+               layout mistake rather than as a hero.
+
+               It also needs no cap of its own. A phone is 390px wide, so a
+               2.44:1 banner is 160px tall there and a purpose-made portrait
+               crop is about 520 — both are heights a shop chose by choosing
+               that file, and neither is the 787px runaway the desktop cap
+               exists to prevent. `w-full` with no `object-cover` shows each of
+               them whole.
+
+               The `mobileIsPortrait` flag that used to pick between a 440 and
+               a 300 cap is gone with the caps. The art direction it was part
+               of is not: two tags still exist here because a phone crop and a
+               desktop crop are two different pictures, which is a
+               `<picture>`-shaped problem and not a `srcSet`-shaped one. */}
           {/* eslint-disable @next/next/no-img-element */}
           <img
             src={optimised(mobileSrc, 1080)}
@@ -341,19 +385,28 @@ export default function HeroBanner({
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className={`h-auto w-full object-cover object-center md:hidden ${
-              mobileIsPortrait ? "max-h-[440px]" : "max-h-[300px]"
-            }`}
+            className="h-auto w-full md:hidden"
           />
           <img
             src={optimised(desktopSrc, 1920)}
             srcSet={heroSrcSet(desktopSrc)}
-            sizes="100vw"
+            /* The banner is never wider than 1100 CSS pixels now, so this is
+               the honest figure — `100vw` would have a 1920px monitor
+               downloading the 1920 file to paint an 1100px box. A 2x display
+               still picks the 1920 from the srcSet, which is what it needs. */
+            sizes="1100px"
             alt={image_alt}
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            className="hidden h-auto w-full object-cover object-center md:block md:max-h-[450px] lg:max-h-[450px]"
+            /* `min(100%, 1100px)` rather than a flat 1100: between 768px and
+               1100px the window is the narrower of the two constraints, and a
+               bare `max-w-[1100px]` on a `w-auto` image would let the 1993px
+               intrinsic width overflow the page on a small laptop. Keeping
+               both dimensions `auto` with a maximum on each is the case CSS
+               defines as ratio-preserving; giving either one a fixed value is
+               how the aspect ratio gets broken again. */
+            className="mx-auto hidden h-auto max-h-[450px] w-auto max-w-[min(100%,1100px)] md:block md:rounded-2xl"
           />
           {/* eslint-enable @next/next/no-img-element */}
         </Link>
@@ -436,8 +489,11 @@ export default function HeroBanner({
             >
               <path d="M7 7V6a5 5 0 0 1 10 0v1h2.2a1 1 0 0 1 1 1.1l-1.2 12A2 2 0 0 1 17 22H7a2 2 0 0 1-2-1.9l-1.2-12A1 1 0 0 1 4.8 7H7Zm2 0h6V6a3 3 0 1 0-6 0v1Z" />
             </svg>
+            {/* "BIG SAVINGS" was here, which is a shout and not a fact. The
+                sale page is a real page with a real count of reduced products
+                on it; naming it is both more concrete and more useful. */}
             <span className="text-[12px] font-bold tracking-[0.12em] text-shop-primary-ink">
-              BIG SAVINGS
+              TODAY&rsquo;S REDUCTIONS
             </span>
           </span>
 
@@ -461,10 +517,15 @@ export default function HeroBanner({
             <span className="block text-shop-primary">Spend less</span>
           </h2>
 
+          {/* This read "More items. Better deals. Unbeatable prices on
+              everything you love." — three claims, none of them checkable, and
+              "everything you love" is addressed to nobody in particular. What a
+              shopper landing here actually wants to know is what is on the shop
+              and what it costs to get it home, so that is what it says now. */}
           <p className="mt-3.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-body md:mt-3 md:text-[16px]">
-            More items. Better deals.
-            <br className="hidden sm:block" /> Unbeatable prices on{" "}
-            <span className="font-bold text-shop-ink">everything you love</span>.
+            Shoes, clothing, electronics and home essentials
+            <br className="hidden sm:block" /> from{" "}
+            <span className="font-bold text-shop-ink">Ugandan sellers we have vetted</span>.
           </p>
 
           {/* The phone-sized call to action.
@@ -489,12 +550,12 @@ export default function HeroBanner({
                disc, a bold label and a quiet detail line — the original's
                anatomy exactly.
 
-               These are the only claims on the banner and all three are true of
-               this shop: the deals are the rails below, delivery is countrywide
-               and the terms are in the footer. Nothing here invents a promise
-               the checkout does not keep. */}
+               Every figure in them is the shop's own: see `features()` above
+               for why they are read from settings rather than typed. Nothing
+               here invents a promise the checkout does not keep, and nothing
+               here is a slogan standing in for one. */}
           <ul className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-4 md:mt-6 md:gap-x-7">
-            {FEATURES.map((feature, index) => (
+            {features(settings).map((feature, index) => (
               <li
                 key={feature.label}
                 className={`flex items-center gap-2.5 ${

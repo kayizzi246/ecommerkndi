@@ -64,7 +64,7 @@ export default function CountdownBlocks() {
     >
       {parts.map((part, index) => (
         <span key={index} className="flex items-center gap-1">
-          <span className="price rounded bg-shop-sale px-1.5 py-0.5 text-[12px] leading-tight text-white tabular-nums">
+          <span className="price rounded bg-shop-primary-ink px-1.5 py-0.5 text-[12px] leading-tight text-white tabular-nums">
             {part}
           </span>
           {index < 2 && <span aria-hidden className="text-[12px] font-bold">:</span>}

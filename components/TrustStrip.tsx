@@ -25,7 +25,13 @@ export default function TrustStrip({ className = "" }: { className?: string }) {
       ? { title: "Free Delivery", copy: `on ${formatPrice(freeDeliveryFrom)}+ orders` }
       : { title: "Nationwide Delivery", copy: "1–3 business days" },
     { title: "Free Return", copy: `within ${returnsDays} days` },
-    { title: "100% Authentic", copy: "international brands" },
+    /* This tile read "100% Authentic / international brands", and it was the
+       only one of the three the shop could not stand behind. The other two
+       state terms the checkout enforces; that one asserted a fact about goods
+       nobody here has authenticated, and did it with a percentage to sound
+       measured. What the shop does do is vet each seller before they can list,
+       which is a real process with a real page behind it. */
+    { title: "Vetted Sellers", copy: "checked before they can list" },
   ];
 
   return (

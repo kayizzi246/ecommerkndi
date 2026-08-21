@@ -167,7 +167,7 @@ export default function ImageGallery({
             nobody can buy is an advert for a disappointment. */}
         <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
           {!soldOut && discount > 0 && (
-            <span className="rounded-full bg-shop-sale px-3 py-1 text-[13px] font-semibold text-white">
+            <span className="rounded-full bg-shop-primary-ink px-3 py-1 text-[13px] font-semibold text-white">
               −{discount}%
             </span>
           )}

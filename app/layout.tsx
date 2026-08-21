@@ -9,7 +9,7 @@ import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocomm
 import { CustomerSessionProvider } from "@/lib/customer-session";
 import { CommerceTermsProvider } from "@/lib/commerce-terms";
 import StoreChrome from "@/components/StoreChrome";
-import { getSiteSettings, getFaviconUrl, brandName } from "@/lib/site-settings";
+import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
@@ -102,7 +102,7 @@ const poppins = Poppins({
  * identical fetches within a render, so it is one request, not two.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const [settings, favicon] = await Promise.all([getSiteSettings(), getFaviconUrl()]);
+  const settings = await getSiteSettings();
   const brand = brandName(settings);
 
   return {
@@ -121,114 +121,62 @@ export async function generateMetadata(): Promise<Metadata> {
     /**
      * The tab icon — and the *only* declaration of it on the page.
      *
-     * That exclusivity is the fix for "I upload a favicon in Store Settings and
-     * nothing changes".
+     * ---- One icon, one URL, no alternatives ----
      *
-     * The uploaded icon was always reaching the HTML. What it was competing with
-     * was a second icon the framework emitted on its own: `favicon.ico` and
-     * `icon.png` used to sit in `app/`, where they are a Next file convention,
-     * so every page shipped BOTH the wp-admin PNG and
-     * `<link rel="icon" href="/favicon.ico" sizes="48x48" type="image/x-icon">`.
-     * Faced with two, a browser picks one — and Chrome prefers the `.ico` with
-     * an explicit `sizes`, which is the bundled one that never changes. The
-     * upload worked; it was simply never the icon that won.
+     * That exclusivity is the fix for a bug this file has now recorded three
+     * separate times. `favicon.ico`, `icon.png` and `apple-icon.png` used to
+     * sit in `app/`, where they are a Next *file convention* — the framework
+     * emits `<link rel="icon">` and `<link rel="apple-touch-icon">` for them on
+     * its own, alongside whatever this function declares. Faced with two icons
+     * a browser picks one, and Chrome prefers the `.ico` with an explicit
+     * `sizes`. The result each time was an icon that reached the HTML and was
+     * simply never the one that got painted.
      *
-     * Both files have moved to `public/`, which serves them at the same URLs but
-     * stops Next advertising them. `/favicon.ico` therefore still answers the
-     * bare request browsers and crawlers make by habit, while the only icon
-     * *declared* in the head is the one this function chooses.
+     * All three files live in `public/` now. They are served at the same URLs
+     * and are no longer advertised by the framework, so the only icon declared
+     * on the page is the one named here. `icon`, `shortcut` and `apple` all
+     * point at the same file deliberately: Google's favicon crawler reads
+     * `apple-touch-icon` as a candidate too, so three URLs would be three
+     * pictures for it to choose between.
      *
-     * `apple-icon.png` has now followed them, and for the third time this file
-     * has to record the same lesson. It stayed in `app/` after the other two
-     * left, which is still a Next file convention, so every page shipped
+     * Nothing may be added to `app/` with those names again, and no second URL
+     * may be declared beside this one.
      *
-     *   <link rel="apple-touch-icon" href="/apple-icon.png?…" sizes="…">
+     * ---- Why this is a file and not the wp-admin upload ----
      *
-     * alongside the `apple` link this function declares — two apple icons, one
-     * of them the bundled image that never changes. That is the same "faced
-     * with two, something else picks one" bug as before, and it is not only an
-     * iOS concern: Google's favicon crawler reads apple-touch-icon as a
-     * candidate too, so a stale one is a stale icon in search results. It lives
-     * in `public/` now, still answers `/apple-icon.png` for the fallback branch
-     * below, and is no longer advertised on its own.
+     * It used to be the upload. `icon` pointed at `/brand-icon`, a route
+     * handler that fetched whatever the Store Settings favicon field held and
+     * proxied it back under this origin. That route was built to solve a real
+     * problem — linking the wp-admin URL directly gave Google an address that
+     * changed completely every time the shop re-uploaded, because WordPress
+     * files an upload under the month it was uploaded and keeps the original
+     * filename, and the favicon crawler has to rediscover a moved icon.
      *
-     * The fallback is explicit for the same reason: with nothing in `app/` there
-     * is no automatic icon behind us any more, so a shop that has not uploaded
-     * one must be given the bundled image by name or it would ship no icon at
-     * all. `apple` is the same image — iOS uses it when the shop is saved to a
-     * home screen.
+     * The stable URL fixed the moving address and left everything else. The
+     * icon Google got still depended on a WordPress round trip completing, on
+     * the upload being square, on the plugin being installed and on wp-admin
+     * being reachable — and every one of those failure modes fell back to a
+     * *different* picture. An icon that silently changes is the thing the
+     * crawler punishes, and that is a lot of moving parts for one small square
+     * that changes maybe once a year.
      *
-     * Note the upload can still be declined: `getFaviconUrl` returns null for a
-     * PNG whose sides differ by more than 1.6× (a wide logo makes an unreadable
-     * 16px tab icon). If an upload appears to do nothing, that is now the first
-     * thing to check — crop it square.
+     * So the mark is a file in the repository now. `/icon.png` is static, on
+     * this origin, cannot fail to resolve and cannot disagree with itself.
+     * `/favicon.ico` and `/brand-icon` — the address Google has already
+     * learned — are both rewritten to it in next.config.ts, so every path a
+     * crawler might try by habit returns the same bytes.
+     *
+     * The cost is that the Store Settings favicon field no longer does
+     * anything. Changing this mark now means replacing `public/icon.png` (and
+     * `public/apple-icon.png`, its 180px twin) and deploying — which is the
+     * right shape for something that belongs to the brand rather than to the
+     * catalogue.
+     *
+     * No `type` or `sizes` here. They would have been a lie while this proxied
+     * an arbitrary upload; now they would merely be a second thing to keep in
+     * step with the file.
      */
-    /**
-     * ---- Every icon URL here is now on this origin ----
-     *
-     * These used to be the wp-admin URL itself, which meant the icon Google
-     * crawls lived on `shop.kandiug.com` under a path containing the month of
-     * the upload and the original filename — a URL that changes completely
-     * every time the shop replaces its logo. Google crawls favicons on their
-     * own schedule and wants the address to stay put; a moving one can cost
-     * weeks of search results with no icon beside them.
-     *
-     * `/brand-icon` is a route on this site that serves whatever wp-admin
-     * currently points at, so the upload still works and the URL never moves
-     * again. See `app/brand-icon/route.ts`.
-     *
-     * ---- All three point at the SAME URL, and that is not an oversight ----
-     *
-     * This briefly read `shortcut: "/favicon.ico"`, on the reasoning that a
-     * real .ico with 16/32/48px frames is the one format every crawler can
-     * read without negotiation. That reasoning is true and it does not matter,
-     * because it re-broke the exact bug the paragraphs above exist to describe.
-     *
-     * Declaring two different icons means the browser picks one, and Chrome
-     * prefers the `.ico` — which is the bundled file that never changes. The
-     * result on the live site was a head containing both the uploaded logo and
-     * the stock icon, with the stock one winning: the upload reached the page
-     * every time and was simply never what got painted. That is the second
-     * time this shop has lost its favicon to a second declaration, and the
-     * rule it keeps teaching is worth stating plainly — ONE icon, one URL, no
-     * alternatives for a browser to choose between.
-     *
-     * `/favicon.ico` no longer exists as a file at all. It is rewritten to
-     * `/brand-icon` in next.config.ts, so the bare request browsers and Google's
-     * favicon crawler make by habit now returns the same image this function
-     * declares.
-     *
-     * That was the last URL that could disagree. The static file used to be a
-     * multi-frame icon of the older orange "K" — a real Kandi mark, which is
-     * why nothing looked broken, and the wrong one, because it was generated
-     * once and left behind while the logo in wp-admin moved on. A shop owner
-     * replacing their logo saw the tab change and the search result stay.
-     */
-    /**
-     * ---- The fallback branch now names ONE url too ----
-     *
-     * It used to read `apple: "/apple-icon.png"` while `icon` and `shortcut`
-     * pointed at `/icon.png` — two different images declared on the same page,
-     * which is the exact shape of the bug the four paragraphs above exist to
-     * describe, surviving in the branch nobody looks at.
-     *
-     * It matters for search specifically. Google's favicon crawler treats
-     * `apple-touch-icon` as a candidate alongside `rel="icon"`, so a shop with
-     * no upload was still handing it two pictures and letting it choose. Both
-     * files are the same 512×512 square mark, so nothing visible was wrong —
-     * which is why it lasted. One URL, in both branches, is the rule.
-     *
-     * `public/apple-icon.png` stays on disk: it is still served at that path
-     * for anything requesting it by habit, it is simply no longer declared.
-     *
-     * No `type` or `sizes` on any of these, deliberately. `/brand-icon` proxies
-     * whatever wp-admin holds, so its content type and dimensions are whatever
-     * was uploaded — declaring `image/png` on a JPEG upload would be a lie the
-     * browser has to work around, and a wrong `sizes` is worse than none.
-     */
-    icons: favicon
-      ? { icon: "/brand-icon", shortcut: "/brand-icon", apple: "/brand-icon" }
-      : { icon: "/icon.png", shortcut: "/icon.png", apple: "/icon.png" },
+    icons: { icon: "/icon.png", shortcut: "/icon.png", apple: "/icon.png" },
     // No canonical here, deliberately.
     //
     // Metadata set in a layout is *inherited* by every page under it that does
@@ -340,8 +288,8 @@ export default async function RootLayout({
                   "Kandi",
                 ],
                 // The uploaded logo when there is one, otherwise the icon that
-                // ships in `app/` — which is 512×512 and square, comfortably
-                // past the 48px minimum Google reads a favicon at.
+                // ships in `public/` — 144×144 and square, a multiple of the
+                // 48px Google reads a favicon at.
                 logo: settings.brand.logo_url || absolute("/icon.png"),
                 sameAs: Object.values(settings.social).filter(Boolean),
                 phone: settings.support.phone,

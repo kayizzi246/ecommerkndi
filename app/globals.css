@@ -4,7 +4,7 @@
  * KandiUg visual language — orange.
  *
  * The ratio is the point: roughly 90% white and light grey, 5–8% orange, small
- * amounts of near-black, red for discounts only and green for delivery only. An
+ * amounts of near-black, red for errors only and green for delivery only. An
  * orange page reads as a template; orange used sparingly on a white page reads
  * as a brand.
  *
@@ -211,7 +211,27 @@
   --color-shop-flame: #ff6a00; /* alias of primary, kept so components compile */
   --color-shop-ember: #e85d00; /* the second stop of the one gradient allowed */
 
-  --color-shop-sale: #e53935; /* discounts only — never a resting price */
+  /* ---- Red now means ERRORS, and only errors ----
+   *
+   * This was the discount colour: reduced prices, −% corner flags, Super Deal
+   * chips, the deal countdown, the HOT badge in the nav. It was also, at the
+   * same time, the colour of a failed payment and a rejected form field.
+   *
+   * Two problems, and the second is the one that forced the change.
+   *
+   * 1. A tile could carry a red flag, a red chip and a red price at once, on a
+   *    page whose masthead, nav, buttons and promo bar are orange. Two
+   *    saturated families a few degrees apart reads as unresolved rather than
+   *    as emphasis — nobody can name it on sight and everybody registers it.
+   *
+   * 2. If red means both "good news" and "something went wrong", it means
+   *    neither. A shopper cannot learn a colour that points both ways.
+   *
+   * The whole deal language moved to `--color-shop-primary-ink` — the brand,
+   * at the one weight of it that passes AA as small text. Red kept the job it
+   * can only do once: form errors, failed payments, and the stock warning on a
+   * tile. Do not put it back on a price. */
+  --color-shop-sale: #e53935; /* errors and warnings — never a price */
   --color-shop-success: #16a34a;
   --color-shop-successbg: #f0fdf4;
   --color-shop-warning: #f59e0b;
@@ -272,7 +292,7 @@
  *   Element             Weight     Size
  *   ------------------- ---------- ---------
  *   Product names       400–600    14px
- *   Product prices      700        18px
+ *   Product prices      800        14–15px
  *   Old price           400        12px
  *   Reviews / sold      400        12px
  *   Navigation          600        14px
@@ -500,7 +520,7 @@ h6,
   letter-spacing: -0.012em;
 }
 
-/* ---------- Product prices — 700, 18px ----------
+/* ---------- Product prices — 800, 14–15px ----------
  * The scale's price row. That is the number the whole page is built around, and
  * it should never be set in the body face.
  *
@@ -556,13 +576,18 @@ h6,
    * for it. A phone is not quite such a screen: at 2.5 tiles across a 390px
    * display a tile is about 150px wide, and a UGX price is a long number.
    *
-   * Both numbers are a step up from where they were (14/16), and that step is
-   * the point of the reordering in `ProductCard` — the price is the last line
-   * of the tile now, so it is the one carrying the bottom of the block and it
-   * has to be unmistakably the biggest thing in the text. In the reference the
-   * price is roughly half again the size of the product name above it, which is
-   * 13px here. */
-  font-size: 16px;
+   * These went UP to 16/18 once, on the argument that the price is the last
+   * line of the tile and therefore has to be unmistakably the biggest thing in
+   * it. On a full-bleed grid showing seven and eight tiles across, that read as
+   * shouting: eight 18px prices in a row is a band of heavy figures that pulls
+   * the eye along the bottom of the rail instead of into the products. The
+   * price still has to be the loudest line in a TILE; it does not have to be
+   * the loudest thing on the PAGE.
+   *
+   * 14/15 is one clear step above the 13px product name — enough to lead the
+   * block, small enough that a rail of them settles. A phone tile at ~150px
+   * also gets its long UGX figure back inside one line with room to spare. */
+  font-size: 14px;
   /* 1.1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
      the descender on a comma, and UGX prices are full of them. */
   line-height: 1.1;
@@ -576,11 +601,11 @@ h6,
   font-variant-numeric: tabular-nums;
 }
 
-/* The scale's 18px, restored as soon as there is width for it. 640px is where
-   the grid goes from 2 columns to 3 and a tile stops being 150px wide. */
+/* One step up as soon as there is width for it. 640px is where the grid goes
+   from 2 columns to 3 and a tile stops being 150px wide. */
 @media (min-width: 640px) {
   .price {
-    font-size: 18px;
+    font-size: 15px;
   }
 }
 

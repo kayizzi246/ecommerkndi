@@ -93,8 +93,21 @@ export default async function SalePage({
       {/* ---- Hero ----
            Every figure here is counted from the products below: how many are
            reduced, the deepest cut, the total the whole page saves. The old
-           version was a red block with a headline and nothing to back it up. */}
-      <section className="relative mb-6 overflow-hidden rounded-none bg-gradient-to-br md:rounded-2xl from-shop-sale via-[#c62828] to-[#8e1a1a] px-5 py-7 text-white md:px-10 md:py-9">
+           version was a red block with a headline and nothing to back it up.
+
+           ---- And it is no longer red ----
+
+           This was `from-shop-sale via-[#c62828] to-[#8e1a1a]` — the largest
+           red object on the site, on the page whose entire subject is a
+           reduction. That made it the last thing contradicting the rule the
+           palette now states: red means something is wrong, and the deal
+           language is the brand's deep orange. See the note on
+           `--color-shop-sale` in `globals.css`.
+
+           The ramp is the brand's own, dark end first, so a page of orange
+           deal flags below sits inside the same family rather than against a
+           second one. White type still clears AA on every stop of it. */}
+      <section className="relative mb-6 overflow-hidden rounded-none bg-gradient-to-br md:rounded-2xl from-shop-ember via-shop-primary-ink to-[#7a3200] px-5 py-7 text-white md:px-10 md:py-9">
         <span
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/12 blur-3xl"
@@ -169,7 +182,7 @@ export default async function SalePage({
           {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
               See the note in the category grid for why the old 1px gaps drew
               nothing on a white page. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {sorted.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

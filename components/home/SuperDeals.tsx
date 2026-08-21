@@ -33,7 +33,7 @@ export default function SuperDeals({ products }: { products: Product[] }) {
         subtitle="Today's deepest cuts"
         href="/sale"
       >
-        <span className="flex items-center gap-2 rounded-lg bg-shop-sale/10 px-3 py-1.5 text-shop-sale">
+        <span className="flex items-center gap-2 rounded-lg bg-shop-primary-soft px-3 py-1.5 text-shop-primary-ink">
           <span className="text-[12px] font-semibold">Ends in</span>
           <CountdownBlocks />
         </span>

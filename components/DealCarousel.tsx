@@ -50,10 +50,57 @@ export default function DealCarousel({
    * this is the ceiling — at 50% two tiles fill the viewport exactly and the
    * peek that makes the rail look swipeable disappears.
    *
+   * ---- 2xl shows eight ----
+   *
+   * The top step is the one width here that is not a plain percentage, because
+   * eight is a count rather than a proportion and the gaps stop being a
+   * rounding error at that density. Eight tiles have eight 16px gaps between
+   * them and the peek — `sm:gap-4` on the track — which is 128px of a 1856px
+   * monitor, most of a ninth tile, and a percentage that ignores it lands on
+   * seven-and-a-bit.
+   *
+   * 8.5, not 8: the divisor carries the peek that every other step here
+   * carries. Eight tiles sit clear of the right edge and the ninth is sliced
+   * down its photograph, so a rail on a large monitor still says there is more
+   * this way rather than reading as a finished row.
+   *
+   * This is the pairing the `--shell: 100%` note in `globals.css` describes: a
+   * wide monitor is spent on MORE products, not bigger ones. 14% was 260px a
+   * tile at 1920px, which is a product photograph larger than the product page
+   * shows.
+   *
+   * ---- The middle of the ramp was rebuilt around the tablet step ----
+   *
+   * It used to read `md:27% lg:21.5% xl:18.5%`, which is 3.7, 4.6 and 5.4
+   * tiles — a rail that shows three-and-a-bit products on an iPad while the
+   * grid directly below it shows five. The two are the same products in the
+   * same card at the same moment on the same screen, and they disagreed.
+   *
+   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 5 → 6 → 8.
+   *
+   *   md   17.5%  five, from 768px — the tablet step
+   *   xl   15%    six, from 1280px
+   *   2xl  /8.5   eight
+   *
+   * `lg` is deliberately absent. A rail at `lg` would have to show either five
+   * (what `md` already sets) or six (what `xl` sets), and a step that repeats
+   * its neighbour is not a step. Between 1024 and 1280 the five tiles simply
+   * get wider, which is the one range where that is the right answer — the
+   * grid does exactly the same thing there.
+   *
+   * ---- Every percentage still carries the peek ----
+   *
+   * None of these divide evenly into 100. That is the point: the remainder is
+   * the sliced tile at the right edge that tells a shopper the rail scrolls.
+   * At 17.5% on an 820px iPad, five tiles and four 16px gaps come to about
+   * 24px short of the track, so the sixth is cut down its photograph rather
+   * than through its price — which is the distinction the phone note above
+   * spent three paragraphs on.
+   *
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[27%] lg:w-[21.5%] xl:w-[18.5%] 2xl:w-[14%]",
+  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[17.5%] xl:w-[15%] 2xl:w-[calc((100%-128px)/8.5)]",
   priority = false,
   viewAll,
 }: {
@@ -145,7 +192,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 49vw,(max-width: 768px) 34.5vw, (max-width: 1024px) 27vw, (max-width: 1280px) 21.5vw, 19vw"
+              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 17.5vw, (max-width: 1536px) 15vw, 12vw"
             />
           </div>
         ))}

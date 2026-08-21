@@ -144,7 +144,28 @@ export default function InfiniteProducts({
           From `md` the tile goes flat again and the wide gaps come straight
           back — they are the ONLY separator up there, and the two settings have
           to keep moving together or the wall of touching photographs returns. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+      {/* ---- Five columns from `md`, which is the tablet step ----
+
+          This used to hold at three columns from 640px all the way to 1024px,
+          because `sm:grid-cols-3` had nothing above it until `lg`. The gap is
+          exactly the width an iPad is: every iPad in portrait lands between
+          768 and 834 CSS pixels, so the whole tablet range was being shown a
+          phone's grid stretched across a much wider screen — three tiles at
+          roughly 240px each, which is a larger product photograph than the
+          product page itself uses.
+
+          `md:grid-cols-5` is the same count `lg` was already giving, moved
+          down to where the screen first has room for it. At 820px — the
+          commonest iPad width — five columns and four 12px gaps put a tile at
+          148px, which is the size a phone tile already is and a size this card
+          is known to work at.
+
+          `lg:grid-cols-5` is gone rather than kept beside it: it would now be
+          restating what `md` already set, and a redundant step is how a
+          breakpoint ramp drifts. The ramp is 2 → 3 → 5 → 6 → 8, and it must
+          stay monotonic — the rail in `DealCarousel` mirrors these counts and
+          the two are meant to agree on any given screen. */}
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

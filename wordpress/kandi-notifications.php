@@ -42,7 +42,7 @@ function kandi_mail_brand() {
 		'name'    => trim( $name . ' ' . $suffix ),
 		'logo'    => isset( $settings['logo_url'] ) ? (string) $settings['logo_url'] : '',
 		/**
-		 * The square brand mark — the same image the browser tab uses.
+		 * The square brand mark, set in Store Settings.
 		 *
 		 * Emails get a *mark*, not just a wordmark, and the difference is worth
 		 * stating. A shopper scanning an inbox on a phone reads the sender
@@ -51,10 +51,12 @@ function kandi_mail_brand() {
 		 * is make the opened message unmistakably from this shop at a glance,
 		 * the way every WooCommerce, Amazon and Jumia receipt does.
 		 *
-		 * The favicon is the right file for it because it is the one image in
-		 * the shop guaranteed to be square — `getFaviconUrl` on the storefront
-		 * refuses anything more lopsided than 1.6:1 — and a logo cropped into a
-		 * 44px circle is otherwise a coin flip.
+		 * It has its own field rather than reusing `logo_url` because the logo is
+		 * a wordmark, and a wordmark cropped into a 44px circle is a coin flip.
+		 * This field is asked for square. It used to double as the storefront
+		 * favicon, which is where the squareness guarantee came from; the tab
+		 * icon ships as a file now (`public/icon.png`), so the only thing
+		 * keeping this square is the note under the field.
 		 */
 		'mark'    => isset( $settings['favicon_url'] ) ? (string) $settings['favicon_url'] : '',
 		'phone'   => isset( $settings['support_phone'] ) ? (string) $settings['support_phone'] : '',

@@ -261,7 +261,7 @@ export default function ProductPurchase({
                 soldOut
                   ? "text-shop-muted line-through"
                   : discount > 0
-                    ? "text-shop-sale"
+                    ? "text-shop-primary-ink"
                     : "text-shop-ink"
               }`}
             >
@@ -285,7 +285,7 @@ export default function ProductPurchase({
                 <span className="text-[17px] text-shop-muted line-through">
                   {formatPrice(product.regular_price)}
                 </span>
-                <span className="rounded-full bg-shop-sale px-2.5 py-1 text-[12px] font-semibold text-white">
+                <span className="rounded-full bg-shop-primary-ink px-2.5 py-1 text-[12px] font-semibold text-white">
                   Save {discount}%
                 </span>
               </>

@@ -259,8 +259,12 @@ export default function Header({
               Add {formatPrice(awayFromFreeDelivery)} more for FREE delivery ›
             </button>
           ) : count > 0 ? (
+            /* No emoji. This is a line about money in a strip that also
+               carries the delivery threshold and the returns window — a party
+               popper next to it makes the whole row read as marketing rather
+               than as the shop telling you what you will be charged. */
             <span className="truncate font-semibold">
-              Your order qualifies for FREE delivery 🎉
+              Delivery on this order is free
             </span>
           ) : (
             <SalesTicker messages={settings.ticker} className="min-w-0 font-semibold" />

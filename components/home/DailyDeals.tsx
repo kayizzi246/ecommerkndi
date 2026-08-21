@@ -82,7 +82,7 @@ export default function DailyDeals({
       <div className="mb-3 flex items-center gap-3 px-3 md:px-5">
         {/* The disc, matching the department rails. A price tag: the one glyph
             that means "this costs less" without a word. */}
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-shop-sale ring-1 ring-black/5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-shop-primary-ink ring-1 ring-black/5">
           <svg
             aria-hidden
             className="h-[22px] w-[22px]"
@@ -105,7 +105,7 @@ export default function DailyDeals({
             >
               Daily Deals
             </h2>
-            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-sale">
+            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-primary-ink">
               {best > 0 ? `Up to ${best}% off` : "Lowest today"}
             </span>
           </div>

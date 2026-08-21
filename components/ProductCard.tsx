@@ -92,7 +92,9 @@ function Stars({ rating }: { rating: number }) {
  * anything read together.
  *
  * Colour is rationed: the resting price is near-black and only a discounted one
- * turns red, so red still means something; green is delivery and nothing else.
+ * takes the brand orange, so the colour still means something. Red is not a
+ * price colour at all any more — it means a warning — and green is delivery and
+ * nothing else.
  *
  * Every figure comes from WooCommerce, and a row with no number behind it
  * renders empty rather than printing a zero or collapsing.
@@ -102,9 +104,15 @@ function Stars({ rating }: { rating: number }) {
  *
  * The grid widths, since most cards are in a grid. A rail passes its own —
  * see below for why that is worth the prop.
+ *
+ * One entry per column count in the grid ramp (2 → 3 → 5 → 6 → 8), and the two
+ * have to be edited together. The 768–1024 band is the one that caught this
+ * out: it read 33vw while the grid there had gone to five columns, so every
+ * iPad was downloading an image about two-thirds wider than the box it was
+ * painted into. See the breakpoint note in `InfiniteProducts`.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 17vw";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 20vw, (max-width: 1536px) 17vw, 12vw";
 
 export default function ProductCard({
   product,
@@ -166,7 +174,7 @@ export default function ProductCard({
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }
     : discount >= 30
-      ? { label: "Super Deal", className: "bg-shop-sale text-white" }
+      ? { label: "Super Deal", className: "bg-shop-primary-ink text-white" }
       : null;
 
   /** The back view, when the seller uploaded one. */
@@ -432,13 +440,33 @@ export default function ProductCard({
              a shopper actually looks at.
 
              So it is back — as a corner flag, not a medallion: 11px, top
-             right, out of the subject of the shot, in sale red rather than the
-             brand orange, and only on products with a genuine reduction. It
-             does not replace the figure beside the price; that stays, because
-             the two do different jobs — this one stops the scroll, that one
-             closes the sale. */}
+             right, out of the subject of the shot, and only on products with a
+             genuine reduction. It does not replace the figure beside the
+             price; that stays, because the two do different jobs — this one
+             stops the scroll, that one closes the sale.
+
+             ---- The flag is brand orange, not sale red ----
+
+             It was red, on the argument that red is the discount colour and
+             orange is the brand, so red is the one that says "reduced". That
+             held while red appeared nowhere else on a tile. It stopped holding
+             once the tile carried a red flag, a red Super Deal chip and a red
+             price all at once, on a page whose masthead, nav, buttons and
+             promo bar are orange: two saturated colour families a few degrees
+             apart, which reads as unresolved rather than as emphasis.
+
+             `shop-primary-ink` rather than `shop-primary` is not a nicety.
+             The palette note at the top of `globals.css` is explicit — white
+             on #ff6a00 is 2.9:1 and fails AA at small sizes, and this label is
+             11px. #b34a00 puts it at 5.9:1, which is better than the red it
+             replaces managed (4.0:1). The whole deal language — this flag, the
+             Super Deal chip and the discounted price — is now that one colour.
+
+             Red is not gone from the shop. It means exactly one thing now:
+             something is wrong. Form errors, failed payments and the stock
+             warning below still use it. */}
         {!soldOut && discount > 0 && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-primary-ink px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
             −{discount}%
           </span>
         )}
@@ -679,11 +707,25 @@ export default function ProductCard({
                starts reading as decoration.
 
                Near-black is what the product page has always used for a resting
-               price, so the grid and the PDP agree. Red is unchanged and still
-               means exactly one thing — this price has been reduced. */}
+               price, so the grid and the PDP agree.
+
+               ---- A reduced price is brand orange, not red ----
+
+               The argument above is about the RESTING price and it is
+               untouched: forty orange numbers would still be a second colour
+               field. A reduced price is a different case, because only some
+               tiles have one — it is the exception on the page, which is what
+               makes a colour on it read as information.
+
+               It was red until now. The full reasoning is on the corner flag
+               above; the short version is that a tile carrying a red flag, a
+               red chip and a red price on an orange site was running two
+               colour families at once. `shop-primary-ink` is the brand at a
+               weight that passes AA as text (5.9:1 on white, where #ff6a00
+               would be 2.9:1 and unreadable at 14px). */}
           <span
             className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale" : "text-shop-ink"
+              discount > 0 ? "text-shop-primary-ink" : "text-shop-ink"
             }`}
           >
             {formatPrice(product.price)}

@@ -590,13 +590,13 @@ function kandi_settings_render_page() {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="favicon_url">Favicon</label></th>
+					<th scope="row"><label for="favicon_url">Email brand mark</label></th>
 					<td>
 						<div id="kandi-favicon-preview" style="margin-bottom:8px;">
 							<?php if ( $s['favicon_url'] ) : ?>
 								<img src="<?php echo esc_url( $s['favicon_url'] ); ?>" alt="" style="width:32px;height:32px;object-fit:contain;background:#f6f6f6;padding:4px;border-radius:6px;">
 							<?php else : ?>
-								<em>No favicon set — the storefront uses its built-in icon.</em>
+								<em>No mark set — emails fall back to the shop name in text.</em>
 							<?php endif; ?>
 						</div>
 						<input type="text" id="favicon_url" name="favicon_url" value="<?php echo esc_attr( $s['favicon_url'] ); ?>" class="regular-text" placeholder="https://…">
@@ -604,18 +604,18 @@ function kandi_settings_render_page() {
 						<button type="button" class="button" id="kandi-pick-favicon">Choose from media library</button>
 						<button type="button" class="button" id="kandi-clear-favicon">Remove</button>
 						<p class="description">
-							The little icon in the browser tab. A <strong>square</strong> PNG at
-							512&times;512 works everywhere — browsers scale it down, and the same file
-							is used when someone saves the shop to their phone's home screen.
-							Avoid SVG: Safari still will not render one as a tab icon.
+							The square mark that goes on emails &mdash; the receipt letterhead
+							and the header of every notification the shop sends. A
+							<strong>square</strong> PNG at 512&times;512 works everywhere.
+							A wide logo will <strong>not</strong> work here; crop it square first.
 							<br>
-							A wide logo will <strong>not</strong> work here — a tab icon is a 16px
-							square. The storefront now declines anything much wider than it is tall
-							and shows its built-in mark instead, rather than hand the browser a
-							wordmark to squash into nothing. Crop your logo square first.
-							<br>
-							Browsers cache favicons hard, so give yours a few minutes — or a hard
-							refresh — before deciding it has not worked.
+							<strong>This is no longer the browser tab icon.</strong> The tab icon
+							and the icon Google shows beside the shop in search results are now a
+							file that ships with the storefront (<code>public/icon.png</code>),
+							because a favicon that depends on WordPress being reachable is a
+							favicon that quietly changes &mdash; and a search favicon that changes
+							is one Google stops showing. Changing it means replacing that file and
+							deploying. Nothing you do on this row affects it.
 						</p>
 					</td>
 				</tr>
@@ -1140,7 +1140,7 @@ function kandi_settings_render_page() {
 			event.preventDefault();
 			$('#favicon_url').val('');
 			$('#favicon_id').val(0);
-			$('#kandi-favicon-preview').html('<em>No favicon set — the storefront uses its built-in icon.</em>');
+			$('#kandi-favicon-preview').html('<em>No mark set — emails fall back to the shop name in text.</em>');
 		});
 	});
 	</script>

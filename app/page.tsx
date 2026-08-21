@@ -290,7 +290,7 @@ export default async function Home() {
             <SectionHeader
               id="new-in-heading"
               title="New in"
-              subtitle="Just listed by sellers on KandiUg"
+              subtitle="From independent Ugandan stores, not our own shelves"
               href="/sellers"
               linkLabel="All stores"
             />
@@ -334,7 +334,6 @@ export default async function Home() {
             <SectionHeader
               id="promotions-heading"
               title="Promotions"
-              subtitle="Running now across the shop"
               href="/sale"
               linkLabel="All offers"
             />
@@ -349,7 +348,6 @@ export default async function Home() {
             <SectionHeader
               id="new-arrivals-heading"
               title="New arrivals"
-              subtitle="The latest stock on the shop"
               href="/search?sort=newest"
             />
             <DealCarousel products={newArrivals} />
@@ -361,7 +359,6 @@ export default async function Home() {
             <SectionHeader
               id="best-sellers-heading"
               title="Best sellers"
-              subtitle="What shoppers here buy most"
               href="/search?sort=popular"
             />
             <DealCarousel products={bestSellers} />

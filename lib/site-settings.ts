@@ -83,11 +83,19 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     cta_label: "Up to 80% off",
     cta_url: "/sale",
   },
+  /* Four lines, and every one of them is something the checkout actually does.
+     "100% authentic brands, checked before dispatch" used to be the fourth and
+     it was the odd one out — a superlative wrapped around a claim nobody can
+     verify, in a list where the other three are terms a shopper can hold the
+     shop to. It is replaced by what the shop genuinely does instead: vetting
+     the sellers. "No questions asked" went the same way; the returns page does
+     ask questions, and promising otherwise in a ticker is a promise support
+     has to break. */
   ticker: [
     "FREE delivery on orders over UGX 50,000",
     "Pay on delivery — cash, MTN MoMo or Airtel Money",
-    "14-day free returns, no questions asked",
-    "100% authentic brands, checked before dispatch",
+    "14 days to send an item back",
+    "Every seller vetted before they can list",
   ],
   // No invented campaigns. An empty list makes the homepage derive its own from
   // the catalogue, which is always true; a default "Christmas Sale" here would
@@ -126,7 +134,42 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
 };
 
-const REVALIDATE_SECONDS = 60;
+/**
+ * How long the shop's settings are reused before WordPress is asked again.
+ *
+ * ---- Why this one number was slowing down every page in the shop ----
+ *
+ * `getSiteSettings` is called from the root layout, so it runs on EVERY page —
+ * the homepage, all 33 product pages, the static content pages, everything. In
+ * Next.js the shortest `revalidate` of any fetch a page makes becomes that
+ * page's own revalidate window, so a 60 here was not a setting on one request:
+ * it pinned the entire site to a one-minute ISR cycle. The build output said so
+ * out loud — every route in the table read "Revalidate 1m", including pages
+ * like /about that have no shop data on them at all.
+ *
+ * That would be a curiosity if the origin were fast. Measured against the live
+ * host, `/wp-json/kandi/v1/settings` answers in 0.9s to 4.2s. So the shop was
+ * re-rendering every page every minute, and each of those renders blocked on a
+ * WordPress call that can take four seconds — which is most of the 1.53s p75
+ * TTFB that Speed Insights reports. On the pages that are rendered per request
+ * rather than prerendered (/search, /sale, /category/[slug]) an expired window
+ * is not refreshed in the background at all: the shopper waits for it.
+ *
+ * ---- Why an hour is safe ----
+ *
+ * The window has never been how a settings change reaches the shop. The
+ * WordPress plugin pushes to /api/revalidate whenever anything is saved, and
+ * that handler calls `revalidatePath("/", "layout")` — which drops the root
+ * layout, and therefore this fetch, for every page at once. A shopkeeper who
+ * edits the free-delivery figure still sees it on the next page load.
+ *
+ * This number is only the fallback for when that push cannot get through: the
+ * plugin is not installed, or the request was dropped. An hour is a reasonable
+ * ceiling for a phone number and a delivery threshold — values that change a
+ * few times a year — and it is 60× fewer four-second WordPress calls on the
+ * render path than a minute was.
+ */
+const REVALIDATE_SECONDS = 3600;
 
 function str(value: unknown, fallback: string): string {
   const text = typeof value === "string" ? value.trim() : "";
@@ -276,60 +319,21 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
 /* ------------------------------------------------------------------- favicon */
 
-/** Beyond this ratio an image is a wordmark, not an icon. */
-const MAX_ICON_RATIO = 1.6;
-
-/** Reads width and height out of a PNG's IHDR, which is always the first chunk. */
-function pngSize(bytes: Uint8Array): { width: number; height: number } | null {
-  const isPng =
-    bytes.length >= 24 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47;
-  if (!isPng) return null;
-
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return { width: view.getUint32(16), height: view.getUint32(20) };
-}
-
 /**
- * The favicon to advertise, or null to fall back to the icons shipped in `app/`.
+ * There is deliberately no favicon logic here any more.
  *
- * A browser paints the tab icon into a 16px square. Given a wide image it either
- * squashes it or, in several browsers, gives up and shows nothing — which is
- * exactly what happened here: the shop had uploaded its 1584×512 wordmark to the
- * favicon field, and the tab came up blank while the file itself was perfectly
- * valid. So a non-square upload is declined in favour of the built-in mark
- * rather than passed on to be mangled.
+ * `getFaviconUrl` used to read `brand.favicon_url`, fetch the PNG to measure
+ * its IHDR, and decline anything more lopsided than 1.6:1 — because a wordmark
+ * uploaded to the favicon field paints as a blank 16px tab, which is a bug this
+ * shop actually shipped. All of that existed to make an arbitrary upload safe
+ * to hand to Google's favicon crawler.
  *
- * Only PNGs are measured. `.ico` and `.svg` are formats made for this slot and
- * are trusted; anything else is trusted too, on the grounds that guessing wrong
- * about a shop's own branding is worse than an odd-looking tab.
- *
- * The response is cached for an hour, so this costs one request per hour rather
- * than one per render, and a failure just falls back — a favicon is never worth
- * failing a page over.
+ * The icon is a file in the repository now (`public/icon.png`), so none of it
+ * applies: it is square, it is the right size, and it cannot fail to load.
+ * `brand.favicon_url` is still parsed below because the wp-admin plugin still
+ * sends the field, but nothing consumes it. See the icon note in
+ * `app/layout.tsx` for the reasoning.
  */
-export async function getFaviconUrl(): Promise<string | null> {
-  const { favicon_url: url } = (await getSiteSettings()).brand;
-  if (!url) return null;
-
-  if (!/\.png(\?|$)/i.test(url)) return url;
-
-  try {
-    const response = await fetch(url, { next: { revalidate: 3600 } });
-    if (!response.ok) return null;
-
-    const size = pngSize(new Uint8Array(await response.arrayBuffer()));
-    if (!size || size.width === 0 || size.height === 0) return url;
-
-    const ratio = Math.max(size.width / size.height, size.height / size.width);
-    return ratio > MAX_ICON_RATIO ? null : url;
-  } catch {
-    return null;
-  }
-}
 
 /* ------------------------------------------------------------------ delivery */
 

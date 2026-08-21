@@ -199,11 +199,16 @@ export default function CuratedNav({
                  first and the way to navigate it second. At 700 in near-black
                  the row reads as the primary navigation it is.
 
-                 The deal link keeps its red: it is the one entry here that is a
-                 claim about price rather than a place, and it is already bold. */
+                 The deal link is still the one entry that is a claim about
+                 price rather than a place, so it still gets a colour of its
+                 own. That colour is the brand's deep orange rather than sale
+                 red now — red across the shop means "something is wrong", and
+                 the deal language everywhere else (the corner flags, the Super
+                 Deal chips, reduced prices) moved to `shop-primary-ink` with
+                 it. See the corner-flag note in `ProductCard`. */
               className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-3 text-[14.5px] font-bold transition-colors ${
                 entry.hot
-                  ? "text-shop-sale"
+                  ? "text-shop-primary-ink"
                   : isOpen
                     ? "text-shop-flame"
                     : "text-shop-ink hover:text-shop-flame"
@@ -223,7 +228,7 @@ export default function CuratedNav({
                 </svg>
               )}
               {entry.hot && (
-                <span className="absolute -right-1 -top-0.5 rounded-full rounded-bl-none bg-shop-sale px-1.5 py-px text-[9px] font-bold leading-tight text-white">
+                <span className="absolute -right-1 -top-0.5 rounded-full rounded-bl-none bg-shop-primary-ink px-1.5 py-px text-[9px] font-bold leading-tight text-white">
                   HOT
                 </span>
               )}
