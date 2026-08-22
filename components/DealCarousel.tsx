@@ -68,17 +68,17 @@ export default function DealCarousel({
    * smaller than this shop's phone tile. The rail and the grid have to agree
    * on any given screen, so this follows the grid to six.
    *
-   * ---- The whole ramp dropped a column, so the pictures got wider ----
+   * ---- Where the ramp landed: 2 → 3 → 4 → 6 → 7 ----
    *
-   * The counts are 2 → 3 → 4 → 5 → 6 now, one fewer at every step from `md` up,
-   * mirroring `InfiniteProducts` — which is the only rule this line has ever
-   * followed. The shop is full-bleed (`--shell: 100%`), and the width that
-   * bought was spent on bigger photographs rather than more of them: at 1920
-   * six columns put a rail tile near 300px where seven put it near 250px.
+   * `md` dropped to four so the tablet gets a bigger picture; `2xl` went to
+   * seven because seven across is what was asked for. Both are `InfiniteProducts`
+   * being mirrored, which is the only rule this line has ever followed — see
+   * the ramp note there for why each step is where it is.
    *
-   * These are percentages of the TRACK, so they do not care what `--shell` is.
-   * The `sizes` string below does, and moved with them: a rail tile is ~15vw of
-   * a full-bleed window where it used to be a fixed 215px of a bounded shell.
+   * These are percentages of the TRACK, so they never cared that `--shell`
+   * went to 100% and back to 1720. The `sizes` string below did, and is a
+   * fixed 215px again: above 1720 the track stops growing, so the tile is the
+   * same size on every window wider than that.
    *
    * ---- The middle of the ramp was rebuilt around the tablet step ----
    *
@@ -87,14 +87,14 @@ export default function DealCarousel({
    * grid directly below it shows five. The two are the same products in the
    * same card at the same moment on the same screen, and they disagreed.
    *
-   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 4 → 5 → 6.
+   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 4 → 6 → 7.
    *
    *   md   23%    four, from 768px — the tablet step
-   *   xl   18.5%  five, from 1280px
-   *   2xl  /6.5   six, from 1536px, where a % starts drifting on the gaps
+   *   xl   15%    six, from 1280px
+   *   2xl  /7.5   seven, from 1536px, where a % starts drifting on the gaps
    *
    * `lg` is deliberately absent. A rail at `lg` would have to show either four
-   * (what `md` already sets) or five (what `xl` sets), and a step that repeats
+   * (what `md` already sets) or six (what `xl` sets), and a step that repeats
    * its neighbour is not a step. Between 1024 and 1280 the four tiles simply
    * get wider, which is the one range where that is the right answer — the
    * grid does exactly the same thing there.
@@ -111,7 +111,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[23%] xl:w-[18.5%] 2xl:w-[calc((100%-96px)/6.5)]",
+  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -203,7 +203,7 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 18.5vw, 15vw"
+              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
             />
           </div>
         ))}

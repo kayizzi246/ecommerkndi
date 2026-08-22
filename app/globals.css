@@ -462,8 +462,28 @@
    *     2000px the extra width goes into bigger photographs rather than more
    *     of them — which is the point of the taller 3:4 box the tile just
    *     gained, and the opposite of what a bounded shell was for.
+   *
+   * ---- Bounded again, at 1720 ----
+   *
+   * Full bleed was tried on the shop and taken straight back out. Seen on a
+   * real monitor it is not a wider catalogue, it is a page with no edges: the
+   * masthead, the rails and the grid all run into the glass, the rail's
+   * right-hand arrow sits on top of a tile that is being cut by the window
+   * frame rather than by the track, and nothing on the screen says where the
+   * shop stops and the browser starts.
+   *
+   * 1720 is the measured width — it puts about 1656px of content on a 1920px
+   * window, which is within about ten pixels of the reference this was
+   * compared against. Every `sizes` hint that moved to a `vw` for full bleed
+   * moved back to the pixel value the bounded grid actually measures, because
+   * above 1720 the tiles stop growing again and a `vw` would over-order on
+   * every wide window.
+   *
+   * This is the fifth position on this line. It should be the last one: 1500
+   * was too narrow against the reference, 100% has now been seen and rejected,
+   * and 1720 is the one that was measured rather than argued.
    */
-  --shell: 100%;
+  --shell: 1720px;
 
   --font-ui:
     var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,

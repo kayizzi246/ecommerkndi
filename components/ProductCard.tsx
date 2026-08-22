@@ -38,6 +38,43 @@ const MAX_SWATCHES = 5;
 const BESTSELLER_AT = 100;
 
 /**
+ * The social-proof ribbon, in tiers.
+ *
+ * One line of small words on the photograph — "Trending", "Bestseller",
+ * "Popular in Uganda" — of the kind every marketplace runs, and every one of
+ * them here is a threshold on `total_sales` rather than a phrase somebody typed
+ * into a field. That is the whole design constraint: a shop can print any of
+ * these words on any product, and the moment it does they stop being read.
+ *
+ * The tiers are wide apart on purpose, so the strongest word is also the rarest
+ * one on a screen:
+ *
+ *   300+  Trending           — the top of the catalogue by units moved
+ *   100+  Bestseller         — a product that genuinely sells
+ *    40+  Popular in Uganda  — enough shoppers to be worth saying so
+ *
+ * "Popular in Uganda" rather than "Popular": every shopper here is in Uganda
+ * and every seller is too, so the country is not a filter — it is the shop
+ * saying the people who bought this are your neighbours, which is the one thing
+ * a Kampala marketplace can say that AliExpress cannot.
+ *
+ * ---- What is deliberately NOT in this list ----
+ *
+ * "Most viewed", which was asked for. The storefront has no per-product view
+ * count: `lib/seller.ts` carries views for the SELLER dashboard, from the
+ * plugin's own analytics, and nothing of the sort reaches a tile. The label
+ * would have had to be drawn from sales or from reviews and called views,
+ * which is a made-up number in a shop where every other figure on the tile is
+ * real. It needs a view counter on the product first — a field in `toProduct`
+ * and something incrementing it — and then it is three lines here.
+ */
+const RIBBON_TIERS: { at: number; label: string }[] = [
+  { at: 300, label: "Trending" },
+  { at: BESTSELLER_AT, label: "Bestseller" },
+  { at: 40, label: "Popular in Uganda" },
+];
+
+/**
  * What it takes to be called "Top rated" on a tile.
  *
  * Two thresholds rather than one, because either alone is meaningless. A 5.0
@@ -165,7 +202,7 @@ function Stars({ rating }: { rating: number }) {
  * wrong everywhere except the one window it was measured on.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, (max-width: 1536px) 20vw, 17vw";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, (max-width: 1536px) 17vw, (max-width: 1720px) 14vw, 240px";
 
 export default function ProductCard({
   product,
@@ -250,7 +287,7 @@ export default function ProductCard({
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }
     : discount >= 30
-      ? { label: "Super Deal", className: "bg-shop-primary-ink text-white" }
+      ? { label: "Super Deal", className: "bg-shop-sale-price text-white" }
       : /* New sits above "Top rated" and below the two deal chips: a shopper
            who has been here before is looking for what changed, and a new
            listing has no rating yet to win the slot on anyway. */
@@ -259,6 +296,17 @@ export default function ProductCard({
         : topRated
           ? { label: "Top rated", className: "bg-shop-surface text-shop-ink" }
           : null;
+
+  /* The ribbon on the photograph. "Selling fast" outranks the sales tiers
+     because it is the only one of these words that is about right now: a
+     product that has sold well AND is nearly out is the one case where the two
+     facts together say something neither says alone. Below the lowest tier
+     there is no ribbon at all — see `RIBBON_TIERS` for why that matters more
+     than any of the words on it. */
+  const ribbon =
+    lowStock && product.total_sales >= 40
+      ? "Selling fast"
+      : (RIBBON_TIERS.find((tier) => product.total_sales >= tier.at)?.label ?? null);
 
   /* ---- Colour swatches ----
      The one variant a shopper judges from the grid. Sizes are not previewed —
@@ -619,11 +667,31 @@ export default function ProductCard({
              replaces managed (4.0:1). The whole deal language — this flag, the
              Super Deal chip and the discounted price — is now that one colour.
 
-             Red is not gone from the shop. It means exactly one thing now:
-             something is wrong. Form errors, failed payments and the stock
-             warning below still use it. */}
+             ---- And it is red again, with the Super Deal chip ----
+
+             The shopkeeper's call, and the reasoning above is not wrong so
+             much as it is now outvoted by the thing it was protecting: a deal
+             has to LOOK like a deal, and on a page whose masthead, buttons and
+             promo bar are all orange, an orange discount flag is one more
+             orange object rather than the loudest one. Red is the colour every
+             marketplace in this market uses for a reduction, and it is the
+             only hue on the tile that is not already spoken for by the brand.
+
+             `shop-sale-price` rather than `shop-sale`: #dc2626 clears 4.8:1
+             with white on it where the #e53935 error red manages 4.0:1, and
+             this label is 11px. The deal language is now one token — this
+             flag, the Super Deal chip and the discounted price are the same
+             red, which is the part the old orange arrangement got right and
+             worth keeping through the change.
+
+             What that costs, stated plainly: red no longer means only "wrong"
+             on a tile. The stock warning is red too, so a discounted product
+             with two left carries red in three places. The stock line is the
+             one that gives — it is 12px text with a dot, next to a bold chip
+             and a bold flag, and if it stops reading as a warning it should
+             move to near-black rather than the deal colour moving back. */}
         {!soldOut && discount > 0 && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-primary-ink px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale-price px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
             −{discount}%
           </span>
         )}
@@ -673,9 +741,9 @@ export default function ProductCard({
             orange — the corner flag, the Super Deal chip — and this is not a
             deal, it is what other shoppers did. A second orange object on the
             same photograph would read as another discount. */}
-        {!soldOut && product.total_sales >= BESTSELLER_AT && (
-          <span className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-shop-ink/90 px-1.5 py-[3px] text-[11px] font-bold leading-none text-white backdrop-blur-sm">
-            Bestseller
+        {!soldOut && ribbon && (
+          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-md bg-shop-ink/90 px-1.5 py-[3px] text-[11px] font-bold leading-none text-white backdrop-blur-sm">
+            {ribbon}
           </span>
         )}
 

@@ -177,35 +177,34 @@ export default function InfiniteProducts({
           fits the bounded shell at a size a shopper can judge a garment from —
           229px, against the 277px five would give and the 172px eight did.
 
-          ---- The ramp is 2 → 3 → 4 → 5 → 6, and every step lost a column ----
+          ---- Where the ramp actually landed: 2 → 3 → 4 → 6 → 7 ----
 
-          Everything above is the history of a BOUNDED shop, and the boundary is
-          gone: `--shell` is 100%, so the page runs to the glass and the width
-          being shared out is the whole window.
+          Two things were asked of this grid in the same afternoon and they pull
+          opposite ways: bigger product pictures, and seven of them across.
+          Every step here is one or the other winning at the width where it
+          matters most.
 
-          The rule those paragraphs applied — spend a wider window on MORE
-          products — is the one that changed. It went as far as it usefully
-          goes: at seven columns of a full-bleed 1920px window the tile was
-          ~250px and the shop was showing a wall of small pictures, which is
-          the failure the eight-column ramp was killed for, arriving again by a
-          different route. The picture is what sells a product, so the width is
-          spent on the picture now.
+            sm   3  unchanged
+            md   4  from 768px — down from five, because the tablet is where a
+                    picture is scarcest: an 820px iPad goes from a 148px tile to
+                    ~190px, and four is the count that buys that
+            xl   6  from 1280px
+            2xl  7  from 1536px — the seven that was asked for, at ~226px in the
+                    1720px shell
 
-          One column came off every step from `md` up, and each one is the
-          count directly below what it used to be:
+          The phone's two are untouched. Below 768px the tile is already as wide
+          as a useful grid can make it.
 
-            md   4  from 768px — an 820px iPad gets a ~190px tile
-            xl   5  from 1280px
-            2xl  6  from 1536px — ~300px at 1920, ~410px at 2560
+          `--shell` went to 100% for an hour and came back to 1720 (the note in
+          `globals.css` has the whole story), which is why the top step is a
+          fixed ~226px again rather than a share of the window.
 
-          `sm:grid-cols-3` and the phone's two are untouched: below 768px the
-          tile is already as wide as a useful grid can make it.
-
-          Two things move with this and must not be forgotten — `GRID_SIZES` in
-          `ProductCard`, or the browser fetches files for the old column count,
-          and the rail widths in `DealCarousel`, which mirror these counts so a
-          rail and the grid under it never disagree on the same screen. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          Two things move with this ramp and must not be forgotten —
+          `GRID_SIZES` in `ProductCard`, or the browser fetches files for the
+          wrong column count, and the rail widths in `DealCarousel`, which
+          mirror these counts so a rail and the grid under it never disagree on
+          the same screen. */}
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

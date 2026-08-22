@@ -188,7 +188,7 @@ function optimised(src: string, width: number): string {
 /**
  * The same banner at every configured width, for the browser to choose from.
  *
- * `sizes="100vw"` at the call site is the truth — the hero is full-bleed — so a
+ * `sizes` at the call site is the truth — a phone hero is full-bleed and a desktop one fills the shell — so a
  * 390px phone takes the 640 and a desktop takes the 1920, and neither pays for
  * the other's file.
  */
@@ -289,7 +289,7 @@ export default function HeroBanner({
           media="(min-width: 768px)"
           href={optimised(desktopSrc, 1920)}
           imageSrcSet={heroSrcSet(desktopSrc)}
-          imageSizes="100vw"
+          imageSizes="(min-width: 1720px) 1656px, 100vw"
           fetchPriority="high"
         />
         <Link href={image_href || "/sale"} className="block">
@@ -425,7 +425,7 @@ export default function HeroBanner({
               <source
                 media="(min-width: 768px)"
                 srcSet={heroSrcSet(desktopSrc) ?? optimised(desktopSrc, 1920)}
-                sizes="100vw"
+                sizes="(min-width: 1720px) 1656px, 100vw"
               />
               {/* The `<img>` carries the PHONE crop and is also the element a
                   matching `<source>` paints into, so its classes describe both
