@@ -107,10 +107,10 @@ export default function InfiniteProducts({
 
   return (
     <>
-      {/* Six across on a desktop, five on a tablet, two on a phone. In the
-          1500px shell six columns leave each photograph around 229px, which is
-          a product picture a shopper can judge a garment from rather than one
-          they have to open to see. Gaps are
+      {/* Six across on a large desktop, four on a tablet, two on a phone. The
+          shop is full-bleed now, so six columns of a 1920px window leave each
+          photograph near 300px — a product picture a shopper can judge a
+          garment from rather than one they have to open to see. Gaps are
           tight on purpose, and tighter still on a phone: a dense grid reads as
           a catalogue with depth, and 6px between two columns is all it takes to
           tell them apart on a 390px screen. */}
@@ -177,10 +177,35 @@ export default function InfiniteProducts({
           fits the bounded shell at a size a shopper can judge a garment from —
           229px, against the 277px five would give and the 172px eight did.
 
-          It stops at `xl`. There is no `2xl:` step, because above 1500px the
-          shell is not growing and a seventh column would only make the
-          pictures smaller for no more page. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6">
+          ---- The ramp is 2 → 3 → 4 → 5 → 6, and every step lost a column ----
+
+          Everything above is the history of a BOUNDED shop, and the boundary is
+          gone: `--shell` is 100%, so the page runs to the glass and the width
+          being shared out is the whole window.
+
+          The rule those paragraphs applied — spend a wider window on MORE
+          products — is the one that changed. It went as far as it usefully
+          goes: at seven columns of a full-bleed 1920px window the tile was
+          ~250px and the shop was showing a wall of small pictures, which is
+          the failure the eight-column ramp was killed for, arriving again by a
+          different route. The picture is what sells a product, so the width is
+          spent on the picture now.
+
+          One column came off every step from `md` up, and each one is the
+          count directly below what it used to be:
+
+            md   4  from 768px — an 820px iPad gets a ~190px tile
+            xl   5  from 1280px
+            2xl  6  from 1536px — ~300px at 1920, ~410px at 2560
+
+          `sm:grid-cols-3` and the phone's two are untouched: below 768px the
+          tile is already as wide as a useful grid can make it.
+
+          Two things move with this and must not be forgotten — `GRID_SIZES` in
+          `ProductCard`, or the browser fetches files for the old column count,
+          and the rail widths in `DealCarousel`, which mirror these counts so a
+          rail and the grid under it never disagree on the same screen. */}
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

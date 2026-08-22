@@ -5,12 +5,15 @@ export function ProductCardSkeleton() {
     // deliberately. A placeholder that is a different shape from what replaces
     // it makes the grid visibly re-draw itself when the products land, which
     // reads as a layout bug rather than as loading.
-    <div className="rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
-      {/* Matches ProductCard row for row: a square photo, ONE line of name, the
-          short sold-and-rating line, then the price. The text bars matter — a
-          bare square shimmering on its own reads as a broken image, where a
-          square with lines beneath it reads as a product on its way. */}
-      <div className="shimmer aspect-[8/9] w-full rounded-md md:rounded-lg" />
+    <div className="bg-white p-1.5 md:bg-transparent md:p-0">
+      {/* Matches ProductCard row for row: the photo at its 3:4 box, ONE line of
+          name, the short sold-and-rating line, then the price. The ratio is the
+          part that has to track — it is nearly all of the tile's height, so a
+          skeleton at the wrong one is a grid that jumps when the products land.
+          The text bars matter too: a bare box shimmering on its own reads as a
+          broken image, where a box with lines beneath it reads as a product on
+          its way. Square corners, because the tile has none any more. */}
+      <div className="shimmer aspect-[3/4] w-full" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
@@ -75,7 +78,7 @@ export function ProductRailSkeleton({
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-5 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
       {Array.from({ length: count }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}

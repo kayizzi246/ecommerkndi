@@ -414,8 +414,56 @@
    *
    * If the shop ever wants full bleed back, this is still the one line: put
    * `100%` here and every container follows. The hero reads the same token,
-   * so the banner goes back to spanning the window with it. */
-  --shell: 1500px;
+   * so the banner goes back to spanning the window with it.
+   *
+   * ---- 1500 → 1720 ----
+   *
+   * 1500 was picked against a 1920px window, where it leaves a 210px margin
+   * each side and reads as a deliberate stop. The monitors this shop is
+   * actually opened on are wider than that argument assumed, and on a 2560px
+   * display the page became a column with a third of the glass empty beside
+   * it — a catalogue that has forty more products to show and is choosing not
+   * to use the room.
+   *
+   * 1720 keeps the shop bounded — it still stops short of the glass at 1920,
+   * which is the whole point of having the token — and buys a seventh column
+   * at `2xl`. The extra width goes into MORE products, not bigger ones: the
+   * grids gained a `2xl:grid-cols-7` step, which puts a tile at ~226px, within
+   * a hair of the 229px six columns of 1500 was giving. Any wider and the
+   * seventh column starts shrinking the picture instead, which is where this
+   * stops.
+   *
+   * The hero still fills it edge to edge, uncropped, at its own ratio — an
+   * uploaded banner is normally 1920 or wider, so it has the pixels for this.
+   *
+   * ---- And now it is 100%: the shop is full-bleed ----
+   *
+   * Every bounded width above — 1500, then 1720 — was an argument about how
+   * much of a wide monitor a catalogue should decline to use. The answer the
+   * shop is going with is none of it. The page runs to the glass, the gutters
+   * are the container's own `px-3 md:px-8` and nothing else, and a 2560px
+   * display shows a 2560px shop.
+   *
+   * This is the line the note above always said would do it, and everything
+   * still follows from here — masthead, nav, search bar, content column,
+   * footer, sticky buy bar. There is no second width to keep in step.
+   *
+   * What has to move WITH it, and did:
+   *
+   *   • The hero's `sizes` went back to a flat `100vw`. It was
+   *     `(min-width: 1720px) 1656px`, which is now a lie on every wide window
+   *     and would have the browser fetch a file too small for the box it is
+   *     painted into — a soft banner is the most visible thing on the page.
+   *   • The tile `sizes` hints lost their fixed-pixel last entry for the same
+   *     reason: a tile in a seven-column grid is ~14vw at any width now, so a
+   *     `vw` is the honest answer where a pixel value was the honest answer
+   *     before.
+   *   • The column ramp did NOT change. It tops out at seven, so above about
+   *     2000px the extra width goes into bigger photographs rather than more
+   *     of them — which is the point of the taller 3:4 box the tile just
+   *     gained, and the opposite of what a bounded shell was for.
+   */
+  --shell: 100%;
 
   --font-ui:
     var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
@@ -633,8 +681,27 @@ h6,
    *
    * Not 900. That is a display weight — it is what /sell's headline uses at
    * 40px — and at 16px on a phone its counters close up and "UGX 145,854"
-   * starts reading as a shape rather than as figures a shopper counts. */
-  font-weight: 800;
+   * starts reading as a shape rather than as figures a shopper counts.
+   *
+   * ---- And back to 700 ----
+   *
+   * The argument above is about ONE tile, where two steps of weight over the
+   * name is what makes the price the line that leads the block. The screen is
+   * not one tile. At six and seven across, forty prices at 800 is a band of
+   * heavy figures running down the page in the same position on every card —
+   * the identical failure that took the price out of orange (see the colour
+   * note in `ProductCard`), arriving by weight instead of by hue.
+   *
+   * 700 still clears the 400 product name by a wide margin — the name went
+   * PLAIN when the grid did, so the gap the extra step was buying is already
+   * there and paid for. What 700 gets back is a grid that settles: the price
+   * is unmistakably the strongest line in its own tile without the page
+   * reading as a wall of bold.
+   *
+   * The was-price at 400 and the meta row at 400 are unchanged, so the money
+   * row's internal hierarchy — real price, then original, then everything else
+   * — is exactly as it was. */
+  font-weight: 700;
   /* ---- 16px on a phone, 18px from 640px up ----
    *
    * The scale's price row is 18px and that is the size on any screen with room

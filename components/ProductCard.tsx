@@ -4,9 +4,38 @@ import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileCartButton from "@/components/TileCartButton";
+import TileFreeDelivery from "@/components/TileFreeDelivery";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
+
+/**
+ * How long a listing counts as new.
+ *
+ * 14 days rather than 30: "new" has to mean something a returning shopper did
+ * not already see last visit, and a month-long window on a shop this size would
+ * put the badge on a good part of the catalogue — the same failure the
+ * `TOP_RATED_AT` thresholds exist to avoid.
+ */
+const NEW_FOR_DAYS = 14;
+
+/** The most colour swatches a tile previews before it counts the rest. */
+const MAX_SWATCHES = 5;
+
+/**
+ * Lifetime units sold that earn the "Bestseller" ribbon.
+ *
+ * 100, and the number is doing the same job as `TOP_RATED_AT`: a label most of
+ * the catalogue carries is a label a shopper stops seeing. On a shop this size
+ * a hundred units is a product that genuinely moves, and the ribbon appears on
+ * a handful of tiles per screen rather than on most of them.
+ *
+ * Deliberately a threshold on real sales rather than a flag an admin can tick.
+ * "Bestseller" as an editable checkbox is a claim; as a count it is a fact, and
+ * the shop already has `featured` for the shopkeeper's own picks — that is what
+ * the "Choice" chip is.
+ */
+const BESTSELLER_AT = 100;
 
 /**
  * What it takes to be called "Top rated" on a tile.
@@ -120,20 +149,23 @@ function Stars({ rating }: { rating: number }) {
  * The grid widths, since most cards are in a grid. A rail passes its own —
  * see below for why that is worth the prop.
  *
- * One entry per column count in the grid ramp (2 → 3 → 5 → 6), and the two
+ * One entry per column count in the grid ramp (2 → 3 → 4 → 5 → 6), and the two
  * have to be edited together. The 768–1024 band is the one that caught this
- * out: it read 33vw while the grid there had gone to five columns, so every
+ * out: it read 33vw while the grid there had gone to more columns, so every
  * iPad was downloading an image about two-thirds wider than the box it was
  * painted into. See the breakpoint note in `InfiniteProducts`.
  *
- * The last entry is a PIXEL value rather than a `vw`, and that is the shell
- * being bounded. Above 1500px the grid stops growing — 1436px of content, six
- * columns, a 229px tile — so the box is the same size on a 1600px laptop and
- * on a 2560px monitor. A `vw` there would over-order on the wide one and
- * under-order on the narrow one; 240px is simply what the box measures.
+ * Every entry is a `vw` now, including the last, and that is `--shell` going to
+ * 100%. It was a fixed 240px while the shell was bounded, which was the honest
+ * answer then: the grid stopped growing above the cap, so the box measured the
+ * same on a 1800px laptop and a 2560px monitor and a `vw` would have
+ * over-ordered on one and under-ordered on the other. Full-bleed reverses that
+ * exactly — six columns of the whole window is ~16vw at any width, quoted at 17
+ * to cover the gaps and the container padding, and a pixel value would now be
+ * wrong everywhere except the one window it was measured on.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 20vw, (max-width: 1500px) 17vw, 240px";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, (max-width: 1536px) 20vw, 17vw";
 
 export default function ProductCard({
   product,
@@ -208,13 +240,43 @@ export default function ProductCard({
   const topRated =
     product.rating_count >= TOP_RATED_REVIEWS && product.average_rating >= TOP_RATED_AT;
 
+  /* Listed within the fortnight. `date_created` is nullable — a product whose
+     date WooCommerce did not send is simply not new, rather than new since
+     1970. */
+  const listedAt = product.date_created ? Date.parse(product.date_created) : NaN;
+  const isNew =
+    Number.isFinite(listedAt) && Date.now() - listedAt < NEW_FOR_DAYS * 86_400_000;
+
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }
     : discount >= 30
       ? { label: "Super Deal", className: "bg-shop-primary-ink text-white" }
-      : topRated
-        ? { label: "Top rated", className: "bg-shop-surface text-shop-ink" }
-        : null;
+      : /* New sits above "Top rated" and below the two deal chips: a shopper
+           who has been here before is looking for what changed, and a new
+           listing has no rating yet to win the slot on anyway. */
+        isNew
+        ? { label: "New", className: "bg-shop-save text-white" }
+        : topRated
+          ? { label: "Top rated", className: "bg-shop-surface text-shop-ink" }
+          : null;
+
+  /* ---- Colour swatches ----
+     The one variant a shopper judges from the grid. Sizes are not previewed —
+     a size is checked once a product is wanted, on the page where it is chosen
+     — but colour decides whether the product is wanted at all, and a tile that
+     hides it sends the shopper into the PDP to find out the shot was the only
+     colour there is.
+
+     Two or more options, or nothing: a swatch row on a product that comes in
+     one colour is a control that cannot be used.
+
+     `option.value || option.name` matches `ColorSwatch` on the product page —
+     sellers set either a hex or a plain colour word, and CSS takes both. */
+  const colorOptions =
+    product.attributes?.find((attribute) => attribute.name.toLowerCase() === "color")?.options ??
+    [];
+  const swatches = colorOptions.length > 1 ? colorOptions.slice(0, MAX_SWATCHES) : [];
+  const extraSwatches = colorOptions.length - swatches.length;
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
@@ -340,7 +402,20 @@ export default function ProductCard({
     // is the flat, chrome-free one the notes above describe — one component and
     // one set of rows, with four utilities between the two screens rather than a
     // second tile.
-    <article className="group relative flex h-full flex-col rounded-xl bg-white p-1.5 md:rounded-none md:bg-transparent md:p-0">
+    //
+    // ---- And the corners are gone, on both screens ----
+    //
+    // The two paragraphs above about concentric radii — a 12px outer corner
+    // wanting a 6px inner one — described a real rule and there is nothing left
+    // for it to govern: the phone card is square and so is the photograph
+    // inside it, so the pair cannot disagree. They are kept because the rule is
+    // what to reach for if a radius ever comes back, not because it is in force.
+    //
+    // The phone card itself stays. It is not decoration — it is the only thing
+    // separating a tile from the #f9fafb page below 768px, per the argument
+    // above — and a square white card on an off-white ground separates exactly
+    // as well as a rounded one did.
+    <article className="group relative flex h-full flex-col bg-white p-1.5 md:bg-transparent md:p-0">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -406,8 +481,42 @@ export default function ProductCard({
 
               Anything genuinely square still fills the box: `object-cover`
               crops the long edge, and at 5:6 what comes off a square source is
-              about 8% of its height, which is margin. */}
-          <div className="relative aspect-[5/6] w-full overflow-hidden rounded-md bg-shop-hairline md:rounded-lg">
+              about 8% of its height, which is margin.
+
+              ---- 3:4, one more step, and this is the last one ----
+
+              The picture is the tile. Everything under it — name, price, meta —
+              is confirmation of a decision the photograph has already made, so
+              width for width, a taller box is simply more product on the
+              screen: at seven columns of the 1720px shell the photo goes from
+              271px tall to 301px, an 11% bigger picture for 30px of page.
+
+              It stops here. 2:3 is the next step and it is the fashion-only
+              poster the note above rules out — this catalogue is half homeware,
+              and the box has to hold a rice cooker as well as a dress. 3:4 is
+              also where `object-cover`'s crop is still honest: about 13% off
+              the height of a square source, taken evenly top and bottom, which
+              a centred product shot has to give.
+
+              ---- No radius, on the photo or the tile ----
+
+              The corners were 10px, then 8px, measured off a reference grid
+              that rounds its tiles. This grid is not that grid any more: the
+              tiles run flat on a white page with the gap doing the separating
+              (see the top of this file), and a rounded corner on a flat tile is
+              a card outline with the card removed — it implies a surface that
+              is not there.
+
+              Square also buys back the picture's own corners. `object-cover` on
+              a rounded box clips four bites out of the photograph, which on a
+              catalogue shot on white is invisible and on a product filling its
+              frame is the corner of the product. At this size that is real.
+
+              The circular controls and the label chips keep their radii. They
+              are objects ON the photograph rather than the photograph's own
+              edge, and a square wishlist button is a different decision that
+              nobody asked for. */}
+          <div className="relative aspect-[3/4] w-full overflow-hidden bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -546,6 +655,29 @@ export default function ProductCard({
             iconClassName="w-[16px] h-[16px]"
           />
         </div>
+
+        {/* ---- The bestseller ribbon ----
+
+            On the photograph, bottom left, opposite the cart button and clear
+            of the discount flag in the top right.
+
+            It is here rather than in the title's chip slot because the chip
+            slot holds exactly one label and it is already spoken for on these
+            products — a bestseller is very often also featured or discounted,
+            so a fourth entry in that cascade would simply never render. The
+            two positions also do different work: the chip is read with the
+            name, this is read with the picture, which is the half of the tile a
+            thumb flicking a rail actually sees.
+
+            Near-black rather than orange. The deal language on a tile is brand
+            orange — the corner flag, the Super Deal chip — and this is not a
+            deal, it is what other shoppers did. A second orange object on the
+            same photograph would read as another discount. */}
+        {!soldOut && product.total_sales >= BESTSELLER_AT && (
+          <span className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-shop-ink/90 px-1.5 py-[3px] text-[11px] font-bold leading-none text-white backdrop-blur-sm">
+            Bestseller
+          </span>
+        )}
 
         {/* Add-to-bag rides the corner of the photograph rather than sitting in
             the text below it. It buys back a whole line of the tile, and it is
@@ -687,6 +819,35 @@ export default function ProductCard({
           </p>
         )}
 
+        {/* ---- The stock bar ----
+
+            The same fact as the line above it, drawn instead of counted, and
+            the pair is the point: "Only 2 left" is a number a shopper has to
+            weigh against nothing, and a bar two-fifths full is a quantity they
+            read without stopping. Every marketplace this shop competes with
+            runs one, and this is the one urgency device on the tile that is
+            not a claim — it is `stock_quantity` out of the threshold that put
+            the warning there, so a bar can never say "nearly gone" about a
+            product with plenty in the back.
+
+            It is honest about its scale, which is the part that is usually
+            faked. The full width is `LOW_STOCK_AT`, not some invented
+            starting stock: the bar begins at the moment the product becomes
+            scarce and empties from there, so five left is a full bar and one
+            left is a fifth. Nothing here is ever drawn from a figure the shop
+            does not have. */}
+        {lowStock && product.stock_quantity !== null && (
+          <span
+            aria-hidden
+            className="mt-0.5 block h-[3px] w-full max-w-[90px] overflow-hidden bg-shop-hairline"
+          >
+            <span
+              className="block h-full bg-shop-sale"
+              style={{ width: `${Math.max(12, (product.stock_quantity / LOW_STOCK_AT) * 100)}%` }}
+            />
+          </span>
+        )}
+
         {/* Rating and units sold — the two numbers a shopper uses to decide
             whether anyone else has taken the risk first.
 
@@ -699,23 +860,93 @@ export default function ProductCard({
             `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
             1.3 leading would otherwise open a 15.6px box under a tile that is
             trying to be short. */}
-        {(product.total_sales > 0 || product.rating_count > 0) && (
+        {(product.total_sales > 0 || product.rating_count > 0 || product.seller) && (
           <div className="flex items-center gap-x-2 overflow-hidden py-[3px]">
             {product.total_sales > 0 && (
-              <span className="meta-note leading-none text-shop-muted">
+              <span className="meta-note shrink-0 leading-none text-shop-muted">
                 {compactSold(product.total_sales)} sold
               </span>
             )}
             {product.rating_count > 0 && (
-              <span className="flex items-center gap-1">
+              <span className="flex shrink-0 items-center gap-1">
                 <Stars rating={product.average_rating} />
                 <span className="meta-note leading-none text-shop-body">
                   {product.average_rating.toFixed(1)}
                 </span>
               </span>
             )}
+            {/* ---- Who is selling it ----
+                This is a marketplace: the tiles in one grid come from different
+                shops, and on every other marketplace the store name is the
+                thing a shopper uses to decide whether to trust a listing they
+                know nothing else about. It was the one fact on the tile that
+                the shop had and never showed.
+
+                It rides the meta row rather than taking one of its own, so on
+                the tiles that already show sales or a rating it costs no
+                height at all — and it is the item that gives way when the row
+                runs out of width, because a store name is context for the two
+                numbers beside it rather than a rival to them.
+
+                Hidden below `sm`: a 150px phone tile fits "2.2K sold" and five
+                stars and nothing more, and a store name squeezed to four
+                characters and an ellipsis identifies nobody.
+
+                Its own link, not the tile's — tapping the store should go to
+                the store. `relative z-10` keeps it above nothing in
+                particular today, but the tile has had an overlay link before
+                and this is the guard against the next one swallowing it. */}
+            {product.seller?.store_slug && (
+              <Link
+                href={`/sellers/${product.seller.store_slug}`}
+                className="meta-note relative z-10 ml-auto hidden min-w-0 truncate leading-none text-shop-muted transition-colors hover:text-shop-primary sm:block"
+              >
+                {product.seller.store_name}
+              </Link>
+            )}
           </div>
         )}
+
+        {/* The colours it comes in, when it comes in more than one. Dots rather
+            than the names: at 12px "Charcoal / Off-white / Sand" is unreadable
+            and the colour itself is the label.
+
+            `aria-hidden` on the dots with the names in one visually-hidden
+            string beside them — five unlabelled circles are noise to a screen
+            reader, and the useful form of this row is the sentence, not the
+            swatches. Not interactive here: choosing happens on the product
+            page, and a tile that let a colour be picked would be promising a
+            preview it cannot show. */}
+        {swatches.length > 0 && (
+          <div className="flex items-center gap-1 py-[3px]">
+            <span className="sr-only">
+              Colours: {colorOptions.map((option) => option.name).join(", ")}
+            </span>
+            {swatches.map((option) => (
+              <span
+                key={option.name}
+                aria-hidden
+                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: option.value || option.name.toLowerCase() }}
+              />
+            ))}
+            {extraSwatches > 0 && (
+              <span aria-hidden className="meta-note leading-none text-shop-muted">
+                +{extraSwatches}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Free delivery, on the items that clear the threshold on their own.
+
+            Above the money block rather than inside it, deliberately: the block
+            below is bottom-pinned by `mt-auto` so that every price in a grid
+            row lands on the same line, and a row rendered underneath the price
+            would lift it off that line on some tiles and not others. Everything
+            above the pin flows from the top and can appear and disappear
+            freely, which is where a conditional row belongs. */}
+        {!soldOut && <TileFreeDelivery price={product.price} />}
 
         {/* ---- The money, and the last thing in the tile ----
 

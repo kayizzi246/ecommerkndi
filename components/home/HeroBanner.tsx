@@ -289,7 +289,7 @@ export default function HeroBanner({
           media="(min-width: 768px)"
           href={optimised(desktopSrc, 1920)}
           imageSrcSet={heroSrcSet(desktopSrc)}
-          imageSizes="(min-width: 1500px) 1436px, 100vw"
+          imageSizes="100vw"
           fetchPriority="high"
         />
         <Link href={image_href || "/sale"} className="block">
@@ -425,7 +425,7 @@ export default function HeroBanner({
               <source
                 media="(min-width: 768px)"
                 srcSet={heroSrcSet(desktopSrc) ?? optimised(desktopSrc, 1920)}
-                sizes="(min-width: 1500px) 1436px, 100vw"
+                sizes="100vw"
               />
               {/* The `<img>` carries the PHONE crop and is also the element a
                   matching `<source>` paints into, so its classes describe both
