@@ -10,8 +10,48 @@ import PesapalModal from "@/components/PesapalModal";
 import DeliveryPicker, { type DeliveryResult } from "@/components/DeliveryPicker";
 import { saveAddress } from "@/lib/saved-addresses";
 import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
+import { codZoneFor } from "@/lib/cod-zones";
+import { isUgPhone, formatUgPhone } from "@/lib/phone";
 
-const labelClass = "mb-1.5 block text-[13px] font-medium text-shop-body";
+const labelClass = "mb-1 block text-[13.5px] font-semibold text-shop-ink";
+
+/** The grey line under a field that says what to put in it. */
+const hintClass = "mt-1 text-[12.5px] leading-4 text-shop-muted";
+
+/**
+ * A field that failed, in red, under the field that failed.
+ *
+ * Deliberately not a summary at the top of the form. A shopper who has filled
+ * in nine boxes and is told "please check your details" has to find the one
+ * that is wrong themselves, and on a phone the summary is off screen by the
+ * time they are looking at the box.
+ */
+function FieldError({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-1 flex items-start gap-1 text-[12.5px] font-medium leading-4 text-shop-sale">
+      <span aria-hidden>!</span>
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** The step number beside a section heading. */
+function StepHeading({ step, title, sub }: { step: number; title: string; sub?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="flex items-center gap-2.5 text-[18px] font-extrabold text-shop-ink">
+        <span
+          aria-hidden
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-shop-ink text-[12px] font-bold text-white"
+        >
+          {step}
+        </span>
+        {title}
+      </h2>
+      {sub && <p className="mt-1.5 text-[13.5px] leading-5 text-shop-muted">{sub}</p>}
+    </div>
+  );
+}
 
 type PaymentValue = "cod" | "mobile" | "card";
 
@@ -36,7 +76,7 @@ const PAYMENT_METHODS: {
   {
     value: "cod",
     label: "Cash on delivery",
-    hint: "Pay with cash when your order arrives.",
+    hint: "Pay the rider in cash when your order arrives.",
     viaPesapal: false,
   },
 ];
@@ -71,11 +111,49 @@ export default function CheckoutPage() {
     city: "",
   });
 
+  /**
+   * Which fields the shopper has finished with, so a half-typed phone number is
+   * not called wrong while they are still typing it.
+   *
+   * Validation on blur and then live once a field has been touched is the
+   * pattern that annoys nobody: nothing is red before it has been attempted,
+   * and once it has, the error clears the moment it is fixed rather than on
+   * the next submit.
+   */
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const markTouched = (name: string) => () =>
+    setTouched((current) => ({ ...current, [name]: true }));
+
   const setField = (name: keyof typeof addressFields) => (value: string) =>
     setAddressFields((current) => ({ ...current, [name]: value }));
 
   const deliveryFee = delivery?.deliverable ? delivery.fee : 0;
   const total = subtotal + deliveryFee;
+
+  const phoneValid = isUgPhone(addressFields.phone);
+  const phoneError = touched.phone && addressFields.phone.trim() !== "" && !phoneValid;
+
+  /**
+   * Cash on delivery, decided by where the parcel is going.
+   *
+   * Read from the delivery COORDINATE rather than the typed city — see
+   * `lib/cod-zones.ts` — so the answer here is the same one the server will
+   * reach when the order is posted. The two must never disagree: a shopper
+   * offered cash on delivery and then refused it at submit has been told the
+   * shop cannot make up its mind.
+   */
+  const codZone = codZoneFor(delivery?.point);
+  const codAllowed = Boolean(codZone);
+
+  /* Moving the pin out of a cash-on-delivery area silently changes what the
+     shop can accept, so the selection follows the address rather than waiting
+     to fail on submit. Falling back to mobile money rather than card because it
+     is what most of this shop pays with. */
+  useEffect(() => {
+    if (method === "cod" && !codAllowed && pesapalReady) {
+      setMethod("mobile");
+    }
+  }, [method, codAllowed, pesapalReady]);
 
   // Whether the shop can take card / mobile money at all. Asked once, so the
   // unavailable options are visibly disabled rather than failing on submit.
@@ -133,6 +211,32 @@ export default function CheckoutPage() {
     }
     if (!delivery.deliverable) {
       setError("We do not deliver that far yet. Try an address closer to Kampala.");
+      setSubmitting(false);
+      return;
+    }
+
+    /* The rider calls this number to deliver the order, so a number that cannot
+       be called is an order that cannot be delivered. Checked again on the
+       server, which is the copy that counts — see `/api/checkout`. */
+    if (!isUgPhone(customer.phone)) {
+      setTouched((current) => ({ ...current, phone: true }));
+      setError(
+        "Check your phone number — it should be a Ugandan mobile like 0772 123 456. " +
+          "The rider calls it to deliver your order."
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    /* Cash on delivery outside its areas. The option is disabled in the form,
+       so reaching here means the address changed after it was picked — which is
+       exactly the case that would otherwise post a COD order the shop does not
+       accept. */
+    if (method === "cod" && !codAllowed) {
+      setError(
+        "Cash on delivery is not available in your area. " +
+          "Choose mobile money or card for this address."
+      );
       setSubmitting(false);
       return;
     }
@@ -340,44 +444,73 @@ export default function CheckoutPage() {
           </nav>
 
           <section>
-            <h2 className="mb-4 text-[18px] font-extrabold text-shop-ink">Contact</h2>
+            <StepHeading
+              step={1}
+              title="How we reach you"
+              sub="The rider calls before delivering, so this has to be a number you answer."
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="phone">
-                  Phone number *
+                  Phone number <span className="text-shop-sale">*</span>
                 </label>
                 <input
                   id="phone"
                   name="phone"
                   type="tel"
                   required
+                  /* `inputMode` rather than only `type`: it is what puts the
+                     number pad up on a phone, which is most of this shop. */
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={addressFields.phone}
                   onChange={(event) => setField("phone")(event.target.value)}
-                  placeholder="07xx xxx xxx"
-                  className="field-shop"
+                  onBlur={markTouched("phone")}
+                  aria-invalid={phoneError || undefined}
+                  aria-describedby="phone-hint"
+                  placeholder="0772 123 456"
+                  className={`field-shop ${phoneError ? "border-shop-sale" : ""}`}
                 />
+                {phoneError ? (
+                  <FieldError>
+                    Ugandan mobile numbers start 07 and have 10 digits — like 0772 123 456.
+                  </FieldError>
+                ) : (
+                  <p id="phone-hint" className={hintClass}>
+                    {phoneValid
+                      ? `We'll call ${formatUgPhone(addressFields.phone)}`
+                      : "MTN or Airtel. We call this number to deliver."}
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelClass} htmlFor="email">
-                  Email
+                  Email <span className="font-normal text-shop-muted">(optional)</span>
                 </label>
                 <input
                   id="email"
                   name="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
                   placeholder="you@example.com"
+                  aria-describedby="email-hint"
                   className="field-shop"
                 />
+                <p id="email-hint" className={hintClass}>
+                  For your receipt and order tracking. We&apos;ll send a link to set a
+                  password so you can follow the order.
+                </p>
               </div>
             </div>
-            <p className="mt-2.5 text-[13px] leading-5 text-shop-muted">
-              We&apos;ll create your Kandi account with this email so you can track orders —
-              you&apos;ll receive a link to set your password.
-            </p>
           </section>
 
           <section className="mt-10">
-            <h2 className="mb-4 text-[18px] font-extrabold text-shop-ink">Delivery</h2>
+            <StepHeading
+              step={2}
+              title="Where we deliver it"
+              sub="Drop a pin or type a landmark — we price the delivery from it straight away."
+            />
 
             {/* Priced before the shopper pays, not after. "Calculated at
                 delivery" is the line that loses carts. */}
@@ -405,82 +538,147 @@ export default function CheckoutPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="first_name">
-                  First name *
+                  First name <span className="text-shop-sale">*</span>
                 </label>
                 <input
                   id="first_name"
                   name="first_name"
                   required
+                  autoComplete="given-name"
                   value={addressFields.first_name}
                   onChange={(event) => setField("first_name")(event.target.value)}
-                  className="field-shop"
+                  onBlur={markTouched("first_name")}
+                  placeholder="Sarah"
+                  aria-describedby="first_name-hint"
+                  className={`field-shop ${
+                    touched.first_name && !addressFields.first_name.trim()
+                      ? "border-shop-sale"
+                      : ""
+                  }`}
                 />
+                {touched.first_name && !addressFields.first_name.trim() ? (
+                  <FieldError>We need a name for the rider to ask for.</FieldError>
+                ) : (
+                  <p id="first_name-hint" className={hintClass}>
+                    Who is receiving the parcel.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelClass} htmlFor="last_name">
-                  Last name
+                  Last name <span className="font-normal text-shop-muted">(optional)</span>
                 </label>
                 <input
                   id="last_name"
                   name="last_name"
+                  autoComplete="family-name"
                   value={addressFields.last_name}
                   onChange={(event) => setField("last_name")(event.target.value)}
+                  placeholder="Nakato"
                   className="field-shop"
                 />
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="address_1">
-                  Address *
+                  Street, building or landmark <span className="text-shop-sale">*</span>
                 </label>
                 <input
                   id="address_1"
                   name="address_1"
                   required
+                  autoComplete="street-address"
                   value={addressFields.address_1}
                   onChange={(event) => setField("address_1")(event.target.value)}
-                  placeholder="Street, building, landmark…"
-                  className="field-shop"
+                  onBlur={markTouched("address_1")}
+                  placeholder="Plot 12 Bukoto Street, blue gate opposite Shell"
+                  aria-describedby="address_1-hint"
+                  className={`field-shop ${
+                    touched.address_1 && !addressFields.address_1.trim()
+                      ? "border-shop-sale"
+                      : ""
+                  }`}
                 />
+                {touched.address_1 && !addressFields.address_1.trim() ? (
+                  <FieldError>
+                    Tell the rider where to stop — a road and a landmark is enough.
+                  </FieldError>
+                ) : (
+                  /* Naming the landmark in the hint rather than only in the
+                     placeholder: half of Kampala has no numbered street, and
+                     "opposite the mosque" is what actually gets a parcel to a
+                     gate. A placeholder disappears the moment anyone types. */
+                  <p id="address_1-hint" className={hintClass}>
+                    A nearby landmark helps most — &ldquo;next to Cafe Javas, green gate&rdquo;.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelClass} htmlFor="city">
-                  City / Town *
+                  Town or suburb <span className="text-shop-sale">*</span>
                 </label>
                 <input
                   id="city"
                   name="city"
                   required
+                  autoComplete="address-level2"
                   value={addressFields.city}
                   onChange={(event) => setField("city")(event.target.value)}
-                  placeholder="Kampala"
-                  className="field-shop"
+                  onBlur={markTouched("city")}
+                  placeholder="Muyenga"
+                  aria-describedby="city-hint"
+                  className={`field-shop ${
+                    touched.city && !addressFields.city.trim() ? "border-shop-sale" : ""
+                  }`}
                 />
+                {touched.city && !addressFields.city.trim() ? (
+                  <FieldError>Which town or suburb?</FieldError>
+                ) : (
+                  <p id="city-hint" className={hintClass}>
+                    Kampala, Wakiso, Entebbe…
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelClass} htmlFor="country">
-                  Country / Region
+                  Country
                 </label>
                 <input
                   id="country"
                   value="Uganda"
                   readOnly
+                  aria-describedby="country-hint"
                   className="field-shop bg-shop-surface text-shop-muted"
                 />
+                <p id="country-hint" className={hintClass}>
+                  We deliver within Uganda only.
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="notes">
-                  Delivery notes (optional)
+                  Anything the rider should know{" "}
+                  <span className="font-normal text-shop-muted">(optional)</span>
                 </label>
-                <textarea id="notes" name="notes" rows={3} className="field-shop resize-y" />
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows={3}
+                  placeholder="Call when you reach the gate. Deliver after 5pm."
+                  aria-describedby="notes-hint"
+                  className="field-shop resize-y"
+                />
+                <p id="notes-hint" className={hintClass}>
+                  Gate codes, a better time to come, or who to hand it to.
+                </p>
               </div>
             </div>
           </section>
 
           <section className="mt-10">
-            <h2 className="mb-1 text-[18px] font-extrabold text-shop-ink">Payment</h2>
-            <p className="mb-4 text-[14px] text-shop-muted">
-              All transactions are secure and encrypted.
-            </p>
+            <StepHeading
+              step={3}
+              title="How you pay"
+              sub="All transactions are secure and encrypted."
+            />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
               {PAYMENT_METHODS.map((option) => {
@@ -489,7 +687,18 @@ export default function CheckoutPage() {
                 // listed separately because that is how a shopper thinks about
                 // paying, and the Pesapal window opens on the right tab either
                 // way.
-                const unavailable = option.viaPesapal && !pesapalReady;
+                //
+                // Cash on delivery has a second gate, and it is a place rather
+                // than a setting: the shop only carries cash to a few
+                // neighbourhoods. The radio is disabled outside them rather
+                // than hidden, because a missing option looks like a bug and a
+                // disabled one with a reason under it is an answer — and it is
+                // the difference between a shopper choosing mobile money and a
+                // shopper abandoning the cart to go and look for the option
+                // they had last time.
+                const unavailable =
+                  (option.viaPesapal && !pesapalReady) ||
+                  (option.value === "cod" && !codAllowed);
 
                 return (
                   <label
@@ -531,7 +740,13 @@ export default function CheckoutPage() {
                         )}
                       </span>
                       <span className="mt-1 block text-[14px] leading-5 text-shop-muted">
-                        {unavailable ? "Not available on this shop yet." : option.hint}
+                        {option.value === "cod"
+                          ? codAllowed
+                            ? `Available at this address. ${option.hint}`
+                            : "Not available in your area."
+                          : unavailable
+                            ? "Not available on this shop yet."
+                            : option.hint}
                       </span>
                     </span>
                   </label>

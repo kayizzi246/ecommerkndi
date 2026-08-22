@@ -370,7 +370,12 @@ export default function ProductPurchase({
                 <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                 </svg>
-                <span>Pay on delivery · {returnsDays}-day returns</span>
+                {/* Not "Pay on delivery" any more. Cash on delivery is limited
+                    to a few neighbourhoods (see `lib/cod-zones.ts`), and a
+                    promise made on the product page that the checkout then
+                    withdraws is the most expensive kind of copy a shop can
+                    run — the shopper has already chosen by then. */}
+                <span>Secure payment · {returnsDays}-day returns</span>
               </p>
             </div>
           )}
@@ -447,7 +452,7 @@ export default function ProductPurchase({
                for nobody. Drawn inline as SVG, so no marks can fail to load. */}
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-shop-hairline pt-3">
             <span className="text-[13px] font-semibold text-shop-body">
-              Pay on delivery, or with
+              Pay with
             </span>
             <span className="flex flex-wrap items-center gap-1.5">
               <MtnMark />
@@ -504,7 +509,7 @@ export default function ProductPurchase({
                 </p>
                 <ul className="mt-1 space-y-1 text-[12.5px] text-shop-body">
                   <li className="flex items-start gap-1.5">
-                    <Tick /> Pay on delivery — cash or mobile money
+                    <Tick /> Cash on delivery in selected areas
                   </li>
                   <li className="flex items-start gap-1.5">
                     <Tick /> Card details never stored by the shop
@@ -593,7 +598,10 @@ export default function ProductPurchase({
           )}
         </p>
         <p className="mt-4 font-semibold text-shop-ink">Payment</p>
-        <p>Pay on delivery with cash, MTN Mobile Money, Airtel Money, or by card at checkout.</p>
+        <p>
+          Pay by MTN Mobile Money, Airtel Money or card at checkout. Cash on delivery is
+          available in selected areas only — the checkout tells you before you pay.
+        </p>
         <p className="mt-4 font-semibold text-shop-ink">Returns</p>
         <p>
           Items can be returned within {returnsDays} days of delivery in their original condition

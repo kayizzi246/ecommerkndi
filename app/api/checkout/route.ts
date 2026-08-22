@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { quoteDelivery } from "@/lib/delivery";
+import { codZoneFor } from "@/lib/cod-zones";
+import { normaliseUgPhone } from "@/lib/phone";
 import { getDeliveryRates } from "@/lib/site-settings";
 import { getProduct } from "@/lib/woocommerce";
 import { APP_WRITE_CORS_HEADERS, appPreflight } from "@/lib/app-api";
@@ -48,6 +50,59 @@ async function placeOrder(request: Request): Promise<Response> {
         { status: 400 }
       );
     }
+  }
+
+  /* ---- The phone number, checked rather than collected ----
+   *
+   * Every order here is finished by a rider on the phone, so a number that
+   * cannot be called is an order that cannot be delivered — and the shop finds
+   * out only after it has packed and dispatched it. The browser checks the same
+   * rule with the same function; this is the copy that anyone posting straight
+   * to this endpoint cannot skip.
+   *
+   * Normalised, not merely validated: the order stores `+2567XXXXXXXX` whether
+   * it was typed as 0772…, 256772… or +256 772…, so two orders from the same
+   * person are recognisably from the same person. */
+  const phone = normaliseUgPhone(customer.phone ?? "");
+  if (!phone) {
+    return NextResponse.json(
+      {
+        error:
+          "That phone number does not look right. Enter a Ugandan mobile number — " +
+          "07XX XXX XXX — because the rider calls it to deliver your order.",
+      },
+      { status: 400 }
+    );
+  }
+  customer.phone = phone;
+
+  /* ---- Cash on delivery is a place, not a preference ----
+   *
+   * COD is offered in a few neighbourhoods and nowhere else; `lib/cod-zones.ts`
+   * carries the list and the reasoning. This is the check that ENFORCES it. The
+   * checkout hides and disables the option outside those areas, which is the
+   * courtesy; a hidden radio is not a rule, because the order that matters is
+   * the one posted by a script, a stale tab, or a shopper who picked COD in
+   * Kololo and then moved the pin to Mukono before submitting.
+   *
+   * It is read off the delivery COORDINATE — the same point delivery is priced
+   * from — rather than the typed city, so it cannot be typed around and cannot
+   * disagree with the fee. No point means no COD at all: an order with no
+   * location has nothing to check the rule against, and quietly allowing it
+   * would make the whole rule optional. */
+  const codRequested = (body.payment_method ?? "").toLowerCase() === "cod";
+  const codZone = codRequested ? codZoneFor(body.delivery_point) : null;
+
+  if (codRequested && !codZone) {
+    return NextResponse.json(
+      {
+        error:
+          "Cash on delivery is not available in your area. " +
+          "Please pay by mobile money or card — your cart is saved.",
+        code: "cod_unavailable",
+      },
+      { status: 400 }
+    );
   }
 
   const line_items = items
