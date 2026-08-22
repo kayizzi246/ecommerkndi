@@ -8,6 +8,7 @@ import {
   metaDescription,
   productJsonLd,
   productPath,
+  productTitle,
 } from "@/lib/seo";
 import { formatPrice } from "@/lib/currency";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -72,9 +73,7 @@ export async function generateMetadata({
      * shortens a title to the width it has, and doing it first only guarantees
      * the loss.
      */
-    title: /\b(uganda|price)\b/i.test(product.name)
-      ? product.name
-      : `${product.name} price in Uganda`,
+    title: productTitle(product),
     description,
     // Stops the same product counting as duplicate content when it is reachable
     // by both its slug and its numeric id.

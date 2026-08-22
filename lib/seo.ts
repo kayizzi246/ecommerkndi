@@ -53,6 +53,18 @@ export function productPath(product: Pick<Product, "id" | "slug">): string {
   return `/products/${product.slug || product.id}`;
 }
 
+/** Keep the product name and the Uganda buying phrase inside the SERP title. */
+export function productTitle(product: Pick<Product, "name">): string {
+  const name = product.name.trim();
+  const suffix = /\b(uganda|price)\b/i.test(name) ? "" : " price in Uganda";
+  const limit = 60;
+  const availableNameLength = limit - suffix.length;
+
+  if (name.length <= availableNameLength) return `${name}${suffix}`;
+
+  return `${name.slice(0, Math.max(1, availableNameLength - 1)).trimEnd()}…${suffix}`;
+}
+
 /**
  * A description for the meta tag.
  *
