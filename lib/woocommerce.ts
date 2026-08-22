@@ -523,11 +523,33 @@ function toProduct(raw: unknown): Product {
   };
 }
 
+/**
+ * WordPress stores term names HTML-encoded, so "Candles & Scents" arrives as
+ * "Candles &amp; Scents" and React — correctly — renders the entity as
+ * literal text, because a category name is text and not markup. Decoding here
+ * rather than at each call site means the menu, the category page and the
+ * breadcrumbs all get it, and none of them has to remember to.
+ *
+ * Only the five XML entities plus the numeric forms: a term name is a short
+ * label, and anything beyond this would be a licence to feed markup through.
+ */
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    // Last, so "&amp;lt;" decodes to the text "&lt;" rather than to "<".
+    .replace(/&amp;/g, "&");
+}
+
 function toCategory(raw: unknown): ProductCategory {
   const category = obj(raw);
   return {
     id: num(category.id),
-    name: str(category.name),
+    name: decodeEntities(str(category.name)),
     slug: str(category.slug),
     count: category.count == null ? undefined : num(category.count),
     parent: category.parent == null ? 0 : num(category.parent),
