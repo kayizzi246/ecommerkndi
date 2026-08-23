@@ -229,14 +229,28 @@ export default function SearchBar() {
   return (
     <div ref={boxRef} className="relative w-full">
       <form onSubmit={submit} role="search">
-        {/* A rounded field with the action as a solid orange block on the right
-            — the widest, most obvious target on the page, and the one place the
-            brand orange gets to be loud. The magnifier lives inside that block:
-            with a placeholder this explicit, a second icon on the left was
-            decoration taking up room the query needs. */}
+        {/* A squared-off white field with the action as a solid block on the
+            right — the widest, most obvious target on the page. The magnifier
+            lives inside that block: with a placeholder this explicit, a second
+            icon on the left was decoration taking up room the query needs.
+
+            ---- The edge, now that the row behind it is orange ----
+
+            The resting border was `shop-line`, a pale grey, and the focus
+            border was brand orange. Both were drawn for a white masthead and
+            both fail on an orange one: the grey reads as a dirty halo around
+            the field, and an orange focus ring on an orange row is not a ring
+            at all — the field would appear to lose its edge at the exact moment
+            a shopper started typing into it.
+
+            So the resting edge is the field's own white, which makes the pill
+            read as one clean shape against the brand colour, and focus goes to
+            near-black — the only hue in the palette that is unambiguous against
+            both the white field and the orange row. `border-2` stays: with the
+            row no longer neutral, the edge is what holds the field's shape. */}
         <div
           className={`flex items-center gap-2 overflow-hidden rounded-lg border-2 bg-white pl-4 transition-colors duration-200 ${
-            focused ? "border-shop-flame" : "border-shop-line hover:border-shop-flame/50"
+            focused ? "border-shop-nav" : "border-white hover:border-shop-nav/25"
           }`}
         >
           {/* ---- Scope ----
@@ -350,10 +364,19 @@ export default function SearchBar() {
             </button>
           )}
 
+          {/* Near-black, not brand orange.
+
+              The orange block was the loudest thing in the chrome while the
+              masthead was neutral. It sits at the right edge of the field, so
+              on an orange row it touches the row's own colour and the field
+              stops looking like it ends — the button bleeds into the masthead
+              and the pill reads as a white notch cut out of it. Near-black
+              separates from both surfaces and keeps the submit the heaviest
+              object in the field, which is the property that mattered. */}
           <button
             type="submit"
             aria-label="Search"
-            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-flame text-white transition-colors hover:bg-shop-primary"
+            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-nav text-white transition-colors hover:bg-shop-nav-dark"
           >
             <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path

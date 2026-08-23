@@ -44,12 +44,14 @@ export default function AccountMenu() {
         <Link
           href="/account"
           aria-label={`Account: ${customer.name}`}
-          // White, not `text-shop-body`. This component is rendered in exactly
-          // one place — the masthead's working row — and that row is gray-900
-          // now, where the body grey is about 2.3:1 and effectively invisible.
-          // If this is ever reused on a light surface it needs a prop; today it
-          // is not, so it takes the row's palette directly.
-          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
+          // Near-black, not `text-shop-body` and not white. This component is
+          // rendered in exactly one place — the masthead's working row — and
+          // that row is brand orange: the body grey is about 2.1:1 on it and
+          // effectively invisible, and white at this size is 2.9:1, which is
+          // the failure the palette note in `globals.css` warns about. Ink is
+          // 5.5:1. If this is ever reused on a light surface it needs a prop;
+          // today it is not, so it takes the row's palette directly.
+          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-white"
         >
           <Avatar customer={customer} />
           <span className="hidden max-w-[90px] truncate text-[13px] xl:inline">
@@ -62,12 +64,14 @@ export default function AccountMenu() {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-label="Sign in"
-          // White, not `text-shop-body`. This component is rendered in exactly
-          // one place — the masthead's working row — and that row is gray-900
-          // now, where the body grey is about 2.3:1 and effectively invisible.
-          // If this is ever reused on a light surface it needs a prop; today it
-          // is not, so it takes the row's palette directly.
-          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
+          // Near-black, not `text-shop-body` and not white. This component is
+          // rendered in exactly one place — the masthead's working row — and
+          // that row is brand orange: the body grey is about 2.1:1 on it and
+          // effectively invisible, and white at this size is 2.9:1, which is
+          // the failure the palette note in `globals.css` warns about. Ink is
+          // 5.5:1. If this is ever reused on a light surface it needs a prop;
+          // today it is not, so it takes the row's palette directly.
+          className="flex items-center gap-2 text-shop-ink transition-colors hover:text-white"
         >
           <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
             <circle cx="12" cy="8" r="3.75" />
@@ -85,7 +89,7 @@ export default function AccountMenu() {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-label="Account menu"
-          className="ml-1 text-shop-muted transition-colors hover:text-shop-primary"
+          className="ml-1 text-shop-ink/70 transition-colors hover:text-white"
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />

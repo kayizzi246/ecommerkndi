@@ -1,7 +1,9 @@
 import { buildHomeFeed, MIN_RAIL } from "@/lib/home-feed";
 import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
-import HeroBanner from "@/components/home/HeroBanner";
+import PromiseBand from "@/components/home/PromiseBand";
+import TwinDeals from "@/components/home/TwinDeals";
+import CategoryChips from "@/components/home/CategoryChips";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -88,10 +90,12 @@ export default async function Home() {
    */
   const {
     settings,
+    departments,
     trending,
     sellerArrivals,
     promoProducts,
     deals,
+    dailyDeals,
     newArrivals,
     bestSellers,
     departmentRails,
@@ -116,38 +120,48 @@ export default async function Home() {
     // instead. The `--background` token in globals.css is the one place the
     // page's colour is decided, and this defers to it.
     <main className="pb-20">
-      {/* ---- The hero, OUTSIDE the padded container below ----
-           The page opens on a banner again, and the comment further down
-           records that a hero banner was removed from exactly this position
-           once before, so the difference is worth stating.
+      {/* ---- The hero is gone, and this is the third time ----
 
-           What was removed was a hero banner PLUS a category card grid PLUS
+           A hero banner has now been removed from this slot twice and added
+           back once, so the history is the useful part of this note.
+
+           The first removal took a hero PLUS a category card grid PLUS
            department chips PLUS coloured promo tiles — four blocks of
            navigation dressed as content, which together pushed the first real
-           product below the fold on every phone. The objection was to the
-           stack, not to the idea of a banner.
+           product below the fold on every phone. It came back as one block that
+           made a price promise rather than offering a fifth route into the
+           departments, with a warning attached: "if it ever grows a second
+           panel beside it, that is the point at which this page is repeating
+           its own history."
 
-           This is one block, it makes a price promise rather than offering a
-           fifth route into the departments, and it is built to stay short. If
-           it ever grows a second panel beside it, that is the point at which
-           this page is repeating its own history.
+           It never grew that panel. What it did instead was cost roughly a
+           third of a phone screen to say something the masthead strip, the band
+           below and the footer all already say — and it said it in artwork,
+           which is the most expensive way for a page to say anything. The shop
+           asked for the space back, and it is right: on a marketplace homepage
+           the opening screen is worth more filled with priced goods than with a
+           picture of goods.
 
-           ---- Why it is here and not inside the flex column ----
+           So this slot now carries a 36px band of terms instead of a banner,
+           and the merchandise starts immediately under it. If a hero is ever
+           proposed again, the question to answer first is what it would say
+           that {@link PromiseBand} and the first deal panel do not.
 
-           It has to reach the full width of the content sheet, and the column
-           below carries `md:px-8`. Rendering the hero inside it would inset the
-           banner by 32px a side on desktop — visible as two off-white slivers
-           down the edges of the artwork, which is exactly what a full-bleed
-           hero must not have. Lifting it out is cleaner than cancelling the
-           padding with a negative margin, which is the other way to do this and
-           breaks the moment that padding changes.
+           ---- Why the band is here and not inside the flex column ----
 
-           The consequence is that it sits outside the `gap-5 md:gap-8` that
-           spaces every other section, so it has to carry that spacing itself —
-           and the margin here is NOT that gap, because the container below
-           already opens with `py-3 md:py-5`. 8 + 12 = the 20px phone gap, and
-           12 + 20 = the 32px desktop one. Three numbers, one result; if any of
-           them moves the hero drifts out of step with the rails beneath it. */}
+           Unchanged from the hero's reasoning: it has to reach the full width
+           of the content sheet, and the column below carries `md:px-8`, which
+           would inset it by 32px a side and leave the coloured band floating
+           with two white slivers down its edges. Lifting it out is cleaner than
+           cancelling the padding with a negative margin, which breaks the
+           moment that padding changes.
+
+           It needs no margin of its own, where the hero needed `mb-2 md:mb-3`
+           carefully tuned against the column's `py-3 md:py-5`. A full-bleed
+           band with a border under it wants to sit flush against the chrome
+           above and let the column's own top padding open the page beneath —
+           three numbers become none, which is one fewer thing to keep in
+           step. */}
       {/* No phone gutter here, unlike every other block on the page.
 
           This carried `px-3` so the banner stopped where the grid below it
@@ -160,9 +174,10 @@ export default async function Home() {
 
           From md up the container's own `md:px-8` would inset this, which is
           why the hero sits outside that container — see the note above. */}
-      <div className="mb-2 md:mb-3">
-        <HeroBanner settings={settings} />
-      </div>
+      <PromiseBand
+        freeDeliveryFrom={settings.commerce.free_delivery_from}
+        returnsDays={settings.commerce.returns_days}
+      />
       {/* The page opens on merchandise.
 
           The hero banner and category card grid went first; the department
@@ -224,6 +239,53 @@ export default async function Home() {
           their gutter now, and doubling it would have set every section title
           24px in from a grid that starts at 12. */}
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-3 py-3 md:gap-8 md:px-8 md:py-5">
+        {/* ---- The page opens on priced goods, at every width ----
+
+             Two deal panels, and they are the first thing under the chrome
+             because the hero that used to be here is gone. Eight products are
+             in this block where previously there was a photograph and, below the
+             fold, an undifferentiated grid.
+
+             ---- This is OUTSIDE the desktop-only block below, deliberately ----
+
+             Every rail on this page is hidden on a phone, for the reason set
+             out at length under this comment: a horizontal carousel needs a
+             pointer, arrows and the width for six tiles, and on a 390px screen
+             it is two and a half tiles with the rest behind a swipe nobody
+             makes. That argument is about CAROUSELS. {@link TwinDeals} is a
+             three-column grid that stacks to two full-width panels, so it has
+             none of the properties the rails are hidden for, and it gives the
+             phone page back a piece of the merchandising that block's own note
+             admits is "what is lost, stated plainly".
+
+             If this ever becomes a scroller, it belongs inside that block. */}
+        <TwinDeals products={dailyDeals} />
+
+        {/* ---- Explore your interests ----
+
+             One line of department chips, under the deals rather than over
+             them.
+
+             Order matters here and it is the whole lesson of the four-block
+             stack this page removed once already: navigation above merchandise
+             pushes the goods down, navigation below merchandise catches the
+             shopper who has looked at the goods and wants a different kind.
+             Chips are the cheapest possible form of it — one line tall, no
+             artwork, horizontally scrolling — which is why they survive here
+             where the card grid did not.
+
+             Also at every width. A phone shopper otherwise reaches the
+             departments only through the masthead menu, and this row is one
+             tap from the six products above it. */}
+        {departments.length >= 3 && (
+          <section aria-labelledby="explore-heading">
+            <h2 id="explore-heading" className="heading-black mb-3 text-[17px] md:text-[19px]">
+              Explore your interests
+            </h2>
+            <CategoryChips categories={departments} />
+          </section>
+        )}
+
         {/* ---- Every carousel rail, desktop only ----
          *
          * On a phone this whole block is gone and the homepage is the hero
