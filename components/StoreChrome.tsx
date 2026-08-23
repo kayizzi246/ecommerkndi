@@ -37,6 +37,35 @@ export default function StoreChrome({
     pathname === "/admin" ||
     pathname.startsWith("/admin/");
 
+  /**
+   * ---- The shop page runs to the glass ----
+   *
+   * `--shell` is 1720px and `globals.css` argues at length for why — full
+   * bleed was tried across the whole site and taken back out, because a
+   * masthead and a homepage hero with no edges leave nothing saying where the
+   * shop stops and the browser starts.
+   *
+   * The category listing is the one page where that argument does not hold.
+   * It is not a composed page with a hero and eight rails; it is a grid whose
+   * only job is to show as much of a department as fits, and a bounded shell
+   * on a 2560px monitor is a column of seven tiles declining ~800px of room
+   * that would carry more of them. It also has a filter rail eating 256px off
+   * the left, so it starts narrower than every other page at the same shell.
+   *
+   * Done by overriding the token rather than by special-casing containers:
+   * the masthead, the content column and the footer all read `--shell`, so one
+   * declaration on a `display: contents` wrapper takes the whole page to the
+   * window and keeps the three of them aligned with each other. Special-casing
+   * the content column alone would have left the grid starting 32px in while
+   * the logo above it started at 90px, which is worse than either width.
+   *
+   * The cost, and it is real: the masthead changes width when a shopper moves
+   * between a category page and anything else. Judged the cheaper of the two —
+   * a chrome that resizes on navigation is a moment, a grid misaligned with
+   * the header above it is every second the page is open.
+   */
+  const isShopGrid = pathname.startsWith("/category/");
+
   if (isAppArea) {
     return <>{children}</>;
   }
@@ -95,7 +124,10 @@ export default function StoreChrome({
   }
 
   return (
-    <>
+    // `contents` so the wrapper carries the token and nothing else: it draws
+    // no box, so the body's flex column still sees the masthead, the content
+    // and the footer as its own children and the sticky header still sticks.
+    <div className="contents" style={isShopGrid ? ({ "--shell": "100%" } as React.CSSProperties) : undefined}>
       <Header departments={departments} settings={settings} />
       {/* ---- The content column ----
        *
@@ -152,6 +184,6 @@ export default function StoreChrome({
           by DeliveryPromise, and returns null now, which that component already
           handles by falling back to the shop's own default. Nothing renders the
           flow, so nothing asks. */}
-    </>
+    </div>
   );
 }

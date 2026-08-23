@@ -324,8 +324,33 @@ export default async function CategoryPage({
                   the join that was actually failing was a tile's last line of
                   text against the next tile's picture. */}
               <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+                {/* ---- `sizes`, spelled out, because this page is full-bleed ----
+
+                    The tile's default hint ends in a fixed `240px`, which is
+                    the right answer on a page bounded at `--shell`: above
+                    1720px the grid stops growing, so the tile is a known
+                    number of pixels. This page overrides `--shell` to 100%
+                    (see `StoreChrome`), so the tiles keep growing with the
+                    window and that last entry would have the browser fetch a
+                    240px file for a 306px box on a 2560px monitor — a soft
+                    photograph on the one page that is nothing but photographs.
+
+                    So each step is the arithmetic of the grid it describes:
+                    the window, less the page's own padding, less the filter
+                    rail and its gap, less the column gaps, over the number of
+                    columns at that breakpoint. The two phone steps stay in
+                    `vw` because the rail is stacked above the grid there
+                    rather than beside it.
+
+                    These have to move if the column ramp, the rail width or
+                    the gaps do. That is the standing cost of a grid that
+                    tracks the window instead of a fixed shell. */}
                 {visible.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 356px) / 4), (max-width: 1279px) calc((100vw - 388px) / 4), (max-width: 1535px) calc((100vw - 412px) / 6), calc((100vw - 424px) / 7)"
+                  />
                 ))}
               </div>
               <Pagination
