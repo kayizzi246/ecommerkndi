@@ -215,7 +215,7 @@ export default function DealCarousel({
                 read as the rail having broken rather than ended. */}
             <Link
               href={viewAll.href}
-              className="group/all flex aspect-square flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-shop-line bg-white px-2 text-center transition-colors hover:border-shop-primary"
+              className="group/all flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-shop-line bg-white px-2 text-center transition-colors hover:border-shop-primary"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-shop-primary-soft text-shop-primary transition-transform group-hover/all:translate-x-0.5">
                 <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">

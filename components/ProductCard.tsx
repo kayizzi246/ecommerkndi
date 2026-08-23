@@ -488,19 +488,32 @@ export default function ProductCard({
               taken evenly top and bottom, which a centred product shot has to
               give.
 
-              No radius, on the photograph or the tile: the tiles run flat on a
-              white page with the gap doing the separating (see the top of this
-              file), and a rounded corner on a flat tile is a card outline with
-              the card removed. `bg-shop-hairline` behind the image is what
-              gives a product shot on white an edge without a border being
-              drawn. The circular controls and the label chips keep their radii
-              — they are objects ON the photograph rather than the
-              photograph's own edge.
+              ---- 8px corners, back on the photograph ----
+
+              They were taken off on the argument that a rounded corner on a
+              flat tile is a card outline with the card removed. That holds for
+              the TILE, which still has none — nothing here draws a card edge
+              from md up. It does not hold for the photograph, which is not an
+              outline but an object: it has its own `bg-shop-hairline` ground
+              and its own hard edge against the page, and a square photo edge
+              on a borderless tile reads as a sharp-cornered sticker rather
+              than as merchandise.
+
+              8px, `rounded-lg`, the same figure the buttons and chips use, so
+              the shop has one radius rather than a scale of them. Cheap in
+              pixels too: `object-cover` on a rounded box clips four small
+              bites out of the picture, and at 8px on a ~250px tile that is the
+              outermost corner of a product shot photographed on white — which
+              is to say, the white.
+
+              The circular controls and the label chips keep their own radii.
+              They are objects ON the photograph rather than the photograph's
+              own edge.
 
               `Skeletons.tsx` carries the same ratio and has to change with
               it. A placeholder at the wrong shape makes the grid visibly
               re-draw itself when the products land. */}
-          <div className="relative aspect-square w-full overflow-hidden bg-shop-hairline">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
