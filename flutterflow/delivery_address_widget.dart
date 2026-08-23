@@ -1,6 +1,24 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/backend/supabase/supabase.dart';
+// ---- Two boilerplate imports are deliberately absent ----
+//
+// FlutterFlow's generated header normally opens with
+//
+//     import '/backend/backend.dart';
+//     import '/backend/supabase/supabase.dart';
+//
+// and this project has neither file. There is no Firestore backend and no
+// Supabase: the shop's data comes from WordPress over the storefront's own
+// API, and the session lives in SharedPreferences (see kandi_auth_page.dart).
+// FlutterFlow only emits those lines for projects that HAVE those integrations
+// — they arrived here by being pasted from an older project, and they are what
+// broke the web build:
+//
+//     Error: Error when reading 'lib/backend/backend.dart':
+//     No such file or directory
+//
+// dart2js and dart2wasm both refuse the whole build over it, in every custom
+// widget at once, which is why it looked like nine broken files rather than
+// one bad paste. Do not add them back.
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
