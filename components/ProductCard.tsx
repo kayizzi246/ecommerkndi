@@ -467,104 +467,40 @@ export default function ProductCard({
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
-          {/* Square, down from 4:5 — a quarter shorter.
+          {/* Square, and back for good — the marketplace shape.
 
-              The 4:5 crop was argued for on the grounds that clothes and shoes
-              are photographed standing up, so the extra height goes to the
-              garment rather than to floor and ceiling. That is true of a
-              fashion catalogue and false of this one: the shop sells wardrobes,
-              shoe racks, air pumps, curtains and milk, most of it photographed
-              square by the supplier, and a 4:5 frame around a square photograph
-              is 25% empty space by construction.
+              This box has walked up the ratios: square → 8:9 → 5:6 → 3:4, each
+              step argued as "the photograph is the tile, so give it the room".
+              That argument is right about width and wrong about height. A
+              taller box does not make the product bigger — `object-cover`
+              fills the box either way, so at 3:4 the extra third of height was
+              crop taken off a square supplier photograph, not product gained.
+              What it did buy, reliably, was tile height: at seven columns the
+              card ran ~100px taller than it needed to, and on a page whose job
+              is to show a catalogue that is a row of products pushed off the
+              screen.
 
-              Square is also what every marketplace tile this grid is modelled
-              on uses, and the reason is arithmetic rather than taste: a shorter
-              tile puts more rows on a screen, and on a page whose job is to
-              show a catalogue, rows are the product.
+              Every marketplace this grid competes with runs 1:1, and the
+              reason is this catalogue's reason: supplier photography is
+              square. A square source in a square box is untouched — no crop at
+              all — which is most of these listings. The portrait shots a
+              taller box was meant to serve give up about 13% of their height,
+              taken evenly top and bottom, which a centred product shot has to
+              give.
 
-              ---- Briefly 5:4, and back to square ----
+              No radius, on the photograph or the tile: the tiles run flat on a
+              white page with the gap doing the separating (see the top of this
+              file), and a rounded corner on a flat tile is a card outline with
+              the card removed. `bg-shop-hairline` behind the image is what
+              gives a product shot on white an edge without a border being
+              drawn. The circular controls and the label chips keep their radii
+              — they are objects ON the photograph rather than the
+              photograph's own edge.
 
-              It was cut to 5:4 to make the tile shorter still, then measured
-              against the reference grid and put back. That measurement is the
-              argument: in the reference a tile is 251px wide and its photograph
-              is 248px tall, which is square to within a pixel.
-
-              Square is also where the cropping stops. `object-cover` fills the
-              box, so 5:4 was taking roughly 10% off the top and 10% off the
-              bottom of every square supplier photograph — fine on a centred
-              product shot, and a clipped toe on a pair of boots shot upright.
-              At 1:1 a square source is untouched, which is most of this
-              catalogue.
-
-              The height that was wanted from 5:4 has been found elsewhere
-              instead, and more cheaply: the meta row below went 16px → 13px and
-              the text block lost its padding, so the tile is shorter than it
-              was without a pixel coming off the photograph.
-
-              ---- 8px corners, down from 10 ----
-
-              Measured off the same reference. The difference is small and it is
-              the difference between a tile that looks drawn to a spec and one
-              that looks approximately styled. */}
-          {/* Two radii, because there are two tiles. Inside the phone card the
-              photo takes the concentric inner corner — 12px outer minus 6px of
-              padding is 6px, which is `rounded-md`. From md up the card is gone
-              and the photograph carries the tile's own 8px corner.
-
-              `bg-shop-hairline` behind it is doing real work: it is the frame
-              the reference grid uses, and it is what gives a product shot on
-              white an edge without a border being drawn. */}
-          {/* 5:6, one step taller than the 8:9 it was and two from the square
-              it started as. Most of the catalogue is shot portrait, so a square
-              box was letterboxing the goods with `bg-shop-hairline` down the
-              sides; each step taller gives the product back that room.
-
-              The step to 5:6 is the grid going to five columns. At eight
-              columns the box was 172px wide and every extra pixel of height was
-              a taller sliver; at 277px the picture is the thing a shopper
-              actually reads the tile by, and 0.833 gives a garment on a model
-              the vertical room the shape of the photograph assumes. It is still
-              short of the 2:3 poster a fashion-only shop uses — this catalogue
-              is half homeware, and a rice cooker in a 2:3 box is mostly floor.
-
-              Anything genuinely square still fills the box: `object-cover`
-              crops the long edge, and at 5:6 what comes off a square source is
-              about 8% of its height, which is margin.
-
-              ---- 3:4, one more step, and this is the last one ----
-
-              The picture is the tile. Everything under it — name, price, meta —
-              is confirmation of a decision the photograph has already made, so
-              width for width, a taller box is simply more product on the
-              screen: at seven columns of the 1720px shell the photo goes from
-              271px tall to 301px, an 11% bigger picture for 30px of page.
-
-              It stops here. 2:3 is the next step and it is the fashion-only
-              poster the note above rules out — this catalogue is half homeware,
-              and the box has to hold a rice cooker as well as a dress. 3:4 is
-              also where `object-cover`'s crop is still honest: about 13% off
-              the height of a square source, taken evenly top and bottom, which
-              a centred product shot has to give.
-
-              ---- No radius, on the photo or the tile ----
-
-              The corners were 10px, then 8px, measured off a reference grid
-              that rounds its tiles. This grid is not that grid any more: the
-              tiles run flat on a white page with the gap doing the separating
-              (see the top of this file), and a rounded corner on a flat tile is
-              a card outline with the card removed — it implies a surface that
-              is not there.
-
-              Square also buys back the picture's own corners. `object-cover` on
-              a rounded box clips four bites out of the photograph, which on a
-              catalogue shot on white is invisible and on a product filling its
-              frame is the corner of the product. At this size that is real.
-
-              The circular controls and the label chips keep their radii. They
-              are objects ON the photograph rather than the photograph's own
-              edge, and a square wishlist button is a different decision that
-              nobody asked for. */}
-          <div className="relative aspect-[3/4] w-full overflow-hidden bg-shop-hairline">
+              `Skeletons.tsx` carries the same ratio and has to change with
+              it. A placeholder at the wrong shape makes the grid visibly
+              re-draw itself when the products land. */}
+          <div className="relative aspect-square w-full overflow-hidden bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

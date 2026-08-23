@@ -6,14 +6,14 @@ export function ProductCardSkeleton() {
     // it makes the grid visibly re-draw itself when the products land, which
     // reads as a layout bug rather than as loading.
     <div className="bg-white p-1.5 md:bg-transparent md:p-0">
-      {/* Matches ProductCard row for row: the photo at its 3:4 box, ONE line of
+      {/* Matches ProductCard row for row: the photo at its square box, ONE line of
           name, the short sold-and-rating line, then the price. The ratio is the
           part that has to track — it is nearly all of the tile's height, so a
           skeleton at the wrong one is a grid that jumps when the products land.
           The text bars matter too: a bare box shimmering on its own reads as a
           broken image, where a box with lines beneath it reads as a product on
           its way. Square corners, because the tile has none any more. */}
-      <div className="shimmer aspect-[3/4] w-full" />
+      <div className="shimmer aspect-square w-full" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
