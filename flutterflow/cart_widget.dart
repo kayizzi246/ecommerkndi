@@ -168,14 +168,11 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //        cached_network_image: ^3.3.1
 //        google_fonts: ^6.1.0
 //        shared_preferences: ^2.2.2
-//  • Parameters — ONE, and it is optional:
-//        onCheckout    Action   receives total, itemCount, deliveryFee
-//
-//    Delete every other parameter from this widget's panel. The
-//    four bottom-tab Actions have gone along with the tab bar
-//    itself: a basket is a step, not a destination, and four ways
-//    out of it sitting under the checkout button is a tap the
-//    thumb makes by accident.
+//  • Parameters:  width, height — both double?, both optional.
+//    NOTHING ELSE. Delete every other parameter from this
+//    widget's panel, `onCheckout` included; a parameter left
+//    declared on a widget that no longer reads it is a control
+//    somebody will wire and then wonder about.
 //
 //    If FlutterFlow reports "Field cartitems has an update value
 //    that is not properly set in Update App State action for
@@ -200,16 +197,28 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //  three places to get one string wrong, and the failure is a blank
 //  product page rather than a compile error.
 //
-//  The bottom-tab destinations stay Actions, because they are real
-//  FlutterFlow pages with their own state and their own scaffolds,
-//  and they carry no data — a tab is a tab. `onCheckout` stays an
-//  Action for the same reason plus one more: the order handoff
-//  usually has to touch App State or an API call before it moves,
-//  and none of that is expressible from inside a widget.
+//  ---- `onCheckout` has gone too ----
 //
-//  NOTE ON THE SUPABASE IMPORT ABOVE: FlutterFlow writes that
-//  header itself and rewrites it on every save, so it stays.
-//  Nothing in this file uses Supabase.
+//  It was the last Action on this screen, kept on the argument
+//  that "the checkout is a FlutterFlow page this file cannot
+//  see". That stopped being true when the checkout became
+//  `KandiCheckout`, a custom widget in this same project with an
+//  `open` static — which this file has been calling for some
+//  time, on the line directly after the Action fired.
+//
+//  So the parameter was a second, optional way of doing something
+//  that was already being done unconditionally. What it bought
+//  was a hook for a project that wanted to log the intent or move
+//  a page state on the way past; what it cost was a control in
+//  the panel that looked load-bearing, and a "Checkout" button
+//  that in an earlier version of this file did nothing at all
+//  when nobody had wired it. A hook nobody is using is not worth
+//  a control that can be miswired.
+//
+//  Anything that genuinely has to happen between the basket and
+//  the checkout belongs in `_checkout()` below, where it runs for
+//  every shopper rather than only in the projects that remembered
+//  to wire it.
 // ============================================================
 
 // ============================================================
@@ -841,7 +850,6 @@ class ShoppingCartPage extends StatefulWidget {
     super.key,
     this.width,
     this.height,
-    this.onCheckout,
   });
 
   // ==========================================================
@@ -982,36 +990,25 @@ class ShoppingCartPage extends StatefulWidget {
   final double? width;
   final double? height;
 
-  /// ---- No bottom tabs on this screen ----
-  ///
-  /// The four tab Actions have gone, and so has the bar they drove.
-  ///
-  /// A basket is not a destination a shopper browses from, it is a step they
-  /// are in the middle of. The tabs put four ways out of it directly under the
-  /// one control the screen exists to deliver — and the two are about 40px
-  /// apart on a phone, so the tap that leaves the basket sits under the thumb
-  /// that meant to check out. Every large shop drops its tab bar here for
-  /// exactly that reason.
-  ///
-  /// Nothing is lost: the header's back control returns wherever the shopper
-  /// came from, and the empty basket still offers the shop.
-  ///
-  /// Handing the order over. Receives the total the shopper was shown, the
-  /// number of items, and the delivery fee that was quoted — so the checkout
-  /// starts from the same figures this screen ended on.
-  ///
-  /// The one remaining parameter, and it has to be one: the checkout is a
-  /// FlutterFlow page this file cannot see. Give me its widget name and its
-  /// constructor and this becomes an in-code push like everything else.
-  ///
-  /// NOTE FOR THE FLUTTERFLOW PROJECT: if an "Update App State ▸ cartitems"
-  /// action is still wired behind this, delete it. That is what
-  /// "Field cartitems has an update value that is not properly set" is
-  /// complaining about, and the basket no longer lives in App State — it is
-  /// `_Cart`, on the device, shared by every screen. An App State copy
-  /// beside it is a second basket that will disagree with the first.
-  final Future Function(double total, int itemCount, double deliveryFee)?
-      onCheckout;
+  // ---- No bottom tabs, and no Actions at all ----
+  //
+  // The four tab Actions went with the bar they drove, and `onCheckout` has
+  // now followed them — see the head of this file. Nothing is declared here
+  // but the two sizes FlutterFlow itself passes.
+  //
+  // A basket is not a destination a shopper browses from, it is a step they
+  // are in the middle of. The tabs put four ways out of it directly under the
+  // one control the screen exists to deliver — about 40px apart on a phone, so
+  // the tap that leaves the basket sat under the thumb that meant to check
+  // out. Nothing is lost: the header's back control returns wherever the
+  // shopper came from, and the empty basket still offers the shop.
+  //
+  // NOTE FOR THE FLUTTERFLOW PROJECT: if an "Update App State ▸ cartitems"
+  // action is still wired behind this screen, delete it. That is what "Field
+  // cartitems has an update value that is not properly set" is complaining
+  // about, and the basket does not live in App State — it is `_Cart`, on the
+  // device, shared by every screen. An App State copy beside it is a second
+  // basket that will disagree with the first.
 
   @override
   State<ShoppingCartPage> createState() => _ShoppingCartPageState();
@@ -1363,13 +1360,17 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   ///    that took a tap, buzzed, and stayed exactly where it was. Every other
   ///    control in these files grew an in-code fallback for this reason; this
   ///    was the last one that had not, and it was the most expensive one to
-  ///    lose. The Action still fires — a project may want to log the intent or
-  ///    move a FlutterFlow page state — and `KandiCheckout` is pushed either
-  ///    way, so wiring it is now optional rather than load-bearing.
+  ///    lose.
+  ///
+  ///    `KandiCheckout.open` was added below as that fallback and the Action
+  ///    was kept beside it, firing first. The Action has since gone as well:
+  ///    an optional hook in front of something that happens unconditionally is
+  ///    a control that looks load-bearing and is not. Anything that has to
+  ///    happen on the way to the checkout goes in this method.
   ///
   /// 2. THE ACCOUNT IS ASKED FOR HERE, NOT ONLY ON THE NEXT SCREEN.
-  ///    `KandiCheckout` already refuses to render its form without a Supabase
-  ///    session — that gate stays, and it is the one that actually protects the
+  ///    `KandiCheckout` already refuses to render its form without a signed-in
+  ///    shopper — that gate stays, and it is the one that actually protects the
   ///    order, because it is checked where the order is placed. What it could
   ///    not do is ask at the right MOMENT: a shopper tapped Checkout, watched a
   ///    page push in, and found a sign-in wall where they expected a form.
@@ -1404,8 +1405,6 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
       // read, and if they signed in a moment ago the session is in memory.
       if (!KandiAuthPage.isSignedIn()) return;
     }
-
-    widget.onCheckout?.call(_total, _itemCount, _deliveryFee ?? 0);
 
     // Guarded because every path to here now crosses an await — the session is
     // read from the device before the gate, so even a signed-in shopper has
@@ -1562,7 +1561,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                         ? _empty()
                         : _content(),
               ),
-              // No tab bar under this. See the note on `onCheckout`: a basket
+              // No tab bar under this. See the note on the constructor: a basket
               // is a step, not a destination, and four ways out of it sitting
               // 40px under the checkout button is a tap the thumb makes by
               // accident.
@@ -2320,7 +2319,7 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
   }
 
   // The bottom tab bar that used to live here has been removed along with the
-  // four Actions that drove it — see the note on `onCheckout`. `_navItem` and
+  // four Actions that drove it — see the note on the constructor. `_navItem` and
   // `_run` went with it: nothing else on this screen used either, and a helper
   // kept for a caller that no longer exists is the next person's confusion.
 }
