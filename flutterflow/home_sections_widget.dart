@@ -251,6 +251,13 @@ const Color _kSearchBg = Color(0xFFF3F4F6);
 // row. The only green left on this screen is the one inside `_deliveryMeter`,
 // declared there, because it is a green on INK rather than on white and needs
 // to be lighter to clear contrast on it.
+/// The green a saving is printed in. `--color-shop-save` #15803d, straight
+/// from `app/globals.css`.
+///
+/// Darker than the shop's success green on purpose: 11px bold needs the deeper
+/// step to clear AA on white, and the website's token carries the same note.
+const Color _kSave = Color(0xFF15803D);
+
 const Color _kWhite = Colors.white;
 
 /// The page is white, like the website. The old build ran on a grey tint,
@@ -308,17 +315,52 @@ const double _kCardRadius = 10;
 /// Between the photograph and the first line of text.
 const double _kCardGap = 4;
 
-/// Two lines at the website's 20px leading. Fixed rather than fit-to-content so
-/// a one-line name still reserves its second line — and it is what makes the
-/// badges work, since they are `WidgetSpan`s inside this same paragraph.
-const double _kCardNameHeight = 40;
+/// ONE line at the website's 18px leading, from two at 20.
+///
+/// ---- Why the second line went ----
+///
+/// The website's tile has always been `truncate text-[13px] leading-[18px]` —
+/// a single line. This card ran two at 14/20 on the argument that a supplier's
+/// long title needs the room, which is true and is not the point: the tile is
+/// not where a title is read. It is where a product is RECOGNISED, from the
+/// photograph, and the name confirms the match the picture already made.
+///
+/// The line it gives back is spent on the saving, which is the one thing on a
+/// marketplace tile that changes a decision — see `_kCardSaveHeight`.
+///
+/// Still fixed rather than fit-to-content, and still what makes the badges
+/// work: they are `WidgetSpan`s inside this same paragraph.
+const double _kCardNameHeight = 18;
 
-/// The sold-and-rating row.
+/// The sold-and-rating row. 12px copy, matching the website's `.meta-note`,
+/// which this was setting a half-point under at 11.5.
 const double _kCardMetaHeight = 16;
 
-/// The price row. 22 rather than the 20 it was: the price is the largest text
-/// on the tile now and it carries the discount pill beside it.
-const double _kCardPriceHeight = 22;
+/// "Save UGX 19,000", in the website's green.
+///
+/// This row did not exist on the app tile and does on every discounted tile on
+/// the site. It is the line the whole card is arranged around: a price says
+/// what something costs, a percentage says how hard it was cut, and only this
+/// says what the shopper KEEPS — which is the figure people actually compare.
+///
+/// 11px bold on a 16px line, `--color-shop-save` #15803d. Green and not the
+/// sale red beside it, because the shop's red means a reduction and this is
+/// its consequence; two reds in one text block and neither is read.
+///
+/// The row is reserved on every tile, discounted or not, for the same reason
+/// the rating row is: a tile that renders one fewer line than its neighbour
+/// breaks the baselines of the whole rail.
+const double _kCardSaveHeight = 16;
+
+/// The price row. 20, and the price inside it is 14px — the website's `.price`
+/// exactly, down from a 16 this file had grown on its own.
+///
+/// Making it the LARGEST text on the tile was the previous argument and it was
+/// wrong in one specific way: it made the price compete with the photograph,
+/// on a card where the photograph is what sells. At 14 bold beside a 13
+/// regular name it is still unmistakably the price, and the tile reads as the
+/// website's rather than as a louder cousin of it.
+const double _kCardPriceHeight = 20;
 
 /// How wide one tile is in a horizontal rail. The rail's own height is derived
 /// from it, since the photograph is square.
@@ -352,6 +394,7 @@ const double _kCardSlack = 1;
 const double _kCardTextHeight = _kCardGap +
     _kCardNameHeight +
     _kCardMetaHeight + // units sold and rating
+    _kCardSaveHeight + // what the shopper keeps
     _kCardPriceHeight +
     _kCardSlack;
 
@@ -431,7 +474,10 @@ TextStyle _price({double size = 15, Color color = _kInk}) =>
       fontWeight: FontWeight.w700,
       color: color,
       height: 1.1,
-      letterSpacing: size * -0.008,
+      // 0, matching the website's `.price`. This was -0.008em, which is a
+      // tightening the site does not apply — and on tabular figures it shows,
+      // because every digit is the same width and the loss is uniform.
+      letterSpacing: 0,
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
@@ -2468,15 +2514,15 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                     TextSpan(text: p.name),
                   ],
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: _text(
-                  size: 14,
+                  // 13/18 at 400 — the website's
+                  // `product-name truncate text-[13px] leading-[18px]`.
+                  size: 13,
                   color: _kInk,
                   weight: FontWeight.w400,
-                  // 20/14 — the website's `leading-[20px]` on `text-[14px]`,
-                  // which is what makes two lines come to exactly 40.
-                  height: 20 / 14,
+                  height: 18 / 13,
                 ),
               ),
             ),
@@ -2501,10 +2547,12 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                   if (p.totalSales > 0)
                     Text(
                       '${_compactSold(p.totalSales)} sold',
+                      // 12/400, the website's `.meta-note`. This was 11.5/500,
+                      // which is a different line pretending to be the same one.
                       style: _label(
-                        size: 11.5,
+                        size: 12,
                         color: _kMuted,
-                        weight: FontWeight.w500,
+                        weight: FontWeight.w400,
                       ),
                       maxLines: 1,
                     ),
@@ -2516,9 +2564,9 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                     Text(
                       p.rating.toStringAsFixed(1),
                       style: _label(
-                        size: 11.5,
+                        size: 12,
                         color: _kBody,
-                        weight: FontWeight.w600,
+                        weight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -2526,7 +2574,35 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
               ),
             ),
 
-            // ---- Row 3: the money ----
+            // ---- Row 3: what the shopper keeps ----
+            //
+            // `savingLabel` is already formatted by the site's own currency
+            // formatter and sent with the product — the app never computes it,
+            // for the same reason it never formats a price: two
+            // implementations of the same arithmetic is two chances to
+            // disagree in the one place a shopper checks.
+            //
+            // Reserved on every tile, printed only when there is a saving.
+            SizedBox(
+              height: _kCardSaveHeight,
+              width: double.infinity,
+              child: (!soldOut &&
+                      p.savingLabel != null &&
+                      p.savingLabel!.trim().isNotEmpty)
+                  ? Text(
+                      p.savingLabel!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _label(
+                        size: 11,
+                        color: _kSave,
+                        weight: FontWeight.w700,
+                      ),
+                    )
+                  : null,
+            ),
+
+            // ---- Row 4: the money ----
             //
             // The price at the bottom of the tile and the largest text on it,
             // which is a reversal: it used to sit above the metadata at 13px,
@@ -2558,7 +2634,8 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,
                       style: _price(
-                        size: 16,
+                        // 14, the website's `.price`.
+                        size: 14,
                         color: soldOut ? _kMuted : _kInk,
                       ),
                     ),

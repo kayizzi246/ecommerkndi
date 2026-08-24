@@ -861,8 +861,20 @@ class _KandiCheckoutState extends State<KandiCheckout> {
 
   @override
   Widget build(BuildContext context) {
+    // ---- The page is off-white now, and that is the whole redesign ----
+    //
+    // Every card here was a white box with a hairline border, on a white
+    // page. A border is what you reach for when a surface cannot separate
+    // itself from its ground — and four bordered white boxes stacked on white
+    // read as a form, which is the one thing a checkout should not look like
+    // at the moment somebody is deciding whether to part with money.
+    //
+    // Giving the page a ground lets the cards be white and BORDERLESS. They
+    // then read as objects sitting on the page rather than as fields ruled
+    // onto it, which is how every checkout worth copying is built. It costs
+    // one colour and removes four borders.
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _kSurface,
       body: SafeArea(
         child: Column(
           children: [
@@ -1085,25 +1097,43 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     if (mounted) Navigator.of(context).maybePop();
   }
 
+  /// One surface on the page's ground.
+  ///
+  /// No border. See the note in `build` — the ground does the separating now,
+  /// and a border on top of it is the same job done twice. `edge` is kept in
+  /// the signature and honoured when passed, for the one case that still wants
+  /// an outline: a card being called out rather than merely listed.
+  ///
+  /// 16 radius rather than 12, which is the difference between a box with
+  /// rounded corners and something that reads as a card.
   Widget _card(Widget child, {Color? tint, Color? edge}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: tint ?? Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: edge ?? _kLine),
+        borderRadius: BorderRadius.circular(16),
+        border: edge == null ? null : Border.all(color: edge),
       ),
       child: child,
     );
   }
 
+  /// The small heading over each card's contents.
+  ///
+  /// Ink at 12, not `_kFaint` at 11. These label the four decisions on the
+  /// screen, and setting them in the palette's lightest grey made the labels
+  /// fainter than the body text underneath — a heading that is quieter than
+  /// what it heads is not a heading.
+  ///
+  /// The tracking stays wide, which is what keeps it reading as a label rather
+  /// than as a short sentence.
   Widget _label(String text) => Text(
-        text,
+        text.toUpperCase(),
         style: _type(
-          size: 11,
+          size: 12,
           weight: FontWeight.w700,
-          color: _kFaint,
-        ),
+          color: _kInk,
+        ).copyWith(letterSpacing: 0.6),
       );
 
   Widget _itemsCard() {
@@ -1524,7 +1554,6 @@ class _KandiCheckoutState extends State<KandiCheckout> {
           ),
         ],
       ),
-      tint: _kSurface,
     );
   }
 
@@ -1795,10 +1824,25 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     final busy = _stage == _Stage.placing || _stage == _Stage.confirming;
     final enabled = _canPay && !busy;
 
+    // ---- The bar is a surface, not a rule ----
+    //
+    // It was a hairline across the page with a button under it. On the
+    // off-white ground that hairline is doing nothing: white on grey already
+    // separates. What the bar actually needs is to look ATTACHED to the
+    // bottom of the screen while the content scrolls under it, which is what
+    // a white surface and a soft upward shadow do.
+    //
+    // The total moved into the bar beside the button, because the one figure
+    // a shopper re-checks before paying was eight rows up in the summary and
+    // scrolled away.
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: _kLine)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x14000000), blurRadius: 16, offset: Offset(0, -3)),
+        ],
       ),
       child: GestureDetector(
         onTap: enabled
@@ -1821,17 +1865,48 @@ class _KandiCheckoutState extends State<KandiCheckout> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white),
                   )
-                : Text(
-                    !_hasLocation
-                        ? 'Add delivery address'
-                        : _method == _Method.cod
-                            ? 'Place order · ${_ugx(_total)}'
-                            : 'Pay ${_ugx(_total)}',
-                    style: _type(
-                      size: 16,
-                      weight: FontWeight.w700,
-                      color: (enabled || !_hasLocation) ? Colors.white : _kMuted,
-                    ),
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        !_hasLocation
+                            ? 'Set delivery location'
+                            : _method == _Method.cod
+                                ? 'Place order'
+                                : 'Pay now',
+                        style: _type(
+                          size: 16,
+                          weight: FontWeight.w700,
+                          color: (enabled || !_hasLocation)
+                              ? Colors.white
+                              : _kMuted,
+                        ),
+                      ),
+                      // The total rides in the button, separated by a dot
+                      // rather than glued into the sentence: 'Place order ·
+                      // UGX 84,000' is two facts, and running them together
+                      // as one string made the figure read as part of the
+                      // verb. Hidden until there is somewhere to send it,
+                      // because a total with no delivery decided is a number
+                      // that can still change.
+                      if (_hasLocation) ...[
+                        Text('  ·  ',
+                            style: _type(
+                              size: 16,
+                              weight: FontWeight.w700,
+                              color: (enabled ? Colors.white : _kMuted)
+                                  .withOpacity(0.55),
+                            )),
+                        Text(
+                          _ugx(_total),
+                          style: _type(
+                            size: 16,
+                            weight: FontWeight.w800,
+                            color: enabled ? Colors.white : _kMuted,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
           ),
         ),
