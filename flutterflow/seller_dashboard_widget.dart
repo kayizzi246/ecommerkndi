@@ -21,6 +21,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,6 +57,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 //  handset must not have their basket and order history swapped
 //  out from under them because they checked a payout.
 //
+//  SIGNING IN AND SIGNING UP, BOTH ON THE PHONE
+//  -----------------------------------------------------------
+//  Three ways in: Google, a password, or opening a store.
+//
+//  Google needs `google_sign_in: ^6.2.2` in the FlutterFlow
+//  pubspec and an OAuth client id per platform:
+//
+//    Android — a client id for the app's package + SHA-1, in the
+//      Google Cloud console. Nothing goes in the Dart.
+//    iOS — the client id in Info.plist as CFBundleURLSchemes
+//      (reversed), plus GIDClientID.
+//    BOTH — the WEB client id, passed as `serverClientId` below
+//      via --dart-define=GOOGLE_SERVER_CLIENT_ID=...
+//
+//  That last one is the part people miss. Without a
+//  `serverClientId` the plugin returns an `idToken` of null on
+//  Android — sign-in appears to work, and the server gets
+//  nothing to verify. Unset, the button is hidden rather than
+//  shown broken.
+//
+//  Registration used to be a sentence telling people to go to
+//  kandiug.com. That is a browser switch in the middle of a
+//  funnel, on the screen where somebody has already decided to
+//  sell, and most people do not come back. The form is here now.
+//  What is NOT here is the document upload and the joining fee:
+//  those live in the onboarding gate on the website, which the
+//  dashboard cannot be reached past. The app creates the
+//  account; the gate still decides when it can trade.
+//
 //  WHY THE APP HAS ITS OWN ENDPOINTS
 //  -----------------------------------------------------------
 //  `/api/app/seller/*` rather than `/api/seller/*`. The website's
@@ -70,6 +100,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Where the storefront lives. Same constant as every sibling screen.
 const String _kApiBaseUrl = 'https://kandiug.com';
+
+/// The WEB OAuth client id, from the build environment.
+///
+/// Not a secret — it ships in every binary — but it differs per project, and
+/// hard-coding it is how a staging build signs people into production. Empty
+/// is a supported state: the Google button is hidden rather than shown broken,
+/// because a button that cannot work is worse than one that is not there.
+const String _kGoogleServerClientId =
+    String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+
+bool get _googleReady => _kGoogleServerClientId.trim().isNotEmpty;
 
 // ---- Brand ----
 const Color _kOrange = Color(0xFFFF6A00);
@@ -253,6 +294,34 @@ class _Api {
     }
   }
 
+  /// Signs in with Google and hands the ID token to the server.
+  ///
+  /// Returns the decoded response, or null when the shopper backed out of the
+  /// account chooser — which is not an error and must not be shown as one.
+  static Future<({int status, dynamic data})?> google() async {
+    final account = await GoogleSignIn(
+      // The WEB client id, not the Android one. See the header note: without
+      // it `idToken` is null on Android and the server has nothing to verify.
+      serverClientId: _kGoogleServerClientId,
+      scopes: const ['email'],
+    ).signIn();
+    if (account == null) return null;
+
+    final auth = await account.authentication;
+    final idToken = auth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      return (
+        status: 400,
+        data: {
+          'message':
+              'Google did not return a sign-in token. Try email and password.'
+        }
+      );
+    }
+
+    return call('/google', method: 'POST', body: {'credential': idToken});
+  }
+
   static String message(dynamic data, String fallback) {
     if (data is Map && data['message'] is String) {
       final text = (data['message'] as String).trim();
@@ -349,8 +418,76 @@ class _SignInState extends State<_SignIn> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+  bool _googleBusy = false;
   bool _obscure = true;
   String? _error;
+
+  /// Google sign-in, which never creates a store.
+  ///
+  /// A verified Google account with no store behind it comes back as
+  /// `kandi_not_seller`. That is not a failure — it is somebody who wants to
+  /// open one — so it goes to the registration form rather than showing an
+  /// error, and the form re-runs Google itself rather than making them press
+  /// the same button twice.
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _googleBusy = true;
+      _error = null;
+    });
+
+    ({int status, dynamic data})? result;
+    try {
+      result = await _Api.google();
+    } catch (_) {
+      result = (status: 0, data: null);
+    }
+
+    if (!mounted) return;
+
+    // Null means the account chooser was dismissed. Silence is correct.
+    if (result == null) {
+      setState(() => _googleBusy = false);
+      return;
+    }
+
+    final data = result.data;
+
+    if (result.status == 200 && data is Map && data['token'] is String) {
+      await _SellerSession.save(
+        token: data['token'] as String,
+        expiresIn: (data['expires_in'] is num)
+            ? (data['expires_in'] as num).toInt()
+            : 60 * 60 * 24 * 14,
+        seller: data['seller'] is Map
+            ? Map<String, dynamic>.from(data['seller'] as Map)
+            : null,
+      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      widget.onSignedIn();
+      return;
+    }
+
+    if (data is Map && data['code'] == 'kandi_not_seller') {
+      setState(() => _googleBusy = false);
+      final opened = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(builder: (_) => const _Register()),
+      );
+      if (opened == true && mounted) widget.onSignedIn();
+      return;
+    }
+
+    // Captured before the closure: Dart never promotes a nullable local
+    // inside one, so `result.status` there is an error even though the null
+    // case returned three branches ago.
+    final status = result.status;
+    setState(() {
+      _googleBusy = false;
+      _error = status == 0
+          ? 'Could not reach Kandi. Check your connection.'
+          : _Api.message(data, 'Could not sign you in with Google.');
+    });
+  }
 
   @override
   void dispose() {
@@ -440,6 +577,27 @@ class _SignInState extends State<_SignIn> {
             ),
             const SizedBox(height: 26),
 
+            if (_googleReady) ...[
+              _GoogleButton(
+                label: 'Continue with Google',
+                busy: _googleBusy,
+                onTap: _signInWithGoogle,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: _kLine)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('or with your password',
+                        style: _type(size: 11.5, color: _kMuted)),
+                  ),
+                  const Expanded(child: Divider(color: _kLine)),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
             _Field(
               label: 'Email address',
               controller: _email,
@@ -512,17 +670,633 @@ class _SignInState extends State<_SignIn> {
                 style: _type(size: 14, weight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text(
-              // No sign-up form in the app on purpose. Opening a store needs
-              // documents and a fee, and that flow lives on the website where
-              // it is already built and already reviewed. Duplicating it here
-              // would be a second onboarding to keep in step with the first.
-              'Opening a store takes a few minutes on kandiug.com/seller/register — '
-              'then sign in here.',
+              'Opening a store takes about two minutes. Documents and the '
+              'joining fee are collected later, on the web.',
               style: _type(size: 13.5, color: _kMuted),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton(
+                onPressed: _busy
+                    ? null
+                    : () async {
+                        final opened = await Navigator.of(context)
+                            .push<bool>(MaterialPageRoute<bool>(
+                          builder: (_) => const _Register(),
+                        ));
+                        // Registering can end signed in (Google) or waiting on
+                        // an emailed code (password). Only the first should
+                        // drop the shopper into the dashboard, and _Register
+                        // reports which happened rather than this guessing.
+                        if (opened == true) widget.onSignedIn();
+                      },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _kOrange,
+                  side: const BorderSide(color: _kOrange),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Text('Open a store',
+                    style: _type(
+                        size: 15, weight: FontWeight.w700, color: _kOrange)),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The Google pill, drawn rather than imported.
+///
+/// The official `GoogleSignInButton` widget is a platform view and renders as
+/// a blank rectangle inside a FlutterFlow custom widget on Android. This is
+/// the same button by Google's brand rules and it works everywhere the rest
+/// of this screen does.
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({
+    required this.label,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: OutlinedButton(
+        onPressed: busy ? null : onTap,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: _kLine),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        child: busy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child:
+                    CircularProgressIndicator(strokeWidth: 2, color: _kOrange),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const _GoogleG(),
+                  const SizedBox(width: 11),
+                  Text(label, style: _type(size: 15, weight: FontWeight.w600)),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Google's G, as four arcs. An asset would be a second file to paste into
+/// FlutterFlow and one more thing to lose; this ships inside the widget.
+class _GoogleG extends StatelessWidget {
+  const _GoogleG();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CustomPaint(painter: _GoogleGPainter()),
+    );
+  }
+}
+
+class _GoogleGPainter extends CustomPainter {
+  static const double _rad = 3.14159265 / 180;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height).deflate(1);
+    final stroke = size.width * 0.22;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.butt;
+
+    void arc(double startDeg, double sweepDeg, Color colour) {
+      paint.color = colour;
+      canvas.drawArc(rect, startDeg * _rad, sweepDeg * _rad, false, paint);
+    }
+
+    arc(-18, -140, const Color(0xFF4285F4));
+    arc(-158, -72, const Color(0xFFFBBC05));
+    arc(130, 66, const Color(0xFF34A853));
+    arc(-18, -52, const Color(0xFFEA4335));
+
+    // The crossbar into the centre, which is what makes it a G and not an O.
+    canvas.drawRect(
+      Rect.fromLTWH(
+          size.width * 0.5, size.height * 0.39, size.width * 0.5, stroke),
+      Paint()..color = const Color(0xFF4285F4),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Opening a store, from the phone.
+///
+/// Pops `true` when the seller ends up SIGNED IN, which only the Google path
+/// does because that address is already proven. A password sign-up pops
+/// `false`: WordPress has emailed a six-digit code and there is no session
+/// until it comes back, so the honest next screen says so rather than a
+/// dashboard that would immediately 401.
+class _Register extends StatefulWidget {
+  const _Register();
+
+  @override
+  State<_Register> createState() => _RegisterState();
+}
+
+class _RegisterState extends State<_Register> {
+  final _store = TextEditingController();
+  final _owner = TextEditingController();
+  final _phone = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+
+  /// The categories the website's own onboarding offers, in its order.
+  static const List<String> _categories = [
+    'Shoes & footwear',
+    'Fashion & clothing',
+    'Sportswear',
+    'Kids & babies',
+    'Bags & accessories',
+    'Beauty & personal care',
+    'Home & living',
+    'Electronics & accessories',
+  ];
+
+  static const List<String> _cities = [
+    'Kampala',
+    'Entebbe',
+    'Jinja',
+    'Mbarara',
+    'Gulu',
+    'Mbale',
+    'Elsewhere in Uganda',
+  ];
+
+  String _category = _categories.first;
+  String _city = _cities.first;
+
+  /// Held from the Google button until submit, and re-verified server-side
+  /// then. Non-null means the email and password fields are not asked for:
+  /// the address comes out of the token.
+  String? _credential;
+  String? _googleEmail;
+
+  bool _busy = false;
+  bool _googleBusy = false;
+  String? _error;
+  bool _obscure = true;
+  bool _sentCode = false;
+
+  @override
+  void dispose() {
+    _store.dispose();
+    _owner.dispose();
+    _phone.dispose();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  /// Takes a Google identity BEFORE the form is submitted, so the address is
+  /// settled and the password fields can disappear.
+  Future<void> _useGoogle() async {
+    setState(() {
+      _googleBusy = true;
+      _error = null;
+    });
+    try {
+      final account = await GoogleSignIn(
+        serverClientId: _kGoogleServerClientId,
+        scopes: const ['email'],
+      ).signIn();
+      if (account == null) {
+        if (mounted) setState(() => _googleBusy = false);
+        return;
+      }
+      final auth = await account.authentication;
+      if (!mounted) return;
+      setState(() {
+        _googleBusy = false;
+        if (auth.idToken == null) {
+          _error = 'Google did not return a sign-in token. '
+              'Use an email address instead.';
+          return;
+        }
+        _credential = auth.idToken;
+        _googleEmail = account.email;
+        if (_owner.text.trim().isEmpty) {
+          _owner.text = account.displayName ?? '';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _googleBusy = false;
+        _error = 'Google sign-in failed. Use an email address instead.';
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    final store = _store.text.trim();
+    final owner = _owner.text.trim();
+    final phone = _phone.text.trim();
+
+    if (store.length < 2) {
+      setState(() => _error = 'Give your store a name.');
+      return;
+    }
+    if (owner.length < 2) {
+      setState(() => _error = 'Tell us your name.');
+      return;
+    }
+    if (phone.replaceAll(RegExp('[^0-9]'), '').length < 9) {
+      setState(() => _error = 'Enter a phone number we can call.');
+      return;
+    }
+    if (_credential == null) {
+      final email = _email.text.trim();
+      if (!email.contains('@') || !email.contains('.') || email.length < 6) {
+        setState(() => _error = 'Enter a valid email address.');
+        return;
+      }
+      if (_password.text.length < 8) {
+        setState(() => _error = 'Choose a password of at least 8 characters.');
+        return;
+      }
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    final result = await _Api.call('/register', method: 'POST', body: {
+      'store_name': store,
+      'owner_name': owner,
+      'phone': phone,
+      'city': _city,
+      'category': _category,
+      if (_credential != null)
+        'google_credential': _credential
+      else ...{
+        'email': _email.text.trim(),
+        'password': _password.text,
+      },
+    });
+
+    if (!mounted) return;
+
+    if (result.status == 0) {
+      setState(() {
+        _busy = false;
+        _error = 'Could not reach Kandi. Check your connection.';
+      });
+      return;
+    }
+
+    final data = result.data;
+    if (result.status != 200 && result.status != 201) {
+      setState(() {
+        _busy = false;
+        _error = _Api.message(data, 'Could not open your store.');
+      });
+      return;
+    }
+
+    // Signed in immediately only when the address was already proven.
+    if (data is Map && data['token'] is String) {
+      await _SellerSession.save(
+        token: data['token'] as String,
+        expiresIn: (data['expires_in'] is num)
+            ? (data['expires_in'] as num).toInt()
+            : 60 * 60 * 24 * 14,
+        seller: data['seller'] is Map
+            ? Map<String, dynamic>.from(data['seller'] as Map)
+            : null,
+      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      Navigator.of(context).pop(true);
+      return;
+    }
+
+    setState(() {
+      _busy = false;
+      _sentCode = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_sentCode) return _codeSent();
+
+    final viaGoogle = _credential != null;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _bar(context, 'Open a store'),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          children: [
+            Text('Tell us about your shop',
+                style: _type(size: 22, weight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Text(
+              'Your store goes to review before it can trade. Documents and '
+              'the joining fee are collected after that, on the web.',
+              style: _type(size: 13.5, color: _kBody),
+            ),
+            const SizedBox(height: 22),
+            _Field(label: 'Store name', controller: _store),
+            const SizedBox(height: 14),
+            _Field(label: 'Your name', controller: _owner),
+            const SizedBox(height: 14),
+            _Field(
+              label: 'Phone number',
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 14),
+            _Dropdown(
+              label: 'What do you sell?',
+              value: _category,
+              items: _categories,
+              onChanged: (v) => setState(() => _category = v),
+            ),
+            const SizedBox(height: 14),
+            _Dropdown(
+              label: 'Where are you based?',
+              value: _city,
+              items: _cities,
+              onChanged: (v) => setState(() => _city = v),
+            ),
+            const SizedBox(height: 22),
+            const Divider(height: 1, color: _kLine),
+            const SizedBox(height: 18),
+
+            // ---- How they will sign back in ----
+            //
+            // Google first because it is the shorter road AND the one that
+            // makes coming back trivial: a seller who chose a password has to
+            // remember it in a month.
+            if (viaGoogle)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _kGreen.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, size: 19, color: _kGreen),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Signing up as ' + (_googleEmail ?? 'your Google account'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _type(size: 13.5, weight: FontWeight.w600),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _credential = null;
+                        _googleEmail = null;
+                      }),
+                      child: Text('Change',
+                          style: _type(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: _kOrange)),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              if (_googleReady) ...[
+                _GoogleButton(
+                  label: 'Sign up with Google',
+                  busy: _googleBusy,
+                  onTap: _useGoogle,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Expanded(child: Divider(color: _kLine)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('or use an email address',
+                          style: _type(size: 11.5, color: _kMuted)),
+                    ),
+                    const Expanded(child: Divider(color: _kLine)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+              _Field(
+                label: 'Email address',
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 14),
+              _Field(
+                label: 'Password',
+                controller: _password,
+                obscure: _obscure,
+                trailing: GestureDetector(
+                  onTap: () => setState(() => _obscure = !_obscure),
+                  child: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 19,
+                    color: _kMuted,
+                  ),
+                ),
+              ),
+            ],
+
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _kRed.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(_error!,
+                    style: _type(
+                        size: 13.5, weight: FontWeight.w500, color: _kRed)),
+              ),
+            ],
+
+            const SizedBox(height: 22),
+            SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _busy ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kOrange,
+                  disabledBackgroundColor: _kOrange.withOpacity(0.45),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: _busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text('Open my store',
+                        style: _type(
+                            size: 16,
+                            weight: FontWeight.w700,
+                            color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The password path ends here rather than at a dashboard.
+  ///
+  /// The account exists and is unusable until the emailed code is entered, and
+  /// that is entered on the web: the app does not carry the code screen,
+  /// because it would be a third place that has to agree with WordPress about
+  /// what a valid code looks like.
+  Widget _codeSent() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _bar(context, 'Almost there'),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: _kGreen.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(Icons.mark_email_read_outlined,
+                    size: 30, color: _kGreen),
+              ),
+              const SizedBox(height: 18),
+              Text('Check your email',
+                  style: _type(size: 21, weight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(
+                'Your store is created. We have sent a six-digit code to ' +
+                    _email.text.trim() +
+                    ' - confirm it, then sign in here.',
+                textAlign: TextAlign.center,
+                style: _type(size: 14, color: _kBody),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  // false, not true: there is no session yet. Popping true
+                  // would drop them into a dashboard that 401s immediately.
+                  onPressed: () => Navigator.of(context).pop(false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text('Back to sign in',
+                      style: _type(
+                          size: 15,
+                          weight: FontWeight.w700,
+                          color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A labelled picker, styled like _Field so the form reads as one thing.
+class _Dropdown extends StatelessWidget {
+  const _Dropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String value;
+  final List<String> items;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: _type(size: 13, weight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: _kSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _kLine),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: _kMuted),
+              style: _type(size: 15),
+              items: items
+                  .map((s) =>
+                      DropdownMenuItem<String>(value: s, child: Text(s)))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) onChanged(v);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
