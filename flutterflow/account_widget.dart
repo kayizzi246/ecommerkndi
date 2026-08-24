@@ -1151,6 +1151,13 @@ class _AccountPageState extends State<AccountPage> {
   /// or the saved list, and a request on every open would spend a shopper's
   /// data on a list they did not ask to see. It is one request, made when the
   /// row is tapped.
+  /// Opens the orders SCREEN, not the old sheet.
+  ///
+  /// A sheet is the right shape for a setting and the wrong one for a record
+  /// you come back to: it caps at the height of a modal, cannot hold a detail
+  /// view without stacking a second sheet on itself, and had nowhere to put the
+  /// one thing a shopper wants from an order they already placed — to place it
+  /// again. See the head of orders_widget.dart.
   void _showOrders() {
     if (_signedIn != true) {
       _signIn();
@@ -1158,12 +1165,7 @@ class _AccountPageState extends State<AccountPage> {
     }
 
     HapticFeedback.mediumImpact();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheet) => const _OrdersSheet(),
-    );
+    KandiOrdersPage.open(context);
   }
 
   // ==========================================================
@@ -1172,11 +1174,20 @@ class _AccountPageState extends State<AccountPage> {
 
   /// Four switches, saved to the device.
   ///
-  /// Honest about what they are: the app has no push registration yet, so
-  /// these record a PREFERENCE rather than switching a live subscription. The
-  /// note at the foot of the sheet says exactly that — a toggle that claims to
-  /// stop messages it cannot stop is the one setting a shopper will remember
-  /// having been lied to about.
+  /// These are REAL now. Each one maps to a Firebase topic that the device
+  /// subscribes to or leaves on the spot — see `_kTopics` in
+  /// push_notifications.dart — so turning one off actually stops the messages
+  /// rather than setting a flag a sender might ignore.
+  ///
+  /// Order updates are the exception and deliberately so: they are not a topic.
+  /// A device that unsubscribed from its own delivery notifications would also
+  /// stop receiving "your payment failed", which a shop has to be able to
+  /// deliver. That switch is a preference the server honours.
+  ///
+  /// This used to say the opposite — that the switches recorded a preference
+  /// the app could not act on — and that was true and worth saying while it
+  /// was. A toggle claiming to stop messages it cannot stop is the one setting
+  /// a shopper remembers having been lied to about.
   Future<void> _showNotifications() async {
     HapticFeedback.mediumImpact();
 
@@ -1223,6 +1234,10 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => deals = v);
                         prefs.setBool('kandi_notif_deals', v);
+                        // Applied to the live subscription immediately, not on
+                        // next launch: a shopper who turns deals off and then
+                        // receives one has been told the switch does nothing.
+                        KandiPush.syncTopics();
                       },
                     ),
                     _toggle(
@@ -1233,6 +1248,10 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => priceDrops = v);
                         prefs.setBool('kandi_notif_price_drops', v);
+                        // Applied to the live subscription immediately, not on
+                        // next launch: a shopper who turns deals off and then
+                        // receives one has been told the switch does nothing.
+                        KandiPush.syncTopics();
                       },
                     ),
                     _toggle(
@@ -1244,6 +1263,10 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => arrivals = v);
                         prefs.setBool('kandi_notif_new_arrivals', v);
+                        // Applied to the live subscription immediately, not on
+                        // next launch: a shopper who turns deals off and then
+                        // receives one has been told the switch does nothing.
+                        KandiPush.syncTopics();
                       },
                     ),
                   ],
@@ -1583,211 +1606,3 @@ class _AccountPageState extends State<AccountPage> {
       );
 }
 
-// ============================================================
-// ORDERS SHEET
-// ============================================================
-
-/// The order list, as its own widget so it can hold its own request.
-///
-/// A `StatefulBuilder` inside the sheet was the alternative and it is the
-/// wrong tool: the request has to start when the sheet mounts and be abandoned
-/// if the shopper swipes it away, which is `initState` and `mounted` — neither
-/// of which a builder closure has.
-class _OrdersSheet extends StatefulWidget {
-  const _OrdersSheet();
-
-  @override
-  State<_OrdersSheet> createState() => _OrdersSheetState();
-}
-
-class _OrdersSheetState extends State<_OrdersSheet> {
-  List<_Order>? _orders;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    final token = KandiAuthPage.token();
-    if (token == null) {
-      setState(() => _error = 'Sign in to see your orders.');
-      return;
-    }
-
-    try {
-      final base = _kApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-      final response = await http.get(
-        Uri.parse('$base/api/app/account/orders'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 20));
-
-      if (!mounted) return;
-
-      if (response.statusCode == 401) {
-        // The token died between launch and now — a password changed on the
-        // website, most likely. Said plainly rather than as "could not load",
-        // because the shopper can act on this one.
-        setState(() => _error = 'Your session has ended. Sign in again.');
-        return;
-      }
-
-      if (response.statusCode != 200) {
-        setState(() => _error = 'Could not load your orders.');
-        return;
-      }
-
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      final raw = decoded is Map && decoded['orders'] is List
-          ? List<dynamic>.from(decoded['orders'] as List)
-          : (decoded is List ? List<dynamic>.from(decoded) : const <dynamic>[]);
-
-      setState(() {
-        _orders = raw
-            .whereType<Map>()
-            .map((entry) => _Order.fromJson(Map<String, dynamic>.from(entry)))
-            .toList();
-      });
-    } catch (e) {
-      debugPrint('Kandi orders failed: $e');
-      if (!mounted) return;
-      setState(() =>
-          _error = 'Could not reach the shop. Check your connection.');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final orders = _orders;
-
-    return Container(
-      // Capped so a shopper with forty orders gets a scrolling sheet rather
-      // than one that covers the screen and hides its own handle.
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.82,
-      ),
-      decoration: const BoxDecoration(
-        color: _kPage,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          16, 10, 16, MediaQuery.of(context).padding.bottom + 18),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 38,
-              height: 4,
-              decoration: BoxDecoration(
-                color: _kLine,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('Order history', style: _heading(size: 19)),
-          const SizedBox(height: 14),
-          Flexible(
-            child: _error != null
-                ? _message(_error!)
-                : orders == null
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
-                        child: Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(_kPrimary),
-                            ),
-                          ),
-                        ),
-                      )
-                    : orders.isEmpty
-                        ? _message('No orders yet.')
-                        : ListView.separated(
-                            shrinkWrap: true,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: orders.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (_, index) => _tile(orders[index]),
-                          ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _message(String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 34),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: _text(size: 13.5, color: _kMuted),
-        ),
-      );
-
-  Widget _tile(_Order order) => Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: _kWhite,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _kLine),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('#${order.number}',
-                    style: _text(
-                        size: 14, color: _kInk, weight: FontWeight.w700)),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _statusBg(order.status),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    _kStatusLabel[order.status] ?? order.status,
-                    style: _label(
-                      size: 10,
-                      color: _statusColor(order.status),
-                      weight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Text(_ugx(order.total),
-                    style: _text(
-                        size: 14, color: _kInk, weight: FontWeight.w800)),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Text(
-              [
-                if (order.date.isNotEmpty) order.date,
-                if (order.itemCount > 0)
-                  '${order.itemCount} ${order.itemCount == 1 ? 'item' : 'items'}',
-                if (order.firstItem.isNotEmpty) order.firstItem,
-              ].join(' · '),
-              style: _text(size: 12, color: _kMuted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      );
-}
