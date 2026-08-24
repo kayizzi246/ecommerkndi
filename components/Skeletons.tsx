@@ -57,10 +57,10 @@ export function ProductRailSkeleton({
       <SectionHeaderSkeleton withSubtitle={withSubtitle} />
       {/* Matches DealCarousel's gap, so the rail does not jump when the real
           tiles replace these. */}
-      {/* 10px, not 8px. This claimed to match the rail and did not, which on a
-          phone is 2px × 2 gaps of drift under a tile width that is now measured
+      {/* 8px, matching the rail. It claimed to match and did not, which on a
+          phone was 2px × 2 gaps of drift under a tile width that is measured
           FROM the gaps — so the shimmer sat where the products would not. */}
-      <div className="flex gap-2.5 overflow-hidden sm:gap-3">
+      <div className="flex gap-2 overflow-hidden sm:gap-3">
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
@@ -74,7 +74,7 @@ export function ProductRailSkeleton({
             // tile-count off is a guaranteed shift at the exact moment the
             // shopper is looking at it. The steps above it still drift from the
             // rail by a point or so and are left alone here.
-            className="w-[calc((100vw-44px)/2.3)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            className="w-[calc((100vw-40px)/2.3)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>
@@ -86,7 +86,7 @@ export function ProductRailSkeleton({
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
       {Array.from({ length: count }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}

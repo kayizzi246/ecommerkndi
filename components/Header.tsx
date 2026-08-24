@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import type { CategoryNode } from "@/lib/woocommerce";
@@ -11,6 +11,7 @@ import { brandName } from "@/lib/site-settings";
 import SearchBar from "@/components/SearchBar";
 import CuratedNav from "@/components/CuratedNav";
 import CategoriesMenu from "@/components/CategoriesMenu";
+import CategoryDrawer from "@/components/CategoryDrawer";
 import AccountMenu from "@/components/AccountMenu";
 import SalesTicker from "@/components/SalesTicker";
 
@@ -81,6 +82,10 @@ export default function Header({
 }) {
   const { count, subtotal, openDrawer } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Stable identity: `CategoryDrawer` keys its Escape-and-scroll-lock effect on
+  // this, and an inline arrow would tear that listener down and rebuild it on
+  // every render of the masthead.
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   /**
    * True once the page has been scrolled past the masthead's own height.
@@ -644,11 +649,21 @@ export default function Header({
               <CategoriesMenu departments={departments} />
             </div>
 
+            {/* ---- The Categories pill is gone below `md` ----
+                 It opened the same drawer as the hamburger sitting directly
+                 above it in the masthead, and as the Categories tab in the
+                 fixed bottom bar. Three controls for one drawer, two of them
+                 on screen at once, and this was the one eating the left third
+                 of the department row — so the curated links beside it started
+                 half-scrolled and read as a row that had already been swiped.
+
+                 It stays from `md` to `lg`, where there is width for it and no
+                 bottom bar to carry Categories. */}
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-1.5 flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[13px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame lg:hidden"
+              className="my-1.5 hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[13px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame md:flex lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -679,81 +694,22 @@ export default function Header({
         </nav>
       )}
 
-      {/* ---- All Categories panel ----
-           The full WooCommerce department tree, and now the only place to browse
-           it — the homepage sidebar that used to duplicate this is gone.
+      {/* ---- The department tree, below `lg` ----
+           This was a full-width dropdown laying the tree out in columns. That
+           shape is right on a desktop and {@link CategoriesMenu} still serves
+           it there — but `menuOpen` is only ever set by the two `lg:hidden`
+           controls above, so the dropdown was in practice the PHONE menu, and
+           on a phone its columns collapsed to one cramped stack inside a 75vh
+           box: a scroll within a scroll, first department filling the viewport,
+           everything else below the fold.
 
-           Laid out in columns rather than as a stack of collapsibles: every
-           department and its children are visible at once, so finding a
-           sub-category is one glance and one click instead of expanding rows
-           until you find it. It closes on any navigation and on Escape. */}
-      {menuOpen && (
-        <>
-          <button
-            type="button"
-            aria-label="Close categories"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-10 cursor-default bg-black/20"
-          />
-          <div className="absolute inset-x-0 z-20 max-h-[75vh] overflow-y-auto border-b border-shop-line bg-white">
-            <div className="mx-auto max-w-[var(--shell)] px-4 py-6 md:px-8">
-              {departments.length === 0 ? (
-                <p className="py-4 text-[14px] text-shop-muted">
-                  No departments yet — add product categories in WordPress and
-                  they appear here.
-                </p>
-              ) : (
-                <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                  {departments.map((department) => (
-                    <div key={department.id} className="min-w-0">
-                      <Link
-                        href={`/category/${department.slug}`}
-                        onClick={() => setMenuOpen(false)}
-                        className="block truncate text-[14px] font-bold text-shop-ink hover:text-shop-flame"
-                      >
-                        {department.name}
-                      </Link>
-
-                      {department.children.length > 0 && (
-                        <ul className="mt-2 space-y-1.5">
-                          {department.children.slice(0, 8).map((child) => (
-                            <li key={child.id}>
-                              <Link
-                                href={`/category/${child.slug}`}
-                                onClick={() => setMenuOpen(false)}
-                                className="block truncate text-[13.5px] text-shop-body hover:text-shop-flame"
-                              >
-                                {child.name}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-shop-line pt-4 text-[13.5px]">
-                <Link
-                  href="/sellers"
-                  onClick={() => setMenuOpen(false)}
-                  className="font-semibold text-shop-body hover:text-shop-flame"
-                >
-                  Shop by store
-                </Link>
-                <Link
-                  href="/sell"
-                  onClick={() => setMenuOpen(false)}
-                  className="font-semibold text-shop-body hover:text-shop-flame"
-                >
-                  Sell on KandiUg
-                </Link>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+           {@link CategoryDrawer} is the phone shape instead — a slide-in panel
+           that owns the screen, banded into account, categories and services. */}
+      <CategoryDrawer
+        departments={departments}
+        open={menuOpen}
+        onClose={closeMenu}
+      />
     </header>
   );
 }

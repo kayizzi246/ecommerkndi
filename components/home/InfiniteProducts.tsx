@@ -204,7 +204,18 @@ export default function InfiniteProducts({
           wrong column count, and the rail widths in `DealCarousel`, which
           mirror these counts so a rail and the grid under it never disagree on
           the same screen. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+      {/* ---- Tighter on a phone: 4px across, 8px down ----
+           Was 6px/12px. `ProductCard` is a white card with its own 6px of
+           padding on a phone, so the ink-to-ink distance between two products
+           is the gap PLUS 12px of padding — the row gutter was reading as 18px
+           and the column gutter as 24px, which on a 390px screen is most of a
+           third column spent on air.
+           Closing it up hands those pixels back to the photographs, which are
+           the only thing in the grid doing any selling. The cards' own padding
+           still keeps the white blocks visibly separate, so nothing merges into
+           one sheet. Desktop is untouched: there is room there, and 4px between
+           six columns of a 1720px shell would read as a contact sheet. */}
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

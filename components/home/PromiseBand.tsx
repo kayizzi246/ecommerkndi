@@ -61,9 +61,22 @@ export default function PromiseBand({
   ];
 
   return (
+    // ---- Not on a phone ----
+    //
+    // On a desktop this is one thin line in a page with room for it. On a phone
+    // it was the FOURTH stacked band above the fold — free-delivery ticker,
+    // masthead, department row, then this — and between them they pushed the
+    // first product photograph most of the way off the opening screen. A
+    // shopper who has to scroll before seeing a single thing for sale has been
+    // shown four rows of the shop talking about itself.
+    //
+    // The promises are not lost: the same three run in the footer, the delivery
+    // threshold is already in the ticker directly above this, and the returns
+    // window is on every product page. This is the one of the four bands that
+    // repeats content available elsewhere, so it is the one that goes.
     <section
       aria-label="Why shop with KandiUg"
-      className="border-y border-shop-successbg bg-shop-successbg"
+      className="hidden border-y border-shop-successbg bg-shop-successbg md:block"
     >
       <div className="mx-auto flex max-w-[var(--shell)] items-center gap-x-5 gap-y-1 overflow-x-auto px-4 py-2 text-[12.5px] no-scrollbar md:px-8">
         {/* The lead-in, and the only bold thing on the band. It names the shop

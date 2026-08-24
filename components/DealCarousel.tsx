@@ -55,7 +55,7 @@ export default function DealCarousel({
    * at a glance indistinguishable from a two-column grid.
    *
    * 2.3 is the count now, and a plain percentage cannot express it. `100/2.3`
-   * is 43.5%, which ignores the two 10px gaps standing between the three tiles
+   * is 43.5%, which ignores the two 8px gaps standing between the three tiles
    * and lands at about 2.18 visible — the same drift the `2xl` step below has
    * always carried, for the same reason. So the gaps come out of the width
    * first, exactly as they do there:
@@ -82,9 +82,9 @@ export default function DealCarousel({
    * column, which is the viewport less the `px-3` gutter, so the width can be
    * stated absolutely and no ancestor can distort it:
    *
-   *   w = (100vw - 24px gutter - 20px gaps) / 2.3
+   *   w = (100vw - 24px gutter - 16px gaps) / 2.3
    *
-   * On a 408px phone that is a 158px tile: 2.3 of them plus two gaps is exactly
+   * On a 408px phone that is a 160px tile: 2.3 of them plus two gaps is exactly
    * the 384px column. Both pages that render a rail on a phone — the homepage
    * and /categories — use `px-3`, so the 24px holds for each.
    *
@@ -153,7 +153,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[calc((100vw-44px)/2.3)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
+  itemWidth = "w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -231,7 +231,7 @@ export default function DealCarousel({
         // The gap does not change what `itemWidth` measures, so the `sizes`
         // attribute below stays accurate — those two only have to move together
         // when the tile WIDTH does.
-        className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-4"
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-4"
       >
         {products.map((product, index) => (
           // ---- `min-w-0`, or `itemWidth` is a suggestion ----
