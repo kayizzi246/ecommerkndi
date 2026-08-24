@@ -19,320 +19,233 @@ import 'package:flutter/material.dart';
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
-//  KANDI — PUSH NOTIFICATIONS
+//  KANDI — PUSH NOTIFICATIONS (OneSignal)
 //
-//  DEPENDENCIES — ADD THESE IN FLUTTERFLOW
+//  DEPENDENCY — ADD THIS IN FLUTTERFLOW
 //  -----------------------------------------------------------
-//      firebase_core: ^3.6.0
-//      firebase_messaging: ^15.1.3
-//      flutter_local_notifications: ^18.0.1
+//      onesignal_flutter: ^5.2.6
 //
-//  FlutterFlow's own Firebase setup covers google-services.json
-//  and GoogleService-Info.plist. What it does NOT do:
+//  And the app id, at build time:
+//      --dart-define=ONESIGNAL_APP_ID=xxxxxxxx-xxxx-xxxx-...
 //
-//    android/app/src/main/AndroidManifest.xml, inside <application>:
-//      <meta-data
-//        android:name="com.google.firebase.messaging.default_notification_channel_id"
-//        android:value="kandi_orders"/>
+//  iOS still needs the APNs key uploaded to the OneSignal
+//  dashboard, and Push Notifications + Background Modes >
+//  Remote notifications enabled in Signing & Capabilities.
+//  Without the APNs key, iOS subscribes and never receives —
+//  with no error anywhere to explain it.
 //
-//    ios: enable Push Notifications and Background Modes >
-//      Remote notifications in Signing & Capabilities, and upload
-//      the APNs key to the Firebase project. Without the APNs key
-//      iOS registration silently returns a null token and nothing
-//      ever arrives — with no error anywhere to explain it.
-//
-//  WHY FCM AND NOT SOMETHING SIMPLER
+//  WHY ONESIGNAL AND NOT FIREBASE
 //  -----------------------------------------------------------
-//  A shop needs to reach a phone whose app is CLOSED. That rules
-//  out anything running in the app's own process — a websocket, a
-//  poll, a timer — because none of them exist when the shopper
-//  has swiped the app away, which is exactly when "your order is
-//  on the way" matters. Only the OS-level transports can wake a
-//  closed app, and on Android that is FCM.
+//  This was written against FCM first, and the rewrite is worth
+//  explaining because it deleted more than it added.
 //
-//  THREE KINDS OF MESSAGE, AND THEY ARE NOT ALIKE
+//  FCM is a TRANSPORT. It moves a message to a device token and
+//  stops there, which means everything around it is yours to
+//  build: a table of device tokens, the code that writes to it
+//  on every launch and rotation, the pruning of dead tokens, the
+//  join from an order to the devices its customer holds, and a
+//  signed JWT for every send.
+//
+//  OneSignal is that whole layer. It keeps the subscriptions, it
+//  knows which device belongs to which customer once you tell it
+//  the customer's id, and it addresses them by that id. So:
+//
+//    • No device table in WordPress.
+//    • No /api/app/notifications/register — the SDK registers
+//      the device itself, and that route has been deleted rather
+//      than left as a no-op for somebody to wire up later.
+//    • No token refresh listener, no stale-token pruning.
+//    • The server sends by CUSTOMER ID, which it already has on
+//      the order, instead of first asking WordPress which
+//      handsets that customer owns.
+//
+//  ONE PERSON, MANY DEVICES — external id does the work
 //  -----------------------------------------------------------
-//    • ORDERS are addressed to ONE device, because they say
-//      something true about one person's parcel. They go to a
-//      registered token.
-//    • PROMOTIONS are addressed to EVERYONE who wants them, and
-//      go to a TOPIC. A topic costs the server nothing per
-//      recipient and, more importantly, it means the shop does
-//      not need a list of who to send to — the phones subscribe
-//      themselves, and unsubscribing actually stops the messages
-//      rather than setting a flag the sender might ignore.
+//  `OneSignal.login(customerId)` ties this device to a customer.
+//  A shopper with a phone and a tablet ends up with both
+//  subscriptions under one external id, and an order message
+//  addressed to that id reaches both without the shop knowing
+//  either device exists.
 //
-//  That distinction is why the preference switches in the account
-//  screen are real now. They were honest placeholders before —
-//  the sheet said so — because there was nothing to switch. A
-//  topic subscription is a thing that can genuinely be turned
-//  off, from the device, without trusting the server.
+//  `logout()` on sign-out cuts that link and leaves the device
+//  subscribed anonymously — so promotions carry on and order
+//  messages stop, which is exactly the right split for a handset
+//  nobody is signed in on.
 //
-//  ORDER MESSAGES ARE NOT OPTIONAL IN THE SAME WAY
+//  TAGS, NOT TOPICS
 //  -----------------------------------------------------------
-//  There is no `orders` topic. A shopper who turns order updates
-//  off stops them at the SERVER, by the preference this file
-//  syncs with the token — because a device that unsubscribed
-//  from its own delivery notifications would also stop receiving
-//  "your payment failed", and that is a message a shop has to be
-//  able to deliver.
+//  FCM topics were how the preference switches were made real.
+//  OneSignal's equivalent is tags, and they are better suited:
+//  a topic is a subscription the server cannot see, so the shop
+//  could never answer "how many people want deal alerts". A tag
+//  is an attribute of the subscription, so the same switch both
+//  filters a send AND is countable.
+//
+//  ORDER MESSAGES ARE NOT A TAG
+//  -----------------------------------------------------------
+//  Unchanged from the FCM version, and for the same reason. A
+//  shopper who turns order updates off stops them at the SERVER,
+//  because a device that could unsubscribe itself from delivery
+//  notifications would also stop receiving "your payment
+//  failed", and a shop has to be able to deliver that.
 // ============================================================
 
-const String _kApiBaseUrl = 'https://kandiug.com';
+/// The OneSignal app id, from the build environment.
+///
+/// `--dart-define` rather than a constant in the file: this is not a secret —
+/// it is public in every installed binary — but it differs between the
+/// development and production OneSignal apps, and hard-coding it is how a test
+/// build ends up sending real notifications to real shoppers.
+///
+/// Empty is a supported state. Everything below no-ops, exactly as the server
+/// half does when its key is unset: a shop with push not yet configured must
+/// still open.
+const String _kOneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');
 
-/// Topics the app subscribes to, keyed by the preference that controls each.
+/// The tags the app sets, keyed by the preference that controls each.
 ///
 /// The preference keys are the ones `account_widget.dart` already writes — this
 /// file deliberately reuses them rather than inventing a parallel set, so the
-/// switches a shopper has already set carry over rather than silently resetting
-/// to the defaults the day push arrives.
-const Map<String, String> _kTopics = <String, String>{
-  'kandi_notif_deals': 'promos',
+/// switches a shopper has already set carry over rather than resetting to the
+/// defaults the day push arrives.
+///
+/// The VALUES are the tag names the server filters on. `lib/push.ts` holds the
+/// same three strings and the two have to agree: a send filtered on a tag the
+/// app never sets reaches nobody, and does it silently.
+const Map<String, String> _kTags = <String, String>{
+  'kandi_notif_deals': 'deals',
   'kandi_notif_price_drops': 'price_drops',
   'kandi_notif_new_arrivals': 'new_arrivals',
 };
 
-/// The Android channel orders arrive on.
-///
-/// Named in the manifest too (see the header). Android needs the channel to
-/// exist before the first message lands, or that message is filed under a
-/// default channel the shopper cannot then configure separately — and channels
-/// cannot be renamed after creation, only deleted, so getting this wrong once
-/// is permanent for every install that saw it.
-const AndroidNotificationChannel _kOrderChannel = AndroidNotificationChannel(
-  'kandi_orders',
-  'Order updates',
-  description: 'Confirmations, dispatch and delivery.',
-  importance: Importance.high,
-);
-
-const AndroidNotificationChannel _kPromoChannel = AndroidNotificationChannel(
-  'kandi_promos',
-  'Deals and offers',
-  // Deliberately quieter than orders. A flash sale that buzzes the phone at
-  // the same intensity as "your parcel is at the door" is how an app gets its
-  // notifications turned off wholesale, and the shop loses the delivery ones
-  // it actually needed.
-  description: 'Super Deals, price drops and new arrivals.',
-  importance: Importance.defaultImportance,
-);
-
-/// Handles a message that arrived while the app was killed or backgrounded.
-///
-/// MUST be a top-level function — Flutter spins up a separate isolate for it,
-/// and an isolate cannot be handed a closure. It must also initialise Firebase
-/// itself for the same reason: the isolate does not inherit the one `main()`
-/// set up.
-///
-/// It deliberately does almost nothing. A notification with a `notification`
-/// block is drawn by the OS without the app being involved; anything done here
-/// runs on a background isolate with no UI and a short leash. Badge counts and
-/// deep-link state are set when the app is actually opened.
-@pragma('vm:entry-point')
-Future<void> kandiBackgroundMessage(RemoteMessage message) async {
-  await Firebase.initializeApp();
-}
-
 /// Push, as one thing the app turns on once.
 ///
-/// `KandiPush.start()` from the first screen that builds. Everything else here
-/// is either called by that or by the notification preferences sheet.
+/// `KandiPush.start()` from the first screen that builds. The public surface —
+/// `start`, `syncTopics`, `forgetAccount` — is unchanged from the FCM version
+/// on purpose: the account screen calls `syncTopics` from three switches, and a
+/// rename would have been churn in a file that has nothing to do with which
+/// vendor moves the messages.
 class KandiPush {
   KandiPush._();
 
-  static final FlutterLocalNotificationsPlugin _local =
-      FlutterLocalNotificationsPlugin();
-
   static bool _started = false;
 
-  /// Registers this device and wires up the three delivery paths.
+  static bool get _configured => _kOneSignalAppId.trim().isNotEmpty;
+
+  /// Initialises the SDK, asks for permission, and applies the saved switches.
   ///
   /// Safe to call more than once — the guard matters because FlutterFlow will
-  /// happily rebuild the widget that calls it, and registering the foreground
-  /// listener twice shows every notification twice.
+  /// happily rebuild the widget that calls it.
   static Future<void> start() async {
-    if (_started) return;
+    if (_started || !_configured) return;
     _started = true;
 
     try {
-      await Firebase.initializeApp();
+      OneSignal.initialize(_kOneSignalAppId);
 
       // ---- Permission ----
       //
-      // iOS and Android 13+ both require it, and both treat a refusal as final:
-      // asking again does nothing, the dialog never appears a second time. So
-      // this is asked once, here, and a refusal is accepted quietly rather than
-      // nagged at.
-      final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        return;
-      }
-
-      // ---- Channels, before the first message ----
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const iosInit = DarwinInitializationSettings(
-        // All false: permission was just requested above, and asking twice
-        // shows the shopper two dialogs for one decision.
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      );
-      await _local.initialize(
-        const InitializationSettings(android: androidInit, iOS: iosInit),
-      );
-
-      final android = _local.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.createNotificationChannel(_kOrderChannel);
-      await android?.createNotificationChannel(_kPromoChannel);
-
-      // ---- The three paths a message can arrive by ----
+      // iOS and Android 13+ both require it, and both treat a refusal as
+      // final: asking again does nothing, the dialog never reappears. So it is
+      // asked once, here, and a refusal is accepted quietly rather than nagged
+      // at.
       //
-      // Backgrounded and killed are handled by the OS and the top-level
-      // handler. FOREGROUND is the one that needs code: FCM does not draw a
-      // notification while the app is open, on the assumption the app will show
-      // it in-context. Without this, a shopper looking at the app when their
-      // order ships sees nothing at all.
-      FirebaseMessaging.onBackgroundMessage(kandiBackgroundMessage);
-      FirebaseMessaging.onMessage.listen(_showForeground);
+      // `fallbackToSettings: false` — a shopper who said no is not then sent
+      // to the system settings screen. That is the pattern that gets an app
+      // uninstalled, and the answer to a refusal is to ask again later in
+      // context, not to escalate.
+      await OneSignal.Notifications.requestPermission(false);
 
-      // ---- The token ----
-      final token = await messaging.getToken();
-      if (token != null) await _register(token);
-
-      // Tokens rotate — on reinstall, on restore to a new handset, and
-      // occasionally for no visible reason. Without this listener the shop goes
-      // on sending to a dead token and the shopper simply stops hearing from
-      // it, which looks like the feature having been removed.
-      FirebaseMessaging.instance.onTokenRefresh.listen(_register);
+      // A device that has signed in before is re-linked on every cold start.
+      // OneSignal keeps the external id itself, but re-asserting it is what
+      // repairs the case where the app was reinstalled and the session
+      // restored from disk without ever passing through the sign-in screen.
+      await _linkCustomer();
 
       await syncTopics();
     } catch (_) {
-      // Push failing must never take the app down with it. A shop that does not
-      // open because a notification service was unreachable has traded its
+      // Push failing must never take the app down with it. A shop that does
+      // not open because a notification service was unreachable has traded its
       // entire business for a convenience.
     }
   }
 
-  /// Draws a message that arrived while the app was on screen.
-  static Future<void> _showForeground(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
-
-    final isPromo = (message.data['kind'] ?? '') == 'promo';
-    final channel = isPromo ? _kPromoChannel : _kOrderChannel;
-
-    await _local.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          channel.id,
-          channel.name,
-          channelDescription: channel.description,
-          importance: channel.importance,
-          priority: isPromo ? Priority.defaultPriority : Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: const DarwinNotificationDetails(),
-      ),
-      payload: jsonEncode(message.data),
-    );
-  }
-
-  /// Tells the shop which device this is, and who is holding it.
+  /// Ties this device to the signed-in shopper, or cuts the link when nobody is.
   ///
-  /// The bearer token goes up with it when there is one, so the server can file
-  /// the device against a customer and address order messages to it. Sent
-  /// WITHOUT one when nobody is signed in, which is not a mistake: an anonymous
-  /// device can still receive promotions, and re-registering after sign-in is
-  /// what attaches it to the account.
-  static Future<void> _register(String fcmToken) async {
+  /// The customer id is read from the record `auth_widget.dart` saves. A
+  /// private reader over a key another file owns, in the same pattern every
+  /// screen here uses — the STORAGE KEY is the contract.
+  static Future<void> _linkCustomer() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Nothing to do if this exact token is already registered against this
-      // exact signed-in state. Called on every cold start otherwise, which is a
-      // request per launch for a row that has not changed.
-      final auth = prefs.getString('kandi_auth_token') ?? '';
-      final fingerprint = '$fcmToken:${auth.isEmpty ? 'guest' : 'user'}';
-      if (prefs.getString('kandi_push_registered') == fingerprint) return;
-
-      final response = await http
-          .post(
-            Uri.parse('$_kApiBaseUrl/api/app/notifications/register'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (auth.isNotEmpty) 'Authorization': 'Bearer $auth',
-            },
-            body: jsonEncode({
-              'token': fcmToken,
-              // `defaultTargetPlatform` rather than `Theme.of(context).platform`:
-              // this runs from a token-refresh listener that has no widget and
-              // no context, and reaching for one there is how registration ends
-              // up silently failing on exactly the devices whose token rotated.
-              'platform':
-                  defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-            }),
-          )
-          .timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        await prefs.setString('kandi_push_registered', fingerprint);
+      final raw = prefs.getString('kandi_auth_customer');
+      if (raw == null || raw.isEmpty) {
+        await OneSignal.logout();
+        return;
       }
+
+      final decoded = jsonDecode(raw);
+      final id = decoded is Map ? decoded['id'] : null;
+      if (id == null) {
+        await OneSignal.logout();
+        return;
+      }
+
+      // The WordPress customer id, as a string, and it must be the SAME id the
+      // server addresses in `lib/push.ts`. That is the entire contract between
+      // the two halves of this feature: get it wrong and every order
+      // notification is sent successfully to nobody.
+      await OneSignal.login(id.toString());
     } catch (_) {}
   }
 
-  /// Applies the shopper's switches to their real topic subscriptions.
+  /// Applies the shopper's switches to their real subscription tags.
   ///
-  /// Called at startup and every time a switch moves. Subscribing to a topic
-  /// you are already on, or leaving one you were never on, are both no-ops at
-  /// Firebase — so this can be run wholesale rather than diffed, which is what
+  /// Called at startup and every time a switch moves. Setting a tag that is
+  /// already set, or clearing one that was never there, are both no-ops at
+  /// OneSignal — so this runs wholesale rather than diffing, which is what
   /// keeps it correct after a reinstall restores the preferences but not the
-  /// subscriptions.
+  /// subscription state.
+  ///
+  /// Still named `syncTopics` although OneSignal calls them tags: three call
+  /// sites in the account screen use this name, and renaming it would be churn
+  /// for no behavioural gain. The doc comment is the honest version.
   static Future<void> syncTopics() async {
+    if (!_configured) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final messaging = FirebaseMessaging.instance;
 
-      for (final entry in _kTopics.entries) {
+      for (final entry in _kTags.entries) {
         // Defaults match the account sheet's: deals and price drops on, new
         // arrivals off. A shop that opts everyone into everything on install
         // gets one week of reach and then a permanently disabled channel.
         final wanted =
             prefs.getBool(entry.key) ?? (entry.key != 'kandi_notif_new_arrivals');
         if (wanted) {
-          await messaging.subscribeToTopic(entry.value);
+          // "1" rather than "true": the server's filter compares strings, and
+          // one side writing a bool that serialises differently is the kind of
+          // mismatch that shows up as a campaign reaching nobody.
+          OneSignal.User.addTagWithKey(entry.value, '1');
         } else {
-          await messaging.unsubscribeFromTopic(entry.value);
+          OneSignal.User.removeTag(entry.value);
         }
       }
     } catch (_) {}
   }
 
-  /// Called on sign-out. Drops the account link but keeps the device known, so
-  /// promotions carry on and the next sign-in re-attaches it.
+  /// Called on sign-in AND sign-out — it reads the session rather than being
+  /// told which happened, so one call is correct either way.
+  ///
+  /// After sign-out the device stays subscribed anonymously: promotions carry
+  /// on, order messages stop. That is the right split for a handset nobody is
+  /// signed in on, and it means the next sign-in re-links rather than
+  /// re-registering from nothing.
   static Future<void> forgetAccount() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('kandi_push_registered');
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) await _register(token);
-    } catch (_) {}
+    if (!_configured) return;
+    await _linkCustomer();
   }
 }

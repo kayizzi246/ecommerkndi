@@ -1174,10 +1174,12 @@ class _AccountPageState extends State<AccountPage> {
 
   /// Four switches, saved to the device.
   ///
-  /// These are REAL now. Each one maps to a Firebase topic that the device
-  /// subscribes to or leaves on the spot — see `_kTopics` in
-  /// push_notifications.dart — so turning one off actually stops the messages
-  /// rather than setting a flag a sender might ignore.
+  /// These are REAL now. Each one maps to a OneSignal TAG on this device's
+  /// subscription — see `_kTags` in push_notifications.dart — so turning one
+  /// off actually stops the messages rather than setting a flag a sender might
+  /// ignore. A tag rather than a topic because a tag is also countable: the
+  /// shop can answer "how many people want deal alerts", which a topic
+  /// subscription never let it see.
   ///
   /// Order updates are the exception and deliberately so: they are not a topic.
   /// A device that unsubscribed from its own delivery notifications would also

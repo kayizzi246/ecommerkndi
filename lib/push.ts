@@ -1,132 +1,57 @@
 /**
- * Firebase Cloud Messaging, from the server.
+ * Push notifications, through OneSignal.
  *
- * ---- Why this is hand-rolled rather than firebase-admin ----
+ * ---- What this replaced, and why it is so much shorter ----
  *
- * `firebase-admin` is a ~15MB dependency that pulls in gRPC, and it exists to
- * do many things this shop does not need: Firestore, Auth, Storage, Realtime
- * Database. What is actually needed here is one authenticated POST to the FCM
- * v1 endpoint, and the OAuth assertion that authorises it. That is the whole
- * surface, and it is written out below.
+ * This was written against Firebase Cloud Messaging first. FCM is a TRANSPORT:
+ * it moves a message to a device token and stops, so everything around it was
+ * ours — a device table in WordPress, a route to write to it, token rotation, a
+ * pruning pass for dead tokens, the join from an order to the devices its
+ * customer holds, and an RS256-signed JWT plus an OAuth exchange for every send.
  *
- * The trade is that the token exchange is ours to get right. It is cached until
- * shortly before expiry, because minting one costs a round trip to Google and
- * an order confirmation should not wait on it.
+ * OneSignal is that entire layer. It keeps the subscriptions, it knows which
+ * devices belong to a customer once the app has told it that customer's id, and
+ * it addresses them by that id. Everything in the paragraph above was deleted
+ * rather than ported:
+ *
+ *   • No device table, and no `/api/app/notifications/register`.
+ *   • No token pruning — hence no `stale` in the result any more. There is
+ *     nothing on our side to prune.
+ *   • No JWT signing. A REST key in a header.
  *
  * ---- Configuration ----
  *
- * A service account JSON from the Firebase console, in the environment:
+ *   ONESIGNAL_APP_ID       — the same id the app is built with
+ *   ONESIGNAL_REST_API_KEY — from Settings > Keys & IDs. SERVER ONLY.
  *
- *   FCM_PROJECT_ID       — from the JSON's `project_id`
- *   FCM_CLIENT_EMAIL     — from the JSON's `client_email`
- *   FCM_PRIVATE_KEY      — from the JSON's `private_key`, newlines as \n
- *
- * Absent, every function here becomes a no-op that reports it did nothing.
- * That is deliberate: a shop with no push configured must still be able to take
- * an order, and an order route that throws because notifications are not set up
- * has turned a nice-to-have into a checkout outage.
+ * Absent, every function here becomes a no-op that reports it did nothing. That
+ * is deliberate: a shop with no push configured must still take orders, and a
+ * checkout that throws because notifications are not set up has turned a
+ * nice-to-have into an outage.
  */
 
-const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+const ONESIGNAL_API = "https://api.onesignal.com/notifications";
 
 export type PushResult = {
   sent: number;
   failed: number;
-  /** Tokens FCM rejected as permanently dead — deregister these. */
-  stale: string[];
-  /** Set when push is not configured, so callers can log it once and move on. */
+  /** OneSignal's id for the notification, useful when chasing one up. */
+  id?: string;
+  /** Set when push is not configured, so callers log it once and move on. */
   skipped?: boolean;
 };
 
-const NOT_CONFIGURED: PushResult = { sent: 0, failed: 0, stale: [], skipped: true };
+const NOT_CONFIGURED: PushResult = { sent: 0, failed: 0, skipped: true };
 
 function config() {
-  const projectId = process.env.FCM_PROJECT_ID;
-  const clientEmail = process.env.FCM_CLIENT_EMAIL;
-  const privateKey = process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!projectId || !clientEmail || !privateKey) return null;
-  return { projectId, clientEmail, privateKey };
+  const appId = process.env.ONESIGNAL_APP_ID;
+  const restKey = process.env.ONESIGNAL_REST_API_KEY;
+  if (!appId || !restKey) return null;
+  return { appId, restKey };
 }
 
 export function pushConfigured(): boolean {
   return config() !== null;
-}
-
-// ---- The access token, and why it is cached ----
-
-let cached: { token: string; expiresAt: number } | null = null;
-
-async function accessToken(): Promise<string | null> {
-  const settings = config();
-  if (!settings) return null;
-
-  // 60s of headroom. A token that expires between this check and FCM reading it
-  // fails the send for no recoverable reason, and the window is free to buy.
-  if (cached && Date.now() < cached.expiresAt - 60_000) return cached.token;
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claims = {
-    iss: settings.clientEmail,
-    scope: FCM_SCOPE,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const encode = (value: unknown) =>
-    Buffer.from(JSON.stringify(value))
-      .toString("base64url");
-
-  const unsigned = `${encode(header)}.${encode(claims)}`;
-
-  // Node's webcrypto rather than `crypto.sign`, so this works unchanged if the
-  // route is ever moved to the edge runtime.
-  const { subtle } = globalThis.crypto;
-  const pem = settings.privateKey
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s/g, "");
-  const key = await subtle.importKey(
-    "pkcs8",
-    Buffer.from(pem, "base64"),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(unsigned)
-  );
-  const jwt = `${unsigned}.${Buffer.from(signature).toString("base64url")}`;
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    console.error("[kandi-push] token exchange failed:", response.status);
-    return null;
-  }
-
-  const data = (await response.json()) as {
-    access_token?: string;
-    expires_in?: number;
-  };
-  if (!data.access_token) return null;
-
-  cached = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
-  };
-  return cached.token;
 }
 
 type Message = {
@@ -136,105 +61,111 @@ type Message = {
   data?: Record<string, string>;
 };
 
-async function post(
-  target: { token: string } | { topic: string },
-  message: Message
-): Promise<{ ok: boolean; stale: boolean }> {
+/**
+ * The tag names the app writes, and the only ones a promotion may filter on.
+ *
+ * `push_notifications.dart` holds the same three strings. The two have to
+ * agree: a send filtered on a tag the app never sets reaches nobody, and does
+ * it silently — no error, a successful-looking response, and zero recipients.
+ */
+export const PUSH_TAGS = ["deals", "price_drops", "new_arrivals"] as const;
+export type PushTag = (typeof PUSH_TAGS)[number];
+
+async function post(body: Record<string, unknown>): Promise<PushResult> {
   const settings = config();
-  const auth = await accessToken();
-  if (!settings || !auth) return { ok: false, stale: false };
+  if (!settings) return NOT_CONFIGURED;
 
-  const isPromo = message.data?.kind === "promo";
-
-  const response = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${settings.projectId}/messages:send`,
-    {
+  try {
+    const response = await fetch(ONESIGNAL_API, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${auth}`,
+        // The current scheme. OneSignal's older docs show `Basic <key>`; keys
+        // issued now are used as `Key <key>` and the old form is being retired.
+        Authorization: `Key ${settings.restKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        message: {
-          ...target,
-          notification: { title: message.title, body: message.body },
-          data: message.data ?? {},
-          android: {
-            // Matches the channels the app creates. A message naming a channel
-            // that does not exist is filed under the default one and ignores
-            // every importance setting the shopper chose.
-            priority: isPromo ? "NORMAL" : "HIGH",
-            notification: {
-              channel_id: isPromo ? "kandi_promos" : "kandi_orders",
-            },
-          },
-          apns: {
-            headers: { "apns-priority": isPromo ? "5" : "10" },
-            payload: { aps: { sound: "default" } },
-          },
-        },
-      }),
+      body: JSON.stringify({ app_id: settings.appId, ...body }),
       cache: "no-store",
+    });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      id?: string;
+      recipients?: number;
+      errors?: unknown;
+    };
+
+    if (!response.ok) {
+      console.error("[kandi-push] send failed:", response.status, data.errors);
+      return { sent: 0, failed: 1 };
     }
-  );
 
-  if (response.ok) return { ok: true, stale: false };
+    // A 200 with zero recipients is the quiet failure worth surfacing: the
+    // request was perfect and nobody matched it. Usually a customer id that has
+    // never opened the app, or a tag the app is not writing.
+    const recipients = typeof data.recipients === "number" ? data.recipients : 0;
+    if (recipients === 0) {
+      console.warn("[kandi-push] accepted but matched no subscribers:", data.id);
+    }
 
-  // 404 UNREGISTERED and 400 INVALID_ARGUMENT on the token are the two answers
-  // that mean "this device is gone for good". Everything else — a 429, a 503 —
-  // is temporary and the token must be kept.
-  const text = await response.text().catch(() => "");
-  const stale =
-    response.status === 404 ||
-    text.includes("UNREGISTERED") ||
-    text.includes("INVALID_ARGUMENT");
-
-  if (!stale) {
-    console.error("[kandi-push] send failed:", response.status, text.slice(0, 200));
+    return { sent: recipients, failed: 0, id: data.id };
+  } catch (error) {
+    console.error("[kandi-push] unreachable:", error);
+    return { sent: 0, failed: 1 };
   }
-  return { ok: false, stale };
 }
 
-/** Sends one message to specific devices. */
-export async function pushToTokens(
-  tokens: string[],
+/**
+ * Sends to one customer, on every device they have signed in on.
+ *
+ * The id is the WordPress customer id, which the app sets as its OneSignal
+ * external id at sign-in. The shop does not need to know how many handsets that
+ * is, or whether any of them are still installed — which is the whole reason
+ * this is addressed by customer rather than by device.
+ */
+export async function pushToCustomer(
+  customerId: string | number,
   message: Message
 ): Promise<PushResult> {
   if (!pushConfigured()) return NOT_CONFIGURED;
-  if (tokens.length === 0) return { sent: 0, failed: 0, stale: [] };
 
-  // In parallel, and settled rather than raced: one dead token among five must
-  // not stop the other four, which is exactly what `Promise.all` would do.
-  const results = await Promise.allSettled(
-    tokens.map((token) => post({ token }, message))
-  );
+  const id = String(customerId).trim();
+  if (!id) return { sent: 0, failed: 0 };
 
-  const stale: string[] = [];
-  let sent = 0;
-  let failed = 0;
-
-  results.forEach((result, index) => {
-    if (result.status === "fulfilled" && result.value.ok) {
-      sent += 1;
-      return;
-    }
-    failed += 1;
-    if (result.status === "fulfilled" && result.value.stale) {
-      stale.push(tokens[index]);
-    }
+  return post({
+    include_aliases: { external_id: [id] },
+    target_channel: "push",
+    headings: { en: message.title },
+    contents: { en: message.body },
+    data: message.data ?? {},
+    // 10 is "deliver now" for APNs; order news is time-critical by definition.
+    priority: 10,
   });
-
-  return { sent, failed, stale };
 }
 
-/** Sends one message to everyone subscribed to a topic. */
-export async function pushToTopic(
-  topic: string,
+/**
+ * Sends to everyone whose subscription carries a tag.
+ *
+ * A tag rather than a segment, so the audience is defined by the switch the
+ * shopper actually set in the app rather than by a rule someone drew in the
+ * OneSignal dashboard that the app knows nothing about.
+ */
+export async function pushToTag(
+  tag: PushTag,
   message: Message
 ): Promise<PushResult> {
   if (!pushConfigured()) return NOT_CONFIGURED;
-  const result = await post({ topic }, message);
-  return { sent: result.ok ? 1 : 0, failed: result.ok ? 0 : 1, stale: [] };
+
+  return post({
+    filters: [{ field: "tag", key: tag, relation: "=", value: "1" }],
+    target_channel: "push",
+    headings: { en: message.title },
+    contents: { en: message.body },
+    data: { ...(message.data ?? {}), kind: "promo" },
+    // 5, not 10. A flash sale that arrives with the same urgency as "your
+    // parcel is at the door" is how an app gets its notifications turned off
+    // wholesale — and the shop then loses the delivery ones it needed.
+    priority: 5,
+  });
 }
 
 /**
@@ -242,11 +173,11 @@ export async function pushToTopic(
  *
  * Kept here rather than at the call sites so the shop has ONE voice across
  * every trigger — WordPress, the checkout route, a manual resend — and so
- * changing "on its way" everywhere is one edit.
+ * changing "on the way" everywhere is one edit.
  *
- * Returns null for statuses not worth a buzz. That is most of them: `pending`
+ * Returns null for statuses not worth a buzz, which is most of them: `pending`
  * fires the moment an order is created and would beat the confirmation to the
- * phone, and nobody needs to be interrupted to learn their order is `on-hold`.
+ * phone, and nobody needs interrupting to learn their order is `on-hold`.
  */
 export function orderMessage(
   status: string,

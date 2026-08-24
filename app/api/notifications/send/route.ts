@@ -1,5 +1,12 @@
 import { privateJson } from "@/lib/private-json";
-import { pushToTokens, pushToTopic, orderMessage, pushConfigured } from "@/lib/push";
+import {
+  pushToCustomer,
+  pushToTag,
+  orderMessage,
+  pushConfigured,
+  PUSH_TAGS,
+  type PushTag,
+} from "@/lib/push";
 
 /**
  * POST /api/notifications/send
@@ -9,13 +16,18 @@ import { pushToTokens, pushToTopic, orderMessage, pushConfigured } from "@/lib/p
  *
  * ---- Why WordPress calls in rather than sending itself ----
  *
- * FCM v1 needs a signed JWT and an OAuth exchange to authorise every send. That
- * is written once, in `lib/push.ts`, in a language with a crypto library that
- * does it in four lines. Reimplementing it in PHP would be a second
- * implementation of the fiddliest part of this feature, kept in step by hand.
+ * It could. OneSignal is one authenticated POST and PHP can make it. The reason
+ * it does not is that the WORDING lives here, in `orderMessage` — one place
+ * where the shop's voice is decided, shared by every trigger. Spreading the
+ * copy across a PHP hook and a TypeScript route is how "on the way" ends up
+ * phrased two ways depending on what fired it.
  *
- * So WordPress owns WHO to notify — it has the orders and the device table —
- * and this owns HOW. The split follows the data.
+ * So WordPress owns WHEN and WHO — it has the orders and the customer ids —
+ * and this owns WHAT IT SAYS and HOW IT GOES. The split follows the concern.
+ *
+ * Note WordPress sends a CUSTOMER ID, not device tokens. It does not have any:
+ * OneSignal keeps the subscriptions and matches them by the external id the app
+ * sets at sign-in.
  *
  * ---- Authentication ----
  *
@@ -45,13 +57,13 @@ function secretMatches(supplied: string | null): boolean {
 type Body = {
   /** "order" or "promo". */
   kind?: string;
-  /** Order sends: the devices belonging to the customer on the order. */
-  tokens?: unknown;
+  /** Order sends: the WordPress customer id on the order. */
+  customer_id?: string | number;
   /** Order sends: the WooCommerce status the order just moved to. */
   status?: string;
   order_number?: string;
-  /** Promo sends: the topic and the words, which are written by a person. */
-  topic?: string;
+  /** Promo sends: the tag and the words, which are written by a person. */
+  tag?: string;
   title?: string;
   body?: string;
 };
@@ -64,7 +76,7 @@ export async function POST(request: Request) {
   if (!pushConfigured()) {
     // 200, not 500. Push being unconfigured is a deployment state, not a
     // failure of this request, and WordPress must not retry an order hook
-    // forever because the shop has not set up Firebase yet.
+    // forever because the shop has not set up OneSignal yet.
     return privateJson({ sent: 0, skipped: true }, { status: 200 });
   }
 
@@ -77,30 +89,22 @@ export async function POST(request: Request) {
       return privateJson({ message: "A title and a body are required." }, { status: 400 });
     }
 
-    // An allow-list, because a topic name is a broadcast address. A typo would
-    // send to a topic nobody is subscribed to and look like a silent failure;
-    // an arbitrary string from a compromised caller would be worse.
-    const allowed = new Set(["promos", "price_drops", "new_arrivals"]);
-    const topic = (payload.topic ?? "promos").trim();
-    if (!allowed.has(topic)) {
-      return privateJson({ message: "Unknown topic." }, { status: 400 });
+    // An allow-list, and it is the SAME list the app writes — see PUSH_TAGS.
+    // A typo would filter on a tag no subscription carries, which OneSignal
+    // accepts happily and delivers to nobody: a 200, an id, zero recipients.
+    // That is the failure mode worth spending a guard on.
+    const tag = (payload.tag ?? "deals").trim();
+    if (!(PUSH_TAGS as readonly string[]).includes(tag)) {
+      return privateJson({ message: "Unknown tag." }, { status: 400 });
     }
 
-    const result = await pushToTopic(topic, {
-      title,
-      body,
-      // `kind` is what the app reads to pick the quieter channel — see the
-      // channel note in push_notifications.dart.
-      data: { kind: "promo", topic },
-    });
+    const result = await pushToTag(tag as PushTag, { title, body });
     return privateJson(result, { status: 200 });
   }
 
   // ---- An order moved ----
 
-  const tokens = Array.isArray(payload.tokens)
-    ? payload.tokens.filter((t): t is string => typeof t === "string" && t.length > 32)
-    : [];
+  const customerId = String(payload.customer_id ?? "").trim();
 
   const message = orderMessage(
     (payload.status ?? "").trim(),
@@ -113,14 +117,12 @@ export async function POST(request: Request) {
   if (!message) {
     return privateJson({ sent: 0, ignored: true }, { status: 200 });
   }
-  if (tokens.length === 0) {
-    return privateJson({ sent: 0, reason: "no devices" }, { status: 200 });
+  // A guest order has no customer to address. Not an error — plenty of orders
+  // are placed without an account — so this answers 200 and says why.
+  if (!customerId) {
+    return privateJson({ sent: 0, reason: "no customer" }, { status: 200 });
   }
 
-  const result = await pushToTokens(tokens, message);
-
-  // `stale` comes back so WordPress can delete those rows. Without pruning, a
-  // device table only grows, and every promotion is then sent to a majority of
-  // tokens belonging to apps that were uninstalled months ago.
+  const result = await pushToCustomer(customerId, message);
   return privateJson(result, { status: 200 });
 }
