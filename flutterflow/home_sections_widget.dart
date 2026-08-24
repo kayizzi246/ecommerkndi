@@ -943,17 +943,6 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     super.initState();
     _scroll.addListener(_onScroll);
     _load();
-    // ---- Push is turned on here, and only here ----
-    //
-    // The home feed is the first screen that builds on a cold start, which
-    // makes it the right place to ask for notification permission: the shopper
-    // has arrived somewhere and seen the shop working, rather than being
-    // prompted by a splash screen before they know what the app is.
-    //
-    // Not awaited. Registration is a network call and the feed must not wait
-    // behind it. `start()` guards against running twice, so the other screens
-    // calling it are free.
-    KandiPush.start();
     // The basket and the saved list, from the device. Not awaited: they are
     // local reads that finish in a frame or two, and the feed request should
     // not be waiting behind them.

@@ -695,28 +695,14 @@ class _DeliveryAddressPageState extends State<DeliveryAddressPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // ---- The map is back in the top slot ----
+                  // The "Use my current location" button and the "or type it
+                  // below" divider under it both went with the GPS code — see
+                  // the header.
                   //
-                  // "Use my current location" was removed from here when the
-                  // geolocator dependency came out — see the header, which
-                  // still records how to restore it. This supersedes it rather
-                  // than restoring it, and is strictly better than the button
-                  // that was lost: a raw GPS fix is accurate to somewhere
-                  // between 5m and 50m, which in a city is the difference
-                  // between a shop and the flat above it, and the old button
-                  // saved that fix with no way to correct it.
-                  //
-                  // {@link KandiLocationSheet} offers the fix AND the map, so
-                  // the shopper confirms what they see instead of accepting
-                  // what they were assigned. It is the same sheet the cart and
-                  // the checkout open, writing the same `kandi_delivery_v2`
-                  // record — so a pin dropped on any of the three is already
-                  // showing on the other two.
-                  _mapButton(),
-                  const SizedBox(height: 10),
-                  // The area search keeps the slot under it. It is still the
-                  // fastest correct answer for somebody who knows the name of
-                  // where they live and does not want to pan a map to it.
+                  // The area search took the top slot they left, and it is the
+                  // right thing to have there for the same reason the location
+                  // button was: it is the fastest correct answer to the
+                  // question this screen exists to ask. See `_areaButton`.
                   _areaButton(),
                   const SizedBox(height: 8),
                   Row(
@@ -779,91 +765,6 @@ class _DeliveryAddressPageState extends State<DeliveryAddressPage> {
           Text('Delivery address',
               style: _type(size: 18, weight: FontWeight.w700)),
         ],
-      ),
-    );
-  }
-
-  /// Opens the map picker, then fills this form from what came back.
-  ///
-  /// The sheet has already SAVED the record by the time it resolves — it
-  /// merges the point into `kandi_delivery_v2` itself. So this does not save
-  /// anything; it copies the result into the visible fields, so the form the
-  /// shopper is looking at agrees with what is now on disk. A screen showing an
-  /// empty address box over a saved address is how somebody types a second one.
-  Future<void> _pickOnMap() async {
-    final picked = await KandiLocationSheet.choose(context);
-    if (!mounted || picked == null) return;
-
-    final address = (picked['place'] ?? picked['address'] ?? '').toString();
-    final city = (picked['city'] ?? '').toString();
-    final lat = picked['lat'], lng = picked['lng'];
-
-    setState(() {
-      if (address.isNotEmpty) _addressCtrl.text = address;
-      if (city.isNotEmpty) _cityCtrl.text = city;
-      // These are the coordinates the order is priced and routed from, and
-      // they came from a pin the shopper placed by hand — so they are better
-      // than anything the geocoder would return for the text above, and must
-      // not be cleared by the re-quote below.
-      if (lat is num) _lat = lat.toDouble();
-      if (lng is num) _lng = lng.toDouble();
-      _error = null;
-    });
-
-    // Re-quote from the new point. Delivery is free, but this call is still
-    // what answers "can a rider reach it", and the shopper should see that
-    // before they leave the screen rather than at the pay button.
-    _requestQuote(lat: _lat, lng: _lng);
-  }
-
-  /// The map entry point, and the loudest control on the screen.
-  ///
-  /// Orange-tinted rather than a plain outline like the area button beneath it:
-  /// these two are not equal choices. The map produces a POINT, which is what
-  /// the order is actually routed from; the area search produces a name that
-  /// still has to be geocoded to a centroid. When both are on screen the more
-  /// precise one should be the one the eye lands on.
-  Widget _mapButton() {
-    return Material(
-      color: _kOrange.withOpacity(0.06),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: _pickOnMap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            border: Border.all(color: _kOrange.withOpacity(0.35)),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: _kOrange.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(Icons.map_outlined, size: 20, color: _kOrange),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Pin it on the map',
-                        style: _type(size: 14.5, weight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text('Most accurate — riders get the exact spot',
-                        style: _type(size: 12.5, color: _kMuted)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, size: 22, color: _kOrange),
-            ],
-          ),
-        ),
       ),
     );
   }

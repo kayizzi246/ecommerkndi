@@ -311,19 +311,6 @@ class _KandiSellerCentreState extends State<KandiSellerCentre> {
   Future<void> _boot() async {
     await _SellerSession.load();
 
-    // AFTER the session is loaded, not before. `start()` reads the saved
-    // seller record to set the `seller_id` tag, so calling it first would tag
-    // the device with nothing and a seller would silently never be told about
-    // a new order.
-    //
-    // `forgetAccount()` rather than `start()` when a session is already
-    // running: start() short-circuits once it has run in this process, and a
-    // seller signing in on a device that opened the home feed first would hit
-    // exactly that guard. forgetAccount re-reads both identities and re-applies
-    // them, which is what this moment actually needs.
-    await KandiPush.start();
-    if (_SellerSession.isActive) await KandiPush.forgetAccount();
-
     if (!mounted) return;
     setState(() => _booting = false);
   }
@@ -419,11 +406,6 @@ class _SignInState extends State<_SignIn> {
           ? Map<String, dynamic>.from(data['seller'] as Map)
           : null,
     );
-
-    // The device is now this seller's. Re-applying the identity writes the
-    // `seller_id` tag, which is the only thing that makes new-order alerts
-    // reachable — without it the store is signed in and silent.
-    await KandiPush.forgetAccount();
 
     if (!mounted) return;
     HapticFeedback.mediumImpact();
@@ -698,9 +680,6 @@ class _DashboardState extends State<_Dashboard> {
     );
     if (confirmed != true) return;
     await _SellerSession.clear();
-    // Clears the `seller_id` tag. A stale one would keep delivering this
-    // store's order alerts to whoever is holding the handset next.
-    await KandiPush.forgetAccount();
     if (!mounted) return;
     widget.onSignedOut();
   }

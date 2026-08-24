@@ -529,27 +529,14 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     }
   }
 
-  /// Changing the address opens the SAME sheet the cart opens.
+  /// Changing the address opens the full delivery screen.
   ///
-  /// It used to push the full DeliveryAddressPage — a form with name, phone,
-  /// street and city on it — which is the right screen the first time and much
-  /// too much every time after. Nearly every use of this button is "I am at
-  /// work today, not home": a point change, not a rewrite of the recipient.
-  ///
-  /// So the map sheet handles the point, and it MERGES into the saved record
-  /// rather than replacing it, so the name and phone collected on the full form
-  /// survive untouched. The full form is still reachable below for the case it
-  /// is actually for — when there is no name or number on file yet.
+  /// This briefly opened a map sheet instead, with a second link beside it for
+  /// the long form. Both the sheet and that split are gone: DeliveryAddressPage
+  /// is once again the only place an address is edited, which is also the only
+  /// place it is validated — a point with no recipient name or phone on it is
+  /// an order a rider cannot complete.
   Future<void> _editAddress() async {
-    final picked = await KandiLocationSheet.choose(context);
-    if (!mounted || picked == null) return;
-    setState(() => _address = picked);
-    if (_hasLocation) await _checkReachable();
-  }
-
-  /// The full address form — name, phone, street. Reached from the address card
-  /// when the record is missing the details a rider needs to call ahead.
-  Future<void> _editDetails() async {
     await DeliveryAddressPage.open(context, subtotal: _subtotal);
     final address = await DeliveryAddressPage.savedRecord();
     if (!mounted) return;
@@ -1385,13 +1372,14 @@ class _KandiCheckoutState extends State<KandiCheckout> {
             ),
           ),
 
-          // Only when something a rider needs is genuinely missing. A permanent
-          // second link here would put the long form back in front of everyone,
-          // which is what this card was rebuilt to stop.
+          // Only when something a rider needs is genuinely missing. It goes to
+          // the same screen the card itself does — there is one address editor
+          // again — but it is worth keeping as its own line because it names
+          // WHAT is missing, which a chevron on the card above cannot.
           if (needsDetails) ...[
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: _editDetails,
+              onTap: _editAddress,
               child: Row(
                 children: [
                   const Icon(Icons.info_outline, size: 15, color: _kOrange),

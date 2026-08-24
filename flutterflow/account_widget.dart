@@ -1174,22 +1174,17 @@ class _AccountPageState extends State<AccountPage> {
 
   /// Four switches, saved to the device.
   ///
-  /// These are REAL now. Each one maps to a OneSignal TAG on this device's
-  /// subscription — see `_kTags` in push_notifications.dart — so turning one
-  /// off actually stops the messages rather than setting a flag a sender might
-  /// ignore. A tag rather than a topic because a tag is also countable: the
-  /// shop can answer "how many people want deal alerts", which a topic
-  /// subscription never let it see.
+  /// Honest about what they are: the app has no push registration, so these
+  /// record a PREFERENCE rather than switching a live subscription. The note at
+  /// the foot of the sheet says exactly that — a toggle that claims to stop
+  /// messages it cannot stop is the one setting a shopper will remember having
+  /// been lied to about.
   ///
-  /// Order updates are the exception and deliberately so: they are not a topic.
-  /// A device that unsubscribed from its own delivery notifications would also
-  /// stop receiving "your payment failed", which a shop has to be able to
-  /// deliver. That switch is a preference the server honours.
-  ///
-  /// This used to say the opposite — that the switches recorded a preference
-  /// the app could not act on — and that was true and worth saying while it
-  /// was. A toggle claiming to stop messages it cannot stop is the one setting
-  /// a shopper remembers having been lied to about.
+  /// They were briefly wired to OneSignal tags. That went with the push file,
+  /// and the wording went back with it rather than being left overstating what
+  /// the switches do — which is the failure this comment has always been about.
+  /// The values are still saved, so whatever replaces push inherits the
+  /// shopper's existing choices instead of resetting everyone to the defaults.
   Future<void> _showNotifications() async {
     HapticFeedback.mediumImpact();
 
@@ -1236,10 +1231,6 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => deals = v);
                         prefs.setBool('kandi_notif_deals', v);
-                        // Applied to the live subscription immediately, not on
-                        // next launch: a shopper who turns deals off and then
-                        // receives one has been told the switch does nothing.
-                        KandiPush.syncTopics();
                       },
                     ),
                     _toggle(
@@ -1250,10 +1241,6 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => priceDrops = v);
                         prefs.setBool('kandi_notif_price_drops', v);
-                        // Applied to the live subscription immediately, not on
-                        // next launch: a shopper who turns deals off and then
-                        // receives one has been told the switch does nothing.
-                        KandiPush.syncTopics();
                       },
                     ),
                     _toggle(
@@ -1265,10 +1252,6 @@ class _AccountPageState extends State<AccountPage> {
                       onChanged: (v) {
                         setSheetState(() => arrivals = v);
                         prefs.setBool('kandi_notif_new_arrivals', v);
-                        // Applied to the live subscription immediately, not on
-                        // next launch: a shopper who turns deals off and then
-                        // receives one has been told the switch does nothing.
-                        KandiPush.syncTopics();
                       },
                     ),
                   ],

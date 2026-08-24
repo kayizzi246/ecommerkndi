@@ -1477,45 +1477,111 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   // ---------- Address sheet ----------
 
-  /// Changing where the order goes — now a map, not a text box.
-  ///
-  /// ---- What this replaced ----
-  ///
-  /// A bottom sheet with a single free-text field. Whatever was typed went
-  /// straight to the delivery quote to be geocoded, and that arrangement failed
-  /// in the ways free text always does here: "kampala" is a whole city and
-  /// prices nothing useful; a spelling the geocoder does not know comes back
-  /// 422 with the shopper staring at a basket that cannot be priced; and a road
-  /// name with no number resolves to whichever end of it the geocoder prefers.
-  ///
-  /// Worse, saving a new string had to THROW AWAY the saved coordinates,
-  /// because the point belonged to the address just replaced. So every edit
-  /// downgraded a precise record to a vague one and asked the geocoder to
-  /// rebuild it from prose.
-  ///
-  /// {@link KandiLocationSheet} inverts that. The shopper picks the POINT, on a
-  /// map, and the address text is derived from it rather than the other way
-  /// round. There is nothing to geocode, nothing to fail, and the coordinates
-  /// are the thing being chosen — so they are never stale and never cleared.
-  ///
-  /// It is also the same sheet the checkout opens, and it writes to the same
-  /// `kandi_delivery_v2` record. That is the whole reason a pin dropped here is
-  /// already showing on the checkout when the shopper arrives: not a handoff
-  /// between two screens, just one record that both of them read.
   Future<void> _editAddress() async {
     HapticFeedback.lightImpact();
+    final controller = TextEditingController(text: _address ?? '');
 
-    final picked = await KandiLocationSheet.choose(context);
-    if (!mounted || picked == null) return;
+    final typed = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: _kWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          padding: const EdgeInsets.fromLTRB(_pad, 12, _pad, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _kLine,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Where are we delivering?', style: _heading(size: 17)),
+              const SizedBox(height: 6),
+              Text(
+                'A suburb or a nearby landmark is enough — the fee is priced on '
+                'the distance from our Kampala store.',
+                style: _text(size: 13, color: _kMuted),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                style: _text(size: 14.5, color: _kInk),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Ntinda, near Capital Shoppers',
+                  hintStyle: _text(size: 14, color: _kFaint),
+                  filled: true,
+                  fillColor: _kSurface,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(_radius),
+                    borderSide: const BorderSide(color: _kLine),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(_radius),
+                    borderSide: const BorderSide(color: _kLine),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(_radius),
+                    borderSide: const BorderSide(color: _kPrimary),
+                  ),
+                ),
+                onSubmitted: (value) =>
+                    Navigator.of(sheetContext).pop(value.trim()),
+              ),
+              const SizedBox(height: 14),
+              _Press(
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(controller.text.trim()),
+                child: Container(
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _kPrimary,
+                    borderRadius: BorderRadius.circular(_radius),
+                  ),
+                  child: Text(
+                    'Price my delivery',
+                    style: _text(
+                        size: 15, color: _kWhite, weight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
-    final address = (picked['place'] ?? picked['address'] ?? '').toString();
-    final lat = picked['lat'], lng = picked['lng'];
-
+    if (typed == null || typed.isEmpty) return;
+    await _Delivery.saveAddress(typed);
+    if (!mounted) return;
     setState(() {
-      if (address.isNotEmpty) _address = address;
-      // Kept, not cleared. These ARE the shopper's choice now.
-      if (lat is num) _lat = lat.toDouble();
-      if (lng is num) _lng = lng.toDouble();
+      _address = typed;
+      // The saved coordinates belonged to the address that was just replaced.
+      // Keeping them would price a delivery to the old place while showing the
+      // new one — and the coordinates are what the ORDER is priced from, so it
+      // would be wrong all the way to the invoice. Cleared here and replaced by
+      // whatever the next quote echoes back.
+      _lat = null;
+      _lng = null;
     });
     _requestQuote(immediate: true);
   }
