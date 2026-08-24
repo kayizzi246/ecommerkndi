@@ -57,7 +57,10 @@ export function ProductRailSkeleton({
       <SectionHeaderSkeleton withSubtitle={withSubtitle} />
       {/* Matches DealCarousel's gap, so the rail does not jump when the real
           tiles replace these. */}
-      <div className="flex gap-2 overflow-hidden sm:gap-3">
+      {/* 10px, not 8px. This claimed to match the rail and did not, which on a
+          phone is 2px × 2 gaps of drift under a tile width that is now measured
+          FROM the gaps — so the shimmer sat where the products would not. */}
+      <div className="flex gap-2.5 overflow-hidden sm:gap-3">
         {Array.from({ length: count }, (_, i) => (
           <div
             key={i}
@@ -66,7 +69,12 @@ export function ProductRailSkeleton({
             // never took their tablet width. The rail they stand in for is
             // `shrink-0` at fixed widths, and a skeleton that is not laid out
             // like the thing it precedes is a guaranteed shift.
-            className="w-[40%] shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            // The phone step is the rail's 2.6-tile calc verbatim, gaps and
+            // all — that is the width the products land at, and a skeleton one
+            // tile-count off is a guaranteed shift at the exact moment the
+            // shopper is looking at it. The steps above it still drift from the
+            // rail by a point or so and are left alone here.
+            className="w-[calc((100%-20px)/2.6)] shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>

@@ -43,12 +43,32 @@ export default function DealCarousel({
    * the middle of its price rather than through its photograph — which reads as
    * a broken layout rather than as an invitation to swipe.
    *
-   * 49% now, and every width above it went up by the same step. The tiles were
+   * 49% then, and every width above it went up by the same step. The tiles were
    * asked to show the goods bigger, and a rail tile has only one lever for that
-   * — a photograph here is exactly as wide as its column. The peek survives the
-   * change: at 49% the third tile is still sliced across its image, though
-   * this is the ceiling — at 50% two tiles fill the viewport exactly and the
-   * peek that makes the rail look swipeable disappears.
+   * — a photograph here is exactly as wide as its column.
+   *
+   * ---- 2.6 on a phone, and why it is a calc rather than a percentage ----
+   *
+   * 49% was the ceiling of that approach and it sat right against it: two tiles
+   * and a sliver. Counting the 10px gaps, 49% of a 366px track is 179px a tile,
+   * so the third tile got 8px of the viewport — a seam rather than a peek, and
+   * at a glance indistinguishable from a two-column grid.
+   *
+   * 2.6 is the count now, and a plain percentage cannot express it. `100/2.6`
+   * is 38.5%, which ignores the two 10px gaps standing between the three tiles
+   * and lands at about 2.45 visible — the same drift the `2xl` step below has
+   * always carried, for the same reason. So the gaps come out of the width
+   * first, exactly as they do there:
+   *
+   *   w = (track - 2 gaps) / 2.6
+   *
+   * On a 390px phone that is a 133px tile: two whole ones, then 60% of a third
+   * sliced down its photograph rather than through its price. The peek is the
+   * whole point of a fractional count — a rail showing a whole number of tiles
+   * reads as a finished grid nobody swipes.
+   *
+   * The 20px is `gap-2.5` × 2, and it only holds below `sm`, which is the only
+   * range this step applies to. Every step above it keeps its percentage.
    *
    * ---- 2xl shows eight ----
    *
@@ -111,7 +131,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[49%] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
+  itemWidth = "w-[calc((100%-20px)/2.6)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -203,7 +223,13 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              sizes="(max-width: 640px) 49vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
+              // The phone step is 37vw rather than the 38.5vw that `100/2.6`
+              // suggests, because the real tile is that fraction of a track
+              // narrower than the viewport by the shell gutter and two gaps —
+              // about 34vw at 390px, 36vw at 640px. Declared a little over the
+              // measurement on purpose: under-declaring picks the next srcset
+              // step down and the photograph arrives soft.
+              sizes="(max-width: 640px) 37vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
             />
           </div>
         ))}

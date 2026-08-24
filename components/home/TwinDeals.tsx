@@ -220,7 +220,7 @@ function DealPanel({
 
           So the ramp is written against the PANEL, not the page:
 
-            base   49%   two tiles and a peek; the panel is full-width here
+            base   /2.6  two tiles and most of a third; panel is full-width
             sm     31%   three and a peek, still full-width
             md     45%   two and a peek — the panels have just halved
             lg     31%   three and a peek, as the halves grow
@@ -231,10 +231,18 @@ function DealPanel({
           Every step leaves a fraction over, and that fraction is the peek — a
           rail showing a whole number of tiles reads as a finished grid nobody
           swipes. No `sizes` override: `DealCarousel` carries its own, and those
-          numbers land within a step of these at every breakpoint. */}
+          numbers land within a step of these at every breakpoint.
+
+          The base step is the one place this ramp does NOT diverge from the
+          shared default, and it deliberately matches it character for character
+          — below `sm` these panels are full-width, so they are the same track
+          as any other rail and should show the same 2.6 tiles. The gap subtracted
+          is `gap-2.5` × 2, the two seams standing between three tiles; see the
+          long note on `itemWidth` in `DealCarousel` for why the count cannot be
+          written as a plain percentage. */}
       <DealCarousel
         products={products}
-        itemWidth="w-[49%] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
+        itemWidth="w-[calc((100%-20px)/2.6)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
         priority={priority}
         // "All Lightning" / "All Clearance" — the panel titles minus the word
         // both of them share, which the tile's own context already supplies.
