@@ -217,6 +217,7 @@ export default function Header({
     // same rule. On a phone, where that bar folds away, this border IS the
     // line between the masthead and the grid scrolling under it, which is what
     // the shadow was there for.
+    <>
     <header
       className={`sticky top-0 z-40 border-b border-shop-line bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
         slidUp ? "-translate-y-full" : "translate-y-0"
@@ -705,11 +706,32 @@ export default function Header({
 
            {@link CategoryDrawer} is the phone shape instead — a slide-in panel
            that owns the screen, banded into account, categories and services. */}
+    </header>
+
+      {/* ---- Outside the <header>, and it has to be ----
+
+           This sat inside the header and rendered as a panel roughly 180px
+           tall, clipped straight across the second category row.
+
+           Nothing was wrong with the drawer. The header carries
+           `transition-transform` and `translate-y-0` so it can slide away on
+           scroll, and ANY transform other than `none` makes that element the
+           containing block for `position: fixed` descendants. So the drawer's
+           `fixed inset-0` stopped meaning "the viewport" and started meaning
+           "the masthead" — which is exactly as tall as the piece of drawer that
+           was showing.
+
+           `CartDrawer` never hit this because it renders from `StoreChrome`,
+           outside the header entirely. This now sits in the same position
+           relative to the transform: a sibling of the masthead rather than a
+           child of it.
+
+           Anything fixed that is added here later has to stay out here too. */}
       <CategoryDrawer
         departments={departments}
         open={menuOpen}
         onClose={closeMenu}
       />
-    </header>
+    </>
   );
 }
