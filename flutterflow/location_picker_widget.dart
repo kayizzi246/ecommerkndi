@@ -97,11 +97,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ---- Brand, copied from the sibling screens ----
 const Color _kOrange = Color(0xFFFF6A00);
 const Color _kInk = Color(0xFF111827);
-const Color _kBody = Color(0xFF4B5563);
 const Color _kMuted = Color(0xFF6B7280);
 const Color _kFaint = Color(0xFF9CA3AF);
 const Color _kLine = Color(0xFFE5E7EB);
-const Color _kSurface = Color(0xFFF3F4F6);
 
 TextStyle _type({
   double size = 14,

@@ -19,6 +19,20 @@ type WpCallOptions = {
   /** Attach the caller's seller token as a Bearer credential. */
   authenticated?: boolean;
   search?: string;
+  /**
+   * Use THIS token rather than reading the session cookie.
+   *
+   * The website's seller session lives in an httpOnly cookie, which is the
+   * right store for a browser and useless to the phone app: Dart's HTTP client
+   * keeps no cookie jar, so a cookie-based sign-in succeeds and is forgotten
+   * before the next request. The app therefore carries a bearer token, exactly
+   * as the shopper app already does — see the note at the head of
+   * `lib/app-auth.ts`.
+   *
+   * Passing it here is what lets `/api/app/seller/*` reuse this function
+   * unchanged instead of growing a parallel copy that could drift from it.
+   */
+  token?: string;
 };
 
 export type WpCallResult = {
@@ -32,7 +46,13 @@ export type WpCallResult = {
  */
 export async function callSellerApi(
   path: string,
-  { method = "GET", body, authenticated = true, search = "" }: WpCallOptions = {}
+  {
+    method = "GET",
+    body,
+    authenticated = true,
+    search = "",
+    token: explicitToken,
+  }: WpCallOptions = {}
 ): Promise<WpCallResult> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -40,7 +60,9 @@ export async function callSellerApi(
   };
 
   if (authenticated) {
-    const token = (await cookies()).get(SELLER_COOKIE)?.value;
+    // An explicitly supplied token wins over the cookie: the caller is the app
+    // route, which has no cookie to read.
+    const token = explicitToken ?? (await cookies()).get(SELLER_COOKIE)?.value;
     if (!token) {
       return { status: 401, data: { message: "Your session has expired. Please sign in again." } };
     }

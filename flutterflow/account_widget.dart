@@ -436,6 +436,20 @@ class _AccountPageState extends State<AccountPage> {
   void initState() {
     super.initState();
     _load();
+    _refreshSeller();
+  }
+
+  /// Whether a seller is signed in on this device.
+  ///
+  /// Only ever used to word the Selling row — the seller session is otherwise
+  /// entirely separate from the shopper one, and this screen deliberately knows
+  /// nothing else about it.
+  bool _isSeller = false;
+
+  Future<void> _refreshSeller() async {
+    final signedIn = await KandiSellerCentre.isSignedIn();
+    if (!mounted || signedIn == _isSeller) return;
+    setState(() => _isSeller = signedIn);
   }
 
   Future<void> _load() async {
@@ -603,6 +617,43 @@ class _AccountPageState extends State<AccountPage> {
                             // control that wastes a tap to tell you what you
                             // already knew.
                             trailing: _chip('🇺🇬  UGX'),
+                            isLast: true,
+                          ),
+                        ]),
+                        const SizedBox(height: 18),
+
+                        // ---- Selling, in Settings rather than the tab bar ----
+                        //
+                        // Sellers are a small minority of the people who
+                        // install a shopping app, and a permanent tab for them
+                        // would spend a fifth of the bottom bar on a screen
+                        // most shoppers will never open. This is the same call
+                        // the website makes by putting "Sell on Kandi" at the
+                        // end of a nav row rather than in the masthead.
+                        //
+                        // The row LABELS ITSELF from the seller session, so it
+                        // says what tapping it will actually do: somebody
+                        // already signed in goes to their dashboard, somebody
+                        // who is not gets the sign-in form. One row, two
+                        // honest destinations, rather than a "Sell" entry that
+                        // silently means different things.
+                        _section('Selling', [
+                          _row(
+                            icon: Icons.storefront_rounded,
+                            title: _isSeller
+                                ? 'Seller Centre'
+                                : 'Sell on Kandi',
+                            subtitle: _isSeller
+                                ? 'Orders, payouts and listings'
+                                : 'Sign in to your store',
+                            onTap: () async {
+                              await KandiSellerCentre.open(context);
+                              // Re-read on the way back: signing in or out in
+                              // there changes what this row should say, and a
+                              // row still reading "Sign in to your store"
+                              // after a successful sign-in reads as a failure.
+                              if (mounted) await _refreshSeller();
+                            },
                             isLast: true,
                           ),
                         ]),
