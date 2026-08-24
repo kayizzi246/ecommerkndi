@@ -69,12 +69,12 @@ export function ProductRailSkeleton({
             // never took their tablet width. The rail they stand in for is
             // `shrink-0` at fixed widths, and a skeleton that is not laid out
             // like the thing it precedes is a guaranteed shift.
-            // The phone step is the rail's 2.6-tile calc verbatim, gaps and
+            // The phone step is the rail's 2.3-tile calc verbatim, gaps and
             // all — that is the width the products land at, and a skeleton one
             // tile-count off is a guaranteed shift at the exact moment the
             // shopper is looking at it. The steps above it still drift from the
             // rail by a point or so and are left alone here.
-            className="w-[calc((100vw-44px)/2.6)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            className="w-[calc((100vw-44px)/2.3)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>

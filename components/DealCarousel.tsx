@@ -47,25 +47,26 @@ export default function DealCarousel({
    * asked to show the goods bigger, and a rail tile has only one lever for that
    * — a photograph here is exactly as wide as its column.
    *
-   * ---- 2.6 on a phone, and why it is a calc rather than a percentage ----
+   * ---- 2.3 on a phone, and why it is a calc rather than a percentage ----
    *
    * 49% was the ceiling of that approach and it sat right against it: two tiles
    * and a sliver. Counting the 10px gaps, 49% of a 366px track is 179px a tile,
    * so the third tile got 8px of the viewport — a seam rather than a peek, and
    * at a glance indistinguishable from a two-column grid.
    *
-   * 2.6 is the count now, and a plain percentage cannot express it. `100/2.6`
-   * is 38.5%, which ignores the two 10px gaps standing between the three tiles
-   * and lands at about 2.45 visible — the same drift the `2xl` step below has
+   * 2.3 is the count now, and a plain percentage cannot express it. `100/2.3`
+   * is 43.5%, which ignores the two 10px gaps standing between the three tiles
+   * and lands at about 2.18 visible — the same drift the `2xl` step below has
    * always carried, for the same reason. So the gaps come out of the width
    * first, exactly as they do there:
    *
-   *   w = (track - 2 gaps) / 2.6
+   *   w = (track - 2 gaps) / 2.3
    *
-   * On a 390px phone that is a 133px tile: two whole ones, then 60% of a third
-   * sliced down its photograph rather than through its price. The peek is the
-   * whole point of a fractional count — a rail showing a whole number of tiles
-   * reads as a finished grid nobody swipes.
+   * Two whole tiles, then 30% of a third, sliced down its photograph rather
+   * than through its price. The peek is the whole point of a fractional count —
+   * a rail showing a whole number of tiles reads as a finished grid nobody
+   * swipes — and 0.3 of a tile is still unmistakably a sliced photograph rather
+   * than the 8px seam 49% produced.
    *
    * ---- ...and why the phone step is `vw` rather than `%` ----
    *
@@ -81,9 +82,9 @@ export default function DealCarousel({
    * column, which is the viewport less the `px-3` gutter, so the width can be
    * stated absolutely and no ancestor can distort it:
    *
-   *   w = (100vw - 24px gutter - 20px gaps) / 2.6
+   *   w = (100vw - 24px gutter - 20px gaps) / 2.3
    *
-   * On a 408px phone that is a 140px tile: 2.6 of them plus two gaps is exactly
+   * On a 408px phone that is a 158px tile: 2.3 of them plus two gaps is exactly
    * the 384px column. Both pages that render a rail on a phone — the homepage
    * and /categories — use `px-3`, so the 24px holds for each.
    *
@@ -152,7 +153,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[calc((100vw-44px)/2.6)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
+  itemWidth = "w-[calc((100vw-44px)/2.3)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -262,13 +263,13 @@ export default function DealCarousel({
             <ProductCard
               product={product}
               priority={priority && index < 2}
-              // The phone step is 37vw rather than the 38.5vw that `100/2.6`
-              // suggests, because the real tile is that fraction of a track
-              // narrower than the viewport by the shell gutter and two gaps —
-              // about 34vw at 390px, 36vw at 640px. Declared a little over the
+              // The phone step is 41vw rather than the 43.5vw that `100/2.3`
+              // suggests, because the real tile is that fraction of a column
+              // narrower than the viewport by the gutter and two gaps — about
+              // 38.6vw at 390px, 40.5vw at 640px. Declared a little over the
               // measurement on purpose: under-declaring picks the next srcset
               // step down and the photograph arrives soft.
-              sizes="(max-width: 640px) 37vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
+              sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
             />
           </div>
         ))}

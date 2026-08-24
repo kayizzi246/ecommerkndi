@@ -261,13 +261,13 @@ function DealPanel({
           The base step is the one place this ramp does NOT diverge from the
           shared default, and it deliberately matches it character for character
           — below `sm` these panels are full-width, so they are the same track
-          as any other rail and should show the same 2.6 tiles. The 44px is the
+          as any other rail and should show the same 2.3 tiles. The 44px is the
           `px-3` page gutter plus the two `gap-2.5` seams standing between three
           tiles; see the long note on `itemWidth` in `DealCarousel` for why the
           count is neither a plain percentage nor measured against the track. */}
       <DealCarousel
         products={products}
-        itemWidth="w-[calc((100vw-44px)/2.6)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
+        itemWidth="w-[calc((100vw-44px)/2.3)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
         priority={priority}
         // "All Lightning" / "All Clearance" — the panel titles minus the word
         // both of them share, which the tile's own context already supplies.
