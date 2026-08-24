@@ -212,7 +212,25 @@ export default function DealCarousel({
         className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth pb-1 no-scrollbar sm:gap-4"
       >
         {products.map((product, index) => (
-          <div key={product.id} className={`shrink-0 snap-start ${itemWidth}`}>
+          // ---- `min-w-0`, or `itemWidth` is a suggestion ----
+          //
+          // A flex item defaults to `min-width: auto`, which resolves to its
+          // MIN-CONTENT width — and min-width beats width. `ProductCard` puts
+          // `whitespace-nowrap` on the price and `shrink-0` on the meta chips,
+          // so its min-content floor is a good deal wider than a phone tile.
+          // Below that floor the item quietly ignores every width on this
+          // track and renders at its content size: one card filling the
+          // screen, no matter what the ramp above says.
+          //
+          // This was invisible while the phone step was 49% (~179px), which sat
+          // above the floor. Asking for 2.6 tiles (~133px) put the request
+          // under it and the rail collapsed to a single product.
+          //
+          // `min-w-0` lifts the floor and lets the declared width win. Nothing
+          // spills: the card's text rows already clip and truncate on their
+          // own — see the `overflow-hidden` on the price row and the title's
+          // `truncate` in `ProductCard`.
+          <div key={product.id} className={`min-w-0 shrink-0 snap-start ${itemWidth}`}>
             {/* Only the two tiles a phone can actually see are eager. Beyond
                 that they would compete with each other for bandwidth and the
                 first paint would arrive later, not sooner. */}
@@ -235,7 +253,10 @@ export default function DealCarousel({
         ))}
 
         {viewAll && (
-          <div className={`shrink-0 snap-start ${itemWidth}`}>
+          // Same `min-w-0` as the product tiles above, for the same reason —
+          // this tile has to measure exactly as wide as they do or the rail
+          // ends on a step.
+          <div className={`min-w-0 shrink-0 snap-start ${itemWidth}`}>
             {/* Sized to the tile beside it and shaped like the photograph, so
                 the row keeps its rhythm — a link floating at half height would
                 read as the rail having broken rather than ended. */}
