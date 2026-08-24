@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
@@ -309,11 +310,28 @@ class _KandiCheckoutState extends State<KandiCheckout> {
   double _subtotal = 0;
   int _itemCount = 0;
 
-  double _deliveryFee = 0;
-  bool _deliveryFree = false;
+  // ---- DELIVERY IS FREE, AND THIS APP NO LONGER PRICES IT ----
+  //
+  // Every fee field that used to live here is gone: `_deliveryFee`,
+  // `_deliveryFree`, `_deliveryLabel`, `_quoting`, and the `_quote()` call
+  // that filled them from POST /api/delivery/quote.
+  //
+  // The shop does not charge for delivery any more, so there is nothing to
+  // quote, nothing to wait for, and nothing that can disagree. That last one
+  // is the real gain: the old screen showed a fee fetched here and the server
+  // re-priced the same point when the order was placed, so any drift between
+  // the two rates was a shopper charged a number they were never shown.
+  //
+  // `_deliverable` stays. Free is not the same as unlimited — the shop still
+  // has a service area, and an order to somewhere it cannot reach has to be
+  // stopped at the same place it always was.
+  //
+  // >>> THE SERVER MUST AGREE. <<<
+  // Removing the line here does not stop WooCommerce adding a shipping total
+  // when the order is created. `app/api/checkout/route.ts` and
+  // `wordpress/kandi-store-api.php` are the other half of this change; if
+  // they still price delivery, the app shows FREE and the invoice does not.
   bool _deliverable = true;
-  String _deliveryLabel = '';
-  bool _quoting = false;
 
   _Method _method = _Method.cod;
   bool _pesapalEnabled = true;
@@ -330,8 +348,37 @@ class _KandiCheckoutState extends State<KandiCheckout> {
   bool _signedIn = true;
 
   int? _orderId;
+
+  /// Proof that this phone placed the order it is about to pay for.
+  ///
+  /// Handed back by `/api/checkout` and required by
+  /// `/api/payments/pesapal/start`. See where it is read, below, for what an
+  /// order id on its own used to be worth.
+  String? _paymentToken;
+
   String? _trackingId;
   Timer? _poll;
+
+  /// A fresh key for one checkout attempt.
+  ///
+  /// Not a UUID: `dart:math`'s generator is not a cryptographic one and this
+  /// does not need to be unguessable. It needs to be UNIQUE — it only ever says
+  /// "this is the same attempt as that one" — and a timestamp in milliseconds
+  /// plus 64 bits of randomness is comfortably that. Guessing somebody else's
+  /// key buys an attacker a copy of an answer they would have to already know
+  /// the key to ask for.
+  ///
+  /// The character set is deliberately plain: the server rejects a key with
+  /// anything outside `[A-Za-z0-9._:-]` in it, because the value becomes part
+  /// of a cache key at the other end.
+  String _idempotencyKey() {
+    final random = Random();
+    final noise = List<String>.generate(
+      4,
+      (_) => random.nextInt(1 << 16).toRadixString(16).padLeft(4, '0'),
+    ).join();
+    return 'app-${DateTime.now().millisecondsSinceEpoch}-$noise';
+  }
 
   @override
   void initState() {
@@ -345,7 +392,8 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     super.dispose();
   }
 
-  double get _total => _subtotal + (_deliveryFree ? 0 : _deliveryFee);
+  // Nothing is added to the basket any more — see the note on `_deliverable`.
+  double get _total => _subtotal;
 
   bool get _hasLocation =>
       _address != null && _address!['lat'] is num && _address!['lng'] is num;
@@ -354,7 +402,9 @@ class _KandiCheckoutState extends State<KandiCheckout> {
       _lines.isNotEmpty &&
       _hasLocation &&
       _deliverable &&
-      !_quoting &&
+      // `!_quoting` used to be here, gating Pay behind a delivery price that
+      // was still being fetched. There is no price to wait for now, so the
+      // button is live as soon as there is a basket and a reachable point.
       _stage == _Stage.editing;
 
   // ==========================================================
@@ -411,7 +461,7 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     });
 
     await _checkPesapal();
-    if (_hasLocation) await _quote();
+    if (_hasLocation) await _checkReachable();
   }
 
   /// Whether the shop can take card and mobile money at all.
@@ -439,16 +489,23 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     }
   }
 
-  /// Prices the delivery for the saved address against the current basket.
+  /// Checks the saved point is inside the service area. No fee is involved.
   ///
-  /// Re-quoted here rather than reusing the figure the address screen showed:
-  /// the basket has almost certainly changed since then, and the basket total
-  /// is what decides whether the order clears the free-delivery threshold.
-  Future<void> _quote() async {
+  /// This was `_quote()` and it asked /api/delivery/quote for a price. Delivery
+  /// is free now, so the only question left is the one that can still stop an
+  /// order: can a rider get there at all.
+  ///
+  /// The same endpoint answers it — `deliverable` is a field it already
+  /// returns — so this is one request, not a new one, and it reads only that
+  /// field. `subtotal` is still sent because the endpoint's contract expects
+  /// it; nothing is done with the fee it comes back with.
+  ///
+  /// Failure leaves `_deliverable` true on purpose. A shopper must never be
+  /// blocked from ordering because a service-area check timed out — the server
+  /// re-checks when the order is placed, which is the authority either way.
+  Future<void> _checkReachable() async {
     final address = _address;
     if (address == null || !_hasLocation) return;
-
-    setState(() => _quoting = true);
 
     try {
       final res = await http
@@ -464,38 +521,40 @@ class _KandiCheckoutState extends State<KandiCheckout> {
 
       if (!mounted) return;
       final data = jsonDecode(res.body);
-
       if (res.statusCode == 200 && data is Map) {
-        setState(() {
-          _quoting = false;
-          _deliveryFee =
-              (data['fee'] is num) ? (data['fee'] as num).toDouble() : 0;
-          _deliveryFree = data['free'] == true;
-          _deliverable = data['deliverable'] != false;
-          _deliveryLabel =
-              (data['place'] ?? data['label'] ?? '').toString();
-        });
-      } else {
-        setState(() {
-          _quoting = false;
-          _deliverable = false;
-        });
+        setState(() => _deliverable = data['deliverable'] != false);
       }
     } catch (_) {
-      if (!mounted) return;
-      // A failed quote must not block the order. The server prices delivery
-      // again when the order is placed, from the same point — so the fee is
-      // correct on the order even when this preview could not be drawn.
-      setState(() => _quoting = false);
+      // Deliberately silent, and deliberately leaves _deliverable alone.
     }
   }
 
+  /// Changing the address opens the SAME sheet the cart opens.
+  ///
+  /// It used to push the full DeliveryAddressPage — a form with name, phone,
+  /// street and city on it — which is the right screen the first time and much
+  /// too much every time after. Nearly every use of this button is "I am at
+  /// work today, not home": a point change, not a rewrite of the recipient.
+  ///
+  /// So the map sheet handles the point, and it MERGES into the saved record
+  /// rather than replacing it, so the name and phone collected on the full form
+  /// survive untouched. The full form is still reachable below for the case it
+  /// is actually for — when there is no name or number on file yet.
   Future<void> _editAddress() async {
+    final picked = await KandiLocationSheet.choose(context);
+    if (!mounted || picked == null) return;
+    setState(() => _address = picked);
+    if (_hasLocation) await _checkReachable();
+  }
+
+  /// The full address form — name, phone, street. Reached from the address card
+  /// when the record is missing the details a rider needs to call ahead.
+  Future<void> _editDetails() async {
     await DeliveryAddressPage.open(context, subtotal: _subtotal);
     final address = await DeliveryAddressPage.savedRecord();
     if (!mounted) return;
     setState(() => _address = address);
-    if (_hasLocation) await _quote();
+    if (_hasLocation) await _checkReachable();
   }
 
   // ==========================================================
@@ -525,7 +584,22 @@ class _KandiCheckoutState extends State<KandiCheckout> {
       final orderRes = await http
           .post(
             Uri.parse('$_kApiBaseUrl/api/checkout'),
-            headers: const {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              // ---- One key per ATTEMPT ----
+              //
+              // A Ugandan mobile connection stalling mid-request is not rare,
+              // and it is indistinguishable at this end from a request that
+              // never arrived: the shopper presses "Place order" again and the
+              // shop gets two identical orders, packs both, and finds out a
+              // week later. This key lets the server recognise the second one
+              // as the same attempt and hand back the first one's answer.
+              //
+              // Minted here, at the attempt, rather than once per session —
+              // two deliberate orders in a row are two orders and must not
+              // collapse into one.
+              'Idempotency-Key': _idempotencyKey(),
+            },
             body: jsonEncode({
               'customer': {
                 'first_name': (address['first_name'] ?? '').toString(),
@@ -539,6 +613,14 @@ class _KandiCheckoutState extends State<KandiCheckout> {
               'items': _lines
                   .map((line) => {
                         'productId': line['productId'],
+                        // Which variation, not just which words. `options` is
+                        // what the shopper picked in English; without the id
+                        // WooCommerce prices the order from the parent product
+                        // and moves the parent's stock — see
+                        // `_CartLine.variationId` in cart_widget.dart. Absent
+                        // on lines saved before the app carried it, which the
+                        // server refuses in a sentence rather than mispricing.
+                        'variationId': line['variationId'],
                         'quantity': line['quantity'],
                         'options': line['options'],
                       })
@@ -552,8 +634,10 @@ class _KandiCheckoutState extends State<KandiCheckout> {
               // The point, not the price: the server re-quotes from it, so a
               // tampered fee cannot reach the order.
               'delivery_point': {'lat': address['lat'], 'lng': address['lng']},
-              'delivery_place':
-                  (address['place'] ?? _deliveryLabel).toString(),
+              // The place name saved with the pin. It used to fall back to the
+              // label the quote returned; there is no quote now, and the picker
+              // always writes 'place' alongside the point.
+              'delivery_place': (address['place'] ?? '').toString(),
             }),
           )
           .timeout(const Duration(seconds: 60));
@@ -578,6 +662,20 @@ class _KandiCheckoutState extends State<KandiCheckout> {
           ? (orderData['id'] as num).toInt()
           : int.tryParse('${orderData['id']}');
 
+      // ---- Proof that this phone is the one that placed the order ----
+      //
+      // `/api/payments/pesapal/start` used to take a bare order id and nothing
+      // else. WooCommerce order ids are sequential integers, so a loop from 1
+      // upwards could open a live payment against any order in the shop — and
+      // the quote that came back carried that buyer's name, email, phone and
+      // street address. A sequential integer was the key to the customer list.
+      //
+      // The token is minted by the order endpoint at the one moment the server
+      // knows for certain who the buyer is: the request that placed the order.
+      // The website also receives it as an httpOnly cookie, which is no use
+      // here — hence the copy in the JSON body, which is what this reads.
+      _paymentToken = (orderData['payment_token'] ?? '').toString();
+
       if (!viaPesapal) {
         await _finish();
         return;
@@ -596,6 +694,9 @@ class _KandiCheckoutState extends State<KandiCheckout> {
             headers: const {'Content-Type': 'application/json'},
             body: jsonEncode({
               'purpose': {'kind': 'order', 'orderId': _orderId},
+              // Without this the request is refused — see where it is read off
+              // the order response above.
+              'token': _paymentToken,
             }),
           )
           .timeout(const Duration(seconds: 60));
@@ -804,11 +905,24 @@ class _KandiCheckoutState extends State<KandiCheckout> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _itemsCard(),
+              // ---- The order was rebuilt around the decision being made ----
+              //
+              // It ran items → address → payment → summary, which is the order
+              // the data happens to load in, not the order anything is decided
+              // in. A shopper on this screen has already chosen what to buy;
+              // what they are settling now is WHERE it goes and HOW they pay.
+              //
+              // So the basket moves down to a review line above the summary,
+              // and the two live decisions come first. The free-delivery strip
+              // leads because it is the one piece of news on the page, and it
+              // answers the question people open a checkout bracing for.
+              _freeDeliveryBanner(),
               const SizedBox(height: 14),
               _addressCard(),
               const SizedBox(height: 14),
               _methodCard(),
+              const SizedBox(height: 14),
+              _itemsCard(),
               const SizedBox(height: 14),
               _summaryCard(),
               if (_stage != _Stage.editing) ...[
@@ -1101,9 +1215,74 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     );
   }
 
+  /// Free delivery, said once, at the top.
+  ///
+  /// Green rather than the brand orange: orange is the shop's price colour and
+  /// this is the opposite of a price. Green is already what the summary uses
+  /// for FREE and for savings, so this is the same statement in the same colour
+  /// the shopper meets again eight rows further down.
+  Widget _freeDeliveryBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kGreen.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: _kGreen.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.local_shipping_outlined,
+                size: 19, color: _kGreen),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Free delivery on every order',
+                    style: _type(
+                        size: 14, weight: FontWeight.w700, color: _kGreen)),
+                const SizedBox(height: 1),
+                Text('No delivery charge, anywhere we reach.',
+                    style: _type(size: 12.5, color: _kBody)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Where the order goes.
+  ///
+  /// ---- Two taps, because there are two different jobs ----
+  ///
+  /// The whole card used to be one target opening the full address form. That
+  /// conflated a point on a map with a recipient's phone number, and made the
+  /// common case — "I am at work today" — cost a walk through four text fields.
+  ///
+  /// Now: the card opens the MAP SHEET, which is the frequent job and the one
+  /// the cart uses too. A separate, quieter link opens the full form, and it
+  /// only appears when the record is actually missing a name or a number —
+  /// which is the one case the long form exists for.
   Widget _addressCard() {
     final address = _address;
     final has = _hasLocation;
+
+    final name = [
+      (address?['first_name'] ?? '').toString(),
+      (address?['last_name'] ?? '').toString(),
+    ].where((s) => s.isNotEmpty).join(' ');
+    final phone = (address?['phone'] ?? '').toString();
+    final place = (address?['place'] ?? address?['address'] ?? '').toString();
+    final needsDetails = has && (name.isEmpty || phone.isEmpty);
 
     return _card(
       Column(
@@ -1112,71 +1291,128 @@ class _KandiCheckoutState extends State<KandiCheckout> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _label('DELIVERY ADDRESS'),
+              _label('DELIVER TO'),
               GestureDetector(
                 onTap: _editAddress,
-                child: Text(has ? 'Change' : 'Add',
-                    style: _type(
-                        size: 13, weight: FontWeight.w600, color: _kOrange)),
+                child: Row(
+                  children: [
+                    Icon(has ? Icons.edit_location_alt_outlined : Icons.add,
+                        size: 15, color: _kOrange),
+                    const SizedBox(width: 4),
+                    Text(has ? 'Change' : 'Set location',
+                        style: _type(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: _kOrange)),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+
           GestureDetector(
             onTap: _editAddress,
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _kSurface,
-                borderRadius: BorderRadius.circular(10),
+                color: has ? Colors.white : _kSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: has ? _kOrange.withOpacity(0.35) : _kLine,
+                ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.location_on_outlined,
-                      size: 22, color: has ? _kOrange : _kFaint),
+                  // A filled tile rather than a bare icon: the pin is the
+                  // subject of this card and a 22px outline glyph on white does
+                  // not read as one.
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: has
+                          ? _kOrange.withOpacity(0.10)
+                          : _kFaint.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(Icons.place,
+                        size: 20, color: has ? _kOrange : _kFaint),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: has
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // The PLACE leads, not the recipient's name. The
+                              // shopper is checking one thing on this card and
+                              // it is not their own name.
                               Text(
-                                [
-                                  (address!['first_name'] ?? '').toString(),
-                                  (address['last_name'] ?? '').toString()
-                                ].where((s) => s.isNotEmpty).join(' '),
-                                style:
-                                    _type(size: 14, weight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                [
-                                  (address['address'] ?? '').toString(),
-                                  (address['city'] ?? '').toString()
-                                ].where((s) => s.isNotEmpty).join(', '),
+                                place.isEmpty ? 'Pinned location' : place,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: _type(size: 12, color: _kBody),
+                                style: _type(
+                                    size: 14.5, weight: FontWeight.w600),
                               ),
-                              Text((address['phone'] ?? '').toString(),
-                                  style: _type(size: 12, color: _kMuted)),
+                              if (name.isNotEmpty || phone.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  [name, phone]
+                                      .where((s) => s.isNotEmpty)
+                                      .join(' · '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: _type(size: 12.5, color: _kMuted),
+                                ),
+                              ],
                             ],
                           )
                         : Text(
                             // A v1 record — an address with no coordinates —
-                            // lands here too, and it must: an order priced from
-                            // no location gets no delivery line at all.
+                            // lands here too, and it must: an order with no
+                            // point cannot be routed to a rider.
                             address == null
-                                ? 'Add where this order is going'
-                                : 'Confirm your location so we can price delivery',
-                            style: _type(size: 13, color: _kMuted),
+                                ? 'Choose where this order is going'
+                                : 'Confirm your location on the map',
+                            style: _type(size: 13.5, color: _kMuted),
                           ),
                   ),
-                  const Icon(Icons.chevron_right, color: _kMuted, size: 22),
+                  const Icon(Icons.chevron_right, color: _kFaint, size: 22),
                 ],
               ),
             ),
           ),
+
+          // Only when something a rider needs is genuinely missing. A permanent
+          // second link here would put the long form back in front of everyone,
+          // which is what this card was rebuilt to stop.
+          if (needsDetails) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: _editDetails,
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 15, color: _kOrange),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      name.isEmpty && phone.isEmpty
+                          ? 'Add a name and phone number for the rider'
+                          : (phone.isEmpty
+                              ? 'Add a phone number for the rider'
+                              : 'Add a name for the rider'),
+                      style: _type(
+                          size: 12.5,
+                          weight: FontWeight.w600,
+                          color: _kOrange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1304,6 +1540,13 @@ class _KandiCheckoutState extends State<KandiCheckout> {
     );
   }
 
+  /// The delivery line — now a statement rather than a figure.
+  ///
+  /// It kept four branches: quoting, too far, free, and a price. Three of them
+  /// have nothing left to say. What remains is worth SHOWING rather than
+  /// dropping, because "Delivery — FREE" on the summary is the thing the
+  /// shopper is checking for; a total with no delivery line at all reads as a
+  /// fee that has not been added yet.
   Widget _deliveryRow() {
     if (!_hasLocation) {
       return Row(
@@ -1312,30 +1555,17 @@ class _KandiCheckoutState extends State<KandiCheckout> {
           Text('Delivery', style: _type(size: 13, color: _kBody)),
           GestureDetector(
             onTap: _editAddress,
-            child: Text('Add address',
+            child: Text('Set location',
                 style:
                     _type(size: 13, weight: FontWeight.w600, color: _kOrange)),
           ),
         ],
       );
     }
-    if (_quoting) {
-      return _row('Delivery', 'Working it out…');
-    }
     if (!_deliverable) {
-      return _row('Delivery', 'Too far', color: _kRed);
+      return _row('Delivery', 'Outside our area', color: _kRed);
     }
-    if (_deliveryFree) {
-      return _row(
-        _deliveryLabel.isEmpty ? 'Delivery' : 'Delivery ($_deliveryLabel)',
-        'FREE',
-        color: _kGreen,
-      );
-    }
-    return _row(
-      _deliveryLabel.isEmpty ? 'Delivery' : 'Delivery ($_deliveryLabel)',
-      _ugx(_deliveryFee),
-    );
+    return _row('Delivery', 'FREE', color: _kGreen);
   }
 
   Widget _row(String label, String value, {Color? color}) {

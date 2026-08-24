@@ -363,6 +363,21 @@ class _CartLine {
   /// so "Blue, 42" and "Blue, 44" are two lines and not one line of two.
   final String key;
   final int productId;
+
+  /// The WooCommerce variation this line is for, when the product is variable.
+  ///
+  /// Null for a simple product, and also for a shop whose WordPress plugin is
+  /// old enough not to send variation ids at all. The order endpoint refuses a
+  /// variable product with no variation named rather than quietly selling the
+  /// parent — which is what used to happen. The line carried the parent id plus
+  /// the chosen options as free text, so WooCommerce priced the order from the
+  /// parent and moved the parent's stock: a size that costs more went out at
+  /// the base price, and a size that had run out carried on selling.
+  ///
+  /// The field name matches the website's `variationId` in `lib/cart.tsx`, for
+  /// the same reason every other name here does — one basket, read by both.
+  final int? variationId;
+
   final String slug;
   String name;
   String image;
@@ -378,6 +393,7 @@ class _CartLine {
     this.image = '',
     this.slug = '',
     this.quantity = 1,
+    this.variationId,
     Map<String, String>? options,
   }) : options = options ?? const {};
 
@@ -392,6 +408,7 @@ class _CartLine {
         'slug': slug,
         'quantity': quantity,
         if (options.isNotEmpty) 'options': options,
+        if (variationId != null && variationId! > 0) 'variationId': variationId,
       };
 
   /// Read defensively: one malformed line must not cost the shopper the whole
@@ -424,8 +441,23 @@ class _CartLine {
       image: (j['image'] ?? j['product_image'] ?? '').toString(),
       slug: (j['slug'] ?? '').toString(),
       quantity: quantity < 1 ? 1 : quantity,
+      // Accepts the website's spelling and WooCommerce's, because this basket
+      // is read from storage that either client may have written.
+      variationId: _readVariationId(j),
       options: options,
     );
+  }
+
+  /// The variation id off a stored line, whichever spelling wrote it.
+  ///
+  /// Absent on every line saved before variations were carried, which is the
+  /// normal case for a basket that survived an app update — those lines are
+  /// simply unidentified, and the order endpoint says so rather than
+  /// mispricing them.
+  static int? _readVariationId(Map<String, dynamic> j) {
+    final raw = j['variationId'] ?? j['variation_id'];
+    final id = raw is num ? raw.toInt() : int.tryParse('${raw ?? ''}');
+    return (id != null && id > 0) ? id : null;
   }
 }
 
@@ -520,9 +552,15 @@ class _Cart {
     String image = '',
     String slug = '',
     Map<String, String>? options,
+    int? variationId,
     int quantity = 1,
   }) async {
     await load();
+    // Still keyed on the options rather than on `variationId`: the options are
+    // what the shopper sees and what distinguishes two lines on screen, and
+    // keying on the id would split one line into two the day a WordPress
+    // upgrade started sending ids — the pre-upgrade line and the post-upgrade
+    // line would stop matching.
     final key = lineKey(productId, options);
     final index = _lines.indexWhere((l) => l.key == key);
 
@@ -542,6 +580,7 @@ class _Cart {
         image: image,
         slug: slug,
         quantity: quantity < 1 ? 1 : quantity,
+        variationId: variationId,
         options: options,
       ));
     }
@@ -915,6 +954,15 @@ class ShoppingCartPage extends StatefulWidget {
     String slug = '',
     int quantity = 1,
     Map<String, String>? options,
+    /// Which variation `options` actually names, when the product is variable.
+    ///
+    /// `options` is the shopper's answer in words; this is the same answer as
+    /// something WooCommerce can act on. Without it an order is priced from the
+    /// parent product and moves the parent's stock — see `_CartLine.variationId`.
+    ///
+    /// Optional, like `options` above, so a caller with nothing to choose passes
+    /// nothing and behaves exactly as it did.
+    int? variationId,
   }) =>
       _Cart.add(
         productId: productId,
@@ -924,6 +972,7 @@ class ShoppingCartPage extends StatefulWidget {
         slug: slug,
         quantity: quantity,
         options: options,
+        variationId: variationId,
       );
 
   /// How many items are in the basket, from storage.
@@ -949,10 +998,12 @@ class ShoppingCartPage extends StatefulWidget {
   /// one `SharedPreferences` hit and removes a whole class of "I removed that
   /// item and it still got ordered".
   ///
-  /// Only `productId`, `quantity` and `options` are ever sent to the shop —
-  /// the rest is for drawing the screen. Prices are re-read from WooCommerce
-  /// server-side when the order is placed, so a tampered basket pays the real
-  /// total or fails.
+  /// Only `productId`, `variationId`, `quantity` and `options` are ever sent to
+  /// the shop — the rest is for drawing the screen. Prices are re-read from
+  /// WooCommerce server-side when the order is placed, so a tampered basket
+  /// pays the real total or fails; and `variationId` is checked against the
+  /// parent product at the same moment, so naming a cheap variation of a
+  /// different product buys nothing.
   static Future<List<Map<String, dynamic>>> loadLines() async {
     final lines = await _Cart.load(force: true);
     return lines.map((line) => line.toJson()).toList();
@@ -1266,11 +1317,16 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   int get _itemCount => _lines.fold<int>(0, (sum, line) => sum + line.quantity);
 
-  /// Null until the shop has priced it. Deliberately not defaulted to a number:
-  /// a made-up fee shown as a real one is exactly what v2 did.
-  double? get _deliveryFee => _quote?.deliverable == true ? _quote!.fee : null;
-
-  double get _total => _subtotal + (_deliveryFee ?? 0);
+  /// DELIVERY IS FREE, so there is no fee to add and no `_deliveryFee` left.
+  ///
+  /// The quote is still fetched, because it still answers the one question that
+  /// can stop an order — `deliverable`, is the point inside the service area —
+  /// but its `fee` is now ignored everywhere it used to be read.
+  ///
+  /// The server must agree: see the note in checkout_widget.dart. If WooCommerce
+  /// still adds a shipping total, this basket shows a number the invoice does
+  /// not.
+  double get _total => _subtotal;
 
   /// Lines the shop says cannot be bought right now.
   List<_CartLine> get _unavailable => _lines
@@ -1421,111 +1477,45 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
 
   // ---------- Address sheet ----------
 
+  /// Changing where the order goes — now a map, not a text box.
+  ///
+  /// ---- What this replaced ----
+  ///
+  /// A bottom sheet with a single free-text field. Whatever was typed went
+  /// straight to the delivery quote to be geocoded, and that arrangement failed
+  /// in the ways free text always does here: "kampala" is a whole city and
+  /// prices nothing useful; a spelling the geocoder does not know comes back
+  /// 422 with the shopper staring at a basket that cannot be priced; and a road
+  /// name with no number resolves to whichever end of it the geocoder prefers.
+  ///
+  /// Worse, saving a new string had to THROW AWAY the saved coordinates,
+  /// because the point belonged to the address just replaced. So every edit
+  /// downgraded a precise record to a vague one and asked the geocoder to
+  /// rebuild it from prose.
+  ///
+  /// {@link KandiLocationSheet} inverts that. The shopper picks the POINT, on a
+  /// map, and the address text is derived from it rather than the other way
+  /// round. There is nothing to geocode, nothing to fail, and the coordinates
+  /// are the thing being chosen — so they are never stale and never cleared.
+  ///
+  /// It is also the same sheet the checkout opens, and it writes to the same
+  /// `kandi_delivery_v2` record. That is the whole reason a pin dropped here is
+  /// already showing on the checkout when the shopper arrives: not a handoff
+  /// between two screens, just one record that both of them read.
   Future<void> _editAddress() async {
     HapticFeedback.lightImpact();
-    final controller = TextEditingController(text: _address ?? '');
 
-    final typed = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-        ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: _kWhite,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-          ),
-          padding: const EdgeInsets.fromLTRB(_pad, 12, _pad, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: _kLine,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('Where are we delivering?', style: _heading(size: 17)),
-              const SizedBox(height: 6),
-              Text(
-                'A suburb or a nearby landmark is enough — the fee is priced on '
-                'the distance from our Kampala store.',
-                style: _text(size: 13, color: _kMuted),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textInputAction: TextInputAction.done,
-                style: _text(size: 14.5, color: _kInk),
-                decoration: InputDecoration(
-                  hintText: 'e.g. Ntinda, near Capital Shoppers',
-                  hintStyle: _text(size: 14, color: _kFaint),
-                  filled: true,
-                  fillColor: _kSurface,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(_radius),
-                    borderSide: const BorderSide(color: _kLine),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(_radius),
-                    borderSide: const BorderSide(color: _kLine),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(_radius),
-                    borderSide: const BorderSide(color: _kPrimary),
-                  ),
-                ),
-                onSubmitted: (value) =>
-                    Navigator.of(sheetContext).pop(value.trim()),
-              ),
-              const SizedBox(height: 14),
-              _Press(
-                onTap: () =>
-                    Navigator.of(sheetContext).pop(controller.text.trim()),
-                child: Container(
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _kPrimary,
-                    borderRadius: BorderRadius.circular(_radius),
-                  ),
-                  child: Text(
-                    'Price my delivery',
-                    style: _text(
-                        size: 15, color: _kWhite, weight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    final picked = await KandiLocationSheet.choose(context);
+    if (!mounted || picked == null) return;
 
-    if (typed == null || typed.isEmpty) return;
-    await _Delivery.saveAddress(typed);
-    if (!mounted) return;
+    final address = (picked['place'] ?? picked['address'] ?? '').toString();
+    final lat = picked['lat'], lng = picked['lng'];
+
     setState(() {
-      _address = typed;
-      // The saved coordinates belonged to the address that was just replaced.
-      // Keeping them would price a delivery to the old place while showing the
-      // new one — and the coordinates are what the ORDER is priced from, so it
-      // would be wrong all the way to the invoice. Cleared here and replaced by
-      // whatever the next quote echoes back.
-      _lat = null;
-      _lng = null;
+      if (address.isNotEmpty) _address = address;
+      // Kept, not cleared. These ARE the shopper's choice now.
+      if (lat is num) _lat = lat.toDouble();
+      if (lng is num) _lng = lng.toDouble();
     });
     _requestQuote(immediate: true);
   }
@@ -1748,7 +1738,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                                       ? quote.label
                                       : quote.free
                                           ? '${quote.label} · free delivery'
-                                          : '${quote.label} · ${_ugx(quote.fee)}'),
+                                          // The fee is never shown now. A
+                                          // reachable point says so and stops.
+                                          : '${quote.label} · free delivery'),
                       style: _label(
                         size: 12,
                         color: _quoteError != null ||
@@ -2103,17 +2095,22 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
               muted: false,
             ),
             const SizedBox(height: 8),
+            // Delivery is free, so this line has only two things left to say:
+            // "we reach you" or "we do not". It is kept rather than dropped —
+            // a total with no delivery row at all reads as a charge that has
+            // not been added yet, which is the opposite of the news.
             _summaryRow(
               'Delivery',
-              _quote == null
-                  ? (_address == null ? 'Add address' : 'Not priced yet')
-                  : !_quote!.deliverable
-                      ? 'Unavailable'
-                      : _quote!.free
-                          ? 'Free'
-                          : _ugx(_quote!.fee),
-              muted: _quote == null || !_quote!.deliverable,
-              accent: _quote?.free == true ? _kSuccess : null,
+              _address == null
+                  ? 'Set location'
+                  : (_quote != null && !_quote!.deliverable)
+                      ? 'Outside our area'
+                      : 'FREE',
+              muted: _address == null,
+              accent: (_address != null &&
+                      !(_quote != null && !_quote!.deliverable))
+                  ? _kSuccess
+                  : null,
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 11),
@@ -2128,16 +2125,9 @@ class _ShoppingCartPageState extends State<ShoppingCartPage> {
                 Text(_ugx(_total), style: _price(size: 20)),
               ],
             ),
-            if (_deliveryFee == null) ...[
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Delivery not included yet',
-                  style: _label(size: 11.5),
-                ),
-              ),
-            ],
+            // "Delivery not included yet" is gone with the fee it warned about.
+            // The total IS the total now — there is no second number still to
+            // arrive, so a caveat under it would be inventing a doubt.
           ],
         ),
       );
