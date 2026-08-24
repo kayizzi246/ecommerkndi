@@ -6,6 +6,7 @@ import { sellerApi, type Seller } from "@/lib/seller";
 import { formatPrice } from "@/lib/currency";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SellerAuthLayout from "@/components/seller/SellerAuthLayout";
 import { takeGoogleCredential } from "@/lib/seller-google-handoff";
 import { useSellerSession } from "@/lib/seller-session";
 
@@ -295,78 +296,87 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
   // ---- The first screen: how are you signing up? ----
   if (!method) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[440px]">
-          <p className="text-center text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
-            Sell on Kandi
+      // ---- Left-aligned, and the card is gone ----
+      //
+      // Everything here used to be centred inside a bordered box. Centred body
+      // copy gives every line a different starting edge, so the eye re-finds
+      // the left margin on each one — fine for three words, not for a
+      // paragraph — and the box was a border drawn around the only thing on a
+      // white page, which is a frame around a frame.
+      //
+      // The panel beside it is the surface now, so this side can be plain.
+      <SellerAuthLayout eyebrow="Sell on Kandi">
+        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+          Open your store
+        </h1>
+        <p className="mt-2.5 text-[15px] leading-relaxed text-shop-body">
+          Takes about three minutes. We will ask for your store name, what you
+          sell and a number we can call.
+        </p>
+
+        <div className="mt-8">
+          {/* Google is full-width here rather than a centred island, so it
+              stacks flush with the email button below and the two read as one
+              pair of choices rather than two unrelated controls. */}
+          <div className="flex justify-center [&>div]:w-full">
+            <GoogleSignInButton
+              onCredential={continueWithGoogle}
+              onError={(message) => setError(message)}
+              text="signup_with"
+            />
+          </div>
+          <p className="mt-2.5 text-[13px] text-shop-muted">
+            {checkingGoogle
+              ? "Checking your Google account…"
+              : "Fastest — and signing back in later is one tap."}
           </p>
-          <h1 className="mt-2 text-center text-[26px] font-extrabold leading-tight text-shop-ink">
-            Open your store
-          </h1>
-          <p className="mt-2 text-center text-[15px] text-shop-body">
-            Takes about three minutes. We will ask for your store name, what you sell and a
-            number we can call.
-          </p>
 
-          <div className="mt-7 rounded-2xl border border-shop-line bg-white p-6">
-            <div className="flex justify-center">
-              <GoogleSignInButton
-                onCredential={continueWithGoogle}
-                onError={(message) => setError(message)}
-                text="signup_with"
-              />
-            </div>
-            <p className="mt-2.5 text-center text-[13px] text-shop-muted">
-              {checkingGoogle
-                ? "Checking your Google account…"
-                : "Fastest — and signing back in later is one tap."}
-            </p>
-
-            <div className="my-5 flex items-center gap-3 text-[12px] uppercase tracking-[0.08em] text-shop-muted">
-              <span className="h-px flex-1 bg-shop-line" />
-              or
-              <span className="h-px flex-1 bg-shop-line" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMethod("password");
-                setError(null);
-              }}
-              className="btn-shop-outline w-full py-3 text-[15px]"
-            >
-              Sign up with an email address
-            </button>
-            <p className="mt-2.5 text-center text-[13px] text-shop-muted">
-              We will email you a six-digit code to confirm the address.
-            </p>
-
-            {error && (
-              <p
-                role="alert"
-                className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
-              >
-                {error}
-              </p>
-            )}
+          <div className="my-6 flex items-center gap-3 text-[11.5px] uppercase tracking-[0.1em] text-shop-muted">
+            <span className="h-px flex-1 bg-shop-line" />
+            or
+            <span className="h-px flex-1 bg-shop-line" />
           </div>
 
-          <p className="mt-5 text-center text-[14px] text-shop-muted">
-            Already selling?{" "}
-            <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
-              Sign in
-            </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setMethod("password");
+              setError(null);
+            }}
+            className="btn-shop-outline w-full py-3 text-[15px]"
+          >
+            Sign up with an email address
+          </button>
+          <p className="mt-2.5 text-[13px] text-shop-muted">
+            We will email you a six-digit code to confirm the address.
           </p>
+
+          {error && (
+            <p
+              role="alert"
+              className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+            >
+              {error}
+            </p>
+          )}
         </div>
-      </div>
+
+        <p className="mt-8 border-t border-shop-line pt-6 text-[14px] text-shop-muted">
+          Already selling?{" "}
+          <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </SellerAuthLayout>
     );
   }
 
   if (created && verifying) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[440px]">
+      // The code box inherits the same frame, so confirming an address does not
+      // drop the seller onto a bare white page halfway through signing up.
+      <SellerAuthLayout eyebrow="Sell on Kandi">
+        <div className="mt-2">
           <VerifyEmailCard
             email={form.email.trim()}
             /**
@@ -397,7 +407,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
             Your store is saved and you are signed in — this only confirms we can reach you.
           </p>
         </div>
-      </div>
+      </SellerAuthLayout>
     );
   }
 

@@ -7,6 +7,7 @@ import { sellerApi, SellerApiError, type Seller } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
+import SellerAuthLayout from "@/components/seller/SellerAuthLayout";
 import { stashGoogleCredential } from "@/lib/seller-google-handoff";
 
 export default function SellerLoginPage() {
@@ -152,107 +153,107 @@ export default function SellerLoginPage() {
 
   if (unverified) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[420px]">
+      <SellerAuthLayout eyebrow="Seller Centre">
+        <div className="mt-2">
           <VerifyEmailCard
             email={unverified}
             onVerified={done}
             onCancel={() => setUnverified(null)}
           />
         </div>
-      </div>
+      </SellerAuthLayout>
     );
   }
 
+  /* ---- This page has been moved onto the shop's own brand ----
+
+     It was built from a `bfl-*` token set left over from an older skin: a
+     yellow bag lockup reading "Kandi For Less", a yellow submit button, square
+     borders, `#333` labels. Nothing else in the Seller Centre uses those
+     tokens, and the sign-up page one click away used the shop's orange —
+     so the two doors into the same product wore two different brands, and the
+     link at the foot of each led straight to the other one.
+
+     Everything below is `shop-*` now, and the frame is shared with sign-up
+     through {@link SellerAuthLayout}, so they cannot come apart again. */
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[420px]">
-        <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[3px] bg-bfl-yellow">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 8h12l-1 12H7L6 8Z" />
-              <path strokeLinecap="round" d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
-            </svg>
-          </span>
-          <span className="font-heading text-xl font-semibold text-bfl-ink">
-            Kandi<span className="text-black"> For Less</span>
-          </span>
-        </Link>
+    <SellerAuthLayout eyebrow="Seller Centre">
+      <h1 className="mt-2 text-[30px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+        Welcome back
+      </h1>
+      <p className="mt-2.5 text-[15px] leading-relaxed text-shop-body">
+        Manage your listings, orders and payouts.
+      </p>
 
-        <div className="border border-bfl-line bg-white p-7">
-          <h1 className="text-[24px] font-extrabold text-black">Seller sign in</h1>
-          <p className="mt-1 text-[14px] text-bfl-grey">
-            Manage your listings, orders and payouts.
-          </p>
-
-          {/* Google first: most sellers registered with a Gmail address, and one
-              tap beats remembering a password chosen months ago. It only signs
-              in existing sellers — stores are reviewed before they can trade,
-              so there is no sign-up path here. */}
-          <div className="mt-6 flex justify-center">
-            <GoogleSignInButton
-              onCredential={signInWithGoogle}
-              onError={(message) => setError(message)}
-              text="continue_with"
-            />
-          </div>
-
-          <div className="my-5 flex items-center gap-3 text-[12px] uppercase tracking-[0.08em] text-bfl-grey">
-            <span className="h-px flex-1 bg-bfl-line" />
-            or with your password
-            <span className="h-px flex-1 bg-bfl-line" />
-          </div>
-
-          <form onSubmit={submit} className="space-y-4">
-            <Field label="Email address">
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none"
-              />
-            </Field>
-
-            <Field label="Password">
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none"
-              />
-            </Field>
-
-            {error && (
-              <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
-                {error}
-              </p>
-            )}
-
-            <button type="submit" disabled={submitting} className="btn-bfl w-full py-3 text-[15px]">
-              {submitting ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
-
-          <p className="mt-6 border-t border-bfl-line pt-5 text-center text-[14px] text-bfl-grey">
-            New to Kandi?{" "}
-            <Link href="/seller/register" className="link-bfl font-semibold">
-              Open a seller account
-            </Link>
-          </p>
-        </div>
+      {/* Google first: most sellers registered with a Gmail address, and one
+          tap beats remembering a password chosen months ago. It only signs
+          in existing sellers — stores are reviewed before they can trade,
+          so there is no sign-up path here. */}
+      <div className="mt-8 flex justify-center [&>div]:w-full">
+        <GoogleSignInButton
+          onCredential={signInWithGoogle}
+          onError={(message) => setError(message)}
+          text="continue_with"
+        />
       </div>
-    </div>
+
+      <div className="my-6 flex items-center gap-3 text-[11.5px] uppercase tracking-[0.1em] text-shop-muted">
+        <span className="h-px flex-1 bg-shop-line" />
+        or with your password
+        <span className="h-px flex-1 bg-shop-line" />
+      </div>
+
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Email address">
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="field-shop"
+          />
+        </Field>
+
+        <Field label="Password">
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="field-shop"
+          />
+        </Field>
+
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+          >
+            {error}
+          </p>
+        )}
+
+        <button type="submit" disabled={submitting} className="btn-shop w-full py-3 text-[15px]">
+          {submitting ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+
+      <p className="mt-8 border-t border-shop-line pt-6 text-[14px] text-shop-muted">
+        New to Kandi?{" "}
+        <Link href="/seller/register" className="font-semibold text-shop-primary hover:underline">
+          Open a seller account
+        </Link>
+      </p>
+    </SellerAuthLayout>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">{label}</span>
       {children}
     </label>
   );
