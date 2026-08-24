@@ -242,23 +242,30 @@ export default async function Home() {
         {/* ---- The page opens on priced goods, at every width ----
 
              Two deal panels, and they are the first thing under the chrome
-             because the hero that used to be here is gone. Eight products are
+             because the hero that used to be here is gone. Sixteen products are
              in this block where previously there was a photograph and, below the
              fold, an undifferentiated grid.
 
-             ---- This is OUTSIDE the desktop-only block below, deliberately ----
+             ---- This is OUTSIDE the desktop-only block below, and it is now a
+             scroller, so the reason has changed ----
 
-             Every rail on this page is hidden on a phone, for the reason set
-             out at length under this comment: a horizontal carousel needs a
+             Every other rail on this page is hidden on a phone, for the reason
+             set out at length under this comment: a horizontal carousel needs a
              pointer, arrows and the width for six tiles, and on a 390px screen
              it is two and a half tiles with the rest behind a swipe nobody
-             makes. That argument is about CAROUSELS. {@link TwinDeals} is a
-             three-column grid that stacks to two full-width panels, so it has
-             none of the properties the rails are hidden for, and it gives the
-             phone page back a piece of the merchandising that block's own note
-             admits is "what is lost, stated plainly".
+             makes. That used to be a clean line, because {@link TwinDeals} was a
+             grid and had none of the properties the rails are hidden for. It is
+             two carousels now, so it no longer sits on the safe side of that
+             line by construction.
 
-             If this ever becomes a scroller, it belongs inside that block. */}
+             It stays out here anyway, because the argument against phone rails
+             is about EIGHT of them: eight swipes to see a fraction of the
+             catalogue, with the shopper's whole job being scrolling past
+             headings. That block's own note names the middle path — "keep ONE
+             rail above the grid — Daily Deals is the candidate, since price is
+             what the banner promises". This is that rail, split in two so the
+             timed offer and the permanent markdown stay distinguishable, and it
+             is the only swipe on the phone page. */}
         <TwinDeals products={dailyDeals} />
 
         {/* ---- Explore your interests ----

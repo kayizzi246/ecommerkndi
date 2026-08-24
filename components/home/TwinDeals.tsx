@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
-import ProductCard from "@/components/ProductCard";
+import DealCarousel from "@/components/DealCarousel";
 import CountdownBlocks from "@/components/home/CountdownBlocks";
 
 /**
@@ -38,26 +38,29 @@ import CountdownBlocks from "@/components/home/CountdownBlocks";
  * guarantee intact. `deals` — the rail under Super Deals further down the page
  * — is a separate claim, so nothing here reappears there.
  *
- * ---- Four tiles each, and two on a phone ----
+ * ---- Each panel is a rail, not a grid ----
  *
- * Eight products across two panels on a desktop row.
+ * Both halves were a fixed grid of four tiles — two rows of two on a phone, one
+ * row of four from md. Four was the ceiling because a grid has to fit
+ * everything it holds on screen at once, so twelve of the sixteen products
+ * `dailyDeals` claims were thrown away to make that arithmetic work, and the
+ * two tiles that wrapped to a second row on a phone were a scroll DOWN, past
+ * the panel, rather than a swipe along it.
  *
- * This was three each, on the argument that a fourth tile makes each one small
- * enough that the photograph stops selling and the panel becomes a table of
- * prices. That argument is real but it is about the PHONE, where a panel is the
- * full width of the screen: four tiles across 390px leaves each about 85px, and
- * at 85px a product photograph is a thumbnail and the name is two words and an
- * ellipsis.
+ * Each panel now runs {@link DealCarousel} — the same rail, the same
+ * `ProductCard`, the same snap scrolling and edge arrows as Super Deals and
+ * every department below it. What that buys:
  *
- * On a desktop the panel is half of a 1720px shell, so a fourth tile is still
- * roughly 200px — the same width the rails below run at, and no smaller than
- * anything else on the page.
+ *   • The panel holds everything it is handed rather than four. `dailyDeals`
+ *     splits down the middle, so each rail runs eight deep on the standard feed.
+ *   • The tile sliced by the right edge says "there is more this way", which is
+ *     the one thing a finished 2×2 grid can never say.
+ *   • A `viewAll` tile ends each track, so the last swipe lands on the way
+ *     through to /sale rather than on a half tile against the edge.
  *
- * So the count follows the width instead of being one number: two per panel on
- * a phone, four from md up, which is where the panels stop stacking and start
- * sharing the row. Both panels are still handed four products; the grid is what
- * decides how many are on screen, and the two that fall to the second row on a
- * phone are a scroll away rather than gone.
+ * `itemWidth` is the one thing that cannot be copied from the rails below,
+ * because those span the whole shell and these span half of it from md up. The
+ * ramp is derived at the call site.
  */
 export default function TwinDeals({ products }: { products: Product[] }) {
   // Eight products or this does not run. A panel with one tile in it is a gap
@@ -69,8 +72,14 @@ export default function TwinDeals({ products }: { products: Product[] }) {
   // products should not be opening its homepage on two deal panels anyway.
   if (products.length < 8) return null;
 
-  const lightning = products.slice(0, 4);
-  const clearance = products.slice(4, 8);
+  // Split down the middle rather than taking a fixed four each: a rail holds as
+  // many as it is given, and `dailyDeals` is claimed at 16, so the standard feed
+  // puts eight products in each panel. An odd count sends the extra one to
+  // Lightning, which is the panel carrying the countdown and the one a shopper
+  // reaches first.
+  const half = Math.ceil(products.length / 2);
+  const lightning = products.slice(0, half);
+  const clearance = products.slice(half);
 
   return (
     <section aria-labelledby="twin-deals-heading" className="grid gap-5 md:grid-cols-2 md:gap-6">
@@ -201,31 +210,36 @@ function DealPanel({
         )}
       </div>
 
-      {/* A grid, not a scroller. Four tiles fit in this panel at the widths it
-          shares a row at, and a horizontal scroll with nothing off the end of
-          it is a gesture that teaches a shopper the row is empty. The rails
-          further down the page scroll because they hold twelve.
+      {/* ---- This rail needs its own width ramp, because a panel is half a shell ----
 
-          Two columns on a phone and four from md, for the reason set out at
-          the head of this file: the panel is full-width below md, where a
-          quarter of the screen is not a product photograph. */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
-        {products.map((product, index) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            priority={priority && index === 0}
-            // Mirrors the grid above: two tiles across a full-width panel on
-            // a phone, four across a half-width one from md, inside a shell
-            // that stops at 1720px. These have to move together with the
-            // `grid-cols-2 md:grid-cols-4` above and the breakpoint on the
-            // parent section — a `sizes` string that disagrees with the grid
-            // is how a page ends up downloading tablet-width photographs for
-            // thumbnails.
-            sizes="(max-width: 768px) 48vw, (max-width: 1720px) 12vw, 205px"
-          />
-        ))}
-      </div>
+          Every percentage `DealCarousel` ships by default is a percentage of a
+          track that spans the whole page. This track spans half of one from md
+          up — the breakpoint where the parent section stops stacking — so the
+          defaults would put roughly half as many tiles on screen as intended,
+          each at half the width.
+
+          So the ramp is written against the PANEL, not the page:
+
+            base   49%   two tiles and a peek; the panel is full-width here
+            sm     31%   three and a peek, still full-width
+            md     45%   two and a peek — the panels have just halved
+            lg     31%   three and a peek, as the halves grow
+            xl     23%   four and a peek, which against a 1720px shell is a
+                         ~198px tile: the same size the full-width rails below
+                         settle at, so a product is not two sizes on one page
+
+          Every step leaves a fraction over, and that fraction is the peek — a
+          rail showing a whole number of tiles reads as a finished grid nobody
+          swipes. No `sizes` override: `DealCarousel` carries its own, and those
+          numbers land within a step of these at every breakpoint. */}
+      <DealCarousel
+        products={products}
+        itemWidth="w-[49%] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
+        priority={priority}
+        // "All Lightning" / "All Clearance" — the panel titles minus the word
+        // both of them share, which the tile's own context already supplies.
+        viewAll={{ href, label: `All ${title.replace(" Deals", "")}` }}
+      />
     </div>
   );
 }
