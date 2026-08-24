@@ -402,7 +402,20 @@ export default function Header({
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
             // not necessarily in `next.config` remotePatterns.
-            // 36/44px. It went 48/56 → 36/40 → here.
+            // 28/36px. It went 48/56 → 36/40 → 36/44 → here.
+            //
+            // Down a step again, and the reason is the same one that took it
+            // off 56 twice: a masthead logo that sets the row's own height has
+            // stopped being a mark and started being a banner. At 44 it was
+            // doing that on a py-2 row — the plate, its padding and the mark
+            // together were the tallest object in the band, so the row could
+            // not get any shorter no matter what else came out of it.
+            //
+            // At 36 the search field is unambiguously the tallest thing in the
+            // row, which is the arrangement every marketplace this is modelled
+            // on uses. The max widths came down by the same proportion so a
+            // wide uploaded logo shrinks with it rather than staying long and
+            // getting thin.
             //
             // The argument for coming down still holds and is not being
             // reversed: on a marketplace masthead the search field is supposed
@@ -445,7 +458,7 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-9 w-auto max-w-[150px] object-contain md:h-11 md:max-w-[190px]"
+                className="h-7 w-auto max-w-[124px] object-contain md:h-9 md:max-w-[156px]"
               />
             </span>
           ) : (
@@ -458,7 +471,7 @@ export default function Header({
                 <svg
                   // Scaled with the uploaded-logo branch above, so a shop that
                   // has not uploaded one gets the same masthead proportions.
-                  className="h-10 w-10 md:h-12 md:w-12"
+                  className="h-8 w-8 md:h-10 md:w-10"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -507,7 +520,7 @@ export default function Header({
                   tones, both readable, and the mark still reads as one word
                   made of two parts. If this row ever returns to a neutral, the
                   name goes back to orange and nothing else moves. */}
-              <span className="font-heading text-[23px] font-bold leading-none tracking-[-0.03em] text-white md:text-[27px]">
+              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-white md:text-[22px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
