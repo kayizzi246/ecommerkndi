@@ -219,12 +219,6 @@ const String _kDeliverToCity = 'Kampala';
 /// Brand orange. Fills, active state, prices at display size.
 const Color _kPrimary = Color(0xFFFF6A00);
 
-// `_kPrimarySoft` (#FFF3E8, the tint behind an active row) is no longer
-// declared here. Its only use on this screen was the ground of the old circular
-// department icons, and the same value now leads `_kDeptTints` below — keeping
-// a second name for one colour is how a palette starts disagreeing with itself.
-// The category screen still declares it, because it still has selected rows.
-
 /// Darkened orange that clears 4.6:1 with white text on it.
 ///
 /// White on #ff6a00 is 2.9:1 and fails AA, so any *small* label sitting on an
@@ -232,6 +226,15 @@ const Color _kPrimary = Color(0xFFFF6A00);
 /// reason — a button caption nobody with low vision can read is not a brand
 /// decision, it is a bug.
 const Color _kPrimaryInk = Color(0xFFB34A00);
+
+/// The tint the brand orange sits on when it is a GROUND rather than a mark —
+/// the offer band, a selected chip. #FFF3E8, straight from `app/globals.css`.
+///
+/// It exists so those surfaces are not drawn in `_kSale`. Red on a Kandi
+/// screen means a reduction and nothing else; a band shouting in sale red over
+/// a feed whose discount flags are also sale red is what stops the flags
+/// meaning anything.
+const Color _kPrimarySoft = Color(0xFFFFF3E8);
 
 /// Discounts only. Never a resting price.
 const Color _kSale = Color(0xFFE53935);
@@ -244,7 +247,10 @@ const Color _kLine = Color(0xFFE5E7EB);
 const Color _kHairline = Color(0xFFF3F4F6);
 const Color _kSurface = Color(0xFFFAFAFA);
 const Color _kSearchBg = Color(0xFFF3F4F6);
-const Color _kSuccess = Color(0xFF16A34A);
+// `_kSuccess` — the green the delivery promise was set in — is gone with that
+// row. The only green left on this screen is the one inside `_deliveryMeter`,
+// declared there, because it is a green on INK rather than on white and needs
+// to be lighter to clear contrast on it.
 const Color _kWhite = Colors.white;
 
 /// The page is white, like the website. The old build ran on a grey tint,
@@ -257,41 +263,22 @@ const Color _kPage = Colors.white;
 const int _kLowStockAt = 5;
 
 // ============================================================
-// DEPARTMENT CARDS
+// DEPARTMENT CARDS — GONE
 // ============================================================
-
-/// One department card. Wide enough for a two-line name at 13px without
-/// ellipsising the common ones ("Home & Living", "Phones & Tablets").
-const double _kDeptCardWidth = 132;
-const double _kDeptCardHeight = 62;
-const double _kDeptGap = 8;
-
-/// The card grounds, cycled so neighbouring departments never share one.
-///
-/// Every colour is a tint already defined in the storefront's palette — see the
-/// "Marketing accents" block in `app/globals.css`. Nothing new is introduced:
-/// this row is allowed to be colourful precisely because the product grid below
-/// it is not, and the tints are pale enough that near-black text on them clears
-/// AA comfortably.
-const List<Color> _kDeptTints = [
-  Color(0xFFFFF3E8), // orange
-  Color(0xFFEAF0FF), // blue
-  Color(0xFFF0FDF4), // green
-  Color(0xFFF3ECFF), // violet
-  Color(0xFFFEF2F2), // red
-];
-
-/// The matching saturated step, used only for the item count.
-///
-/// Paired by index with the tints above, so a card's count is a darker version
-/// of its own ground rather than a colour borrowed from somewhere else.
-const List<Color> _kDeptInks = [
-  Color(0xFFB34A00), // orange, darkened until it clears 4.6:1
-  Color(0xFF1A4FD6), // blue
-  Color(0xFF16A34A), // green
-  Color(0xFF6D28D9), // violet
-  Color(0xFFE53935), // red
-];
+//
+// This block held the metrics and the two colour ramps for the department
+// cards: a 132x62 tile, five pale grounds cycled so neighbours never shared
+// one, and five matching darker inks for the item counts.
+//
+// The cards went when the departments became chips in the one rail at the top
+// of the feed — see `_quickPicks`. Between that rail and the headed grid of
+// cards, this screen was spending its entire first phone-screen on navigation
+// before a shopper saw a product, and the cards were the more expensive half:
+// two rows, 132px wide, with a heading above them.
+//
+// The tints are not lost. They are the storefront's own marketing accents and
+// they are still written out in the "Marketing accents" block of
+// `app/globals.css`, which is where they came from.
 
 // ============================================================
 // CARD METRICS
@@ -299,8 +286,8 @@ const List<Color> _kDeptInks = [
 //
 // The product tile is a square photograph with a text block of FIXED height
 // underneath it. Both halves are pinned deliberately, and these constants are
-// what let the grid and the rails work out a tile's exact height rather than
-// guessing at an aspect ratio:
+// what let the grid, the rails and the skeleton work out a tile's exact height
+// rather than guessing at an aspect ratio:
 //
 //     tile height = tile width (the square image) + _kCardTextHeight
 //
@@ -309,9 +296,9 @@ const List<Color> _kDeptInks = [
 // single product with an extra line of metadata used to add that much dead
 // space to the bottom of every other tile in the row.
 //
-// Change a row height here and the grid, the rails and the skeletons all follow
-// together. That is the point of them being constants: they were three separate
-// magic numbers that had to be kept in agreement by hand.
+// Change a row height here and the grid, the rails and the skeletons all
+// follow together. That is the point of them being constants: they were three
+// separate magic numbers that had to be kept in agreement by hand.
 
 /// The tile's corner radius. 10 rather than the app's usual 8, matching the
 /// website — big enough to read as a made object on a 150px phone tile, small
@@ -322,14 +309,16 @@ const double _kCardRadius = 10;
 const double _kCardGap = 4;
 
 /// Two lines at the website's 20px leading. Fixed rather than fit-to-content so
-/// a one-line name still reserves its second line.
+/// a one-line name still reserves its second line — and it is what makes the
+/// badges work, since they are `WidgetSpan`s inside this same paragraph.
 const double _kCardNameHeight = 40;
 
-/// The price row.
-const double _kCardPriceHeight = 20;
-
-/// The rating row and the delivery row, which are the same height as each other.
+/// The sold-and-rating row.
 const double _kCardMetaHeight = 16;
+
+/// The price row. 22 rather than the 20 it was: the price is the largest text
+/// on the tile now and it carries the discount pill beside it.
+const double _kCardPriceHeight = 22;
 
 /// How wide one tile is in a horizontal rail. The rail's own height is derived
 /// from it, since the photograph is square.
@@ -347,11 +336,23 @@ const double _kRailTileWidth = 152;
 const double _kCardSlack = 1;
 
 /// Everything below the photograph, which is the figure the grid needs.
+///
+/// ---- One row shorter than it was ----
+///
+/// There used to be a fifth row here for the delivery promise — "Fastest
+/// delivery: 1 business day", or "Only 3 left" on a thin stock count. It is
+/// gone, and nothing it said was lost: the stock warning moved onto the
+/// photograph as a corner flag, where it stops a thumb instead of being the
+/// fourth grey line under one, and the delivery promise was the same sentence
+/// under all forty tiles on the screen — which is a fact about the shop, so it
+/// belongs in the band at the top of the feed and not on every product in it.
+///
+/// The row it freed went into the price, which is now the largest text on the
+/// tile rather than one of four similar grey lines.
 const double _kCardTextHeight = _kCardGap +
     _kCardNameHeight +
+    _kCardMetaHeight + // units sold and rating
     _kCardPriceHeight +
-    _kCardMetaHeight + // rating and units sold
-    _kCardMetaHeight + // the delivery promise
     _kCardSlack;
 
 // ============================================================
@@ -434,15 +435,11 @@ TextStyle _price({double size = 15, Color color = _kInk}) =>
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
-/// The struck-through was-price.
-TextStyle _struck({double size = 12}) => GoogleFonts.inter(
-      fontSize: size,
-      fontWeight: FontWeight.w500,
-      color: _kFaint,
-      decoration: TextDecoration.lineThrough,
-      decorationColor: _kFaint,
-      fontFeatures: const [ui.FontFeature.tabularFigures()],
-    );
+// `_struck` — the was-price style — went with the was-price itself. Three
+// figures do not fit legibly across half a phone screen, so the tile shows
+// what is being charged and how much came off; the original is on the product
+// page, where there is room for all three. See the note on the money row in
+// `_card`.
 
 /// Small caps-ish label — badges, counts.
 TextStyle _label({
@@ -490,6 +487,28 @@ class _Product {
   final String? sellerName;
   final bool isNew;
 
+  /// Whether buying this needs a size or a colour chosen first.
+  ///
+  /// Sent per product by `/api/app/home` and `/api/app/products` — see
+  /// `toAppProduct` in `lib/app-api.ts`. It exists for one reason: the tile's
+  /// add button. A 150px tile cannot ask which size, so a product that needs
+  /// one is opened rather than added, and only a genuinely simple product goes
+  /// into the basket in a single tap.
+  ///
+  /// ---- ABSENT is treated as TRUE, and that is the whole point ----
+  ///
+  /// The app and the website ship on different days, so this field is missing
+  /// from every response a deployment older than it returns. The tempting
+  /// default is false — "assume simple" — and it is the wrong one: a shoe
+  /// would be added to the basket with no size on it, silently, which is the
+  /// exact failure the field was introduced to prevent.
+  ///
+  /// So only an EXPLICIT `false` means simple. Absent means unknown, unknown
+  /// opens the product page, and the product page can ask. The cost of being
+  /// wrong that way is one extra tap on a simple product; the cost of being
+  /// wrong the other way is an order nobody can pack.
+  final bool hasOptions;
+
   const _Product({
     required this.id,
     required this.name,
@@ -510,6 +529,7 @@ class _Product {
     required this.categoryName,
     required this.sellerName,
     required this.isNew,
+    this.hasOptions = true,
   });
 
   static double _toDouble(dynamic v) {
@@ -547,6 +567,7 @@ class _Product {
       categoryName: j['categoryName']?.toString(),
       sellerName: j['sellerName']?.toString(),
       isNew: j['isNew'] == true,
+      hasOptions: j['hasOptions'] != false,
     );
   }
 }
@@ -901,6 +922,11 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// screen shows and cannot say 3 over a basket of 5.
   int _cartCount = 0;
 
+  /// What the basket comes to, for the free-delivery bar at the foot of the
+  /// feed. Read from the same store as the badge, at the same moments — see
+  /// `_syncStores`.
+  double _cartSubtotal = 0;
+
   int _hintIndex = 0;
   Timer? _hintTimer;
   static const List<String> _hints = [
@@ -917,6 +943,17 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     super.initState();
     _scroll.addListener(_onScroll);
     _load();
+    // ---- Push is turned on here, and only here ----
+    //
+    // The home feed is the first screen that builds on a cold start, which
+    // makes it the right place to ask for notification permission: the shopper
+    // has arrived somewhere and seen the shop working, rather than being
+    // prompted by a splash screen before they know what the app is.
+    //
+    // Not awaited. Registration is a network call and the feed must not wait
+    // behind it. `start()` guards against running twice, so the other screens
+    // calling it are free.
+    KandiPush.start();
     // The basket and the saved list, from the device. Not awaited: they are
     // local reads that finish in a frame or two, and the feed request should
     // not be waiting behind them.
@@ -1039,6 +1076,46 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     });
   }
 
+  /// What the basket comes to, for the free-delivery meter.
+  ///
+  /// ---- Why this is summed here and not asked of the cart ----
+  ///
+  /// `ShoppingCartPage` is the basket's owner and the obvious place for a
+  /// `subtotal` static. It is deliberately not used, and the reason is how
+  /// this project ships: each screen is a separate paste into FlutterFlow's
+  /// custom-code panel, and they are pasted one at a time. A new static on the
+  /// cart widget is a compile error in EVERY other file until the cart is
+  /// pasted too — not a missing feature, a failed web build, which is what
+  /// happened when this screen first asked for one.
+  ///
+  /// `loadLines` has been on that class since the checkout was written, so
+  /// this screen depends on nothing new. The lines it returns are plain maps
+  /// — `_CartLine` is private to `cart_widget.dart` and cannot cross a file
+  /// boundary — carrying the same `price` and `quantity` the cart's own
+  /// subtotal multiplies, and it forces a re-read of storage, so this is the
+  /// same snapshot the badge beside it is drawn from.
+  ///
+  /// Read defensively for the same reason the cart reads its own storage that
+  /// way: one malformed line must not take out the whole meter.
+  Future<double> _readCartSubtotal() async {
+    try {
+      final lines = await ShoppingCartPage.loadLines();
+      var total = 0.0;
+      for (final line in lines) {
+        final price = line['price'];
+        final quantity = line['quantity'];
+        total += (price is num ? price.toDouble() : 0) *
+            (quantity is num ? quantity.toInt() : 0);
+      }
+      return total;
+    } catch (_) {
+      // No meter rather than a wrong one. `_deliveryMeter` draws nothing at
+      // zero, which is the right failure: a shopper is never told they are
+      // closer to free delivery than they are.
+      return 0;
+    }
+  }
+
   /// Re-reads the shared basket and saved list.
   ///
   /// Run on open and again every time this screen comes back from one of them,
@@ -1053,10 +1130,12 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   Future<void> _syncStores() async {
     final saved = await WishlistPage.savedIds();
     final count = await ShoppingCartPage.loadCount();
+    final subtotal = await _readCartSubtotal();
     if (!mounted) return;
     setState(() {
       _wishlisted = saved;
       _cartCount = count;
+      _cartSubtotal = subtotal;
     });
   }
 
@@ -1207,20 +1286,12 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// Dark rather than gold, exactly as on the website: on a card this dense the
   /// stars are a measurement, not a decoration, and a row of gold pulls the eye
   /// off the price sitting directly above them.
-  Widget _stars(double rating) {
-    final filled = rating.round();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(
-        5,
-        (i) => Icon(
-          Icons.star_rounded,
-          size: 11,
-          color: i < filled ? _kInk : _kLine,
-        ),
-      ),
-    );
-  }
+  // `_stars` — five 11px glyphs filled to the rating — is gone with the card
+  // row that drew it. At half a phone tile the five stars were 55px of the
+  // width to say what "4.3" says in 20, and the average was printed beside
+  // them anyway. One filled star and the number is the marketplace treatment
+  // and it is the honest one: nobody reads a five-star row, they read the
+  // number.
 
   // The small green "Local" tag that used to run inline with the product name
   // has been removed along with it. The website's tile carries no such chip,
@@ -1287,7 +1358,21 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                     ),
                   ),
                 ),
-              Positioned(left: 0, right: 0, bottom: 0, child: _bottomNav()),
+              // The meter rides above the navigation rather than inside it:
+              // the nav is a fixed set of five destinations and this comes and
+              // goes with the basket. It draws nothing on an empty one.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_feed != null) _deliveryMeter(_feed!),
+                    _bottomNav(),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -1317,13 +1402,14 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     return [
       SliverToBoxAdapter(child: _appBar()),
       _stickySearch(),
-      // Above the departments deliberately: a department answers "where do I
-      // look", these answer "what is worth looking at", and the second question
-      // is the one a shopper opening a shop app has.
-      SliverToBoxAdapter(child: _quickPicks()),
-      if (feed.departments.isNotEmpty)
-        SliverToBoxAdapter(child: _departments(feed)),
-      SliverToBoxAdapter(child: _trustStrip(feed)),
+      // The order is the marketplace one and it is an order of decreasing
+      // commitment: what the shop will do for you (the band), then where to
+      // go (the chips), then the goods. The two navigation blocks that used to
+      // sit here — a chip rail AND a headed department grid — are one rail
+      // now; between them they were spending the whole first screen of a shop
+      // app on navigation. See `_quickPicks`.
+      SliverToBoxAdapter(child: _offerBand(feed)),
+      SliverToBoxAdapter(child: _quickPicks(feed)),
 
       // The rails, in the order the website decided. Nothing here knows or
       // cares what they are called.
@@ -1558,22 +1644,31 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                     ),
                   ),
                 ),
+                // ---- A glyph, not the word ----
+                //
+                // This was an orange pill reading "Search". Two problems, and
+                // the second is the expensive one:
+                //
+                //   • It says what the field it is inside already says. The
+                //     row reads "Search Sneakers … Search".
+                //   • White on #FF6A00 is 2.9:1, which fails contrast at any
+                //     size — the old note here acknowledged that and answered
+                //     it with more font weight, which is not what contrast is.
+                //
+                // Ink instead: 15:1, unmistakably a button, and it leaves the
+                // orange to the one control on the screen that is a
+                // commitment rather than a lookup.
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  width: 34,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: _kPrimary,
-                    borderRadius: BorderRadius.circular(16),
+                    color: _kInk,
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  child: Text(
-                    'Search',
-                    // White on orange is 2.9:1, so the label carries weight to
-                    // stay legible at this size.
-                    style: _label(
-                      size: 11.5,
-                      color: _kWhite,
-                      weight: FontWeight.w800,
-                    ),
+                  child: const Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: _kWhite,
                   ),
                 ),
               ],
@@ -1683,7 +1778,139 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
   /// neighbours — because it is the only one of the four that is a claim about
   /// price rather than a way of sorting, and it is what a shopper scanning this
   /// row is looking for.
-  Widget _quickPicks() {
+  /// The two-panel offer band under the search field.
+  ///
+  /// ---- What it replaced, and why the shape changed ----
+  ///
+  /// This was a thin grey strip of three centred items — "Fast delivery ·
+  /// Pay on delivery · 14-day returns" — at 10.5px in body grey. Every word of
+  /// it was true and none of it was read: it was the faintest thing on a
+  /// screen made of photographs, and it sat between the departments and the
+  /// first rail where a thumb is already moving.
+  ///
+  /// The band is the marketplace treatment: two tinted panels, the second
+  /// notched into the first, each with a number in it. The reason it works is
+  /// that it states a THRESHOLD rather than a virtue — "free over UGX 150,000"
+  /// is something a shopper can act on, "Fast delivery" is something every
+  /// shop says.
+  ///
+  /// ---- The colour, and the one rule it keeps ----
+  ///
+  /// Soft orange, not the pink-red the screen it was matched to uses. Red on a
+  /// Kandi surface means a reduction and nothing else, and a band that shouts
+  /// in sale red above a feed of tiles whose flags are also sale red makes the
+  /// flags stop meaning anything.
+  ///
+  /// Both figures come from the shop's own settings and arrive with the feed,
+  /// so this cannot promise a threshold or a window the checkout will not
+  /// honour. The second panel falls back to the pay-on-delivery promise on a
+  /// shop that has switched returns off, rather than rendering an empty notch.
+  Widget _offerBand(_HomeFeed feed) {
+    Widget panel({
+      required String headline,
+      required String detail,
+      required bool notched,
+    }) =>
+        Expanded(
+          child: ClipPath(
+            clipper: notched ? const _NotchClipper() : null,
+            child: Container(
+              color: _kPrimarySoft,
+              padding: EdgeInsets.fromLTRB(notched ? 22 : 12, 8, 12, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    headline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _label(
+                      size: 12.5,
+                      color: _kPrimaryInk,
+                      weight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _label(size: 10.5, color: _kBody),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(_radius),
+        child: Row(
+          children: [
+            panel(
+              headline: feed.freeDeliveryFrom > 0
+                  ? 'FREE DELIVERY'
+                  : 'DELIVERY IN 1–3 DAYS',
+              detail: feed.freeDeliveryFrom > 0
+                  ? 'On orders over ${_ugx(feed.freeDeliveryFrom)}'
+                  : 'Anywhere in Uganda',
+              notched: false,
+            ),
+            // 2px of page showing through, which is what makes the notch read
+            // as one panel overlapping another rather than as a fold.
+            const SizedBox(width: 2),
+            panel(
+              headline: feed.returnsDays > 0
+                  ? '${feed.returnsDays}-DAY RETURNS'
+                  : 'PAY ON DELIVERY',
+              detail: feed.returnsDays > 0
+                  ? 'In original condition'
+                  : 'Cash, MTN MoMo or Airtel',
+              notched: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// UGX with thousands separators.
+  ///
+  /// Only ever used on figures that arrive as NUMBERS — the free-delivery
+  /// threshold and the basket subtotal. Every price on this screen is
+  /// formatted server-side precisely so the app and the site cannot disagree
+  /// about a separator; these two are settings and running totals, which the
+  /// server has no label for.
+  String _ugx(num value) {
+    final digits = value.round().toString();
+    final out = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
+      out.write(digits[i]);
+    }
+    return 'UGX $out';
+  }
+
+  /// The one rail of chips: the four standing offers, then the shop's real
+  /// departments, then the chevron that opens the rest.
+  ///
+  /// ---- Why these were two blocks and are now one ----
+  ///
+  /// The quick picks were a scrolling chip rail and the departments were a
+  /// headed section of two rows of cards underneath them. Both were lists of
+  /// places to go, stacked, costing about 190px between the search field and
+  /// the first product — on a phone that is the entire first screen spent on
+  /// navigation, and the shopper opened a SHOP.
+  ///
+  /// One rail. The offers lead because "what is worth looking at" is the
+  /// question somebody opening a shop app has, and the departments follow
+  /// because "where do I look" is the one they have second. It scrolls, and
+  /// the chevron on the end opens the full department list for the shopper who
+  /// wants the map rather than the shortcuts.
+  Widget _quickPicks(_HomeFeed feed) {
     Widget chip({
       required IconData icon,
       required String label,
@@ -1696,7 +1923,7 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: filled ? _kPrimary : _kWhite,
+              color: filled ? _kPrimary : _kSurface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: filled ? _kPrimary : _kLine),
             ),
@@ -1724,214 +1951,183 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
 
     return SizedBox(
       height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(_pad, 4, _pad - 8, 6),
-        children: [
-          chip(
-            icon: Icons.local_fire_department_rounded,
-            label: 'Trending',
-            onTap: () => _openShop(sort: 'popular', title: 'Trending now'),
-          ),
-          chip(
-            icon: Icons.sell_rounded,
-            label: 'Promotions',
-            onTap: () => _openShop(
-              saleOnly: true,
-              sort: 'discount',
-              title: 'Promotions',
-            ),
-          ),
-          chip(
-            icon: Icons.bolt_rounded,
-            label: '50% off',
-            filled: true,
-            onTap: () => _openShop(
-              minDiscount: 50,
-              sort: 'discount',
-              title: '50% off',
-            ),
-          ),
-          chip(
-            icon: Icons.savings_rounded,
-            label: 'Under UGX 50,000',
-            onTap: () => _openShop(
-              maxPrice: 50000,
-              sort: 'price_asc',
-              title: 'Under UGX 50,000',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- Departments ----------
-  Widget _departments(_HomeFeed feed) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(_pad, 2, _pad, 10),
-            child: _sectionHeading('Shop by department', null),
-          ),
-          /* ---- Two rows of cards, not one row of circles ----
-           *
-           * The old design was a horizontally-scrolling row of 54px circles,
-           * each holding the SAME grey category icon, with the name under it.
-           * Three things were wrong with it:
-           *
-           *   • Every circle was identical. A row of six copies of one icon is
-           *     decoration standing where information should be — the only
-           *     thing distinguishing one department from the next was 11px of
-           *     text underneath.
-           *   • It hid the catalogue. `count` comes down from the API on every
-           *     department and was thrown away, so nothing told a shopper
-           *     whether "Electronics" held four products or four hundred.
-           *   • One row, scrolling sideways, showed about four and a half
-           *     departments and gave no hint how many more there were. Side
-           *     scrolling is a poor way to present a *complete, short* list,
-           *     which is what a department list is.
-           *
-           * This is a two-row horizontal grid of cards — the shape Jumia and
-           * Noon use for the same job. Two rows means roughly twice as many
-           * departments are visible at once, the cards carry the real product
-           * count, and each takes a colour from a small rotating palette so the
-           * row reads as a set of distinct places rather than repeated
-           * furniture. The colours are drawn from the marketing accents already
-           * defined for the storefront, so nothing new enters the palette. */
-          SizedBox(
-            height: 2 * _kDeptCardHeight + _kDeptGap,
-            child: GridView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: _pad),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                // "Cross axis" is the vertical one on a horizontal grid, so
-                // this is what makes it two rows deep rather than two wide.
-                crossAxisCount: 2,
-                mainAxisSpacing: _kDeptGap,
-                crossAxisSpacing: _kDeptGap,
-                // Width over height, and it is inverted here for the same
-                // reason: on a horizontal grid the main axis is the width.
-                childAspectRatio: _kDeptCardHeight / _kDeptCardWidth,
-              ),
-              itemCount: feed.departments.length,
-              itemBuilder: (_, i) {
-                final d = feed.departments[i];
-                final tint = _kDeptTints[i % _kDeptTints.length];
-                final ink = _kDeptInks[i % _kDeptInks.length];
-
-                return _Press(
-                  onTap: () => _openDepartment(d),
-                  child: Container(
-                    width: _kDeptCardWidth,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tint,
-                      borderRadius: BorderRadius.circular(_kCardRadius),
-                    ),
-                    /* ---- An icon and a name. Nothing else ----
-                     *
-                     * The card used to print the product count under the name —
-                     * "128 items" — and it has been taken out. It answered a
-                     * question nobody asks before tapping: a shopper choosing
-                     * between Men and Electronics is choosing what they came
-                     * for, not which shelf is fuller, and the number was
-                     * loudest exactly where it mattered least. It also aged
-                     * badly, since a count that says 4 tells a shopper the shop
-                     * is empty before they have seen a single photograph.
-                     *
-                     * What is there instead is the thing the old circular row
-                     * never had: an icon that DIFFERS per department. That row
-                     * failed because all six circles held the same grey glyph,
-                     * so the icon carried no information at all. Chosen by
-                     * matching the department's own name — see `_deptIcon` —
-                     * with a shopping bag for anything unrecognised, so a shop
-                     * that invents a department still gets a card that looks
-                     * deliberate. */
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: const BoxDecoration(
-                            color: _kWhite,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _deptIcon(d.name, d.slug),
-                            size: 18,
-                            color: ink,
-                          ),
-                        ),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            d.name,
-                            style: _text(
-                              size: 13,
-                              color: _kInk,
-                              weight: FontWeight.w700,
-                              height: 1.25,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- Trust ----------
-  Widget _trustStrip(_HomeFeed feed) {
-    Widget item(IconData icon, String text) => Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 13, color: _kSuccess),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  text,
-                  style: _label(size: 10.5, color: _kBody),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(_pad, 8, _pad, 0),
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      decoration: const BoxDecoration(
-        color: _kSurface,
-        borderRadius: BorderRadius.all(Radius.circular(_radius)),
-      ),
       child: Row(
         children: [
-          item(Icons.local_shipping_outlined, 'Fast delivery'),
-          Container(width: 1, height: 12, color: _kLine),
-          item(Icons.payments_outlined, 'Pay on delivery'),
-          Container(width: 1, height: 12, color: _kLine),
-          // Straight from the shop's settings, so it can never contradict what
-          // the checkout actually allows.
-          item(Icons.assignment_return_outlined, '${feed.returnsDays}-day returns'),
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(_pad, 4, 4, 6),
+              children: [
+                chip(
+                  icon: Icons.bolt_rounded,
+                  label: '50% off',
+                  filled: true,
+                  onTap: () => _openShop(
+                    minDiscount: 50,
+                    sort: 'discount',
+                    title: '50% off',
+                  ),
+                ),
+                chip(
+                  icon: Icons.local_fire_department_rounded,
+                  label: 'Trending',
+                  onTap: () => _openShop(sort: 'popular', title: 'Trending now'),
+                ),
+                chip(
+                  icon: Icons.sell_rounded,
+                  label: 'Promotions',
+                  onTap: () => _openShop(
+                    saleOnly: true,
+                    sort: 'discount',
+                    title: 'Promotions',
+                  ),
+                ),
+                chip(
+                  icon: Icons.savings_rounded,
+                  label: 'Under UGX 50,000',
+                  onTap: () => _openShop(
+                    maxPrice: 50000,
+                    sort: 'price_asc',
+                    title: 'Under UGX 50,000',
+                  ),
+                ),
+                // The shop's own categories, with the icon `_deptIcon` picks
+                // from each name. Not a list baked into this file — a
+                // department that appears in wp-admin appears here.
+                for (final d in feed.departments)
+                  chip(
+                    icon: _deptIcon(d.name, d.slug),
+                    label: d.name,
+                    onTap: () => _openDepartment(d),
+                  ),
+              ],
+            ),
+          ),
+          // The way out of a rail that runs off the edge. Without it the
+          // departments past the fourth are reachable only by a shopper who
+          // guesses the rail scrolls.
+          if (feed.departments.isNotEmpty)
+            _Press(
+              onTap: () => _openShop(title: 'All departments'),
+              child: Container(
+                width: 36,
+                height: 34,
+                margin: const EdgeInsets.only(right: 8, bottom: 2),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _kSurface,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _kLine),
+                ),
+                child: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: _kBody,
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  /// The free-delivery meter, docked above the bottom navigation.
+  ///
+  /// ---- Why this is on the feed and not only in the basket ----
+  ///
+  /// The threshold is already printed in the band at the top of this screen,
+  /// and a threshold on its own is a fact. This is the same number turned into
+  /// a POSITION: how far along the shopper is, and what is left. That is only
+  /// useful while they are still choosing, which is here rather than at the
+  /// till — by the time somebody is in the basket the decision to add another
+  /// item has usually been made.
+  ///
+  /// It draws nothing at all in the two cases where it would be noise: an
+  /// empty basket, and a shop with no threshold set. Once the basket clears
+  /// the line it turns green and says so rather than disappearing, because a
+  /// bar that vanishes at the moment it succeeds looks like a bar that broke.
+  ///
+  /// Every figure is the real basket, read from the same store as the badge —
+  /// see `_readCartSubtotal`. A meter that guessed would be worse than none:
+  /// the shopper adds an item on the strength of it and finds delivery charged
+  /// at the till anyway.
+  Widget _deliveryMeter(_HomeFeed feed) {
+    final threshold = feed.freeDeliveryFrom;
+    if (threshold <= 0 || _cartSubtotal <= 0) return const SizedBox.shrink();
+
+    final remaining = threshold - _cartSubtotal;
+    final earned = remaining <= 0;
+    final progress = (_cartSubtotal / threshold).clamp(0.0, 1.0);
+
+    return _Press(
+      onTap: _openCart,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(_pad, 0, _pad, 8),
+        padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
+        decoration: BoxDecoration(
+          color: _kInk,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              earned
+                  ? Icons.check_circle_rounded
+                  : Icons.local_shipping_rounded,
+              size: 18,
+              color: earned ? const Color(0xFF4ADE80) : _kWhite,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    earned
+                        ? 'Delivery is free on this order'
+                        : '${_ugx(remaining)} more for free delivery',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _label(
+                      size: 12,
+                      color: _kWhite,
+                      weight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      backgroundColor: _kWhite.withOpacity(0.22),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        earned ? const Color(0xFF4ADE80) : _kPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: _kPrimary,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                'Basket',
+                style: _label(
+                  size: 11.5,
+                  color: _kWhite,
+                  weight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2107,16 +2303,6 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
     final lowStock =
         !soldOut && p.stockQuantity != null && p.stockQuantity! <= _kLowStockAt;
 
-    /// The website drops the struck-through original and the percentage beside
-    /// the price below its `sm` breakpoint (640px), leaving the resting price
-    /// the full width of a narrow tile. The same rule is applied here against
-    /// the same number, so a phone shows what the website shows on a phone and
-    /// a tablet shows what it shows on a tablet.
-    ///
-    /// Nothing is lost on the narrow layout: the reduction is on the photograph
-    /// as a corner flag, which is the signal that stops a thumb mid-scroll.
-    final wide = MediaQuery.of(context).size.width >= 640;
-
     return RepaintBoundary(
       child: _Press(
         onTap: () => _openProduct(p),
@@ -2136,6 +2322,17 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
             //
             // Square is also what puts more rows on a screen, which on a phone
             // is the whole game — rows are the product.
+            //
+            // ---- On the ragged-height feeds this was matched to ----
+            //
+            // The marketplace feed this card was modelled on staggers its two
+            // columns, every tile as tall as its own photograph. That is not
+            // available here and it is not a matter of effort: a masonry
+            // layout needs each image's aspect ratio BEFORE it can place the
+            // tile, and `/api/app/home` sends URLs, not dimensions. Guessing
+            // would mean laying out at one height and reflowing when the
+            // bitmap lands, which is a feed that jumps under a moving thumb.
+            // Square everywhere is the honest version of it.
             AspectRatio(
               aspectRatio: 1,
               child: Stack(
@@ -2152,93 +2349,28 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                       child: _image(p.image),
                     ),
                   ),
-                  if (soldOut)
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _kInk,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Sold out',
-                          style: _label(
-                            size: 11,
-                            color: _kWhite,
-                            weight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
 
-                  // ---- The discount flag ----
+                  // ---- The corner flag ----
                   //
-                  // New here, and the reason it earns its place is the same one
-                  // the website records. The percentage beside the price is
-                  // where the number *means* most, sitting between what the item
-                  // costs and what it cost — but the price block is the last
-                  // thing read, and on a rail a thumb flicks past in under a
-                  // second it is often not read at all. The discount is the
-                  // single strongest reason to stop scrolling, and it had no
-                  // presence in the part of the tile a shopper actually looks
-                  // at.
-                  //
-                  // A corner flag, not the 56px orange medallion the web tile
-                  // used to carry: 11px, sale red rather than the brand orange
-                  // so the colour still means "reduced", and only on products
-                  // with a genuine reduction.
-                  //
-                  // Top LEFT, where the website puts it top right. That is the
-                  // one deliberate departure on this card, and it is forced by
-                  // the heart. The website reveals its heart on hover, so the
-                  // top-right corner is free; a phone has no hover, so the
-                  // heart is always visible there. Putting the flag opposite it
-                  // keeps both readable, and it cannot collide with the
-                  // "Sold out" badge that shares this corner because the two
-                  // are mutually exclusive by construction — a sold-out product
-                  // never renders a discount.
-                  if (!soldOut && p.discountPercent > 0)
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _kSale,
-                          borderRadius: BorderRadius.circular(6),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 3,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '−${p.discountPercent}%',
-                          style: _label(
-                            size: 11,
-                            color: _kWhite,
-                            weight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
+                  // Sold out and the discount share this corner and cannot
+                  // collide: a sold-out product never renders a reduction.
+                  // "Only 3 left" joins them here rather than taking a text
+                  // row of its own below — it is the same kind of fact as the
+                  // other two, it is urgent in the same way, and putting it on
+                  // the photograph is what freed the row.
+                  if (soldOut)
+                    _flag('Sold out', _kInk)
+                  else if (p.discountPercent > 0)
+                    _flag('−${p.discountPercent}%', _kSale)
+                  else if (lowStock)
+                    _flag('Only ${p.stockQuantity} left', _kSale),
 
                   // The website reveals the heart on hover. A phone has no
                   // hover, so it stays visible — hiding it would remove the
                   // feature rather than match the design.
                   Positioned(
-                    right: 8,
-                    top: 8,
+                    right: 6,
+                    top: 6,
                     child: _Press(
                       onTap: () => _toggleWishlist(p),
                       child: Container(
@@ -2258,27 +2390,95 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                       ),
                     ),
                   ),
+
+                  // ---- The add button ----
+                  //
+                  // The single biggest thing this card gained. A feed where
+                  // every purchase costs a page load, a scroll and a press of
+                  // the back button is a feed people browse instead of buying
+                  // from — the round + in the corner of the photograph is what
+                  // every marketplace app puts there, and it is there for that
+                  // reason rather than for the look of it.
+                  //
+                  // What it does is decided by `p.hasOptions`, which the shop
+                  // now sends per product (see `toAppProduct`):
+                  //
+                  //   • a simple product goes straight into the basket, one
+                  //     tap, badge updates, no page load;
+                  //   • a product with a size or a colour opens its page,
+                  //     because a 150px tile cannot ask a question and adding
+                  //     a shoe with no size in it is how an order reaches
+                  //     wp-admin that nobody can pack;
+                  //   • a sold-out product is greyed and says so.
+                  //
+                  // That third case is not decoration. This button writes to
+                  // the same basket the product page writes to, and it obeys
+                  // the same rule: nothing out of stock is ever added.
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: _Press(
+                      onTap: soldOut ? null : () => _quickAdd(p),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: soldOut
+                              ? _kHairline.withOpacity(0.92)
+                              : _kWhite.withOpacity(0.94),
+                          shape: BoxShape.circle,
+                          boxShadow: soldOut
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.12),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                        ),
+                        child: Icon(
+                          soldOut
+                              ? Icons.remove_rounded
+                              : p.hasOptions
+                                  ? Icons.tune_rounded
+                                  : Icons.add_rounded,
+                          size: 19,
+                          color: soldOut ? _kFaint : _kInk,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: _kCardGap),
 
-            // ---- Row 1: the name ----
+            // ---- Row 1: the badges and the name, as ONE paragraph ----
             //
-            // Exactly two lines, always. The box is a fixed 40 — two times the
-            // 20px leading — rather than a `maxLines` that shrinks to fit,
-            // because a short name has to *reserve* the second line instead of
-            // letting the price ride up under it. This single box is the
-            // biggest contributor to neighbouring tiles matching.
+            // The badges are `WidgetSpan`s inside the title rather than a row
+            // above it, which is the whole reason this fits in two lines. A
+            // badge row of its own costs 20px on every tile in the feed —
+            // including the majority that have no badge — and it puts a gap
+            // between a label and the name it is labelling.
             //
-            // Set at the interface weight, not bold: a supplier's
-            // 90-character title in bold is a wall.
+            // Inline, they read as what they are: an adjective in front of the
+            // title. The text flows around them and a product with no badges
+            // simply starts at the left margin.
             SizedBox(
               height: _kCardNameHeight,
               width: double.infinity,
-              child: Text(
-                p.name,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (!soldOut && p.discountPercent > 0)
+                      _badgeSpan('Sale', _kSale),
+                    if (!soldOut && p.discountPercent == 0 && p.isNew)
+                      _badgeSpan('New', _kPrimary),
+                    TextSpan(text: p.name),
+                  ],
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: _text(
@@ -2292,18 +2492,70 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
               ),
             ),
 
-            // ---- Row 2: the money ----
+            // ---- Row 2: units sold and rating ----
             //
-            // What it costs, what it cost, and the reduction, on one line —
-            // the three figures only mean anything read together.
+            // Sold first, rating second, which is the order the marketplace
+            // feeds settled on and it is the right one: a sales count is a
+            // fact about how many people took the risk, a star average is an
+            // opinion held by however few of them wrote it down.
             //
-            // The row is a fixed height, which is what would have clipped it:
-            // on a narrow tile "UGX 120,000  UGX 300,000  −10%" needs roughly
-            // double the width available, and a `Wrap` (which is what this used
-            // to be) would break it onto a second line that the fixed height
-            // then cuts in half. So it is a `Row` that cannot wrap, and on
-            // narrow screens the was-price and the percentage are dropped
-            // rather than squeezed — exactly what the website does below `sm`.
+            // The row renders even with nothing in it. That is the point
+            // rather than an oversight — a product with no reviews and no
+            // sales is exactly the one that would otherwise render a shorter
+            // tile than its neighbours, and an empty 16px box costs less than
+            // the ragged baselines that hiding it caused.
+            SizedBox(
+              height: _kCardMetaHeight,
+              width: double.infinity,
+              child: Row(
+                children: [
+                  if (p.totalSales > 0)
+                    Text(
+                      '${_compactSold(p.totalSales)} sold',
+                      style: _label(
+                        size: 11.5,
+                        color: _kMuted,
+                        weight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                    ),
+                  if (p.totalSales > 0 && p.ratingCount > 0)
+                    const SizedBox(width: 7),
+                  if (p.ratingCount > 0) ...[
+                    const Icon(Icons.star_rounded, size: 13, color: _kInk),
+                    const SizedBox(width: 2),
+                    Text(
+                      p.rating.toStringAsFixed(1),
+                      style: _label(
+                        size: 11.5,
+                        color: _kBody,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ---- Row 3: the money ----
+            //
+            // The price at the bottom of the tile and the largest text on it,
+            // which is a reversal: it used to sit above the metadata at 13px,
+            // one of four similar-looking grey-ish lines.
+            //
+            // The price is INK, not red, and the reduction is a tinted pill
+            // beside it. Printing the price itself in the discount colour —
+            // which this card did — makes every reduced product's price read
+            // as a warning, and it leaves the percentage, the part that is
+            // actually news, with no colour left to distinguish it.
+            //
+            // The struck-through original is gone from the tile. Three figures
+            // will not fit legibly across half a phone screen, the pill
+            // already says how much came off, and the original is on the
+            // product page in full. What used to happen instead was that the
+            // was-price and the percentage were BOTH dropped below 640px —
+            // so on the phone, which is every shopper, the reduction had no
+            // presence in the text block at all.
             SizedBox(
               height: _kCardPriceHeight,
               width: double.infinity,
@@ -2317,138 +2569,136 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,
                       style: _price(
-                        size: wide ? 15 : 13,
-                        color: p.discountPercent > 0 ? _kSale : _kInk,
+                        size: 16,
+                        color: soldOut ? _kMuted : _kInk,
                       ),
                     ),
                   ),
-                  if (wide && p.wasPriceLabel != null) ...[
-                    const SizedBox(width: 6),
-                    Text(p.wasPriceLabel!, style: _struck(size: 11.5)),
-                  ],
-                  if (wide && p.discountPercent > 0) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      '−${p.discountPercent}%',
-                      style: _label(
-                        size: 11.5,
-                        color: _kSale,
-                        weight: FontWeight.w700,
+                  if (!soldOut && p.discountPercent > 0) ...[
+                    const SizedBox(width: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
                       ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // ---- Row 3: rating and units sold ----
-            //
-            // The two numbers a shopper uses to decide whether anyone else took
-            // the risk first — and the row renders even with nothing in it.
-            //
-            // That is the point rather than an oversight. A product with no
-            // reviews and no sales is exactly the one that would otherwise
-            // render a shorter tile than its neighbours, and an empty 16px box
-            // costs less than the ragged baselines that hiding it caused.
-            SizedBox(
-              height: _kCardMetaHeight,
-              width: double.infinity,
-              child: Row(
-                children: [
-                  if (p.ratingCount > 0) ...[
-                    _stars(p.rating),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.rating.toStringAsFixed(1),
-                      style: _label(
-                        size: 11.5,
-                        color: _kBody,
-                        weight: FontWeight.w600,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF1F0),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ),
-                  ],
-                  if (p.ratingCount > 0 && p.totalSales > 0)
-                    const SizedBox(width: 8),
-                  if (p.totalSales > 0)
-                    Flexible(
                       child: Text(
-                        '${_compactSold(p.totalSales)} sold',
+                        '−${p.discountPercent}%',
                         style: _label(
-                          size: 11.5,
-                          color: _kMuted,
-                          weight: FontWeight.w500,
+                          size: 10.5,
+                          color: _kSale,
+                          weight: FontWeight.w800,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  ],
                 ],
               ),
-            ),
-
-            // ---- Row 4: the delivery promise ----
-            //
-            // Always last, always one line, always the same height. Ellipsised
-            // rather than wrapped so a long stock message cannot undo the
-            // matching heights above it.
-            SizedBox(
-              height: _kCardMetaHeight,
-              width: double.infinity,
-              child: soldOut
-                  ? Text(
-                      'Back in stock soon',
-                      style: _label(
-                        size: 11.5,
-                        color: _kMuted,
-                        weight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  : lowStock
-                      ? Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: _kSale,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                'Only ${p.stockQuantity} left',
-                                style: _label(
-                                  size: 11.5,
-                                  color: _kSale,
-                                  weight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        )
-                      // Not "free delivery" — that depends on the basket total
-                      // and a tile cannot know it. Promising it here would be a
-                      // lie on most orders.
-                      : Text(
-                          'Fastest delivery: 1 business day',
-                          style: _label(
-                            size: 11.5,
-                            color: _kSuccess,
-                            weight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// The flag in the top-left corner of a photograph.
+  Widget _flag(String text, Color background) => Positioned(
+        left: 6,
+        top: 6,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Text(
+            text,
+            style: _label(size: 11, color: _kWhite, weight: FontWeight.w700),
+          ),
+        ),
+      );
+
+  /// A badge that sits INSIDE the title's text flow.
+  ///
+  /// `PlaceholderAlignment.middle` with an explicit `baseline` is what keeps it
+  /// centred on the line rather than hanging below it; without the baseline
+  /// argument Flutter asserts at build time on some alignments, so it is passed
+  /// even though `middle` does not read it.
+  InlineSpan _badgeSpan(String text, Color background) => WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        baseline: TextBaseline.alphabetic,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              text,
+              style: _label(size: 10, color: _kWhite, weight: FontWeight.w800),
+            ),
+          ),
+        ),
+      );
+
+  /// The tile's add button.
+  ///
+  /// Writes to the same basket every other screen reads, through the static on
+  /// `ShoppingCartPage` — the only symbol that crosses a FlutterFlow file
+  /// boundary. See the note on the button itself for why a product with
+  /// options is sent to its page instead of being added from here.
+  Future<void> _quickAdd(_Product p) async {
+    if (!p.inStock) return;
+
+    if (p.hasOptions) {
+      HapticFeedback.lightImpact();
+      _openProduct(p);
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    await ShoppingCartPage.addToCart(
+      productId: p.id,
+      name: p.name,
+      price: p.price,
+      image: p.image,
+      slug: p.slug,
+    );
+
+    final count = await ShoppingCartPage.loadCount();
+    final subtotal = await _readCartSubtotal();
+    if (!mounted) return;
+    setState(() {
+      _cartCount = count;
+      _cartSubtotal = subtotal;
+    });
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Added to cart',
+            style: _text(size: 13.5, color: _kWhite, weight: FontWeight.w600),
+          ),
+          backgroundColor: _kInk,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+          action: SnackBarAction(
+            label: 'View cart',
+            textColor: _kPrimary,
+            onPressed: _openCart,
+          ),
+        ),
+      );
   }
 
   Widget _image(String url) {
@@ -2553,37 +2803,17 @@ class _HomeSectionsWidgetState extends State<HomeSectionsWidget>
           ),
         ),
 
-        // Departments — two rows, exactly as tall as the real strip.
+        // ---- The offer band ----
+        //
+        // A skeleton's whole job is to be the shape of what is coming, so this
+        // block moved with the layout: it used to draw a heading and two rows
+        // of department cards, which now never arrive — the departments are
+        // chips in the rail above, and a placeholder that resolves into
+        // nothing is worse than no placeholder, because the eye has already
+        // reserved the space.
         Padding(
-          padding: const EdgeInsets.fromLTRB(_pad, 10, _pad, 0),
-          child: block(150, 18),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 2 * _kDeptCardHeight + _kDeptGap,
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: _pad),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: _kDeptGap,
-              crossAxisSpacing: _kDeptGap,
-              childAspectRatio: _kDeptCardHeight / _kDeptCardWidth,
-            ),
-            itemCount: 6,
-            itemBuilder: (_, __) => block(
-              _kDeptCardWidth,
-              _kDeptCardHeight,
-              radius: _kCardRadius,
-            ),
-          ),
-        ),
-
-        // Trust strip.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(_pad, 14, _pad, 0),
-          child: block(double.infinity, 34, radius: 8),
+          padding: const EdgeInsets.fromLTRB(_pad, 6, _pad, 0),
+          child: block(double.infinity, 46, radius: _radius),
         ),
 
         railBlock(),
@@ -2772,6 +3002,37 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
 }
 
 /// One entry in the bottom bar.
+/// The notch that makes the second offer panel overlap the first.
+///
+/// One panel with a chevron bitten out of its left edge. Drawn rather than
+/// faked with a rotated square because the panel has to stay a normal box for
+/// its text to lay out in, and because a clip costs nothing per frame — the
+/// path is rebuilt only when the width changes.
+///
+/// 14px deep, which is about half the band's height: shallow enough that the
+/// headline still starts on a straight edge, deep enough to read as a
+/// deliberate shape rather than a rendering fault. The extra left padding on
+/// the notched panel is what keeps the text clear of it.
+class _NotchClipper extends CustomClipper<Path> {
+  const _NotchClipper();
+
+  static const double _depth = 14;
+
+  @override
+  Path getClip(Size size) {
+    return Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..lineTo(_depth, size.height / 2)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
 class _NavItem {
   final IconData icon;
   final String label;

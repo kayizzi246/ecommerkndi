@@ -143,6 +143,77 @@ export async function pushToCustomer(
 }
 
 /**
+ * Sends to one seller, on every device they have signed into their store on.
+ *
+ * ---- Why a tag and not an alias ----
+ *
+ * A subscription has exactly one external id, and that is the SHOPPER's — see
+ * the note in `push_notifications.dart`. One handset routinely carries both
+ * identities: a seller who also shops from their own phone. Addressing sellers
+ * by external id would mean one of the two silently stopping.
+ *
+ * So the app writes a `seller_id` tag and this filters on it. Both kinds of
+ * message then arrive on the same device, which is the correct behaviour and
+ * costs nothing to arrange.
+ */
+export async function pushToSeller(
+  sellerId: string | number,
+  message: Message
+): Promise<PushResult> {
+  if (!pushConfigured()) return NOT_CONFIGURED;
+
+  const id = String(sellerId).trim();
+  if (!id) return { sent: 0, failed: 0 };
+
+  return post({
+    filters: [{ field: "tag", key: "seller_id", relation: "=", value: id }],
+    target_channel: "push",
+    headings: { en: message.title },
+    contents: { en: message.body },
+    data: { ...(message.data ?? {}), kind: "seller" },
+    // A seller with an unpacked order is losing money by the minute. This is
+    // the one notification in the shop more time-critical than a delivery
+    // update, so it gets the same top priority.
+    priority: 10,
+  });
+}
+
+/**
+ * What a seller is told when something needs them.
+ *
+ * Separate from `orderMessage` and deliberately not sharing its wording: the
+ * shopper is being reassured and the seller is being asked to act, and copy
+ * that tries to serve both ends up doing neither.
+ */
+export function sellerMessage(
+  event: string,
+  orderNumber: string
+): Message | null {
+  switch (event) {
+    case "new-order":
+      return {
+        title: "New order",
+        body: `Order #${orderNumber} is waiting to be packed.`,
+        data: { event, order: orderNumber },
+      };
+    case "order-cancelled":
+      return {
+        title: "Order cancelled",
+        body: `Order #${orderNumber} was cancelled. Do not pack it.`,
+        data: { event, order: orderNumber },
+      };
+    case "payout-sent":
+      return {
+        title: "Payout sent",
+        body: `Your payout has been sent. Check the Seller Centre for details.`,
+        data: { event },
+      };
+    default:
+      return null;
+  }
+}
+
+/**
  * Sends to everyone whose subscription carries a tag.
  *
  * A tag rather than a segment, so the audience is defined by the switch the

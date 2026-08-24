@@ -174,7 +174,20 @@ class KandiPush {
     }
   }
 
-  /// Ties this device to the signed-in shopper, or cuts the link when nobody is.
+  /// Ties this device to whoever is signed in on it — shopper AND seller.
+  ///
+  /// ---- Why the seller is a TAG and the shopper an external id ----
+  ///
+  /// A subscription has exactly one external id, and one handset routinely
+  /// carries both identities: a seller who also shops from their own phone.
+  /// Putting the seller in the external id would mean choosing which of the two
+  /// gets to receive anything, and whichever lost would silently stop.
+  ///
+  /// So the shopper keeps the external id — order updates are the higher-volume
+  /// and more time-critical of the two — and the seller becomes a
+  /// `seller_id` tag. The server addresses sellers with a tag filter instead of
+  /// an alias lookup, which costs it nothing and lets both arrive on the same
+  /// device.
   ///
   /// The customer id is read from the record `auth_widget.dart` saves. A
   /// private reader over a key another file owns, in the same pattern every
@@ -182,24 +195,36 @@ class KandiPush {
   static Future<void> _linkCustomer() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString('kandi_auth_customer');
-      if (raw == null || raw.isEmpty) {
-        await OneSignal.logout();
-        return;
-      }
 
-      final decoded = jsonDecode(raw);
+      // ---- The shopper ----
+      final raw = prefs.getString('kandi_auth_customer');
+      final decoded = (raw == null || raw.isEmpty) ? null : jsonDecode(raw);
       final id = decoded is Map ? decoded['id'] : null;
       if (id == null) {
         await OneSignal.logout();
-        return;
+      } else {
+        // The WordPress customer id, as a string, and it must be the SAME id
+        // the server addresses in `lib/push.ts`. That is the entire contract
+        // between the two halves of this feature: get it wrong and every order
+        // notification is sent successfully to nobody.
+        await OneSignal.login(id.toString());
       }
 
-      // The WordPress customer id, as a string, and it must be the SAME id the
-      // server addresses in `lib/push.ts`. That is the entire contract between
-      // the two halves of this feature: get it wrong and every order
-      // notification is sent successfully to nobody.
-      await OneSignal.login(id.toString());
+      // ---- The seller ----
+      //
+      // Read from the record `seller_dashboard_widget.dart` saves, under a key
+      // that file owns. Cleared rather than left behind on sign-out: a stale
+      // `seller_id` on a handset that has signed out of its store would keep
+      // delivering that store's order alerts to whoever holds the phone now.
+      final sellerRaw = prefs.getString('kandi_seller_record');
+      final seller =
+          (sellerRaw == null || sellerRaw.isEmpty) ? null : jsonDecode(sellerRaw);
+      final sellerId = seller is Map ? seller['id'] : null;
+      if (sellerId == null) {
+        OneSignal.User.removeTag('seller_id');
+      } else {
+        OneSignal.User.addTagWithKey('seller_id', sellerId.toString());
+      }
     } catch (_) {}
   }
 
@@ -237,8 +262,9 @@ class KandiPush {
     } catch (_) {}
   }
 
-  /// Called on sign-in AND sign-out — it reads the session rather than being
-  /// told which happened, so one call is correct either way.
+  /// Called on sign-in AND sign-out, for either identity — it reads the saved
+  /// sessions rather than being told which changed, so one call is correct
+  /// after any of the four events.
   ///
   /// After sign-out the device stays subscribed anonymously: promotions carry
   /// on, order messages stop. That is the right split for a handset nobody is

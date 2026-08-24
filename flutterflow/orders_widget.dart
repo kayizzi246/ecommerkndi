@@ -288,6 +288,11 @@ class _KandiOrdersPageState extends State<KandiOrdersPage> {
   void initState() {
     super.initState();
     _load();
+    // Idempotent — see the note in home_sections_widget. Called again here
+    // because this screen can be the first one a shopper opens from a
+    // notification tap, and because somebody looking at their orders is
+    // exactly the person who wants to be told when one moves.
+    KandiPush.start();
   }
 
   Future<void> _load() async {

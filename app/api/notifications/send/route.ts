@@ -1,6 +1,8 @@
 import { privateJson } from "@/lib/private-json";
 import {
   pushToCustomer,
+  pushToSeller,
+  sellerMessage,
   pushToTag,
   orderMessage,
   pushConfigured,
@@ -55,8 +57,11 @@ function secretMatches(supplied: string | null): boolean {
 }
 
 type Body = {
-  /** "order" or "promo". */
+  /** "order", "seller" or "promo". */
   kind?: string;
+  /** Seller sends: which store, and what happened. */
+  seller_id?: string | number;
+  event?: string;
   /** Order sends: the WordPress customer id on the order. */
   customer_id?: string | number;
   /** Order sends: the WooCommerce status the order just moved to. */
@@ -99,6 +104,27 @@ export async function POST(request: Request) {
     }
 
     const result = await pushToTag(tag as PushTag, { title, body });
+    return privateJson(result, { status: 200 });
+  }
+
+  // ---- A seller needs to do something ----
+  //
+  // Before the shopper branch, because the two are told about the SAME order
+  // at the same moment and must not be confused: a new order is news to the
+  // seller ("pack this") long before it is news to the shopper.
+  if (payload.kind === "seller") {
+    const sellerId = String(payload.seller_id ?? "").trim();
+    const message = sellerMessage(
+      (payload.event ?? "").trim(),
+      (payload.order_number ?? "").trim()
+    );
+    if (!message) {
+      return privateJson({ sent: 0, ignored: true }, { status: 200 });
+    }
+    if (!sellerId) {
+      return privateJson({ sent: 0, reason: "no seller" }, { status: 200 });
+    }
+    const result = await pushToSeller(sellerId, message);
     return privateJson(result, { status: 200 });
   }
 
