@@ -27,7 +27,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'dart:convert';
 
 // `ValueListenable` is not one of the names material re-exports — the `show`
 // list in widgets.dart stops at `Listenable` and `ValueNotifier`. The cart's
@@ -37,7 +36,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -174,10 +172,6 @@ const Color _kFaint = Color(0xFF94A3B8);
 const Color _kLine = Color(0xFFE5E7EB);
 const Color _kHairline = Color(0xFFF3F4F6);
 const Color _kSurface = Color(0xFFFAFAFA);
-const Color _kSuccess = Color(0xFF16A34A);
-const Color _kSuccessBg = Color(0xFFF0FDF4);
-const Color _kBlue = Color(0xFF2563EB);
-const Color _kBlueBg = Color(0xFFEFF6FF);
 const Color _kWhite = Colors.white;
 const Color _kPage = Colors.white;
 
@@ -226,60 +220,6 @@ TextStyle _label({
       letterSpacing: 0.2,
     );
 
-/// `UGX 45,000`. The shop's own format, thousands grouped, no decimals —
-/// shillings have no subunit anybody quotes.
-String _ugx(double amount) {
-  final whole = amount.round().abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < whole.length; i++) {
-    if (i > 0 && (whole.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(whole[i]);
-  }
-  return 'UGX ${amount < 0 ? '-' : ''}$buffer';
-}
-
-/// WooCommerce order statuses in the words a shopper would use.
-///
-/// The same map as `lib/account.ts` on the website, and it has to stay that
-/// way: an order that reads "Being prepared" on kandiug.com and `processing`
-/// on the phone is one order described by two shops.
-const Map<String, String> _kStatusLabel = <String, String>{
-  'pending': 'Awaiting payment',
-  'processing': 'Being prepared',
-  'on-hold': 'On hold',
-  'completed': 'Delivered',
-  'cancelled': 'Cancelled',
-  'refunded': 'Refunded',
-  'failed': 'Failed',
-};
-
-Color _statusColor(String status) {
-  switch (status) {
-    case 'completed':
-      return _kSuccess;
-    case 'processing':
-      return _kBlue;
-    case 'cancelled':
-    case 'failed':
-      return _kSale;
-    default:
-      return _kBody;
-  }
-}
-
-Color _statusBg(String status) {
-  switch (status) {
-    case 'completed':
-      return _kSuccessBg;
-    case 'processing':
-      return _kBlueBg;
-    case 'cancelled':
-    case 'failed':
-      return _kSaleBg;
-    default:
-      return _kHairline;
-  }
-}
 
 // ============================================================
 // PRESS
@@ -318,67 +258,6 @@ class _PressState extends State<_Press> {
         child: widget.child,
       ),
     );
-  }
-}
-
-// ============================================================
-// ORDER — the shape /api/app/account/orders answers with
-// ============================================================
-
-class _Order {
-  const _Order({
-    required this.number,
-    required this.status,
-    required this.date,
-    required this.total,
-    required this.itemCount,
-    required this.firstItem,
-  });
-
-  final String number;
-  final String status;
-  final String date;
-  final double total;
-  final int itemCount;
-  final String firstItem;
-
-  static _Order fromJson(Map<String, dynamic> json) {
-    final items = json['items'] is List
-        ? List<dynamic>.from(json['items'] as List)
-        : const <dynamic>[];
-
-    var units = 0;
-    var first = '';
-    for (final entry in items) {
-      if (entry is! Map) continue;
-      final line = Map<String, dynamic>.from(entry);
-      units += (line['quantity'] is num) ? (line['quantity'] as num).toInt() : 1;
-      if (first.isEmpty) first = (line['name'] ?? '').toString();
-    }
-
-    return _Order(
-      number: (json['number'] ?? json['id'] ?? '').toString(),
-      status: (json['status'] ?? '').toString(),
-      date: _shortDate(json['date']?.toString()),
-      total: (json['total'] is num) ? (json['total'] as num).toDouble() : 0,
-      itemCount: units,
-      firstItem: first,
-    );
-  }
-
-  /// `12 Aug 2026`. Parsed leniently: WooCommerce sends an ISO string, and a
-  /// date this screen cannot read is a blank line rather than an exception on
-  /// the one screen a shopper opens to check something went through.
-  static String _shortDate(String? iso) {
-    if (iso == null || iso.trim().isEmpty) return '';
-    final parsed = DateTime.tryParse(iso);
-    if (parsed == null) return '';
-    const months = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final local = parsed.toLocal();
-    return '${local.day} ${months[local.month - 1]} ${local.year}';
   }
 }
 
