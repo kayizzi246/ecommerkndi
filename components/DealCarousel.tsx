@@ -67,8 +67,29 @@ export default function DealCarousel({
    * whole point of a fractional count — a rail showing a whole number of tiles
    * reads as a finished grid nobody swipes.
    *
-   * The 20px is `gap-2.5` × 2, and it only holds below `sm`, which is the only
-   * range this step applies to. Every step above it keeps its percentage.
+   * ---- ...and why the phone step is `vw` rather than `%` ----
+   *
+   * A percentage resolves against the TRACK, and the track is only as wide as
+   * its parent chooses to make it. Drop this rail into a container that sizes
+   * itself to its contents — a grid `auto` column, say — and the track becomes
+   * as wide as every tile laid end to end, roughly 1630px, at which point
+   * "38.5% of the track" is a 620px tile and the phone shows one product. That
+   * is not hypothetical; it is what {@link TwinDeals} did, and the percentage
+   * looked correct in the source the whole time it was happening.
+   *
+   * `vw` has no such dependency. Below `sm` this rail always spans the page
+   * column, which is the viewport less the `px-3` gutter, so the width can be
+   * stated absolutely and no ancestor can distort it:
+   *
+   *   w = (100vw - 24px gutter - 20px gaps) / 2.6
+   *
+   * On a 408px phone that is a 140px tile: 2.6 of them plus two gaps is exactly
+   * the 384px column. Both pages that render a rail on a phone — the homepage
+   * and /categories — use `px-3`, so the 24px holds for each.
+   *
+   * The steps above `sm` stay percentages. From there up the containers are
+   * definite (`md:grid-cols-2`, flex columns) and a percentage is the more
+   * honest unit, because it tracks a panel that is no longer the full page.
    *
    * ---- 2xl shows eight ----
    *
@@ -131,7 +152,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[calc((100%-20px)/2.6)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
+  itemWidth = "w-[calc((100vw-44px)/2.6)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {

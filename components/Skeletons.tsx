@@ -74,7 +74,7 @@ export function ProductRailSkeleton({
             // tile-count off is a guaranteed shift at the exact moment the
             // shopper is looking at it. The steps above it still drift from the
             // rail by a point or so and are left alone here.
-            className="w-[calc((100%-20px)/2.6)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
+            className="w-[calc((100vw-44px)/2.6)] min-w-0 shrink-0 sm:w-[31%] md:w-[23.5%] lg:w-[18.5%] xl:w-[15.8%]"
           >
             <ProductCardSkeleton />
           </div>

@@ -82,7 +82,24 @@ export default function TwinDeals({ products }: { products: Product[] }) {
   const clearance = products.slice(half);
 
   return (
-    <section aria-labelledby="twin-deals-heading" className="grid gap-5 md:grid-cols-2 md:gap-6">
+    // ---- `grid-cols-1`, spelled out, and it is load-bearing ----
+    //
+    // This was a bare `grid` below md, which leaves `grid-template-columns` at
+    // `none` — so the panels land in an IMPLICIT column sized `auto`, and an
+    // auto column is allowed to size itself to its contents. What it contains
+    // is a carousel whose natural width is every tile laid end to end, about
+    // 1630px, and the tiles inside it are sized as a percentage OF that column.
+    // A percentage of a column that is itself sized by its contents does not
+    // constrain anything: the column blew out to content width and each "38.5%"
+    // tile came back about 620px, which is why the phone showed one product.
+    //
+    // An explicit `grid-cols-1` makes the mobile column `1fr` — a definite
+    // share of the section — so the percentages inside resolve against the page
+    // column, not against the track's own content.
+    <section
+      aria-labelledby="twin-deals-heading"
+      className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6"
+    >
       {/* The section needs one accessible name and has two visible headings, so
           the first panel's heading is the labelled one and the second is a
           heading in its own right within it. */}
@@ -161,7 +178,12 @@ function DealPanel({
   priority?: boolean;
 }) {
   return (
-    <div>
+    // `min-w-0` because `grid-cols-1` above only fixes half of it: `1fr` is
+    // `minmax(auto, 1fr)`, and that `auto` minimum is still the panel's
+    // content-based floor, which a grid item is never allowed to shrink below.
+    // Together the two make the column a true `minmax(0, 1fr)` — a definite
+    // width the carousel's percentages can resolve against.
+    <div className="min-w-0">
       <div className="mb-3 flex items-center gap-3">
         {/* ---- Loud, and not the same loud as the rest of the page ----
 
@@ -220,7 +242,10 @@ function DealPanel({
 
           So the ramp is written against the PANEL, not the page:
 
-            base   /2.6  two tiles and most of a third; panel is full-width
+            base   vw    two tiles and most of a third; panel is full-width,
+                         and the unit is `vw` because this panel sits in a grid
+                         column — see the note on the section above, and the
+                         long one on `itemWidth` in `DealCarousel`
             sm     31%   three and a peek, still full-width
             md     45%   two and a peek — the panels have just halved
             lg     31%   three and a peek, as the halves grow
@@ -236,13 +261,13 @@ function DealPanel({
           The base step is the one place this ramp does NOT diverge from the
           shared default, and it deliberately matches it character for character
           — below `sm` these panels are full-width, so they are the same track
-          as any other rail and should show the same 2.6 tiles. The gap subtracted
-          is `gap-2.5` × 2, the two seams standing between three tiles; see the
-          long note on `itemWidth` in `DealCarousel` for why the count cannot be
-          written as a plain percentage. */}
+          as any other rail and should show the same 2.6 tiles. The 44px is the
+          `px-3` page gutter plus the two `gap-2.5` seams standing between three
+          tiles; see the long note on `itemWidth` in `DealCarousel` for why the
+          count is neither a plain percentage nor measured against the track. */}
       <DealCarousel
         products={products}
-        itemWidth="w-[calc((100%-20px)/2.6)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
+        itemWidth="w-[calc((100vw-44px)/2.6)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
         priority={priority}
         // "All Lightning" / "All Clearance" — the panel titles minus the word
         // both of them share, which the tile's own context already supplies.
