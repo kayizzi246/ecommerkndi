@@ -19,6 +19,33 @@ const LOW_STOCK_AT = 5;
  */
 const NEW_FOR_DAYS = 14;
 
+/**
+ * Whether a product was listed recently enough to wear the "New" chip.
+ *
+ * ---- Why this is a function and not two lines in the component ----
+ *
+ * It used to read the clock in the middle of the render body, and React's
+ * linter is right to object even though this is a server component. A component
+ * body is meant to be a pure function of its props: given the same product it
+ * should produce the same tile. `Date.now()` breaks that, and the consequence
+ * is not theoretical — a tile that renders on one side of the fourteen-day
+ * boundary and re-renders on the other changes without its props having changed,
+ * which is precisely the class of bug the rule exists to catch.
+ *
+ * Pulled out here, the impurity is named, confined to one place, and obviously
+ * time-dependent to anyone reading the call. The clock is still read — a
+ * freshness badge cannot be computed without it — but the component no longer
+ * pretends to be pure while doing it.
+ *
+ * `date_created` is nullable: a product whose date WooCommerce did not send is
+ * simply not new, rather than new since 1970.
+ */
+function listedRecently(dateCreated: string | null | undefined): boolean {
+  if (!dateCreated) return false;
+  const listedAt = Date.parse(dateCreated);
+  return Number.isFinite(listedAt) && Date.now() - listedAt < NEW_FOR_DAYS * 86_400_000;
+}
+
 /** The most colour swatches a tile previews before it counts the rest. */
 const MAX_SWATCHES = 5;
 
@@ -202,7 +229,18 @@ function Stars({ rating }: { rating: number }) {
  * wrong everywhere except the one window it was measured on.
  */
 const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, (max-width: 1536px) 17vw, (max-width: 1720px) 14vw, 240px";
+  // One entry per column count in the ramp, and they have to stay in step
+  // with it — a `sizes` string that disagrees with the grid is how a page
+  // silently downloads tablet-width photographs for thumbnails.
+  //
+  //   ≤640   2 cols  50vw
+  //   ≤768   3       33vw
+  //   ≤1024  4       25vw
+  //   ≤1280  5       20vw   <- the step that was missing
+  //   ≤1536  6       17vw
+  //   ≤1720  7       14vw
+  //   above  7 of a shell that has stopped growing, so a fixed px
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1536px) 17vw, (max-width: 1720px) 14vw, 240px";
 
 export default function ProductCard({
   product,
@@ -280,9 +318,7 @@ export default function ProductCard({
   /* Listed within the fortnight. `date_created` is nullable — a product whose
      date WooCommerce did not send is simply not new, rather than new since
      1970. */
-  const listedAt = product.date_created ? Date.parse(product.date_created) : NaN;
-  const isNew =
-    Number.isFinite(listedAt) && Date.now() - listedAt < NEW_FOR_DAYS * 86_400_000;
+  const isNew = listedRecently(product.date_created);
 
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }

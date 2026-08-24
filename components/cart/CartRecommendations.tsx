@@ -60,7 +60,7 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
       <h2 className="mb-4 section-title text-[18px] text-shop-ink">You may also like</h2>
 
       {/* The homepage grid, so a product looks the same wherever it appears. */}
-      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+      <ul className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

@@ -144,7 +144,29 @@ export default function InfiniteProducts({
           From `md` the tile goes flat again and the wide gaps come straight
           back — they are the ONLY separator up there, and the two settings have
           to keep moving together or the wall of touching photographs returns. */}
-      {/* ---- Five columns from `md`, which is the tablet step ----
+      {/* ---- The ramp is 2 → 3 → 4 → 5 → 6 → 7, one step per breakpoint ----
+
+          Six across on a laptop is the anchor, and every breakpoint below it
+          drops exactly one column.
+
+          It did not read that way before. The classes ran 2 → 3 → 4 → (4) → 6
+          → 7 with no `lg` step at all, so everything from 1024px to 1280px was
+          shown the TABLET grid: four columns across a 1200px window, tiles near
+          290px, a laptop rendering a shop at iPad density. And the jump from
+          four straight to six meant one breakpoint changed the tile width by a
+          third in a single step, which is the size of change that reads as the
+          page having reloaded into a different layout.
+
+          `lg:grid-cols-5` closes it. The ramp is monotonic now — each step down
+          removes one column, never two, and never repeats its neighbour.
+
+          Two things move with these counts and must not be forgotten:
+          `GRID_SIZES` in `ProductCard`, which tells the browser how wide a tile
+          will be, and the rail widths in `DealCarousel`, which mirror the counts
+          so a rail and the grid beneath it never disagree on the same screen.
+
+          ---- The older argument, still true, about the tablet step ---- */}
+      {/* ---- Four from `md`, which is the tablet step ----
 
           This used to hold at three columns from 640px all the way to 1024px,
           because `sm:grid-cols-3` had nothing above it until `lg`. The gap is
@@ -160,11 +182,9 @@ export default function InfiniteProducts({
           148px, which is the size a phone tile already is and a size this card
           is known to work at.
 
-          `lg:grid-cols-5` is gone rather than kept beside it: it would now be
-          restating what `md` already set, and a redundant step is how a
-          breakpoint ramp drifts. The ramp is 2 → 3 → 5 → 6, and it must stay
-          monotonic — the rail in `DealCarousel` mirrors these counts and the
-          two are meant to agree on any given screen. */}
+          `lg:grid-cols-5` was removed at one point on the argument that it
+          restated `md`. That was true while `md` held five; `md` holds four
+          now, so `lg` is a real step again and has been put back. */}
       {/* ---- Six is the top of the ramp, and where it stops ----
 
           The ramp once climbed to 8 at `2xl`. That was the full-bleed shop,
@@ -215,7 +235,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

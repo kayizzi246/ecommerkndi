@@ -231,7 +231,7 @@ export default async function StorePage({ params }: Params) {
               "here is everything this seller has" is the whole point. */}
           {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
               See the note in the category grid. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends

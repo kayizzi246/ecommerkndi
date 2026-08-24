@@ -153,7 +153,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
+  itemWidth = "w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] lg:w-[19%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -269,7 +269,7 @@ export default function DealCarousel({
               // 38.6vw at 390px, 40.5vw at 640px. Declared a little over the
               // measurement on purpose: under-declaring picks the next srcset
               // step down and the photograph arrives soft.
-              sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1280px) 23vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
+              sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1024px) 23vw, (max-width: 1280px) 19vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
             />
           </div>
         ))}
