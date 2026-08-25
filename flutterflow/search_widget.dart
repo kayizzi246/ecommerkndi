@@ -146,6 +146,39 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //  basket is `ShoppingCartPage` — both reached through statics
 //  on their widget classes, which is the only thing FlutterFlow
 //  lets cross a file boundary (see cart_widget.dart).
+//
+//  WHAT CHANGED IN v3.1 — THE SCREEN, NOT THE SEARCH
+//  -----------------------------------------------------------
+//  None of the above moved. This was a layout pass, matching
+//  the screen to the marketplace app a Ugandan shopper already
+//  has installed, in Kandi's colours rather than that app's.
+//
+//  1. THE HEADER IS THE BRAND'S. It was near-black, which is a
+//     perfectly good search header belonging to no shop in
+//     particular. It is #FF6A00 now, with the field white and
+//     fully rounded on it and the run-the-search button in ink —
+//     orange on orange is a button that disappears into its own
+//     header. The SafeArea moved down into `_searchBar` so the
+//     status bar strip is painted too.
+//
+//  2. THE DEPARTMENTS ARE A GRID OF PICTURES. They were a
+//     full-width list of names with counts and chevrons, which
+//     is a settings screen — the wrong shape for a shopper who
+//     has not decided what they want yet and is being asked to
+//     already know. Two columns of cards now, each carrying a
+//     photograph of something the department actually contains.
+//
+//     That picture costs NO extra request: `/api/app/products`
+//     returns the departments and the first page of the
+//     catalogue in one response, so the card borrows the first
+//     product filed under the department or one of its children.
+//     See `_Department.image`.
+//
+//  3. THE HISTORY LOST ITS LITTLE CROSSES. Each chip was two
+//     targets four pixels apart, and the one people hit by
+//     accident was the one that deleted the search they meant to
+//     run. Long press forgets a term; the bin beside the heading
+//     clears the lot.
 // ============================================================
 
 const String _kApiBaseUrl = 'https://kandiug.com';
@@ -226,10 +259,33 @@ class _Department {
   final String name;
   final String slug;
   final int count;
+
+  /// A photograph of something IN this department, for the discovery card.
+  ///
+  /// ---- Where it comes from, and why not from the category ----
+  ///
+  /// WooCommerce categories can carry their own image and in this shop they
+  /// mostly do not — the owner adds products, not category artwork, which is
+  /// the normal state of a small catalogue. So `/api/app/products` has no
+  /// picture to send for a department and a card built on one would be a grid
+  /// of grey squares.
+  ///
+  /// It is borrowed from the catalogue instead: the first product on the
+  /// response's own first page whose category is this department or one of its
+  /// children. That is free — the departments and the products arrive in the
+  /// SAME response, so nothing extra is fetched — and it is honest, because
+  /// the picture is of stock the department actually contains rather than of a
+  /// mood board.
+  ///
+  /// Null when the first page happened to contain nothing from this
+  /// department, which the card draws as a tinted tile with the initial in it.
+  final String? image;
+
   const _Department({
     required this.name,
     required this.slug,
     required this.count,
+    this.image,
   });
 }
 
@@ -392,14 +448,50 @@ class _SearchPageState extends State<SearchPage> {
       if (data is! Map || !mounted) return;
       final list = data['departments'];
       if (list is! List) return;
+
+      // The products from the same response, indexed by the category slug each
+      // one belongs to. This is the pool the department cards borrow their
+      // photographs from — see `_Department.image`.
+      final shots = <String, String>{};
+      final products = data['products'];
+      if (products is List) {
+        for (final raw in products.whereType<Map>()) {
+          final slug = (raw['categorySlug'] ?? '').toString();
+          final image = (raw['image'] ?? '').toString();
+          if (slug.isEmpty || !image.startsWith('http')) continue;
+          shots.putIfAbsent(slug, () => image);
+        }
+      }
+
       setState(() {
         _departments = list
             .whereType<Map>()
-            .map((raw) => _Department(
-                  name: (raw['name'] ?? '').toString(),
-                  slug: (raw['slug'] ?? '').toString(),
-                  count: (raw['count'] is num) ? (raw['count'] as num).toInt() : 0,
-                ))
+            .map((raw) {
+              final slug = (raw['slug'] ?? '').toString();
+
+              // The department's own slug first, then its children's. A
+              // product is filed under the deepest category it belongs to —
+              // "Sneakers", not "Shoes" — so a top-level department almost
+              // never matches a product directly and searching only its own
+              // slug would leave every card blank.
+              final slugs = <String>[slug];
+              final children = raw['children'];
+              if (children is List) {
+                for (final child in children.whereType<Map>()) {
+                  slugs.add((child['slug'] ?? '').toString());
+                }
+              }
+
+              return _Department(
+                name: (raw['name'] ?? '').toString(),
+                slug: slug,
+                count:
+                    (raw['count'] is num) ? (raw['count'] as num).toInt() : 0,
+                image: slugs
+                    .map((s) => shots[s])
+                    .firstWhere((s) => s != null, orElse: () => null),
+              );
+            })
             .where((d) => d.slug.isNotEmpty)
             .toList();
       });
@@ -600,14 +692,23 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _searchBar(),
-            if (_searched) _resultsBar(),
-            Expanded(child: _content()),
-          ],
-        ),
+      // ---- The SafeArea moved down into the pieces ----
+      //
+      // It used to wrap the whole column, which meant the status bar strip
+      // above the search field was painted by the Scaffold — white. Now that
+      // the header is brand orange, an unpainted strip above it reads as the
+      // header having slipped down the screen.
+      //
+      // `_searchBar` takes the top inset inside its own orange ground, and the
+      // content below takes the bottom one for the gesture bar.
+      body: Column(
+        children: [
+          _searchBar(),
+          if (_searched) _resultsBar(),
+          Expanded(
+            child: SafeArea(top: false, child: _content()),
+          ),
+        ],
       ),
     );
   }
@@ -628,83 +729,113 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---- Search bar -------------------------------------------------------
 
+  /// The header: back, the field, and the button that runs the search.
+  ///
+  /// ---- Why the whole strip is brand orange ----
+  ///
+  /// It was near-black (`_kInk`), which is a perfectly good search header and
+  /// belongs to no shop in particular. Orange is Kandi's, and this is the one
+  /// screen in the app that is nothing BUT a header for most of its life — the
+  /// discovery list below it is quiet grey and white by design, so the colour
+  /// has to come from somewhere or the screen belongs to nobody.
+  ///
+  /// The field itself stays white and fully rounded. A search box is a place
+  /// to type and it has to read as one against any ground.
+  ///
+  /// ---- The dark button on the end ----
+  ///
+  /// Deliberately ink rather than orange. Orange on orange is a button that
+  /// disappears into its own header, and this is the only control on the strip
+  /// that DOES something rather than going somewhere — it earns the contrast.
   Widget _searchBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: const BoxDecoration(
-        color: _kInk,
-        border: Border(bottom: BorderSide(color: _kInk)),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () async {
-              await widget.onBackTap?.call();
-              if (mounted) Navigator.of(context).maybePop();
-            },
-            child: const SizedBox(
-              width: 36,
-              height: 40,
-              child: Icon(Icons.arrow_back, size: 22, color: Colors.white),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 42,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+      color: _kOrange,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 12, 12),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  await widget.onBackTap?.call();
+                  if (mounted) Navigator.of(context).maybePop();
+                },
+                child: const SizedBox(
+                  width: 40,
+                  height: 44,
+                  child: Icon(Icons.arrow_back_ios_new,
+                      size: 19, color: Colors.white),
+                ),
               ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focus,
-                      onChanged: _onTyped,
-                      onSubmitted: (_) => _search(),
-                      textInputAction: TextInputAction.search,
-                      style: _type(size: 14),
-                      cursorColor: _kOrange,
-                      decoration: InputDecoration(
-                        hintText: 'Search shoes, phones, curtains…',
-                        hintStyle: _type(size: 14, color: _kMuted),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
+              Expanded(
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.only(left: 12, right: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  if (_controller.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: _clear,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(Icons.close, size: 18, color: _kMuted),
-                      ),
-                    ),
-                  GestureDetector(
-                    onTap: () => _search(),
-                    child: Container(
-                      width: 46,
-                      height: 42,
-                      decoration: const BoxDecoration(
-                        color: _kOrange,
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(8),
-                          bottomRight: Radius.circular(8),
+                  child: Row(
+                    children: [
+                      // The camera. It marks this as the field that searches
+                      // the catalogue rather than the page — the same glyph the
+                      // marketplace apps put here — and it is drawn in muted
+                      // grey rather than as a live control, because this build
+                      // has no image search behind it and a coloured icon that
+                      // does nothing is a promise the app cannot keep.
+                      const Icon(Icons.photo_camera_outlined,
+                          size: 19, color: _kMuted),
+                      const SizedBox(width: 9),
+                      Container(width: 1, height: 18, color: _kLine),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focus,
+                          onChanged: _onTyped,
+                          onSubmitted: (_) => _search(),
+                          textInputAction: TextInputAction.search,
+                          style: _type(size: 14),
+                          cursorColor: _kOrange,
+                          decoration: InputDecoration(
+                            hintText: 'Search shoes, dresses, bags…',
+                            hintStyle: _type(size: 14, color: _kMuted),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
                       ),
-                      child: const Icon(Icons.search,
-                          size: 20, color: Colors.white),
-                    ),
+                      if (_controller.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: _clear,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child:
+                                Icon(Icons.close, size: 18, color: _kMuted),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: () => _search(),
+                        child: Container(
+                          width: 44,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _kInk,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Icon(Icons.search,
+                              size: 20, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1005,6 +1136,21 @@ class _SearchPageState extends State<SearchPage> {
 
   // ---- Discovery (nothing searched yet) ---------------------------------
 
+  /// What the screen shows before anything has been searched.
+  ///
+  /// ---- Two blocks, and the second one changed shape ----
+  ///
+  /// The recent terms stay a row of chips, because that is what a list of
+  /// short strings wants to be. The departments were a full-width list — name,
+  /// count, chevron, hairline, repeat — which is a settings screen, and it is
+  /// the wrong shape for a decision made from pictures. A shopper on this
+  /// screen has not decided what they want; a wall of category NAMES asks them
+  /// to already know.
+  ///
+  /// They are a two-column grid of cards now, each with a photograph of
+  /// something the department actually contains — see `_Department.image` for
+  /// where that picture comes from and why it costs no extra request. Twice as
+  /// many fit on a screen, and each one advertises rather than lists.
   Widget _discovery() {
     if (_recent.isEmpty && _departments.isEmpty) {
       return Center(
@@ -1024,25 +1170,28 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.only(top: 14, bottom: 24),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
         if (_recent.isNotEmpty) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 0, 10, 10),
             child: Row(
               children: [
-                Text('Recent',
-                    style: _type(
-                        size: 12, weight: FontWeight.w700, color: _kMuted)),
+                Text('Search history',
+                    style: _type(size: 15, weight: FontWeight.w700)),
                 const Spacer(),
+                // The bin, not the word "Clear". It is the one destructive
+                // control on the screen and an icon keeps it from reading as a
+                // suggestion beside the terms it deletes.
                 GestureDetector(
                   onTap: _clearRecent,
-                  child: Text('Clear',
-                      style: _type(
-                          size: 12.5,
-                          weight: FontWeight.w600,
-                          color: _kOrange)),
+                  child: const SizedBox(
+                    width: 40,
+                    height: 32,
+                    child: Icon(Icons.delete_outline,
+                        size: 20, color: _kMuted),
+                  ),
                 ),
               ],
             ),
@@ -1058,72 +1207,137 @@ class _SearchPageState extends State<SearchPage> {
                           _controller.text = term;
                           _search();
                         },
+                        // Forgetting ONE term. The little × on each chip is
+                        // gone — it made every chip two targets four pixels
+                        // apart, and the one people hit by accident was the
+                        // one that deleted the search they meant to run.
+                        // A long press is the standard gesture for "manage
+                        // this item" and it cannot be hit by mistake.
+                        onLongPress: () {
+                          HapticFeedback.mediumImpact();
+                          _forgetSearch(term);
+                        },
                         child: Container(
-                          padding: const EdgeInsets.fromLTRB(12, 7, 8, 7),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 9),
                           decoration: BoxDecoration(
-                            color: _kSurface,
-                            border: Border.all(color: _kLine),
-                            borderRadius: BorderRadius.circular(20),
+                            color: _kHairline,
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.history,
-                                  size: 14, color: _kMuted),
-                              const SizedBox(width: 6),
-                              Text(term, style: _type(size: 12.5)),
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: () => _forgetSearch(term),
-                                child: const Icon(Icons.close,
-                                    size: 13, color: _kFaint),
-                              ),
-                            ],
-                          ),
+                          child: Text(term,
+                              style: _type(size: 13, color: _kInk)),
                         ),
                       ))
                   .toList(),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
         ],
         if (_departments.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: Text('Browse departments',
-                style:
-                    _type(size: 12, weight: FontWeight.w700, color: _kMuted)),
+            child: Text('Discover more',
+                style: _type(size: 15, weight: FontWeight.w700)),
           ),
-          ..._departments.map((d) => GestureDetector(
-                onTap: () {
-                  setState(() => _category = d.slug);
-                  _search();
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: _kHairline)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(d.name,
-                            style: _type(size: 14, weight: FontWeight.w500)),
-                      ),
-                      Text('${d.count}',
-                          style: _type(size: 12, color: _kMuted)),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.chevron_right,
-                          size: 18, color: _kFaint),
-                    ],
-                  ),
-                ),
-              )),
+          GridView.builder(
+            // Inside a ListView, so it must not scroll or measure itself
+            // against an unbounded height.
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _departments.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              // 2.55 puts the card at roughly 66px tall on a 390px screen,
+              // which is what a 60px photograph plus its hairline wants.
+              childAspectRatio: 2.55,
+            ),
+            itemBuilder: (_, i) => _departmentCard(_departments[i]),
+          ),
         ],
       ],
     );
   }
+
+  /// One department, as a card with something from inside it on the front.
+  Widget _departmentCard(_Department d) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _category = d.slug);
+        _search();
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          color: _kSurface,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 62,
+                height: double.infinity,
+                child: d.image != null
+                    ? CachedNetworkImage(
+                        imageUrl: d.image!,
+                        httpHeaders: _kImageHeaders,
+                        fit: BoxFit.cover,
+                        // Drawn at 62px. Decoding a 640px tile shot at full
+                        // size for every department on the screen is how a
+                        // list of twelve categories stutters on a mid-range
+                        // Android.
+                        memCacheWidth: 200,
+                        placeholder: (_, __) =>
+                            const ColoredBox(color: _kHairline),
+                        errorWidget: (_, __, ___) =>
+                            _departmentInitial(d),
+                      )
+                    : _departmentInitial(d),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: _type(
+                          size: 13, weight: FontWeight.w600, height: 1.25),
+                    ),
+                    if (d.count > 0) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${d.count} ${d.count == 1 ? 'item' : 'items'}',
+                        style: _type(size: 11.5, color: _kMuted),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The stand-in for a department the first page of the catalogue had no
+  /// photograph for. A letter rather than a broken-image glyph: it is quiet,
+  /// it is different per card, and it does not read as something that failed.
+  Widget _departmentInitial(_Department d) => ColoredBox(
+        color: _kHairline,
+        child: Center(
+          child: Text(
+            d.name.isEmpty ? '?' : d.name.substring(0, 1).toUpperCase(),
+            style: _type(size: 20, weight: FontWeight.w700, color: _kFaint),
+          ),
+        ),
+      );
 
   // ---- Suggestions ------------------------------------------------------
 

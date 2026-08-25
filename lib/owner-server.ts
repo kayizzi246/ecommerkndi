@@ -1,16 +1,44 @@
 import { cookies } from "next/headers";
+import { seal, unseal, SESSION_TTL_SECONDS } from "@/lib/sealed-cookie";
 
 /**
  * Server-side plumbing for the owner's product manager.
  *
  * The browser never holds the shared API secret and never talks to WordPress
  * directly: it calls /api/owner/*, and this module attaches both credentials
- * server-side — the shared secret from the environment, the owner passcode from
- * an httpOnly cookie the browser cannot read.
+ * server-side — the shared secret from the environment, the owner passcode
+ * recovered from an httpOnly, encrypted cookie the browser can neither read nor
+ * write.
  */
 
-/** Name of the httpOnly cookie holding the owner passcode. */
-export const OWNER_COOKIE = "kandi_owner_passcode";
+/**
+ * Name of the httpOnly cookie holding the owner's session.
+ *
+ * ---- Renamed, and why the old name is worth a paragraph ----
+ *
+ * It was `kandi_owner_passcode`, and the name was accurate: the cookie held the
+ * owner passcode in plaintext, for thirty days. It now holds AES-GCM ciphertext
+ * with a twelve-hour expiry sealed inside it — see `lib/sealed-cookie.ts` for
+ * what that buys and what it does not.
+ *
+ * The name changed with the contents rather than staying put, for two reasons.
+ * A cookie called `…_passcode` invites the next person to read it as one and
+ * hand it around. And an old plaintext cookie left in a browser will simply
+ * fail to unseal, so every existing session ends at the next request and the
+ * owner signs in once — which is the correct outcome for a credential that has
+ * been sitting in plaintext and should now be considered exposed.
+ */
+export const OWNER_COOKIE = "kandi_owner_session";
+
+/**
+ * The name the cookie used to have.
+ *
+ * Kept only so it can be actively deleted on sign-in and sign-out. Left alone,
+ * a browser carrying the old cookie would keep the plaintext passcode on disk
+ * indefinitely — nothing would read it, but nothing would remove it either, and
+ * "the credential is still on the device, just unused" is not a fix.
+ */
+const LEGACY_OWNER_COOKIE = "kandi_owner_passcode";
 
 /** Cache tag on every product read, so a write can invalidate the storefront. */
 export const PRODUCTS_TAG = "kandi-products";
@@ -52,7 +80,11 @@ export async function callOwnerApi(
   path: string,
   { method = "GET", body, search = "", passcode }: OwnerCallOptions = {}
 ): Promise<OwnerCallResult> {
-  const credential = passcode ?? (await cookies()).get(OWNER_COOKIE)?.value;
+  // Either the passcode being tested at sign-in, or the one sealed inside the
+  // session cookie. `unseal` returns null for a cookie that was tampered with,
+  // sealed under a rotated secret, or has simply expired — all three mean the
+  // same thing to the caller, and all three end up as the 401 below.
+  const credential = passcode ?? (await unseal((await cookies()).get(OWNER_COOKIE)?.value));
 
   if (!credential) {
     return { status: 401, data: { message: "Sign in with the owner passcode to continue." } };
@@ -82,28 +114,51 @@ export async function callOwnerApi(
   return { status: response.status, data };
 }
 
-export async function setOwnerCookie(passcode: string) {
-  (await cookies()).set(OWNER_COOKIE, passcode, {
+/**
+ * Starts an owner session.
+ *
+ * Returns false when the passcode could not be sealed, which happens only if
+ * neither `KANDI_SESSION_SECRET` nor `KANDI_API_SECRET` is set — a server that
+ * cannot talk to WordPress at all. The caller must treat that as a failed
+ * sign-in: writing the passcode in plaintext as a fallback is the exact thing
+ * this replaced.
+ */
+export async function setOwnerCookie(passcode: string): Promise<boolean> {
+  const sealed = await seal(passcode);
+  if (!sealed) return false;
+
+  const jar = await cookies();
+
+  jar.set(OWNER_COOKIE, sealed, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 30 * 24 * 60 * 60,
+    // Matched to the expiry sealed inside the value rather than guessed at.
+    // The cookie's own lifetime is a courtesy to a well-behaved browser; the
+    // sealed one is the rule.
+    maxAge: SESSION_TTL_SECONDS,
   });
+
+  jar.delete(LEGACY_OWNER_COOKIE);
+  return true;
 }
 
 export async function clearOwnerCookie() {
-  (await cookies()).delete(OWNER_COOKIE);
+  const jar = await cookies();
+  jar.delete(OWNER_COOKIE);
+  jar.delete(LEGACY_OWNER_COOKIE);
 }
 
 /**
  * True when the browser is carrying an owner cookie at all.
  *
- * Presence only — this says nothing about whether the value is the real
- * passcode, because anyone can send any cookie they like. `httpOnly` stops
- * *scripts in the page* from reading the cookie; it does not stop a client from
- * inventing one, and `curl -H 'Cookie: kandi_owner_passcode=x'` will set this
- * to true all day.
+ * Presence only — this says nothing about whether the value is a real session,
+ * because anyone can send any cookie they like. `httpOnly` stops *scripts in
+ * the page* from reading the cookie; it does not stop a client from inventing
+ * one, and `curl -H 'Cookie: kandi_owner_session=x'` will set this to true all
+ * day. Such a value will not decrypt, so it buys nothing beyond making this
+ * function say yes.
  *
  * Use it only to decide whether it is worth asking WordPress. To decide whether
  * somebody is actually the owner, use {@link isOwnerAuthenticated}.

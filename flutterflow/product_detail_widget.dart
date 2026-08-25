@@ -148,13 +148,18 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //    button did, so an unwired project showed "Added to cart"
 //    over an empty basket.
 //
-//  THE BUY BAR: PRICE, ADD TO CART, BUY NOW
+//  THE BUY BAR: ADD TO CART, BUY NOW
 //  -----------------------------------------------------------
-//  The pinned bar carries the price it is charging — on a page
-//  this long the buy box has scrolled away, and a button that
-//  commits a shopper to a number they can no longer see is the
-//  wrong way round. Beside it, two buttons: "Add to cart" for the
-//  shopper still browsing, "Buy now" for the one who has decided.
+//  Two buttons: "Add to cart" for the shopper still browsing,
+//  "Buy now" for the one who has decided, with the saved-items
+//  heart and the basket beside them.
+//
+//  The price is NOT in this bar any more. It was, on the sound
+//  argument that a button committing a shopper to a number they
+//  can no longer see is the wrong way round — and the answer to
+//  that is now `_compactHeader`, which carries the price and
+//  appears at exactly the moment the buy box leaves the top of
+//  the screen. See the note on `_buyBar`.
 //
 //  "Buy now" is the same basket write plus the navigation that
 //  shopper was about to do — deliberately NOT a separate express
@@ -230,6 +235,58 @@ const Map<String, String> _kImageHeaders = <String, String>{
 //
 //  4. THE SIZE ROW CARRIES ITS CHART. EU/UK/US beside the label
 //     as on the website, and the size guide table with it.
+//
+//  WHAT CHANGED IN v4 — THE MARKETPLACE LAYOUT, AND STOCK
+//  -----------------------------------------------------------
+//  The brief was two things: make this page read like the large
+//  marketplace app a Ugandan shopper already has installed, in
+//  Kandi's colours rather than that app's; and stop it selling
+//  what the shop does not have.
+//
+//  1. THE PAGE IS REORDERED AROUND THE FOUR QUESTIONS. What is
+//     it (title, two lines and a chevron) → should I trust it
+//     (rating, reviews, units sold, seller, one small line) →
+//     what does it cost (the deal card) → can I have it (stock).
+//     The old order was a spec sheet: every fact at the same
+//     weight, in the order the API happened to send them.
+//
+//  2. THE DEAL CARD. A reduction is two numbers and a claim
+//     about the gap between them, and as three stacked lines of
+//     text it reads as three unrelated facts. It is one framed
+//     statement now — a brand-orange band saying what is saved
+//     over a white panel holding the price, the percentage and
+//     the struck original. The palette is deliberately the
+//     shop's: the band is #FF6A00, and red appears only on the
+//     "−50% now" pill, because on a Kandi screen `_kSale` means
+//     a reduction and nothing else. See `_priceCard`.
+//
+//  3. COLOURS ARE PHOTOGRAPHS WHEN THE SELLER GAVE ONE. A colour
+//     row whose every term carries an image renders as 72px
+//     rounded tiles rather than 36px discs — a fashion catalogue's
+//     colour terms are shots of the garment, and cropping one
+//     into a disc throws away the part worth uploading. Hex-only
+//     rows keep the discs; mixed rows keep the chips. Each
+//     attribute now runs on ONE scrolling line with a chevron to
+//     the sheet, so three attributes no longer push the price
+//     below the fold. See `_choiceRows`.
+//
+//  4. NOTHING SOLD OUT REACHES THE BASKET. This is the part that
+//     was actually broken. The out-of-stock check lived in one
+//     place — the buy bar greyed its button — and every other
+//     path around it wrote the line anyway: the bottom sheet's
+//     confirm button, and `_addToCart` itself. A shoe sold out in
+//     44 went into the basket in 44 and was rejected at the
+//     order.
+//
+//     `_canBuy` is now the one gate, and it enforces what the
+//     website enforces: the product is in stock, the counted
+//     quantity is above zero, every answer already given is still
+//     buyable, and the variation the answers name is itself in
+//     stock. `_addToCart`, `_buyNow`, `_requestPurchase` and the
+//     sheet's confirm all check it, and a refusal SAYS WHICH — a
+//     sold-out colour is named rather than reported as "out of
+//     stock", which would send the shopper back up the page
+//     looking for a product that is fine.
 // ============================================================
 
 // ============================================================
@@ -442,7 +499,81 @@ const Map<String, Color> _kColourWords = <String, Color>{
   'transparent': Color(0x00000000),
   'multicolor': Color(0xFF9E9E9E),
   'multicolour': Color(0xFF9E9E9E),
+
+  // ---- The words this catalogue actually uses ----
+  //
+  // Added after a live listing came back with "Off white", "coffee" and
+  // "Dark Brown" and drew three word-chips where the shopper was expecting
+  // three colours. None of the three is a CSS colour and none of them is
+  // unusual — they are what a clothing supplier types. A colour picker that
+  // only paints the words a browser happens to know is a colour picker that
+  // works for "black" and gives up on a wardrobe.
+  'offwhite': Color(0xFFF6F2EA),
+  'coffee': Color(0xFF6F4E37),
+  'espresso': Color(0xFF3C2218),
+  'mocha': Color(0xFF7B5B45),
+  'caramel': Color(0xFFAF6E4D),
+  'chestnut': Color(0xFF954535),
+  'rust': Color(0xFFB7410E),
+  'terracotta': Color(0xFFE2725B),
+  'brick': Color(0xFF9C4A3C),
+  'sand': Color(0xFFE3D3A6),
+  'wheat': Color(0xFFF5DEB3),
+  'stone': Color(0xFFCFC6B8),
+  'taupe': Color(0xFF8B8589),
+  'blush': Color(0xFFDE9A96),
+  'rose': Color(0xFFC08081),
+  'mauve': Color(0xFFE0B0FF),
+  'plum': Color(0xFF8E4585),
+  'emerald': Color(0xFF50C878),
+  'sage': Color(0xFF9CAF88),
+  'forest': Color(0xFF228B22),
+  'army': Color(0xFF4B5320),
+  'cobalt': Color(0xFF0047AB),
+  'apricot': Color(0xFFFBCEB1),
+  'honey': Color(0xFFEBA937),
+  'pewter': Color(0xFF8E9294),
+  'graphite': Color(0xFF383838),
 };
+
+/// The words sellers put IN FRONT of a colour, and what they do to it.
+///
+/// ---- Why this is multiplication and not a second table ----
+///
+/// "Dark Brown", "Light Grey", "Deep Navy", "Pale Pink" — the modifier is a
+/// productive prefix, so a table would need an entry for every modifier
+/// against every colour and would still miss the next one the seller invents.
+/// Scaling the channels is what "darker" and "lighter" mean, it composes with
+/// every word in the table above for free, and it cannot be wrong by more than
+/// a shade — which for a 36px disc beside the name is close enough to be
+/// useful and honest.
+///
+/// The factors are deliberately gentle. A "dark brown" that comes out black
+/// tells the shopper less than the word did.
+const Map<String, double> _kColourModifiers = <String, double>{
+  'light': 1.35,
+  'pale': 1.5,
+  'bright': 1.15,
+  'dark': 0.6,
+  'deep': 0.55,
+  'midnight': 0.45,
+};
+
+/// Scales a colour's channels, clamped.
+Color _shade(Color base, double factor) {
+  int channel(int value) {
+    final scaled = (value * factor).round();
+    if (scaled < 0) return 0;
+    return scaled > 255 ? 255 : scaled;
+  }
+
+  return Color.fromARGB(
+    base.alpha,
+    channel(base.red),
+    channel(base.green),
+    channel(base.blue),
+  );
+}
 
 /// A seller's colour, as something Flutter can paint — or null.
 ///
@@ -459,9 +590,29 @@ Color? _parseColour(String? raw) {
 
   // Spaces and hyphens are how the same shade gets written three ways —
   // "Rose Gold", "rose-gold", "rosegold" — and all three mean the swatch.
-  final word = value.replaceAll(RegExp(r'[\s_-]'), '');
+  final word = value.replaceAll(RegExp(r'[\s_/-]'), '');
   final named = _kColourWords[word];
   if (named != null) return named;
+
+  // "Dark Brown" — a modifier and a colour. Tried before the hex parse and
+  // before the token scan below, because "dark brown" means a shade of brown
+  // and not simply "brown", and a picker that draws both the same is telling
+  // the shopper the two options are identical.
+  for (final entry in _kColourModifiers.entries) {
+    if (!word.startsWith(entry.key)) continue;
+    final base = _kColourWords[word.substring(entry.key.length)];
+    if (base != null) return _shade(base, entry.value);
+  }
+
+  // "White gray", "Blue / Black", "Red Wine" — a compound nobody has a single
+  // word for. The first term a shopper reads is the one the garment mostly is,
+  // so it is the one the disc paints. Better than falling through to a word
+  // chip, and honest about being approximate: the full term is still printed
+  // against the label above the row.
+  for (final token in value.split(RegExp(r'[\s_/-]+'))) {
+    final hit = _kColourWords[token];
+    if (hit != null) return hit;
+  }
 
   if (value.startsWith('#')) value = value.substring(1);
   if (!RegExp(r'^[0-9a-f]+$').hasMatch(value)) return null;
@@ -595,6 +746,20 @@ class _Attribute {
   bool get showAsSwatches =>
       isColour && options.isNotEmpty && options.every((o) => o.hasSwatch);
 
+  /// Whether this row should be drawn as photographs rather than as discs.
+  ///
+  /// The stronger condition of the two, and checked first: every term has to
+  /// carry an IMAGE, not merely something paintable. A seller who photographed
+  /// each colourway meant those shots to be the picker — cropping them into
+  /// 36px discs is throwing the photograph away — whereas a row of hex values
+  /// has nothing to show at 72px that a disc does not show at 36.
+  ///
+  /// All or nothing, for the same reason `showAsSwatches` is: a row of six
+  /// photographs and two grey squares is not a colour picker, it is a bug that
+  /// looks like one, and a half-filled attribute is the state that produces it.
+  bool get showAsTiles =>
+      isColour && options.isNotEmpty && options.every((o) => o.image != null);
+
   factory _Attribute.fromJson(Map<String, dynamic> j) {
     final values = _toStrings(j['values']);
     final name = (j['name'] ?? '').toString();
@@ -659,12 +824,38 @@ class _Attribute {
 /// crosses the dead options out — and this is the same table, sent to the app
 /// for the same purpose.
 class _Variation {
+  /// This combination's own WooCommerce id.
+  ///
+  /// ---- Knowing which combinations exist was never enough ----
+  ///
+  /// The table above stopped the app OFFERING a shoe in a size it was never
+  /// made in. It did nothing about what happened when a real combination was
+  /// bought: the basket line carried the parent product id plus the chosen
+  /// options as free text, and `POST /api/checkout` forwarded exactly that. So
+  /// WooCommerce was never told which variation had been sold. It priced the
+  /// order from the parent — a size that costs more went out at the base price
+  /// — and it moved the parent's stock, so a size that had run out carried on
+  /// selling until somebody went to pack it.
+  ///
+  /// The id is what fixes that, and it is checked at the other end: the order
+  /// endpoint verifies it really is a variation OF THIS PRODUCT before pricing
+  /// anything, so a tampered id fails rather than buying something cheaply.
+  ///
+  /// 0 when the shop's WordPress plugin predates the field. `_variationIdFor`
+  /// treats that as "cannot identify the variation" and sends nothing, and the
+  /// order endpoint then refuses in words rather than mispricing.
+  final int id;
+
   /// Attribute name → the value this combination is. An attribute the
   /// combination does not mention is one it matches ANY value of.
   final Map<String, String> attributes;
   final bool inStock;
 
-  const _Variation({required this.attributes, required this.inStock});
+  const _Variation({
+    required this.id,
+    required this.attributes,
+    required this.inStock,
+  });
 
   factory _Variation.fromJson(Map<String, dynamic> j) {
     final chosen = <String, String>{};
@@ -686,7 +877,11 @@ class _Variation {
     // should not hide it: the checkout re-checks stock against WooCommerce
     // anyway, so the cost of being wrong this way is a rejected order, and the
     // cost of being wrong the other way is a product nobody can buy at all.
-    return _Variation(attributes: chosen, inStock: flag != false);
+    return _Variation(
+      id: _toInt(j['id']),
+      attributes: chosen,
+      inStock: flag != false,
+    );
   }
 }
 
@@ -1016,6 +1211,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   bool _descExpanded = false;
 
+  /// Whether the supplier's full title is showing.
+  ///
+  /// Collapsed at two lines with a chevron beside it, which is the marketplace
+  /// treatment this screen is matched to. A chevron rather than a silent
+  /// ellipsis because a 90-character supplier title routinely carries the one
+  /// word that separates two listings — "waterproof", "kids" — a long way past
+  /// the cut, and a shopper who cannot see there IS more does not go looking.
+  bool _titleExpanded = false;
+
   /// True once the gallery has scrolled past, which is when the compact header
   /// takes over from the floating back button.
   bool _stuck = false;
@@ -1191,6 +1395,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     bool silent = false,
     int quantity = 1,
   }) async {
+    // ---- The last gate before the basket ----
+    //
+    // Every path to a cart line goes through this method — the buy bar, the
+    // bottom sheet, "Buy now" — so this is the one place that can guarantee
+    // nothing sold out is ever written. The callers check as well, because a
+    // button that looks live and then refuses is its own kind of broken, but
+    // the guarantee lives here.
+    if (!_canBuy(d)) {
+      _refusePurchase(d);
+      return;
+    }
+
+    // Never more than the seller has. The sheet's stepper caps at the same
+    // number; this catches a count that dropped between the page loading and
+    // the button being pressed.
+    final capped = quantity > _maxQuantity(d) ? _maxQuantity(d) : quantity;
+
     HapticFeedback.mediumImpact();
 
     await ShoppingCartPage.addToCart(
@@ -1199,12 +1420,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       price: ShoppingCartPage.priceFromLabel(d.priceLabel),
       image: d.images.isNotEmpty ? d.images.first : '',
       slug: d.slug,
-      quantity: quantity,
+      quantity: capped,
       // The size and colour, carried on the line. Without them the basket
       // merges two sizes of one shoe into a single line and the order reaches
       // wp-admin with nothing to pack against — see the note on
       // `ShoppingCartPage.addToCart`, which had been dropping them silently.
       options: _chosen.isEmpty ? null : Map<String, String>.from(_chosen),
+      // Which variation those choices ARE, as opposed to what they are called.
+      // The options above are what the shopper sees; this is what WooCommerce
+      // needs in order to price and stock the right thing — see
+      // `_variationIdFor` for what happens when it cannot be worked out.
+      variationId: _variationIdFor(d),
     );
     widget.onAddToCart?.call(d.id, d.name, d.priceLabel);
 
@@ -1244,6 +1470,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// delivery fee and the stock check to be got wrong. The confirmation
   /// snackbar is suppressed because the basket appearing IS the confirmation.
   Future<void> _buyNow(_Detail d, {int quantity = 1}) async {
+    if (!_canBuy(d)) {
+      _refusePurchase(d);
+      return;
+    }
     await _addToCart(d, silent: true, quantity: quantity);
     if (!mounted) return;
     _openCart();
@@ -1314,6 +1544,64 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   ///   variations are colour-only. Being generous here can at worst offer a
   ///   combination the checkout then declines; being strict silently makes the
   ///   product unbuyable, which is the more expensive way to be wrong.
+  /// Which variation the shopper's current answers add up to, or null.
+  ///
+  /// ---- Why the basket needs this and not just the words ----
+  ///
+  /// `_chosen` holds "Colour: Red, Size: 42", which is what the shopper sees
+  /// and what the order shows in wp-admin. It is not something WooCommerce can
+  /// act on: until the line names the variation itself, the order is priced
+  /// from the parent product and the parent's stock is what moves. See the note
+  /// on `_Variation.id`.
+  ///
+  /// Null in three quite different situations, all of which mean the same thing
+  /// to the caller — send no id:
+  ///
+  ///   • a simple product, which has no variations to name;
+  ///   • an incomplete selection, which cannot identify one;
+  ///   • a shop whose WordPress plugin is old enough not to send ids, where
+  ///     every `id` arrives as 0.
+  ///
+  /// The last is why this returns null rather than throwing. An out-of-date
+  /// backend should not break the button in the shopper's hand; it should fail
+  /// at the order, where the endpoint refuses a variable product with no
+  /// variation named and says so in a sentence.
+  ///
+  /// Matching uses the same generous rule as `_available`: a variation that
+  /// does not mention an attribute matches any value of it, because WooCommerce
+  /// writes "any size" as an absent key. `firstWhere` takes the first match,
+  /// which for a fully-specified selection is the only one.
+  int? _variationIdFor(_Detail d) {
+    if (d.variations.isEmpty) return null;
+
+    // Every attribute with options must have been answered. A partial match
+    // would pick whichever variation happened to fit, which is how a shopper
+    // who chose a colour and forgot the size gets sent a size.
+    for (final attribute in d.attributes) {
+      if (attribute.values.isEmpty) continue;
+      final answer = _chosen[attribute.name];
+      if (answer == null || answer.isEmpty) return null;
+    }
+
+    for (final variation in d.variations) {
+      if (variation.id <= 0) continue;
+
+      var matches = true;
+      for (final entry in _chosen.entries) {
+        if (entry.value.isEmpty) continue;
+        final actual = variation.attributes[entry.key];
+        if (actual != null && actual.isNotEmpty && actual != entry.value) {
+          matches = false;
+          break;
+        }
+      }
+
+      if (matches) return variation.id;
+    }
+
+    return null;
+  }
+
   bool _available(_Detail d, String attribute, String option) {
     if (d.variations.isEmpty) return true;
 
@@ -1408,6 +1696,137 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       );
   }
 
+  // ============================================================
+  // STOCK — THE SAME RULES THE WEBSITE ENFORCES
+  // ============================================================
+
+  /// The one combination the current answers name, or null when they do not
+  /// name exactly one.
+  ///
+  /// Used only to catch the case `_available` cannot: a shopper who has
+  /// answered EVERY attribute has picked a specific variation, and that
+  /// variation carries its own stock flag. `_available` asks whether SOME
+  /// in-stock variation agrees with each answer taken one at a time, which is
+  /// the right question while choosing and the wrong one once the choosing is
+  /// finished.
+  ///
+  /// A variation that leaves an attribute blank means "any value of it", so a
+  /// blank is skipped rather than compared — the same generosity `_available`
+  /// takes, and for the same reason.
+  _Variation? _variationFor(_Detail d) {
+    if (d.variations.isEmpty) return null;
+
+    final matches = d.variations.where((variation) {
+      for (final entry in variation.attributes.entries) {
+        if (entry.value.isEmpty) continue;
+        if (_chosen[entry.key] != entry.value) return false;
+      }
+      return true;
+    }).toList();
+
+    return matches.length == 1 ? matches.first : null;
+  }
+
+  /// Whether what is on the screen right now may go into a basket.
+  ///
+  /// ---- Why this is a gate and not a warning ----
+  ///
+  /// The website will not sell a product whose `stock_status` is `outofstock`,
+  /// and it will not sell a variation whose own flag says the same. This app
+  /// was enforcing the first of those in ONE place — the buy bar greyed its
+  /// button — and nowhere else: the bottom sheet's confirm button and
+  /// `_addToCart` itself both wrote the line without asking. So a shoe sold
+  /// out in 44 could still be added in 44 from the sheet, and the shopper
+  /// found out when the order was rejected.
+  ///
+  /// Four things have to hold, and every caller that can write a basket line
+  /// now checks all four through here:
+  ///
+  ///   • the product is in stock at all;
+  ///   • the seller's counted quantity, where they keep one, is above zero;
+  ///   • every answer already given is still one that can be bought, which is
+  ///     `_available` — the size row goes dead as a colour is picked, and a
+  ///     stale answer that survived that is caught here rather than at the
+  ///     till;
+  ///   • the specific variation, once the answers name one, is itself in
+  ///     stock.
+  ///
+  /// An UNANSWERED attribute is not a failure. It means the shopper has not
+  /// finished choosing, which `_missing` handles by opening the sheet — this
+  /// method's job is only to refuse what cannot be sold.
+  bool _canBuy(_Detail d) {
+    if (!d.inStock) return false;
+    if (d.stockQuantity != null && d.stockQuantity! <= 0) return false;
+
+    for (final attribute in _pickable(d)) {
+      final chosen = _chosen[attribute.name] ?? '';
+      if (chosen.isEmpty) continue;
+      if (!_available(d, attribute.name, chosen)) return false;
+    }
+
+    final variation = _variationFor(d);
+    return variation == null || variation.inStock;
+  }
+
+  /// The most of one line the seller will let anybody order.
+  int _maxQuantity(_Detail d) {
+    final counted = d.stockQuantity;
+    if (counted == null || counted <= 0) return 99;
+    return counted;
+  }
+
+  /// Saying no, and saying WHICH no it is.
+  ///
+  /// "Out of stock" on a product whose colour is the problem sends the shopper
+  /// back to the top of the page to look for something that is not there.
+  void _refusePurchase(_Detail d) {
+    HapticFeedback.heavyImpact();
+
+    final dead = _pickable(d)
+        .where((a) => (_chosen[a.name] ?? '').isNotEmpty)
+        .where((a) => !_available(d, a.name, _chosen[a.name]!))
+        .map((a) => _chosen[a.name]!)
+        .toList();
+
+    final message =
+        !d.inStock || (d.stockQuantity != null && d.stockQuantity! <= 0)
+            ? 'This product is out of stock'
+            : dead.isNotEmpty
+                ? '${dead.join(' / ')} is sold out'
+                : 'That combination is sold out';
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: _text(size: 13.5, color: _kWhite, weight: FontWeight.w600),
+          ),
+          backgroundColor: _kInk,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
+        ),
+      );
+  }
+
+  /// The chosen colour, as the strip over the photograph prints it.
+  ///
+  /// Named with its attribute — "Color: White gray" rather than "White gray" —
+  /// because a bare value over a picture is ambiguous the moment a product has
+  /// two word-valued attributes, which "Colour" and "Material" always are.
+  String? _chosenColour(_Detail d) {
+    for (final attribute in d.attributes) {
+      if (!attribute.isColour) continue;
+      final chosen = _chosen[attribute.name] ?? '';
+      if (chosen.isNotEmpty) return '${attribute.name}: $chosen';
+    }
+    return null;
+  }
+
   /// The first choice still outstanding, or null when everything is answered.
   _Attribute? _missing(_Detail d) {
     for (final attribute in _pickable(d)) {
@@ -1434,7 +1853,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// the thumb already is. A shopper who chose at the top of the page is not
   /// asked twice, because both views write to the same `_chosen`.
   void _requestPurchase(_Detail d, {required bool buyNow}) {
-    if (!d.inStock) return;
+    // Sold out — including sold out only in the colour or size already chosen,
+    // which the bar cannot show on its face and which used to sail straight
+    // through into the basket.
+    if (!_canBuy(d)) {
+      _refusePurchase(d);
+      return;
+    }
 
     if (_missing(d) != null) {
       _openChoiceSheet(d, buyNow: buyNow);
@@ -1651,44 +2076,125 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
 
-          // The discount flag, in sale red and never the brand orange — the
-          // same rule the tiles follow.
-          if (d.inStock && d.discountPercent > 0)
-            Positioned(
-              left: 12,
-              bottom: 12,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _kSale,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '−${d.discountPercent}%',
-                  style: _label(
-                      size: 13, color: _kWhite, weight: FontWeight.w700),
-                ),
+          // ---- The item strip, across the foot of the photograph ----
+          //
+          // What is chosen, printed ON the picture. The reason it belongs
+          // there rather than only beside the swatches further down is that
+          // the photograph is what a shopper judges a colour against, and on
+          // a page this long the swatch row is off screen for most of the
+          // time the picture is being looked at.
+          //
+          // It carries the plain word "Item" when nothing is chosen yet
+          // rather than disappearing: a strip that comes and goes as options
+          // are picked makes the photograph jump under the finger doing the
+          // picking.
+          //
+          // The discount moved in here from the flag that used to sit in this
+          // corner. It has not been demoted — it is now stated twice, small
+          // over the photograph and loudly in the deal card below — and the
+          // corner is worth more as the answer to "which colour am I looking
+          // at" than as a second place to print a number the card already
+          // shouts.
+          Positioned(
+            left: 12,
+            bottom: 12,
+            child: Container(
+              constraints: BoxConstraints(maxWidth: width - 120),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _kWhite.withOpacity(0.93),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Item',
+                    style: _label(
+                      size: 12,
+                      color: _kMuted,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                  if (_chosenColour(d) != null) ...[
+                    Text('  |  ', style: _label(size: 12, color: _kFaint)),
+                    Flexible(
+                      child: Text(
+                        _chosenColour(d)!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _label(
+                          size: 12,
+                          color: _kInk,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ] else if (d.inStock && d.discountPercent > 0) ...[
+                    Text('  |  ', style: _label(size: 12, color: _kFaint)),
+                    Text(
+                      '−${d.discountPercent}%',
+                      style: _label(
+                        size: 12,
+                        color: _kSale,
+                        weight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
+          ),
 
-          if (images.length > 1)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _kInk.withOpacity(0.75),
-                  borderRadius: BorderRadius.circular(20),
+          // The counter and the heart, in the opposite corner. The heart is
+          // here as well as in the buy bar because this is where a shopper's
+          // thumb already is while they are looking at the photograph, and
+          // saving for later is a decision made from the picture rather than
+          // from the price.
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (images.length > 1) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kInk.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_imageIndex + 1}/${images.length}',
+                      style: _label(size: 11.5, color: _kWhite),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                _Press(
+                  onTap: () => _toggleWishlist(d),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _kWhite.withOpacity(0.93),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _wishlisted
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 20,
+                      color: _wishlisted ? _kSale : _kInk,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  '${_imageIndex + 1}/${images.length}',
-                  style: _label(size: 11.5, color: _kWhite),
-                ),
-              ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -1786,6 +2292,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  /// The three controls that float over the photograph.
+  ///
+  /// Back on the left, search and basket on the right — the marketplace
+  /// arrangement, and the heart is deliberately not among them any more: it
+  /// moved down to the corner of the picture itself, where it sits beside the
+  /// thing being saved.
+  ///
+  /// Search is here because a product page is where a shopper most often
+  /// decides this is not the one. Making them go back twice to ask a different
+  /// question is the difference between a second search and a closed app.
   Widget _floatingControls() => SafeArea(
         bottom: false,
         child: Padding(
@@ -1794,18 +2310,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               _circle(Icons.arrow_back_ios_new_rounded, _back),
               const Spacer(),
-              // Saves to the shared list rather than to a local bool that the
-              // saved-items screen knows nothing about.
-              _circle(
-                _wishlisted
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                () {
-                  final d = _detail;
-                  if (d != null) _toggleWishlist(d);
-                },
-                tint: _wishlisted ? _kSale : _kInk,
-              ),
+              _circle(Icons.search_rounded, () {
+                HapticFeedback.lightImpact();
+                SearchPage.open(context).then((_) => _syncStores());
+              }),
               const SizedBox(width: 8),
               _circle(
                 Icons.shopping_bag_outlined,
@@ -1831,13 +2339,49 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 _circle(Icons.arrow_back_ios_new_rounded, _back),
                 const SizedBox(width: 12),
+                // ---- Name AND price, once the buy box has scrolled away ----
+                //
+                // The price used to live in the docked bar at the foot of the
+                // screen, on the reasoning that a button committing a shopper
+                // to a number they can no longer see is the wrong way round.
+                // The reasoning still holds; the bar is not where it belongs.
+                //
+                // The bar is now two full-width buttons and a pair of icons —
+                // the treatment this screen was matched to — and a price line
+                // above them made it a three-storey bar eating a fifth of the
+                // screen on every scroll. Here it costs nothing: this header
+                // only exists once the gallery is gone, which is exactly when
+                // the price stops being visible, and it is a header that was
+                // already reserving a whole row for a truncated title.
                 Expanded(
-                  child: Text(
-                    d.name,
-                    style: _text(
-                        size: 14, color: _kInk, weight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        d.name,
+                        style: _text(
+                            size: 13, color: _kInk, weight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Row(
+                        children: [
+                          Text(
+                            d.priceLabel,
+                            style: _price(
+                              size: 14,
+                              color: d.inStock ? _kInk : _kMuted,
+                            ),
+                          ),
+                          if (d.inStock && d.wasPriceLabel != null) ...[
+                            const SizedBox(width: 6),
+                            Text(d.wasPriceLabel!, style: _struck(size: 11.5)),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2099,11 +2643,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         silent: true,
         child: Container(
           height: 44,
-          constraints: const BoxConstraints(minWidth: 52),
+          // 64 rather than the website's 52. The row is a single scrolling
+          // line here instead of a wrap, and on one line a chip's width is
+          // what a thumb aims at — "S" and "41" at their natural width are
+          // two small targets with a lot of white between them.
+          constraints: const BoxConstraints(minWidth: 64),
           // Tighter on the left when a swatch leads, so the chip does not grow
           // a gap the size of the dot it just gained.
           padding: EdgeInsets.only(left: hasSwatch ? 8 : 14, right: 14),
-          alignment: Alignment.center,
+          // ---- `alignment: Alignment.center` used to be here, and it is THE
+          // bug that made this picker look broken ----
+          //
+          // The report was that the size and colour rows rendered as a column
+          // of full-width buttons — one size per line, four sizes filling the
+          // screen — and the layout was blamed twice: once on the `Wrap` and
+          // once on some ancestor stretching its children. Neither was it.
+          //
+          // A `Container` given an `alignment` and no explicit width becomes
+          // as WIDE AS ITS PARENT ALLOWS. That is documented behaviour — the
+          // alignment implies an `Align`, and an `Align` under a bounded
+          // constraint expands to fill it — and it is invisible until the
+          // parent happens to be wide. In a `Wrap` inside a full-width column
+          // the parent is the whole page, so every chip took the whole page
+          // and the wrap had no choice but to put one per line. The chip was
+          // stretching itself; nothing was stretching it.
+          //
+          // The centring is done by the `Stack` below instead, which sizes to
+          // its child and honours `minWidth` without expanding. The chip is
+          // now the width of its own label under any parent, wrapped or
+          // scrolled, which is what it always claimed to be.
           decoration: BoxDecoration(
             color: ground,
             borderRadius: BorderRadius.circular(_radius),
@@ -2348,10 +2916,130 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// on a colour list of eight running to two lines, a bare "Colour" at the top
   /// leaves a shopper hunting the rows for a highlight to work out what they
   /// picked.
+  /// One colour, shown as a photograph of itself.
+  ///
+  /// ---- Why a square tile and not the disc ----
+  ///
+  /// `_swatchDot` draws a 36px circle, which is the right shape for a FLAT
+  /// colour: a disc of navy says everything a disc of navy can say. It is the
+  /// wrong shape for a seller's photograph, and a fashion catalogue's colour
+  /// terms are overwhelmingly photographs — the shot is of a shoe, or a
+  /// sleeve, and cropping it to a 36px circle throws away the part that made
+  /// it worth uploading.
+  ///
+  /// So a colour row whose every term carries an IMAGE renders as 72px rounded
+  /// squares instead, which is the marketplace treatment and the one this page
+  /// was matched to. A row of hex values keeps the discs; a row that is half
+  /// one and half the other keeps the chips. Each shape is chosen by what the
+  /// seller actually gave, which is what `_Attribute.showAsTiles` and
+  /// `showAsSwatches` decide between.
+  ///
+  /// Unavailable is a stroke and a fade, never a hidden tile. A colour that
+  /// vanishes when a size is picked reads as the app losing options; a colour
+  /// crossed out reads as the shop being out of it, which is the truth.
+  Widget _colourTile({
+    required _Option option,
+    required bool selected,
+    required bool available,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: available,
+      label: available ? option.name : '${option.name}, unavailable',
+      child: _Press(
+        // The tick is played by the handler, because a dead tile has to buzz
+        // DIFFERENTLY rather than not at all — see `_rejectOption`.
+        onTap: onTap,
+        silent: true,
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: !available
+                  ? _kHairline
+                  : selected
+                      ? _kPrimary
+                      : _kLine,
+              width: selected && available ? 2 : 1,
+            ),
+          ),
+          padding: const EdgeInsets.all(2),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Opacity(
+              opacity: available ? 1 : 0.45,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (option.image != null)
+                    CachedNetworkImage(
+                      imageUrl: option.image!,
+                      httpHeaders: _kImageHeaders,
+                      fit: BoxFit.cover,
+                      // 72px on a 3x screen. Decoding a supplier's 2000px
+                      // swatch at full size to draw a postage stamp is how a
+                      // twelve-colour row runs a phone out of memory.
+                      memCacheWidth: 240,
+                      placeholder: (_, __) =>
+                          ColoredBox(color: option.swatch ?? _kHairline),
+                      errorWidget: (_, __, ___) =>
+                          ColoredBox(color: option.swatch ?? _kHairline),
+                    )
+                  else
+                    ColoredBox(color: option.swatch ?? _kHairline),
+                  if (!available)
+                    Center(
+                      child: _strike(
+                        width: 100,
+                        angle: -0.785,
+                        color: const Color(0xCCFFFFFF),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One attribute per block: the label with the answer beside it, then the
+  /// row of options.
+  ///
+  /// ---- The row scrolls now, and it used to wrap ----
+  ///
+  /// This was a `Wrap`, and the note that used to sit here argued hard for it:
+  /// a wrapped row shows every size at once, and nothing is hidden behind a
+  /// gesture nobody makes.
+  ///
+  /// That argument is still true and it is no longer the one being answered.
+  /// The screen this page was matched to puts each attribute on ONE line that
+  /// runs off the right edge, and the reason it wins on a phone is what sits
+  /// underneath: with three attributes — colour, size, and whatever else the
+  /// seller set — wrapping puts eleven colours over three rows and pushes the
+  /// buy area below the fold. A shopper who cannot see the price while
+  /// choosing a size is being asked half a question.
+  ///
+  /// What the old note was really protecting against is a COLUMN, where each
+  /// option is a full-width row and four sizes become four screens of
+  /// scrolling. That remains forbidden. `SizedBox(width: double.infinity)` and
+  /// `CrossAxisAlignment.stretch` are both still absent from every ancestor of
+  /// this method for exactly that reason.
+  ///
+  /// The chevron beside the label is what pays for the options that ran off
+  /// the edge: it opens the sheet, where the same rows are laid out with room.
+  /// It is only drawn on the page — inside the sheet `onExpand` is null,
+  /// because a control that opens the sheet you are already in is a dead end.
   Widget _choiceRows(
     _Detail d, {
     required void Function(String attribute, String value) onPick,
     bool showError = false,
+    VoidCallback? onExpand,
   }) {
     final pickable = _pickable(d);
     if (pickable.isEmpty) return const SizedBox.shrink();
@@ -2366,7 +3054,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               Expanded(
                 child: Text.rich(
                   TextSpan(
-                    style: _text(size: 14, color: _kMuted),
+                    // The label is the heading of its row, at heading weight.
+                    // It was grey body type, which put "Color:" and the colour
+                    // the shopper had chosen at two different importances —
+                    // and the answer is the part being checked.
+                    style: _text(size: 15, color: _kInk, weight: FontWeight.w700),
                     children: [
                       TextSpan(text: '${attribute.name}: '),
                       TextSpan(
@@ -2374,7 +3066,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ? _chosen[attribute.name]
                             : 'Select a ${attribute.name.toLowerCase()}',
                         style: _text(
-                          size: 14,
+                          size: 15,
                           color: (_chosen[attribute.name] ?? '').isNotEmpty
                               ? _kInk
                               : _kFaint,
@@ -2402,65 +3094,76 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 const SizedBox(width: 8),
                 _sizeSystemPicker(),
               ],
+              if (onExpand != null)
+                _Press(
+                  onTap: onExpand,
+                  child: const SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 22,
+                      color: _kMuted,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 10),
-          // ---- A Wrap, and it has to stay one ----
-          //
-          // Sizes are two characters wide and there are usually four to eight
-          // of them: they belong side by side, flowing onto a second line when
-          // they run out of room, which is what every marketplace does and what
-          // makes a size list readable at a glance. A Column of full-width rows
-          // — which is what this looked like in the build that prompted the
-          // complaint — turns four sizes into four screens' worth of scrolling
-          // and reads as a menu rather than as a set of options.
-          //
-          // `SizedBox(width: double.infinity)` above it is deliberately NOT
-          // here, and neither is `CrossAxisAlignment.stretch` on any ancestor
-          // in this file: either one forces the Wrap's children to the full
-          // width and produces exactly that stacked layout.
-          Wrap(
-            spacing: attribute.showAsSwatches ? 4 : 8,
-            runSpacing: attribute.showAsSwatches ? 4 : 8,
-            children: [
-              for (final option in attribute.options)
-                Builder(
-                  builder: (_) {
-                    final available =
-                        _available(d, attribute.name, option.name);
-                    final selected = _chosen[attribute.name] == option.name;
+          SizedBox(
+            // 76 for the photographs (72 plus the ring), 48 for the discs and
+            // the chips alike — both of which are 44 tall, the platform's
+            // minimum target, with room for the press animation.
+            height: attribute.showAsTiles ? 76 : 48,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.zero,
+              physics: const BouncingScrollPhysics(),
+              itemCount: attribute.options.length,
+              separatorBuilder: (_, __) =>
+                  SizedBox(width: attribute.showAsSwatches ? 2 : 8),
+              itemBuilder: (_, i) {
+                final option = attribute.options[i];
+                final available = _available(d, attribute.name, option.name);
+                final selected = _chosen[attribute.name] == option.name;
 
-                    // One handler for both shapes: a live option takes the
-                    // choice, a dead one says why. Neither is silent, which is
-                    // the whole difference between a disabled control and a
-                    // broken one.
-                    void tap() {
-                      if (!available) {
-                        _rejectOption(attribute.name, option.name);
-                        return;
-                      }
-                      onPick(attribute.name, option.name);
-                    }
+                // One handler for all three shapes: a live option takes the
+                // choice, a dead one says why. Neither is silent, which is the
+                // whole difference between a disabled control and a broken one.
+                void tap() {
+                  if (!available) {
+                    _rejectOption(attribute.name, option.name);
+                    return;
+                  }
+                  onPick(attribute.name, option.name);
+                }
 
-                    return attribute.showAsSwatches
-                        ? _swatchDot(
-                            option: option,
-                            selected: selected,
-                            available: available,
-                            onTap: tap,
-                          )
-                        : _optionChip(
-                            label: option.name,
-                            selected: selected,
-                            available: available,
-                            swatchImage: attribute.isColour ? option.image : null,
-                            swatchColour:
-                                attribute.isColour ? option.swatch : null,
-                            onTap: tap,
-                          );
-                  },
-                ),
-            ],
+                if (attribute.showAsTiles) {
+                  return _colourTile(
+                    option: option,
+                    selected: selected,
+                    available: available,
+                    onTap: tap,
+                  );
+                }
+                if (attribute.showAsSwatches) {
+                  return _swatchDot(
+                    option: option,
+                    selected: selected,
+                    available: available,
+                    onTap: tap,
+                  );
+                }
+                return _optionChip(
+                  label: option.name,
+                  selected: selected,
+                  available: available,
+                  swatchImage: attribute.isColour ? option.image : null,
+                  swatchColour: attribute.isColour ? option.swatch : null,
+                  onTap: tap,
+                );
+              },
+            ),
           ),
           const SizedBox(height: 18),
         ],
@@ -2484,6 +3187,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           // click, and it drops any other answer the new one has just made
           // impossible. See its note.
           onPick: (attribute, value) => _pick(d, attribute, value),
+          // The chevron at the end of each label. It opens the sheet, which is
+          // where an attribute with more options than fit across a phone can
+          // be seen in full — and where the quantity stepper lives.
+          onExpand: () => _openChoiceSheet(d, buyNow: false),
         ),
       );
 
@@ -2645,8 +3352,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   // to order nine of something with three left
                                   // finds out at the checkout, which is the
                                   // worst place to find out.
-                                  enabled: d.stockQuantity == null ||
-                                      quantity < d.stockQuantity!,
+                                  enabled: quantity < _maxQuantity(d),
                                   onTap: () =>
                                       setSheetState(() => quantity += 1),
                                 ),
@@ -2681,6 +3387,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             // for the one they missed.
                             HapticFeedback.heavyImpact();
                             setSheetState(() => showError = true);
+                            return;
+                          }
+                          // Answered in full, and the answer names a
+                          // combination the seller has none of. Refused HERE
+                          // rather than silently written and then rejected at
+                          // the checkout.
+                          if (!_canBuy(d)) {
+                            _refusePurchase(d);
                             return;
                           }
                           Navigator.of(sheetContext).pop();
@@ -2742,90 +3456,126 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ---------- Buy box ----------
 
+  /// The block between the photograph and the pickers: title, credentials,
+  /// money, stock.
+  ///
+  /// ---- The order, and why it changed ----
+  ///
+  /// It used to run seller → title → price → saving → stock → rating, which is
+  /// the order of a spec sheet: every fact, top to bottom, each one the same
+  /// size as the last. The order here now is the one every large marketplace
+  /// converged on, and it is not fashion — it is the order the questions get
+  /// asked in:
+  ///
+  ///   1. WHAT IS IT. The title, at two lines with a chevron. Long enough to
+  ///      confirm the photograph, short enough not to be a paragraph.
+  ///   2. SHOULD I TRUST IT. Rating, reviews, units sold, seller — one line of
+  ///      small type, because these are checked, not read.
+  ///   3. WHAT DOES IT COST. The deal card, which is the loudest thing on the
+  ///      screen when there is a discount and a plain number when there is not.
+  ///   4. CAN I HAVE IT. Stock.
+  ///
+  /// Nothing was dropped in the reorder. The seller's name moved into the
+  /// credentials line, where it belongs with the other trust marks rather than
+  /// sitting above the title as a heading of its own.
   Widget _buyBlock(_Detail d) {
     final soldOut = !d.inStock;
     final lowStock = !soldOut &&
         d.stockQuantity != null &&
         d.stockQuantity! <= _kLowStockAt;
 
+    // Built as a list so the separators can be drawn BETWEEN whatever survives.
+    // A product with no reviews and no seller would otherwise print a row of
+    // orphaned dividers, which is what interleaving them inline produces.
+    final credentials = <Widget>[
+      if (d.ratingCount > 0)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _stars(d.rating, size: 13),
+            const SizedBox(width: 5),
+            Text(
+              d.rating.toStringAsFixed(1),
+              style: _label(size: 12.5, color: _kInk, weight: FontWeight.w700),
+            ),
+          ],
+        ),
+      if (d.ratingCount > 0)
+        Text(
+          '${d.ratingCount} ${d.ratingCount == 1 ? 'review' : 'reviews'}',
+          style: _label(size: 12.5),
+        ),
+      if (d.totalSales > 0)
+        Text('${_compactSold(d.totalSales)} sold', style: _label(size: 12.5)),
+      if ((d.sellerName ?? '').isNotEmpty)
+        Text(
+          'Sold by ${d.sellerName}',
+          style: _label(size: 12.5, color: _kBody, weight: FontWeight.w600),
+        ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(_pad, 14, _pad, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sold by, and units sold — the two credentials the website prints
-          // above the name. Each disappears when there is nothing behind it.
-          if (d.sellerName != null && d.sellerName!.isNotEmpty ||
-              d.totalSales > 0) ...[
-            Row(
+          // ---- The title, and the chevron that finishes it ----
+          //
+          // Two lines at rest. The whole row is the target rather than the
+          // chevron alone: a 22px icon is a hard thing to hit, and the text
+          // beside it is doing nothing else.
+          _Press(
+            onTap: () => setState(() => _titleExpanded = !_titleExpanded),
+            silent: true,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (d.sellerName != null && d.sellerName!.isNotEmpty)
-                  Flexible(
-                    child: Text(
-                      'Sold by ${d.sellerName}',
-                      style: _label(
-                          size: 12.5, color: _kBody, weight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Text(
+                    d.name,
+                    maxLines: _titleExpanded ? 12 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: _text(
+                      size: 16.5,
+                      color: _kInk,
+                      weight: FontWeight.w600,
+                      height: 1.32,
                     ),
                   ),
-                if ((d.sellerName ?? '').isNotEmpty && d.totalSales > 0)
-                  Text('  ·  ', style: _label(size: 12.5)),
-                if (d.totalSales > 0)
-                  Text(
-                    '${_compactSold(d.totalSales)} sold',
-                    style: _label(size: 12.5),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-          ],
-
-          // The name at the interface weight, not the display one. A supplier's
-          // 90-character title set bold is a wall, and the shopper arrived from
-          // a photograph and already knows what it is.
-          Text(
-            d.name,
-            style: _text(
-                size: 17, color: _kInk, weight: FontWeight.w400, height: 1.35),
-          ),
-
-          const SizedBox(height: 10),
-
-          // The money.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                d.priceLabel,
-                style: _price(
-                  size: 26,
-                  color: soldOut
-                      ? _kMuted
-                      : (d.discountPercent > 0 ? _kSale : _kInk),
                 ),
-              ),
-              if (!soldOut && d.wasPriceLabel != null) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(d.wasPriceLabel!, style: _struck(size: 15)),
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    _titleExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 22,
+                    color: _kMuted,
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
 
-          // The saving in money, not just a percentage. "Save 30%" is an
-          // abstraction; "You save UGX 55,000" is the number a shopper weighs.
-          if (!soldOut && d.savingLabel != null) ...[
-            const SizedBox(height: 5),
-            Text(
-              'You save ${d.savingLabel}',
-              style: _label(
-                  size: 13.5, color: _kSuccess, weight: FontWeight.w700),
+          if (credentials.isNotEmpty) ...[
+            const SizedBox(height: 9),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 7,
+              runSpacing: 5,
+              children: [
+                for (var i = 0; i < credentials.length; i++) ...[
+                  if (i > 0)
+                    Text('|', style: _label(size: 12, color: _kFaint)),
+                  credentials[i],
+                ],
+              ],
             ),
           ],
 
+          const SizedBox(height: 12),
+          _priceCard(d),
           const SizedBox(height: 10),
 
           // Stock, in descending order of how much it changes what happens next.
@@ -2850,26 +3600,181 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               foreground: _kSuccess,
               icon: Icons.check_circle_outline_rounded,
             ),
+        ],
+      ),
+    );
+  }
 
-          if (d.ratingCount > 0) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _stars(d.rating),
-                const SizedBox(width: 6),
-                Text(
-                  d.rating.toStringAsFixed(1),
-                  style: _label(
-                      size: 13, color: _kInk, weight: FontWeight.w700),
+  /// The money, as a card when there is a deal on and as a number when there
+  /// is not.
+  ///
+  /// ---- Why a framed card rather than a bigger price ----
+  ///
+  /// A reduction is two numbers and a claim about the difference between them,
+  /// and set as three lines of text in a column it reads as three unrelated
+  /// facts. The frame is what makes them one statement: the band across the top
+  /// says a sale is running and what it saves, and the panel underneath holds
+  /// the price being charged with the percentage against it and the price that
+  /// was, struck through, beneath.
+  ///
+  /// ---- The colours are the shop's, not the screenshot's ----
+  ///
+  /// The layout is matched to the marketplace treatment this page was asked to
+  /// look like; the palette is deliberately NOT. That band is brand orange
+  /// (#FF6A00), because the frame is a shop element and the shop is orange. Red
+  /// appears in exactly one place inside it — the "−50% now" pill — which is
+  /// this project's standing rule: `_kSale` marks a REDUCTION and nothing else,
+  /// so red on a Kandi screen always means the same thing.
+  ///
+  /// The price itself is ink, not red. A price printed in the discount colour
+  /// makes every reduced product's price read as a warning, and it leaves the
+  /// percentage — the thing that is actually news — with no colour left to
+  /// distinguish it.
+  Widget _priceCard(_Detail d) {
+    final soldOut = !d.inStock;
+    final reduced = !soldOut && d.discountPercent > 0 && d.wasPriceLabel != null;
+
+    // No deal on: the plain treatment. A frame around a single number is a
+    // frame announcing nothing.
+    if (!reduced) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  d.priceLabel,
+                  style: _price(size: 28, color: soldOut ? _kMuted : _kInk),
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  '(${d.ratingCount} ${d.ratingCount == 1 ? 'review' : 'reviews'})',
-                  style: _label(size: 12.5),
+              ),
+              if (!soldOut && d.wasPriceLabel != null) ...[
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Text(d.wasPriceLabel!, style: _struck(size: 15)),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Delivery calculated at checkout',
+            style: _label(size: 12, color: _kMuted),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _kPrimary,
+        borderRadius: BorderRadius.circular(_radius + 2),
+      ),
+      // 3px of orange all round the white panel, which is what draws the band
+      // and the frame in one go rather than as a container per edge.
+      padding: const EdgeInsets.all(3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(9, 5, 9, 7),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'SALE',
+                    style: _label(
+                      size: 12.5,
+                      color: _kWhite,
+                      weight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (d.savingLabel != null)
+                  Text(
+                    'Save ${d.savingLabel}',
+                    style: _label(
+                      size: 12,
+                      color: _kWhite,
+                      weight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
+            decoration: BoxDecoration(
+              color: _kWhite,
+              borderRadius: BorderRadius.circular(_radius),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        d.priceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _price(size: 28, color: _kInk),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF1F0),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.south_east_rounded,
+                            size: 12,
+                            color: _kSale,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '−${d.discountPercent}% now',
+                            style: _label(
+                              size: 12,
+                              color: _kSale,
+                              weight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(d.wasPriceLabel!, style: _struck(size: 13.5)),
+                    Text('  |  ', style: _label(size: 12, color: _kFaint)),
+                    Flexible(
+                      child: Text(
+                        'Delivery calculated at checkout',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _label(size: 12, color: _kMuted),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -3253,12 +4158,93 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   /// "Add to cart" is the outlined one and "Buy now" the filled one: the filled
   /// button should be the one that ends the journey, and orange twice over
   /// makes neither of them the answer.
+  /// The docked bar: save, basket, and the two ways to buy.
+  ///
+  /// ---- What this used to be, and why it changed ----
+  ///
+  /// Two storeys: a price line across the top, then a heart, "Add to cart" and
+  /// "Buy now" beneath it. The price was there on a good argument — the buy box
+  /// has scrolled away by the time this bar is being used, and a button that
+  /// commits a shopper to a number they can no longer see is the wrong way
+  /// round.
+  ///
+  /// The argument survived; the row did not. A two-storey bar with a safe area
+  /// under it takes about a fifth of a phone screen and it takes it on EVERY
+  /// scroll, including the whole time the price is still visible in the page
+  /// above. The price moved into `_compactHeader`, which appears at precisely
+  /// the moment the buy box goes off the top — so it is on screen exactly when
+  /// it is needed and costs nothing when it is not.
+  ///
+  /// What is left is the marketplace bar this screen was matched to: the
+  /// icons that are one tap each, then two full-width pills.
+  ///
+  /// ---- Stock ----
+  ///
+  /// A product with nothing to sell gets ONE button, greyed, saying so. Not two
+  /// disabled buttons, and not a hidden bar: the shopper needs to be told the
+  /// answer is no, once, rather than left to work it out from two dead
+  /// controls. Everything past that goes through `_requestPurchase`, which
+  /// refuses a sold-out colour or size as well as a sold-out product — see
+  /// `_canBuy`.
   Widget _buyBar(_Detail d) {
-    final soldOut = !d.inStock;
+    final soldOut = !d.inStock ||
+        (d.stockQuantity != null && d.stockQuantity! <= 0);
 
-    Widget button({
+    Widget icon(
+      IconData glyph,
+      VoidCallback onTap, {
+      Color tint = _kBody,
+      int badge = 0,
+    }) =>
+        _Press(
+          onTap: onTap,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 46,
+                child: Icon(glyph, size: 23, color: tint),
+              ),
+              if (badge > 0)
+                Positioned(
+                  right: 2,
+                  top: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 17,
+                      minHeight: 17,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kSale,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: _kWhite, width: 1.5),
+                    ),
+                    child: Text(
+                      badge > 99 ? '99+' : '$badge',
+                      textAlign: TextAlign.center,
+                      style: _label(
+                        size: 9.5,
+                        color: _kWhite,
+                        weight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+
+    // A pill, not a rounded rectangle. The two buttons sit against each other
+    // at the foot of the screen and the full radius is what keeps them reading
+    // as two separate commitments rather than as one segmented control.
+    Widget pill({
       required String label,
-      required IconData icon,
+      String? note,
       required bool filled,
       VoidCallback? onTap,
     }) =>
@@ -3274,44 +4260,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     : filled
                         ? _kPrimary
                         : _kWhite,
-                borderRadius: BorderRadius.circular(_radius),
+                borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: onTap == null
-                      ? _kHairline
-                      : filled
-                          ? _kPrimary
-                          : _kPrimary,
+                  color: onTap == null ? _kLine : _kPrimary,
+                  width: 1.4,
                 ),
               ),
-              child: Row(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    icon,
-                    size: 17,
-                    color: onTap == null
-                        ? _kMuted
-                        : filled
-                            ? _kWhite
-                            : _kPrimaryInk,
-                  ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _text(
-                        size: 14.5,
-                        color: onTap == null
-                            ? _kMuted
-                            : filled
-                                ? _kWhite
-                                : _kPrimaryInk,
-                        weight: FontWeight.w700,
-                      ),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _text(
+                      size: 15,
+                      color: onTap == null
+                          ? _kMuted
+                          : filled
+                              ? _kWhite
+                              : _kPrimaryInk,
+                      weight: FontWeight.w700,
                     ),
                   ),
+                  // The second line only appears when it has something true to
+                  // say — the saving, in the shop's own formatting. It is not
+                  // urgency copy: "act fast" under a button is a claim the shop
+                  // cannot honour, and this catalogue's deals end when the
+                  // seller says they do.
+                  if (note != null && onTap != null)
+                    Text(
+                      note,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _label(
+                        size: 10,
+                        color: filled ? _kWhite : _kPrimaryInk,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -3326,94 +4313,55 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(_pad, 8, _pad, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+          child: Row(
             children: [
-              // The price, beside the saving when there is one. The whole
-              // reason this row exists is that the buy box has scrolled away.
-              Row(
-                children: [
-                  Text(
-                    d.priceLabel,
-                    style: _price(
-                      size: 19,
-                      color: soldOut
-                          ? _kMuted
-                          : (d.discountPercent > 0 ? _kSale : _kInk),
-                    ),
-                  ),
-                  if (!soldOut && d.wasPriceLabel != null) ...[
-                    const SizedBox(width: 7),
-                    Text(d.wasPriceLabel!, style: _struck(size: 13)),
-                  ],
-                  const Spacer(),
-                  if (!soldOut && d.savingLabel != null)
-                    Text(
-                      'You save ${d.savingLabel}',
-                      style: _label(
-                        size: 12,
-                        color: _kSuccess,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                ],
+              icon(
+                _wishlisted
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                () => _toggleWishlist(d),
+                tint: _wishlisted ? _kSale : _kBody,
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _Press(
-                    onTap: () => _toggleWishlist(d),
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: _kWhite,
-                        borderRadius: BorderRadius.circular(_radius),
-                        border:
-                            Border.all(color: _wishlisted ? _kSale : _kLine),
-                      ),
-                      child: Icon(
-                        _wishlisted
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        size: 20,
-                        color: _wishlisted ? _kSale : _kBody,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // ---- Both buttons go through `_requestPurchase` now ----
-                  //
-                  // They used to call `_addToCart` and `_buyNow` directly,
-                  // which meant a shoe with four sizes went into the basket
-                  // with no size on it — silently, from the bar the shopper is
-                  // most likely to use, because it is docked and the pickers
-                  // are hundreds of pixels up the page.
-                  //
-                  // `_requestPurchase` adds straight away when there is
-                  // nothing left to answer, and otherwise slides the choices
-                  // up to the thumb. The argument for that rule, and against
-                  // the two obvious alternatives, is on that method.
-                  button(
-                    label: soldOut ? 'Out of stock' : 'Add to cart',
-                    icon: Icons.shopping_bag_outlined,
-                    filled: false,
-                    onTap: soldOut
-                        ? null
-                        : () => _requestPurchase(d, buyNow: false),
-                  ),
-                  if (!soldOut) ...[
-                    const SizedBox(width: 8),
-                    button(
-                      label: 'Buy now',
-                      icon: Icons.bolt_rounded,
-                      filled: true,
-                      onTap: () => _requestPurchase(d, buyNow: true),
-                    ),
-                  ],
-                ],
+              icon(
+                Icons.shopping_cart_outlined,
+                _openCart,
+                badge: _cartCount,
               ),
+              const SizedBox(width: 6),
+              if (soldOut)
+                pill(
+                  label: 'Out of stock',
+                  filled: false,
+                  onTap: null,
+                )
+              else ...[
+                // ---- Both buttons go through `_requestPurchase` ----
+                //
+                // They used to call `_addToCart` and `_buyNow` directly, which
+                // meant a shoe with four sizes went into the basket with no
+                // size on it — silently, from the bar the shopper is most
+                // likely to use, because it is docked and the pickers are
+                // hundreds of pixels up the page.
+                //
+                // `_requestPurchase` adds straight away when there is nothing
+                // left to answer, refuses what is sold out, and otherwise
+                // slides the choices up to the thumb. The argument for that
+                // rule, and against the two obvious alternatives, is on that
+                // method.
+                pill(
+                  label: 'Add to cart',
+                  filled: false,
+                  onTap: () => _requestPurchase(d, buyNow: false),
+                ),
+                const SizedBox(width: 8),
+                pill(
+                  label: 'Buy now',
+                  note: d.savingLabel != null ? 'Save ${d.savingLabel}' : null,
+                  filled: true,
+                  onTap: () => _requestPurchase(d, buyNow: true),
+                ),
+              ],
             ],
           ),
         ),

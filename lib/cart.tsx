@@ -13,6 +13,30 @@ export type CartItem = {
   /** Unique line key: productId + chosen options. */
   key: string;
   productId: number;
+  /**
+   * The WooCommerce variation this line is for, when the product is variable.
+   *
+   * ---- Why the options alone were not enough ----
+   *
+   * The cart recorded the shopper's CHOICE — `{ Size: "38" }` — and the order
+   * carried that text through to WooCommerce as a note on the parent product.
+   * WooCommerce was therefore never told which variation had been bought, so it
+   * priced the order from the parent and moved the parent's stock. A shop whose
+   * XL costs more than its S sold both at the S price, and a size that had run
+   * out kept selling.
+   *
+   * The id is resolved where the choice is made — `AddToCartButton` and
+   * `VariantSheet`, which are the only places that hold the variation matrix —
+   * and carried from there to `/api/checkout`, which forwards it to WordPress
+   * to be validated against the parent. The browser names the variation; the
+   * server decides whether that name is true.
+   *
+   * Undefined for a simple product, and also for a variable one served by a
+   * WordPress install too old to send variation ids. The server refuses the
+   * latter rather than silently selling the parent — see the
+   * `kandi_variation_required` branch in `kandi-store-api.php`.
+   */
+  variationId?: number;
   name: string;
   price: number;
   image: string;
@@ -21,6 +45,16 @@ export type CartItem = {
   options?: Record<string, string>;
 };
 
+/**
+ * The identity of a cart line.
+ *
+ * Still keyed on the options rather than on `variationId`, deliberately. The
+ * options are what the shopper sees and what distinguishes two lines on screen;
+ * the variation id is a fact about the same choice. Keying on the id would also
+ * split one basket line into two the day a WordPress upgrade started sending
+ * ids, because the pre-upgrade line and the post-upgrade line would no longer
+ * match.
+ */
 export function cartLineKey(
   productId: number,
   options?: Record<string, string>

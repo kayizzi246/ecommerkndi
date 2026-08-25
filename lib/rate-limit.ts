@@ -203,3 +203,170 @@ export const LIMITS = {
   /** Anything else on /api that is worth a ceiling. */
   api: { limit: 120, windowMs: 60_000 },
 } as const;
+
+/* =========================================================================
+ * SHARED COUNTERS — the multi-instance answer to the caveats at the top
+ * ====================================================================== */
+
+/**
+ * Upstash Redis over its REST API, when the shop is configured for it.
+ *
+ * The header of this file is honest about what an in-process counter can and
+ * cannot do: on a serverless deployment the effective limit is the configured
+ * one multiplied by however many instances happen to be warm, and a cold start
+ * forgets everything. That is an acceptable trade for a sign-in form and an
+ * unacceptable one for checkout, where the thing being protected is the shop's
+ * ability to take real orders.
+ *
+ * So the counter can now live somewhere shared. Upstash is reached over plain
+ * HTTPS rather than the Redis wire protocol, which is the only kind of
+ * connection a Next.js route handler can reliably hold, and it needs no client
+ * library — a pipelined `INCR` plus `EXPIRE … NX` is two lines of JSON.
+ *
+ * Unconfigured, everything below falls straight through to the in-memory
+ * limiter. That is deliberate: a shop that has not set the environment
+ * variables yet is protected exactly as well as it was before, rather than not
+ * at all. It is NOT a substitute for a WAF in front of the origin — Cloudflare
+ * or Vercel's own rate limiting stops the flood before it costs a function
+ * invocation, and this stops what gets through.
+ */
+function upstash(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, "");
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
+/**
+ * Counts one request against a window held in Redis.
+ *
+ * `INCR` then `EXPIRE … NX` in a single pipelined round trip. The `NX` is the
+ * part that makes it a fixed window rather than a sliding one that never
+ * expires: the TTL is set only when the key has none, so the first request of a
+ * window starts the clock and the rest of the window does not push it back. Set
+ * unconditionally, a caller sending one request per second would refresh the
+ * expiry forever and the window would never reset.
+ *
+ * Any failure — Upstash down, a network blip, a malformed answer — falls back
+ * to the in-memory counter rather than throwing. A rate limiter that takes the
+ * site down when its backing store hiccups is worse than the attack it guards
+ * against.
+ */
+async function rateLimitRedis(
+  bucket: string,
+  identifier: string,
+  { limit, windowMs }: { limit: number; windowMs: number }
+): Promise<RateLimitResult | null> {
+  const config = upstash();
+  if (!config) return null;
+
+  const key = `rl:${bucket}:${identifier}`;
+  const seconds = Math.max(1, Math.ceil(windowMs / 1000));
+
+  try {
+    const response = await fetch(`${config.url}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        ["INCR", key],
+        ["EXPIRE", key, String(seconds), "NX"],
+        ["TTL", key],
+      ]),
+      cache: "no-store",
+      // A rate limiter must never become the slowest thing in the request. If
+      // Upstash cannot answer in a second, the in-memory counter takes over.
+      signal: AbortSignal.timeout(1_000),
+    });
+
+    if (!response.ok) return null;
+
+    const results = (await response.json()) as Array<{ result?: unknown }>;
+    const count = Number(results?.[0]?.result);
+    if (!Number.isFinite(count)) return null;
+
+    const ttl = Number(results?.[2]?.result);
+    const retryAfterSeconds = Number.isFinite(ttl) && ttl > 0 ? ttl : seconds;
+
+    if (count > limit) {
+      return { ok: false, remaining: 0, retryAfterSeconds };
+    }
+
+    return { ok: true, remaining: Math.max(0, limit - count), retryAfterSeconds: 0 };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The limiter to reach for in new code: shared when Redis is configured, and
+ * the in-process counter otherwise.
+ *
+ * Both are consulted, not one or the other. The in-memory window runs even on a
+ * Redis hit, at a deliberately generous multiple of the configured limit, so a
+ * single instance still has a ceiling if the shared store is being slow enough
+ * to time out on every request — the failure mode where "fall back to memory"
+ * would otherwise mean "fall back to a counter that starts from zero on every
+ * cold start, forever".
+ */
+export async function rateLimitAsync(
+  bucket: string,
+  identifier: string,
+  options: { limit: number; windowMs: number }
+): Promise<RateLimitResult> {
+  const shared = await rateLimitRedis(bucket, identifier, options);
+  if (shared) {
+    // The local backstop, loosened so it never fires before the shared one.
+    const local = rateLimit(bucket, identifier, {
+      limit: options.limit * 5,
+      windowMs: options.windowMs,
+    });
+    return local.ok ? shared : local;
+  }
+
+  return rateLimit(bucket, identifier, options);
+}
+
+/**
+ * Rate limiting as one line at the top of a handler.
+ *
+ * Returns the 429 to send back, or `null` to carry on. Reads better than the
+ * three-line `const limit = …; if (!limit.ok) return …` at every call site, and
+ * makes it harder to check a limit and then forget to act on the answer.
+ */
+export async function enforceRateLimit(
+  bucket: string,
+  identifier: string,
+  options: { limit: number; windowMs: number }
+): Promise<Response | null> {
+  const result = await rateLimitAsync(bucket, identifier, options);
+  return result.ok ? null : tooManyRequests(result.retryAfterSeconds);
+}
+
+/**
+ * The limits for the money paths, kept apart from `LIMITS` above only because
+ * they are newer — they are read the same way and belong to the same idea.
+ *
+ * Every one of these is set from what a real shopper does, then given room:
+ *
+ *  • **Checkout.** A person places one order, then perhaps corrects it and
+ *    places another. Six in ten minutes is a bad day; sixty is a script.
+ *  • **Payment start.** More generous than checkout, because retrying a failed
+ *    payment on the same order is a normal, blameless thing to do.
+ *  • **Payment status.** The app POLLS this while the shopper is paying, every
+ *    few seconds for a couple of minutes. The limit has to clear that with room
+ *    to spare or it would break the feature it protects.
+ *  • **Delivery quote.** Every one can geocode, which costs real money on the
+ *    Maps account. A shopper drags a pin around a few times; nobody legitimately
+ *    quotes forty addresses a minute.
+ *  • **IPN.** Pesapal's own server, not a shopper. Keyed on source address, and
+ *    loose enough for a burst of genuine notifications on a busy afternoon.
+ */
+export const MONEY_LIMITS = {
+  checkout: { limit: 6, windowMs: 10 * 60_000 },
+  paymentStart: { limit: 20, windowMs: 10 * 60_000 },
+  paymentStatus: { limit: 90, windowMs: 5 * 60_000 },
+  deliveryQuote: { limit: 40, windowMs: 10 * 60_000 },
+  ipn: { limit: 240, windowMs: 60_000 },
+} as const;

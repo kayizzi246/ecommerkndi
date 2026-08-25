@@ -17,11 +17,119 @@
  * purpose, and passes the answer back. It never sees the Pesapal keys.
  */
 
+import { cookies } from "next/headers";
 import { pesapalConfig, resolveIpnId, submitOrder, type BillingAddress } from "@/lib/pesapal";
+import {
+  PAYMENT_TOKEN_COOKIE,
+  paymentTokensEnforced,
+  verifyPaymentToken,
+  type PaymentPurpose,
+} from "@/lib/checkout-token";
+import { callSellerApi } from "@/lib/seller-server";
+import { clientIp, enforceRateLimit, MONEY_LIMITS } from "@/lib/rate-limit";
 
 type StartBody = {
-  purpose?: { kind: "order"; orderId: number } | { kind: "seller-fee"; sellerId: number };
+  purpose?: PaymentPurpose;
+  /**
+   * Proof that the caller is the person who placed the order.
+   *
+   * Minted by `/api/checkout` at the moment the order was created and handed
+   * back in that response; see `lib/checkout-token.ts` for why an order id on
+   * its own was not enough.
+   */
+  token?: string;
 };
+
+/**
+ * Decides whether this caller is allowed to open a payment for this purpose.
+ *
+ * ---- What was wrong before ----
+ *
+ * Nothing was checked. The body named an order id, the route forwarded it, and
+ * WordPress answered with what was owed — including that order's billing block:
+ * the buyer's name, email address, phone number and street. WooCommerce order
+ * ids are sequential integers, so a loop from 1 upwards walked the customer
+ * list, and every iteration also opened a live Pesapal session against somebody
+ * else's order.
+ *
+ * ---- The two kinds of proof ----
+ *
+ * An ORDER is proved by the token minted when it was placed. That is the only
+ * moment the server knows who the buyer is — checkout is deliberately open to
+ * shoppers with no account, so there is no session to bind to instead. The
+ * token travels in the JSON response (which the checkout page and the mobile
+ * app hold) and in an httpOnly cookie (which survives a reload, so the "pay
+ * now" button on the order-received page still works).
+ *
+ * A SELLER FEE is proved by the seller's own session. The seller is by
+ * definition signed in, so the strong check is available and is used: the id in
+ * the request must be the id WordPress says this token belongs to. Without
+ * this, one seller could pay under another's id, or read their fee and store
+ * details out of the quote.
+ */
+async function authorise(
+  purpose: PaymentPurpose,
+  tokenFromBody: string | undefined
+): Promise<{ ok: true } | { ok: false; response: Response }> {
+  if (purpose.kind === "seller-fee") {
+    const { status, data } = await callSellerApi("/session");
+    const session = data as { checked?: boolean; seller?: { id?: number } };
+
+    // `checked` is set only by the authenticated handler on WordPress — see the
+    // note on `sellerApi.me` in `lib/seller.ts` for the duplicate-route incident
+    // that made this flag necessary. A 200 without it is somebody else
+    // answering on that path, and is not identity.
+    if (status !== 200 || !session?.checked || session.seller?.id !== purpose.sellerId) {
+      return {
+        ok: false,
+        response: Response.json(
+          { error: "Sign in to your seller account to pay this fee." },
+          { status: 401 }
+        ),
+      };
+    }
+
+    return { ok: true };
+  }
+
+  if (!paymentTokensEnforced()) {
+    // No key to verify with means no shop either — nothing here can reach
+    // WordPress without `KANDI_API_SECRET`. Refusing loudly beats a payment
+    // route that quietly stops checking who is asking.
+    console.error(
+      "[kandi-store] cannot verify payment tokens — set KANDI_CHECKOUT_SECRET " +
+        "(or KANDI_API_SECRET) in the environment."
+    );
+    return {
+      ok: false,
+      response: Response.json(
+        { error: "Payments are not configured on this server." },
+        { status: 503 }
+      ),
+    };
+  }
+
+  const fromCookie = (await cookies()).get(PAYMENT_TOKEN_COOKIE)?.value;
+
+  // Either copy will do. They are the same token by different routes, and which
+  // one arrives depends on whether the shopper is still on the page that placed
+  // the order or has come back to it.
+  for (const candidate of [tokenFromBody, fromCookie]) {
+    if (await verifyPaymentToken(candidate, purpose)) return { ok: true };
+  }
+
+  return {
+    ok: false,
+    response: Response.json(
+      {
+        error:
+          "This payment link has expired. Open the order from your account and try again.",
+        code: "payment_not_authorised",
+      },
+      { status: 403 }
+    ),
+  };
+}
 
 /** What WordPress says is owed. The amount never comes from the browser. */
 type Quote = {
@@ -62,7 +170,7 @@ function wpHeaders(): HeadersInit {
  * WordPress for a quote rather than letting the checkout name a figure — a
  * tampered request pays the real total or fails.
  */
-async function startDirectly(purpose: NonNullable<StartBody["purpose"]>) {
+async function startDirectly(purpose: PaymentPurpose) {
   const config = pesapalConfig();
   if (!config) return null;
 
@@ -112,6 +220,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // Every attempt that gets past `authorise` costs an outbound call to Pesapal
+  // and one to WordPress. More generous than checkout, because retrying a
+  // failed payment on the same order is a normal thing for a shopper to do.
+  const throttled = await enforceRateLimit(
+    "payment-start",
+    clientIp(request),
+    MONEY_LIMITS.paymentStart
+  );
+  if (throttled) return throttled;
+
   let body: StartBody;
   try {
     body = await request.json();
@@ -127,6 +245,13 @@ export async function POST(request: Request) {
   ) {
     return Response.json({ error: "Nothing to pay for." }, { status: 400 });
   }
+
+  /* Who is asking, and are they entitled to this. Everything below opens a real
+   * payment session and reads a real customer's billing details out of
+   * WooCommerce, so this is the gate rather than an afterthought — see
+   * `authorise` above for what used to be missing. */
+  const allowed = await authorise(purpose, body.token);
+  if (!allowed.ok) return allowed.response;
 
   /**
    * When this storefront holds Pesapal keys of its own, it opens the payment

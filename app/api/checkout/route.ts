@@ -5,12 +5,106 @@ import { normaliseUgPhone } from "@/lib/phone";
 import { getDeliveryRates } from "@/lib/site-settings";
 import { getProduct } from "@/lib/woocommerce";
 import { APP_WRITE_CORS_HEADERS, appPreflight } from "@/lib/app-api";
+import { clientIp, enforceRateLimit, MONEY_LIMITS } from "@/lib/rate-limit";
+import { claim, idempotencyKey, remember, replayOf } from "@/lib/idempotency";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { mintPaymentToken, PAYMENT_TOKEN_COOKIE } from "@/lib/checkout-token";
 
 type IncomingItem = {
   productId: number;
   quantity: number;
+  /**
+   * The exact WooCommerce variation being bought, when the product is variable.
+   *
+   * ---- The bug this field exists to close ----
+   *
+   * The shopper picked a size and a colour, and the order recorded neither. It
+   * sent the PARENT product id plus `options: { Size: "38", Colour: "Red" }` as
+   * free text, and WordPress attached that text to the line item as a note.
+   * WooCommerce was never told which variation it was, so:
+   *
+   *   • The order was priced from the parent product. A variable product whose
+   *     large size costs more was sold at the small size's price.
+   *   • Stock moved on the parent, not the variation. Size 38 could be sold a
+   *     hundred times while WooCommerce reported it in stock, and the shop found
+   *     out when it went to pack them.
+   *   • Nothing checked the combination existed. `{ Size: "999" }` was accepted
+   *     and written onto the order as if it were real.
+   *
+   * The id is sent from the browser and then VALIDATED server-side — it must
+   * belong to the parent, and it must be purchasable — so a tampered id fails
+   * rather than buying something else cheaply. See `kandi-store-api.php`, which
+   * does the checking, because it is the side that holds the catalogue.
+   */
+  variationId?: number;
   options?: Record<string, string>;
 };
+
+/* ---- Ceilings, so a request cannot ask for unbounded work ----
+ *
+ * None of these is reachable by a person buying clothes. They are here because
+ * this endpoint creates real WooCommerce orders — a database write, a stock
+ * decrement and an email each — and every one of those is work an unauthenticated
+ * caller could otherwise ask for in whatever quantity they liked. A body with
+ * fifty thousand line items in it costs the shop a great deal and the sender
+ * nothing.
+ *
+ * The delivery quote makes it worse than it looks: `lineItemsSubtotal` fetches
+ * every distinct product to price it, so N line items is N calls to WooCommerce
+ * before a single order is written. The line cap is the one that matters most. */
+
+/** Bytes. A hundred-line order with long addresses is nowhere near this. */
+const MAX_BODY_BYTES = 64 * 1024;
+
+/** Distinct lines. A basket is a basket, not a spreadsheet import. */
+const MAX_LINE_ITEMS = 50;
+
+/** Units of any one line. */
+const MAX_QUANTITY_PER_LINE = 20;
+
+/** Units across the whole order. */
+const MAX_TOTAL_QUANTITY = 100;
+
+/**
+ * Reads the request body with a ceiling on its size.
+ *
+ * `request.json()` will happily buffer whatever arrives, so the check has to
+ * happen before parsing rather than after. `Content-Length` is consulted first
+ * because it lets an oversized request be refused without reading it at all,
+ * and the length of the text is checked afterwards because that header is
+ * client-supplied and a chunked request need not send one.
+ */
+async function readBody(request: Request): Promise<{ body: unknown } | { error: Response }> {
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    return {
+      error: NextResponse.json({ error: "That order is too large." }, { status: 413 }),
+    };
+  }
+
+  let text: string;
+  try {
+    text = await request.text();
+  } catch {
+    return {
+      error: NextResponse.json({ error: "Invalid request body." }, { status: 400 }),
+    };
+  }
+
+  if (text.length > MAX_BODY_BYTES) {
+    return {
+      error: NextResponse.json({ error: "That order is too large." }, { status: 413 }),
+    };
+  }
+
+  try {
+    return { body: JSON.parse(text) };
+  } catch {
+    return {
+      error: NextResponse.json({ error: "Invalid request body." }, { status: 400 }),
+    };
+  }
+}
 
 async function placeOrder(request: Request): Promise<Response> {
   const baseUrl = process.env.WP_API_URL?.replace(/\/$/, "");
@@ -23,18 +117,84 @@ async function placeOrder(request: Request): Promise<Response> {
     );
   }
 
-  let body: {
+  /* ---- Throttling, before anything else is read ----
+   *
+   * This endpoint was public and unmetered. A script could create orders as
+   * fast as the network allowed, and each one is a WooCommerce write plus an
+   * email — so the cost of the attack is a loop, and the cost of absorbing it
+   * is the shop's hosting bill and an order book nobody can find real orders
+   * in. Six per ten minutes per address is a bad day for a real shopper and a
+   * wall for anything automated.
+   *
+   * Shared across instances when Upstash is configured — see the note on
+   * `rateLimitAsync`. This is still the second line of defence: a WAF rule in
+   * front of the origin stops the flood before it costs a function invocation,
+   * and this stops what gets through. */
+  const ip = clientIp(request);
+  const throttled = await enforceRateLimit("checkout", ip, MONEY_LIMITS.checkout);
+  if (throttled) return throttled;
+
+  const read = await readBody(request);
+  if ("error" in read) return read.error;
+
+  const body = read.body as {
     customer?: Record<string, string>;
     items?: IncomingItem[];
     payment_method?: string;
     awaiting_payment?: boolean;
     delivery_point?: { lat: number; lng: number };
     delivery_place?: string;
+    turnstile_token?: string;
   };
-  try {
-    body = await request.json();
-  } catch {
+
+  if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  /* ---- Is there a person behind this ----
+   *
+   * Inert unless the shop has set `TURNSTILE_SECRET_KEY`; see `lib/turnstile.ts`
+   * for the setup and for why it fails open when Cloudflare itself is
+   * unreachable. Checked after the rate limit and before any work, because a
+   * bot check that runs after the expensive part has already happened protects
+   * nothing. */
+  const human = await verifyTurnstile(body.turnstile_token, ip);
+  if (!human.ok) {
+    console.warn("[kandi-store] checkout turnstile rejected:", human.reason);
+    return NextResponse.json(
+      {
+        error: "We could not confirm you are a person. Please reload the page and try again.",
+        code: "turnstile_failed",
+      },
+      { status: 403 }
+    );
+  }
+
+  /* ---- The same order, sent twice ----
+   *
+   * A stalled connection on a mobile network, a double tap, a browser retrying
+   * a POST — see `lib/idempotency.ts`. Any of them creates two identical orders
+   * that the shop packs, charges for, and discovers a week later.
+   *
+   * The key is the client's, one per checkout ATTEMPT. If it names an attempt
+   * already answered, that answer is returned again and nothing new is created.
+   * If it names one in flight, the second request is told so rather than racing
+   * the first. */
+  const idempotency = idempotencyKey(request);
+
+  if (idempotency) {
+    const previous = await replayOf("checkout", idempotency);
+    if (previous !== undefined) return NextResponse.json(previous);
+
+    if (!(await claim("checkout", idempotency))) {
+      return NextResponse.json(
+        {
+          error: "That order is already being placed. Give it a moment before trying again.",
+          code: "in_progress",
+        },
+        { status: 409 }
+      );
+    }
   }
 
   const customer = body.customer ?? {};
@@ -42,6 +202,12 @@ async function placeOrder(request: Request): Promise<Response> {
 
   if (items.length === 0) {
     return NextResponse.json({ error: "Your cart is empty." }, { status: 400 });
+  }
+  if (items.length > MAX_LINE_ITEMS) {
+    return NextResponse.json(
+      { error: `An order can hold at most ${MAX_LINE_ITEMS} different items.` },
+      { status: 400 }
+    );
   }
   for (const field of ["first_name", "phone", "address_1", "city"] as const) {
     if (!customer[field]?.trim()) {
@@ -108,7 +274,19 @@ async function placeOrder(request: Request): Promise<Response> {
   const line_items = items
     .map((item) => ({
       product_id: Number(item.productId),
-      quantity: Math.max(1, Number(item.quantity) || 1),
+      // Clamped, not merely coerced. `quantity: 999999` used to reach
+      // WooCommerce as-is, which is a stock decrement and an invoice total that
+      // nobody intended and a backorder the shop cannot fill.
+      quantity: Math.min(
+        MAX_QUANTITY_PER_LINE,
+        Math.max(1, Math.floor(Number(item.quantity)) || 1)
+      ),
+      // Forwarded for WordPress to check against the parent. Zero and rubbish
+      // are dropped here so the backend sees either a plausible id or nothing.
+      variation_id:
+        Number.isInteger(Number(item.variationId)) && Number(item.variationId) > 0
+          ? Number(item.variationId)
+          : undefined,
       options:
         item.options && typeof item.options === "object" ? item.options : undefined,
     }))
@@ -116,6 +294,18 @@ async function placeOrder(request: Request): Promise<Response> {
 
   if (line_items.length === 0) {
     return NextResponse.json({ error: "Cart items are invalid." }, { status: 400 });
+  }
+
+  const totalQuantity = line_items.reduce((sum, item) => sum + item.quantity, 0);
+  if (totalQuantity > MAX_TOTAL_QUANTITY) {
+    return NextResponse.json(
+      {
+        error:
+          `That is more than ${MAX_TOTAL_QUANTITY} items. ` +
+          "For an order that size, please contact us directly.",
+      },
+      { status: 400 }
+    );
   }
 
   // Delivery is priced here, on the server, from the coordinates the browser
@@ -192,7 +382,50 @@ async function placeOrder(request: Request): Promise<Response> {
       return NextResponse.json({ error: message }, { status: res.status >= 500 ? 502 : 400 });
     }
 
-    return NextResponse.json(data);
+    /* ---- The token that lets this order be paid for ----
+     *
+     * `/api/payments/pesapal/start` used to take a bare order id, and order ids
+     * are sequential — so anyone could open a payment against anyone else's
+     * order, and the quote that came back carried that buyer's name, email,
+     * phone and address. See `lib/checkout-token.ts`.
+     *
+     * The proof of ownership is minted here, at the only moment the server
+     * knows for certain who placed the order: the request that placed it.
+     *
+     * It goes back two ways. In the JSON, which is the copy every payment
+     * actually uses — the checkout page is about to call the payment route, and
+     * the mobile app has no cookie jar worth relying on. And in an httpOnly
+     * cookie, which survives a reload that the page's memory does not. */
+    const orderId = Number((data as { id?: unknown })?.id);
+    const paymentToken =
+      Number.isInteger(orderId) && orderId > 0
+        ? await mintPaymentToken({ kind: "order", orderId })
+        : null;
+
+    const payload = { ...(data as Record<string, unknown>), payment_token: paymentToken };
+
+    // Remembered only now the order really exists, so a request that failed
+    // validation can be corrected and retried under the same key.
+    if (idempotency) await remember("checkout", idempotency, payload);
+
+    const response = NextResponse.json(payload);
+
+    if (paymentToken) {
+      // Set on the response object rather than through `cookies()`, because
+      // `POST` below rebuilds the response to attach the CORS headers and only
+      // what is on `response.headers` survives that copy.
+      response.cookies.set(PAYMENT_TOKEN_COOKIE, paymentToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        // The token's own expiry is sealed into its signature; this is just the
+        // browser-side courtesy, and it is matched to it.
+        maxAge: 60 * 60,
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("[kandi-store] order submission failed:", error);
     return NextResponse.json(
@@ -202,21 +435,34 @@ async function placeOrder(request: Request): Promise<Response> {
   }
 }
 
-
 /**
  * The order's subtotal, priced from WooCommerce rather than from the cart.
  *
  * Needed only to decide whether the order clears the free-delivery threshold,
  * and that decision must not be settleable by editing a number in the browser.
+ *
+ * ---- Deduplicated, which is a throttle as much as an optimisation ----
+ *
+ * It used to fetch once per line item, so an order with the same product on
+ * twenty lines made twenty identical calls to WooCommerce before a single order
+ * was written. With a cap of fifty lines that is fifty upstream requests per
+ * checkout attempt, which is the sort of amplification that turns a rate limit
+ * on this endpoint into a rate limit that is still too generous. Distinct
+ * products are fetched once each and the quantities summed against them.
  */
 async function lineItemsSubtotal(
   _baseUrl: string,
   items: { product_id: number; quantity: number }[]
 ): Promise<number> {
+  const quantities = new Map<number, number>();
+  for (const item of items) {
+    quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + item.quantity);
+  }
+
   const priced = await Promise.all(
-    items.map(async (item) => {
-      const product = await getProduct(item.product_id);
-      return product ? product.price * item.quantity : 0;
+    [...quantities].map(async ([productId, quantity]) => {
+      const product = await getProduct(productId);
+      return product ? product.price * quantity : 0;
     })
   );
 

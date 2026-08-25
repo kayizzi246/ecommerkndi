@@ -74,7 +74,13 @@ const DEV = process.env.NODE_ENV !== "production";
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""} https://accounts.google.com`,
+  // `challenges.cloudflare.com` is Turnstile, the bot check on checkout. Like
+  // Google Sign-In it is both a script and a frame, and it talks back to
+  // Cloudflare to verify — so it is named in three directives below, not one.
+  // Listed whether or not the shop has set its keys: a CSP entry for a host
+  // that is never contacted costs nothing, and a missing one is a silent
+  // failure at the worst possible moment.
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""} https://accounts.google.com https://challenges.cloudflare.com`,
   // Tailwind and Next both emit inline style attributes; there is no nonce-free
   // way around this one, and injected CSS is a far smaller problem than
   // injected script.
@@ -87,8 +93,8 @@ const CSP = [
   // server. Browsers disagree about whether `'self'` covers a WebSocket on the
   // same origin, so it is named rather than assumed — and, like `'unsafe-eval'`
   // above, it is gated on NODE_ENV so production never carries it.
-  `connect-src 'self'${DEV ? " ws: wss:" : ""} https://accounts.google.com`,
-  "frame-src 'self' https://accounts.google.com https://*.pesapal.com",
+  `connect-src 'self'${DEV ? " ws: wss:" : ""} https://accounts.google.com https://challenges.cloudflare.com`,
+  "frame-src 'self' https://accounts.google.com https://*.pesapal.com https://challenges.cloudflare.com",
   // Nothing here is a plugin, and `object-src 'none'` closes a whole family of
   // legacy injection tricks.
   "object-src 'none'",

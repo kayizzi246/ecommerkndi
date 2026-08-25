@@ -86,6 +86,22 @@ export type ProductAttribute = {
 };
 
 export type ProductVariation = {
+  /**
+   * The variation's own WooCommerce id.
+   *
+   * This is what an order line must carry to be an order for a particular size
+   * rather than for the parent product with a note attached — see the
+   * `variation_id` handling in `app/api/checkout/route.ts` and the check that
+   * backs it in `kandi-store-api.php`.
+   *
+   * Optional in the type because a WordPress install running an older copy of
+   * the plugin does not send it. Code that needs it must treat 0 or undefined
+   * as "this deployment cannot identify variations" rather than assuming it is
+   * there.
+   */
+  id?: number;
+  /** This variation's own price, when the backend sends it. */
+  price?: number;
   attributes: Record<string, string>;
   is_in_stock: boolean;
 };
@@ -496,6 +512,8 @@ function toProduct(raw: unknown): Product {
           const variation = obj(entry);
           const chosen = obj(variation.attributes);
           return {
+            id: num(variation.id) || undefined,
+            price: variation.price == null ? undefined : num(variation.price),
             attributes: Object.fromEntries(
               Object.entries(chosen).map(([name, value]) => [
                 name,

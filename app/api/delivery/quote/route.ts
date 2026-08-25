@@ -2,6 +2,7 @@ import { quoteDelivery, type LatLng } from "@/lib/delivery";
 import { describeLocation, locateAddress, mapsEnabled } from "@/lib/geocode";
 import { getDeliveryRates } from "@/lib/site-settings";
 import { APP_WRITE_CORS_HEADERS, appPreflight } from "@/lib/app-api";
+import { clientIp, enforceRateLimit, MONEY_LIMITS } from "@/lib/rate-limit";
 
 /**
  * Prices one delivery.
@@ -21,11 +22,41 @@ type QuoteBody = {
   subtotal?: number;
 };
 
+/**
+ * The longest address worth geocoding.
+ *
+ * Google charges per request and does not charge less for nonsense, so a
+ * caller sending kilobyte strings should be refused here rather than at the
+ * billing account. Nobody types their gate in more than this.
+ */
+const MAX_ADDRESS_LENGTH = 200;
+
 async function quote(request: Request): Promise<Response> {
+  /* ---- Why an endpoint that only quotes needs a limit ----
+   *
+   * This one costs money per call. The `address` branch below invokes the Maps
+   * Geocoding API, and so does `describeLocation` on every successful quote —
+   * so an unauthenticated loop here is a bill on the shop's Google account and,
+   * once the daily quota is gone, a checkout that can no longer price delivery
+   * for anybody.
+   *
+   * Forty per ten minutes per address. A shopper dragging a pin around and
+   * trying two or three spellings of their neighbourhood is nowhere near it. */
+  const throttled = await enforceRateLimit(
+    "delivery-quote",
+    clientIp(request),
+    MONEY_LIMITS.deliveryQuote
+  );
+  if (throttled) return throttled;
+
   let body: QuoteBody;
   try {
     body = await request.json();
   } catch {
+    return Response.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
@@ -41,8 +72,15 @@ async function quote(request: Request): Promise<Response> {
     Math.abs(body.point.lng) <= 180
   ) {
     point = { lat: body.point.lat, lng: body.point.lng };
-  } else if (body.address?.trim()) {
-    point = await locateAddress(body.address.trim());
+  } else if (typeof body.address === "string" && body.address.trim()) {
+    const address = body.address.trim();
+    if (address.length > MAX_ADDRESS_LENGTH) {
+      return Response.json(
+        { error: "That address is too long. Try a nearby landmark or suburb." },
+        { status: 422 }
+      );
+    }
+    point = await locateAddress(address);
   }
 
   if (!point) {

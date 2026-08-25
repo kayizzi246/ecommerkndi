@@ -72,7 +72,27 @@ type AttributeRow = { name: string; values: string[]; options: AttributeOptionRo
  * app-shaped, so the availability rule can be the same rule in both clients
  * instead of two implementations that drift.
  */
-type VariationRow = { attributes: Record<string, string>; inStock: boolean };
+type VariationRow = {
+  /**
+   * The variation's own WooCommerce id.
+   *
+   * Newly sent, and the app needs it for a reason the availability table did
+   * not cover. Knowing WHICH combinations exist was enough to stop offering
+   * dead options; it was never enough to place a correct order. The app posted
+   * the parent product id plus the chosen options as free text, so WooCommerce
+   * priced the order from the parent and moved the parent's stock — a size that
+   * costs more sold at the base price, and a sold-out size kept selling.
+   *
+   * Additive, like `options` above: a phone running the previous build ignores
+   * the field. Those builds now get a clear refusal from the order endpoint
+   * rather than a quietly wrong order, which is the right way round.
+   */
+  id: number;
+  /** This variation's own price, so the app can show what the choice costs. */
+  price: number;
+  attributes: Record<string, string>;
+  inStock: boolean;
+};
 
 export async function GET(
   _request: Request,
@@ -165,6 +185,12 @@ export async function GET(
    * takes when `product.variations` is undefined.
    */
   const variations: VariationRow[] = (product.variations ?? []).map((variation) => ({
+    // 0 when the WordPress plugin on the server predates variation ids. The app
+    // reads that as "this deployment cannot identify variations" and sends
+    // none, which the order endpoint refuses in words rather than mispricing
+    // the order.
+    id: variation.id ?? 0,
+    price: variation.price ?? product.price,
     attributes: variation.attributes,
     inStock: variation.is_in_stock,
   }));

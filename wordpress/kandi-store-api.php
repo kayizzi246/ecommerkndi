@@ -258,6 +258,19 @@ function kandi_format_product( $product, $with_description = false ) {
 			}
 
 			$variations_data[] = array(
+				// The variation's own post id, which is what an order line must
+				// carry to be an order for THIS size rather than for the parent
+				// product with a note attached. Until it was sent, the
+				// storefront had no way to name the thing the shopper picked:
+				// it posted the parent id plus free text, so WooCommerce priced
+				// and stocked the parent. See the `variation_id` handling in
+				// the orders route below.
+				'id'          => $variation_product->get_id(),
+				// The variation's own price, so the storefront can show what
+				// this size actually costs once it is chosen. The order is
+				// still priced server-side from this same product — this is for
+				// the label, never for the total.
+				'price'       => (float) wc_get_price_to_display( $variation_product ),
 				'attributes'  => $variation_attributes,
 				'is_in_stock' => $variation_product->is_in_stock(),
 			);
@@ -290,7 +303,28 @@ function kandi_format_product( $product, $with_description = false ) {
 	);
 
 	if ( $with_description ) {
-		$data['description'] = wpautop( $product->get_description() );
+		/* ---- Filtered before it leaves, not after it arrives ----
+		 *
+		 * The storefront renders this with `dangerouslySetInnerHTML`, because a
+		 * description that is genuinely a table or a size chart has to arrive as
+		 * markup. That made this line the one place where whatever was in a
+		 * product's post body reached a shopper's browser and ran.
+		 *
+		 * "Only trusted admins write descriptions" does not hold here. This is a
+		 * marketplace — sellers create their own listings through the Seller
+		 * Centre — and descriptions are routinely pasted in from supplier sites,
+		 * which is precisely how markup nobody read gets into a database.
+		 *
+		 * `wp_kses_post()` is WordPress's own allowlist for post content: it
+		 * keeps the formatting, the tables and the images, and removes script,
+		 * iframes, event handlers and `javascript:` URLs. Applied BEFORE
+		 * `wpautop()` so the paragraph tags it adds are not then re-inspected
+		 * by a filter that has already done its job.
+		 *
+		 * The storefront filters again on the rendering side — see
+		 * `lib/sanitize-html.ts`. Two copies on purpose: a storefront should not
+		 * be one plugin version away from trusting whatever a backend sends it. */
+		$data['description'] = wpautop( wp_kses_post( $product->get_description() ) );
 	}
 
 	/**
@@ -658,16 +692,99 @@ add_action( 'rest_api_init', function () {
 					$order->delete( true );
 					return new WP_Error( 'kandi_bad_product', "Product {$product_id} is not available.", array( 'status' => 400 ) );
 				}
-				if ( ! $product->is_in_stock() ) {
+
+				/* ---- The variation, checked rather than described ----
+				 *
+				 * The order used to record the PARENT product plus the chosen
+				 * options as free-text meta, and nothing else. WooCommerce was
+				 * never told which variation it was, so three things were wrong
+				 * at once and none of them was visible until the shop went to
+				 * pack the parcel:
+				 *
+				 *   • It was priced from the parent. A shirt whose XL costs
+				 *     more than its S was sold at the S price whichever was
+				 *     picked.
+				 *   • Stock moved on the parent. Size 38 could be sold a
+				 *     hundred times over while WooCommerce still called it in
+				 *     stock, because the parent's stock was what decremented.
+				 *   • Nothing checked the combination existed. `Size: 999` was
+				 *     written onto the order as though it were real.
+				 *
+				 * The storefront now sends the variation's own id, and this is
+				 * the check that makes sending it meaningful. The id must be a
+				 * real variation OF THIS PARENT — otherwise a tampered request
+				 * could name a cheap variation of an entirely different product
+				 * and buy an expensive one at its price — and it must be
+				 * purchasable in its own right.
+				 *
+				 * A variable product with no variation named is refused rather
+				 * than quietly sold as its parent, which is what produced the
+				 * mispriced orders in the first place. */
+				$variation_id = isset( $item['variation_id'] ) ? (int) $item['variation_id'] : 0;
+				$purchasable  = $product;
+
+				if ( $variation_id > 0 ) {
+					$variation = wc_get_product( $variation_id );
+
+					if ( ! $variation || ! $variation->is_type( 'variation' ) || $variation->get_parent_id() !== $product_id ) {
+						$order->delete( true );
+						return new WP_Error(
+							'kandi_bad_variation',
+							"That option is no longer available for '{$product->get_name()}'. Please choose again.",
+							array( 'status' => 400 )
+						);
+					}
+
+					$purchasable = $variation;
+				} elseif ( $product->is_type( 'variable' ) ) {
+					$order->delete( true );
+					return new WP_Error(
+						'kandi_variation_required',
+						"Please choose the options for '{$product->get_name()}' before ordering.",
+						array( 'status' => 400 )
+					);
+				}
+
+				// Asked of the variation when there is one, so a sold-out size
+				// under an in-stock product is refused.
+				if ( ! $purchasable->is_in_stock() ) {
 					$order->delete( true );
 					return new WP_Error( 'kandi_out_of_stock', "'{$product->get_name()}' is out of stock.", array( 'status' => 400 ) );
 				}
 
-				$item_id = $order->add_product( $product, $quantity );
+				// And that there is enough of it. `is_in_stock()` answers a
+				// yes/no; a shopper ordering ten of something with three left
+				// gets past it and the shop discovers the shortfall at packing
+				// time. Skipped when the seller does not count stock at all,
+				// which is most of this catalogue.
+				if ( $purchasable->managing_stock() && ! $purchasable->has_enough_stock( $quantity ) ) {
+					$order->delete( true );
+					return new WP_Error(
+						'kandi_insufficient_stock',
+						sprintf(
+							"There are only %d of '%s' left.",
+							(int) $purchasable->get_stock_quantity(),
+							$product->get_name()
+						),
+						array( 'status' => 400 )
+					);
+				}
+
+				// `add_product` with the variation records the real variation id
+				// on the line, so WooCommerce prices it, reduces ITS stock, and
+				// shows it as a proper variation in wp-admin and on the invoice.
+				$item_id = $order->add_product( $purchasable, $quantity );
 
 				// Chosen options (e.g. Size: 38) are stored as order item meta so
 				// they show up on the order in wp-admin.
-				if ( $item_id && ! empty( $item['options'] ) && is_array( $item['options'] ) ) {
+				//
+				// Only when the line is NOT a variation. A variation line
+				// already carries its attributes, recorded by WooCommerce from
+				// the variation itself, and adding the free text on top prints
+				// every choice twice on the invoice — once as WooCommerce knows
+				// it and once as the browser said it. Where the two disagree,
+				// the second is the one that is wrong.
+				if ( $item_id && 0 === $variation_id && ! empty( $item['options'] ) && is_array( $item['options'] ) ) {
 					foreach ( $item['options'] as $option_name => $option_value ) {
 						if ( is_scalar( $option_value ) && '' !== $option_value ) {
 							wc_add_order_item_meta(

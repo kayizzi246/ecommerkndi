@@ -1,4 +1,5 @@
 import { settlePesapalPayment } from "@/lib/pesapal-settle";
+import { clientIp, enforceRateLimit, MONEY_LIMITS } from "@/lib/rate-limit";
 
 /**
  * Whether a payment the mobile app started has gone through yet.
@@ -33,9 +34,31 @@ import { settlePesapalPayment } from "@/lib/pesapal-settle";
  * issued and which this endpoint hands straight back to Pesapal to ask about.
  * Guessing one buys nothing: the answer is a boolean about somebody else's
  * order, and the settling it triggers is the outcome Pesapal already decided.
+ *
+ * ---- Public, but not free ----
+ *
+ * "Guessing a tracking id buys nothing" is about CONFIDENTIALITY, and it holds.
+ * It says nothing about cost, and this endpoint is expensive: every call makes
+ * the server ask Pesapal for a status and then, on a paid one, ask WordPress to
+ * settle it. Unthrottled, a loop here spends the shop's Pesapal quota and
+ * WordPress's capacity for as long as it likes, from anywhere, with no
+ * credential at all.
+ *
+ * So it is rate limited by source address, at a ceiling set from what the app
+ * actually does. The app polls while the shopper is away paying — every few
+ * seconds for a minute or two — and `MONEY_LIMITS.paymentStatus` clears that
+ * comfortably. A shopper who somehow exhausts it loses nothing: the IPN settles
+ * the order server-to-server whether or not anybody is polling.
  */
 
 export async function POST(request: Request) {
+  const throttled = await enforceRateLimit(
+    "payment-status",
+    clientIp(request),
+    MONEY_LIMITS.paymentStatus
+  );
+  if (throttled) return throttled;
+
   let body: { order_tracking_id?: string; merchant_reference?: string };
   try {
     body = await request.json();

@@ -53,6 +53,25 @@ export type AppProduct = {
   categorySlug: string | null;
   sellerName: string | null;
   isNew: boolean;
+  /**
+   * Whether buying this needs a choice made first — a size, a colour.
+   *
+   * ---- Why a tile needs to know ----
+   *
+   * The app's product tiles carry an add-to-basket button. A tile cannot show
+   * a size picker, so without this field that button has two options and both
+   * are wrong: refuse to exist (and the feature is gone for the 90% of the
+   * catalogue that is a simple product), or add the line anyway — which is how
+   * an order for a shoe reaches wp-admin with no size on it and somebody has
+   * to ring the customer.
+   *
+   * With it the tile can add simple products in one tap and send the rest to
+   * the product page, where the picker is. The threshold is TWO options,
+   * matching the detail screen: a one-value attribute is a fact about the
+   * product ("Material: Cotton"), not a question, and it is pre-selected
+   * there rather than asked.
+   */
+  hasOptions: boolean;
 };
 
 const NEW_WINDOW_DAYS = 30;
@@ -156,6 +175,7 @@ export function toAppProduct(product: Product): AppProduct {
     categorySlug: product.categories[0]?.slug ?? null,
     sellerName: product.seller?.store_name ?? null,
     isNew: isNewListing(product.date_created),
+    hasOptions: product.attributes.some((a) => a.options.length > 1),
   };
 }
 

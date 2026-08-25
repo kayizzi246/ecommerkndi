@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
+import { matchVariation, variationPrice } from "@/lib/variation-match";
 
 export type SheetIntent = "cart" | "buy";
 
@@ -97,11 +98,20 @@ export default function VariantSheet({
       return;
     }
 
+    // Which variation that choice actually is. Resolved here because this is
+    // one of only two places holding the variation matrix — see
+    // `lib/variation-match.ts` for why the basket needs the id and not just the
+    // words the shopper picked.
+    const variation = matchVariation(product, selected);
+
     addItem(
       {
         productId: product.id,
+        variationId: variation?.id,
         name: product.name,
-        price: product.price,
+        // The variation's own price when it has one, so a basket line for an XL
+        // shows the XL's price rather than the parent's.
+        price: variationPrice(product, selected),
         image: product.image,
         options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
       },

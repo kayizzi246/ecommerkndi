@@ -33,6 +33,20 @@ export async function POST(request: Request) {
     return Response.json(data, { status });
   }
 
-  await setOwnerCookie(passcode);
+  // The session cookie is encrypted, and encryption needs a key. A server with
+  // no session secret cannot start a session, and saying so is better than the
+  // alternative it replaced — writing the passcode into the browser in plain
+  // text because the safe path was unavailable.
+  if (!(await setOwnerCookie(passcode))) {
+    console.error(
+      "[kandi-owner] cannot seal the owner session — set KANDI_SESSION_SECRET " +
+        "(or KANDI_API_SECRET) in the environment."
+    );
+    return Response.json(
+      { message: "The shop is not configured to hold a sign-in. Please contact support." },
+      { status: 503 }
+    );
+  }
+
   return Response.json(data, { status: 200 });
 }

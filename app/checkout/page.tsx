@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
+import TurnstileWidget from "@/components/TurnstileWidget";
 import DeliveryPicker, { type DeliveryResult } from "@/components/DeliveryPicker";
 import { saveAddress } from "@/lib/saved-addresses";
 import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
 import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
+import { useCommerceTerms } from "@/lib/commerce-terms";
 
 const labelClass = "mb-1 block text-[13.5px] font-semibold text-shop-ink";
 
@@ -96,6 +98,21 @@ export default function CheckoutPage() {
   const [delivery, setDelivery] = useState<DeliveryResult | null>(null);
 
   /**
+   * The Turnstile token, and the counter that asks for a fresh one.
+   *
+   * Null is the normal state on a shop that has not configured Turnstile — the
+   * widget renders nothing and the server passes the request through. See
+   * `components/TurnstileWidget.tsx`.
+   *
+   * `turnstileNonce` is bumped after every submit because Cloudflare accepts a
+   * token exactly once. Without it, a shopper whose first attempt failed for
+   * any reason — a wrong phone number, a declined card — would send a spent
+   * token on their second and be told they were a robot.
+   */
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
+
+  /**
    * The four fields the location picker can fill in.
    *
    * Controlled, unlike the rest of the form, because sharing a location has to
@@ -130,6 +147,27 @@ export default function CheckoutPage() {
   const deliveryFee = delivery?.deliverable ? delivery.fee : 0;
   const total = subtotal + deliveryFee;
 
+  /* ---- The last free-delivery nudge, and the only one that costs money ----
+
+     The product page, the side cart and `/cart` all quote this shortfall. The
+     checkout — the one screen where the shopper is looking at a real delivery
+     charge, in shillings, against their own address — did not, so the moment a
+     fee is most likely to be resented was the moment the shop stopped
+     mentioning that it was avoidable.
+
+     Both figures come from wp-admin through `useCommerceTerms`, the same
+     setting `getDeliveryRates` prices against on the server, so the line below
+     cannot promise a threshold the quote will not honour. */
+  const { freeDeliveryFrom } = useCommerceTerms();
+  const freeDeliveryShortfall =
+    freeDeliveryFrom > 0 && subtotal < freeDeliveryFrom
+      ? freeDeliveryFrom - subtotal
+      : 0;
+  /* Only once there IS a fee on screen. Shown before the address is entered it
+     is a hypothetical; shown beside "UGX 8,000" it is an offer. */
+  const showFreeDeliveryNudge =
+    freeDeliveryShortfall > 0 && Boolean(delivery?.deliverable) && deliveryFee > 0;
+
   const phoneValid = isUgPhone(addressFields.phone);
   const phoneError = touched.phone && addressFields.phone.trim() !== "" && !phoneValid;
 
@@ -145,15 +183,27 @@ export default function CheckoutPage() {
   const codZone = codZoneFor(delivery?.point);
   const codAllowed = Boolean(codZone);
 
-  /* Moving the pin out of a cash-on-delivery area silently changes what the
-     shop can accept, so the selection follows the address rather than waiting
-     to fail on submit. Falling back to mobile money rather than card because it
-     is what most of this shop pays with. */
-  useEffect(() => {
-    if (method === "cod" && !codAllowed && pesapalReady) {
-      setMethod("mobile");
-    }
-  }, [method, codAllowed, pesapalReady]);
+  /* ---- The payment method the shopper has, as opposed to the one they picked ----
+   *
+   * Moving the pin out of a cash-on-delivery area silently changes what the
+   * shop can accept, so the selection has to follow the address rather than
+   * waiting to fail on submit. Falling back to mobile money rather than card
+   * because it is what most of this shop pays with.
+   *
+   * DERIVED, not corrected in an effect. It used to be a `useEffect` that
+   * called `setMethod("mobile")` when the chosen method stopped being
+   * available, which React's linter flags — and rightly: it renders once with
+   * the impossible selection, sets state, and renders again. On this screen
+   * that first render is a moment where "Cash on delivery" is visibly selected
+   * in an area that cannot have it, and any code reading `method` in between —
+   * a submit landing on exactly that frame — sees the wrong value.
+   *
+   * Computing it during render removes the window entirely. `method` remains
+   * what the shopper actually clicked, so that when they move the pin back into
+   * a COD area their original choice returns rather than having been
+   * overwritten. */
+  const effectiveMethod: PaymentValue =
+    method === "cod" && !codAllowed && pesapalReady ? "mobile" : method;
 
   // Whether the shop can take card / mobile money at all. Asked once, so the
   // unavailable options are visibly disabled rather than failing on submit.
@@ -232,7 +282,7 @@ export default function CheckoutPage() {
        so reaching here means the address changed after it was picked — which is
        exactly the case that would otherwise post a COD order the shop does not
        accept. */
-    if (method === "cod" && !codAllowed) {
+    if (effectiveMethod === "cod" && !codAllowed) {
       setError(
         "Cash on delivery is not available in your area. " +
           "Choose mobile money or card for this address."
@@ -241,7 +291,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const viaPesapal = method !== "cod";
+    const viaPesapal = effectiveMethod !== "cod";
 
     try {
       // The order is created in WooCommerce first, either way. For a card or
@@ -251,15 +301,31 @@ export default function CheckoutPage() {
       // than nothing at all.
       const res = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          /* One key per ATTEMPT, so the server can tell "the shopper pressed the
+             button again" from "the request never arrived and the browser
+             resent it". Both look identical over the wire and only one of them
+             should produce a second order — see `lib/idempotency.ts`. Minted
+             here rather than once per session, because two deliberate orders in
+             a row are two orders and must not collapse into one. */
+          "Idempotency-Key": crypto.randomUUID(),
+        },
         body: JSON.stringify({
           customer,
-          items: items.map(({ productId, quantity, options }) => ({
+          items: items.map(({ productId, variationId, quantity, options }) => ({
             productId,
+            // Which variation, not just which words. Without it WooCommerce
+            // prices the order from the parent product and moves the parent's
+            // stock — see `lib/variation-match.ts`.
+            variationId,
             quantity,
             options,
           })),
-          payment_method: method,
+          payment_method: effectiveMethod,
+          // Null on a shop with no Turnstile keys, where the server does not
+          // ask for one either.
+          turnstile_token: turnstileToken,
           awaiting_payment: viaPesapal,
           // The point, not the price: the server re-quotes from it, so a
           // tampered fee cannot reach the order.
@@ -304,7 +370,17 @@ export default function CheckoutPage() {
         // real total and the real buyer from WooCommerce rather than trusting a
         // browser to state its own price. Sending them anyway invited the
         // reading that the two ends disagreed about the payload.
-        body: JSON.stringify({ purpose: { kind: "order", orderId: data.id } }),
+        body: JSON.stringify({
+          purpose: { kind: "order", orderId: data.id },
+          /* Proof that this browser is the one that placed the order.
+             `/api/payments/pesapal/start` used to accept a bare order id, and
+             WooCommerce order ids are sequential — so a loop could open a
+             payment against any order in the shop and read that buyer's name,
+             email, phone and address out of the quote that came back. The token
+             was minted by `/api/checkout` a moment ago; see
+             `lib/checkout-token.ts`. */
+          token: data.payment_token,
+        }),
       });
 
       const paymentData = await payment.json().catch(() => null);
@@ -344,6 +420,13 @@ export default function CheckoutPage() {
       setError("Network error. Check your connection and try again.");
     } finally {
       setSubmitting(false);
+      // Cloudflare accepts a Turnstile token exactly once, so the widget is
+      // reset whatever happened. A shopper correcting a phone number and
+      // pressing the button again must not be handed back a token their browser
+      // has already spent — that failure reads as "the shop thinks I am a
+      // robot" with nothing they can do about it.
+      setTurnstileToken(null);
+      setTurnstileNonce((current) => current + 1);
     }
   }
 
@@ -402,6 +485,30 @@ export default function CheckoutPage() {
           </dd>
         </div>
       </dl>
+
+      {/* The delivery fee, and how to stop paying it.
+          Deliberately a link back to the cart rather than to the shop front: the
+          shopper has a basket open and is one item short, so the useful
+          destination is the page that shows them what they already have with
+          suggestions beside it — not the homepage, which throws away the
+          context and reads like being sent back to the start. */}
+      {showFreeDeliveryNudge && (
+        <Link
+          href="/cart"
+          className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-shop-successbg px-3.5 py-2.5 text-[13.5px] leading-snug text-shop-body transition-colors hover:bg-shop-surface"
+        >
+          <span>
+            Add{" "}
+            <strong className="font-semibold text-shop-ink">
+              {formatPrice(freeDeliveryShortfall)}
+            </strong>{" "}
+            more and this delivery is free.
+          </span>
+          <span className="shrink-0 font-semibold text-shop-success underline underline-offset-4">
+            Add items
+          </span>
+        </Link>
+      )}
 
       <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
         <span className="text-[16px] font-medium text-shop-ink">Total</span>
@@ -682,7 +789,7 @@ export default function CheckoutPage() {
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
               {PAYMENT_METHODS.map((option) => {
-                const active = method === option.value;
+                const active = effectiveMethod === option.value;
                 // Card and mobile money both run through Pesapal; they are
                 // listed separately because that is how a shopper thinks about
                 // paying, and the Pesapal window opens on the right tab either
@@ -762,6 +869,13 @@ export default function CheckoutPage() {
                 {error}
               </p>
             )}
+
+            {/* Renders nothing at all unless the shop has set
+                NEXT_PUBLIC_TURNSTILE_SITE_KEY, and in Cloudflare's managed mode
+                most shoppers never see more than a moment's spinner. Placed
+                above the button rather than below it so a challenge that does
+                appear is not off the bottom of a phone screen. */}
+            <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileNonce} />
 
             <button
               type="submit"
