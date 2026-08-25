@@ -65,18 +65,35 @@ export default function EarningsCalculator({
   const netAfterFee = Math.max(0, net - registrationFee);
 
   return (
-    <div className="rounded-2xl border border-shop-line bg-white p-6 md:p-8">
-      <h3 className="text-[21px] font-extrabold text-shop-ink">What would you keep?</h3>
-      <p className="mt-1.5 text-[15px] text-shop-muted">
+    /* ---- The one surface on the page ----
+
+       Everything on /sell is drawn with hairlines, deliberately — it is a
+       document. This is the exception, and the exception is the argument: a
+       ring plus a low wide shadow is how an application draws a panel you
+       operate, and this panel has two live controls in it. Lifting it off the
+       warm ground is what tells the reader it is a thing to touch rather than
+       a thing to read, before they have read a word of it.
+
+       Two shadows, not one. The 1px at 4% is the contact edge that keeps the
+       card from floating; the 32px at 12% with a -12px spread is the ambient
+       one. A single mid-size shadow is what reads as a Bootstrap card.
+
+       `font-extrabold` came out everywhere below. Poppins is downloaded at 600
+       and 700 only and `font-synthesis-weight` is off, so 800 was rendering as
+       700 anyway — see the note in `page.tsx` about the headline that had the
+       same problem. Now the file says what the browser does. */
+    <div className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04),0_12px_32px_-12px_rgba(17,24,39,0.12)] ring-1 ring-shop-ink/[0.06] md:p-6">
+      <h3 className="text-[17px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
+      <p className="mt-1.5 text-[13.5px] leading-[1.55] text-shop-muted">
         Two numbers you already know. We take {commissionRate}% commission — nothing else is
         deducted.
       </p>
 
       {/* Items a month */}
-      <label className="mt-6 block">
+      <label className="mt-5 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[14px] font-semibold text-shop-body">Items sold a month</span>
-          <span className="text-[26px] font-extrabold leading-none text-shop-ink">
+          <span className="text-[13.5px] font-semibold text-shop-body">Items sold a month</span>
+          <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
             {units}
             {units === UNITS_MAX ? "+" : ""}
           </span>
@@ -91,17 +108,17 @@ export default function EarningsCalculator({
           className="calc-range mt-3 w-full"
           aria-label="Items sold a month"
         />
-        <span className="mt-1 flex justify-between text-[12px] text-shop-muted">
+        <span className="mt-1 flex justify-between text-[11.5px] text-shop-muted">
           <span>{UNITS_MIN}</span>
           <span>{UNITS_MAX}+</span>
         </span>
       </label>
 
       {/* Average price */}
-      <label className="mt-5 block">
+      <label className="mt-4 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[14px] font-semibold text-shop-body">Average selling price</span>
-          <span className="text-[26px] font-extrabold leading-none text-shop-ink">
+          <span className="text-[13.5px] font-semibold text-shop-body">Average selling price</span>
+          <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
             {formatPrice(price)}
           </span>
         </span>
@@ -115,26 +132,26 @@ export default function EarningsCalculator({
           className="calc-range mt-3 w-full"
           aria-label="Average selling price in Ugandan shillings"
         />
-        <span className="mt-1 flex justify-between text-[12px] text-shop-muted">
+        <span className="mt-1 flex justify-between text-[11.5px] text-shop-muted">
           <span>{formatPrice(PRICE_MIN)}</span>
           <span>{formatPrice(PRICE_MAX)}</span>
         </span>
       </label>
 
       {/* Result */}
-      <div className="mt-6 rounded-xl bg-pop-green-soft p-5">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-pop-green">
+      <div className="mt-5 rounded-xl bg-pop-green-soft p-4">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-pop-green">
           You keep, every month
         </p>
-        <p className="mt-1 text-[34px] font-extrabold leading-none text-pop-green">
+        <p className="mt-1.5 text-[24px] font-bold leading-none tracking-[-0.02em] text-pop-green tabular-nums">
           {formatPrice(net)}
         </p>
-        <p className="mt-1.5 text-[14px] text-shop-body">
+        <p className="mt-2 text-[13px] text-shop-body">
           {formatPrice(perItem)} per item · {formatPrice(yearlyNet)} over 12 months
         </p>
       </div>
 
-      <dl className="mt-4 space-y-2 text-[14px]">
+      <dl className="mt-4 space-y-2 text-[13px]">
         <Row label={`${units} items × ${formatPrice(price)}`} value={formatPrice(revenue)} />
         <Row
           label={`Kandi commission (${commissionRate}%)`}
@@ -144,7 +161,7 @@ export default function EarningsCalculator({
       </dl>
 
       {registrationFee > 0 && unitsToCoverFee > 0 && (
-        <p className="mt-4 rounded-xl bg-shop-hairline p-4 text-[14px] leading-relaxed text-shop-body">
+        <p className="mt-3.5 rounded-xl bg-shop-hairline p-3.5 text-[13px] leading-[1.6] text-shop-body">
           <strong className="text-shop-ink">
             The {formatPrice(registrationFee)} monthly fee
           </strong>{" "}
@@ -155,12 +172,12 @@ export default function EarningsCalculator({
         </p>
       )}
 
-      <p className="mt-4 text-[13px] leading-relaxed text-shop-muted">
+      <p className="mt-3.5 text-[12px] leading-[1.55] text-shop-muted">
         This is arithmetic on the figures you entered, not a projection. What you actually sell
         depends on your products, your pricing and your stock — we do not promise a number.
       </p>
 
-      <Link href="/seller/register" className="btn-shop mt-5 w-full py-3.5 text-[16px]">
+      <Link href="/seller/register" className="btn-shop mt-4 w-full py-3 text-[15px]">
         Get started
       </Link>
     </div>
