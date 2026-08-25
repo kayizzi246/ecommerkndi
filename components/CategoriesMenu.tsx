@@ -18,13 +18,70 @@ import type { CategoryNode } from "@/lib/woocommerce";
  * and a circle carrying the category's first letter reads as a broken image
  * rather than a design.
  *
- * The CSS column count does the layout. Groups are kept whole with
- * `break-inside-avoid`, so a department heading is never stranded at the foot of
- * one column with its children at the top of the next.
+ * ---- Why the layout is a packed grid and not `columns-4` ----
+ *
+ * It was CSS multi-column, with `break-inside-avoid` keeping each department
+ * whole. That produces the right words in roughly the right places and gets one
+ * thing wrong that the whole panel is judged on: the headings do not line up.
+ *
+ * A CSS column fills to a balanced HEIGHT, so the second group in column one
+ * starts wherever the first group happened to end — which is a different y from
+ * the second group in column two, and a different one again in column three. A
+ * reader scanning for a department gets a scatter of bold words at a dozen
+ * heights instead of a row of headings they can read across. On the reference
+ * this shop is measured against every column begins with a heading on the same
+ * baseline, each with a rule under it, and groups stack down from there.
+ *
+ * That shape needs the groups ASSIGNED to columns, not flowed into them, which
+ * CSS columns cannot express. {@link packColumns} does the assigning, and each
+ * column is then an ordinary flex stack — so every group starts where it was
+ * put, and every column starts with a heading at the top of the panel.
  */
 
 /** Children shown per department before the list is cut off. */
-const CHILDREN_SHOWN = 6;
+const CHILDREN_SHOWN = 10;
+
+/** Columns across the panel. Matches the widest step of the grid below. */
+const COLUMN_COUNT = 5;
+
+type Group = {
+  id: number | string;
+  name: string;
+  slug: string;
+  children: CategoryNode[];
+  /** Total children, before {@link CHILDREN_SHOWN} cut the list. */
+  total: number;
+};
+
+/**
+ * Distributes groups across a fixed number of columns, shortest column first.
+ *
+ * Greedy rather than optimal, because the thing being balanced is a menu and
+ * the cost of a column running two lines long is nothing. What matters is that
+ * a department is never split across a column boundary and that the columns end
+ * up near enough the same height that the panel does not read as a staircase.
+ *
+ * Height is counted in ROWS — one for the heading, one per child — rather than
+ * in pixels, because the two type sizes are close enough that a row is a fair
+ * unit and measuring would mean rendering first.
+ */
+function packColumns(groups: Group[], columnCount: number): Group[][] {
+  const columns: Group[][] = Array.from({ length: columnCount }, () => []);
+  const heights = new Array<number>(columnCount).fill(0);
+
+  for (const group of groups) {
+    let shortest = 0;
+    for (let index = 1; index < columnCount; index++) {
+      if (heights[index] < heights[shortest]) shortest = index;
+    }
+    columns[shortest].push(group);
+    // +2 rather than +1 for the heading: it carries the rule under it and the
+    // gap to the next group, which together are about a row's worth of space.
+    heights[shortest] += group.children.length + 2;
+  }
+
+  return columns;
+}
 
 export default function CategoriesMenu({ departments }: { departments: CategoryNode[] }) {
   const [open, setOpen] = useState(false);
@@ -59,12 +116,42 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
   // Two shapes arrive in this list. Real departments carry children; alongside
   // them sit categories that were promoted to the top level because their
   // parent was merged away by the de-duplication in `buildCategoryTree`.
-  //
-  // Grouped and bare entries look ragged mixed together — a heading with
-  // nothing under it reads as a group whose contents failed to load. So the
-  // bare ones are gathered into one list of their own at the end.
   const grouped = departments.filter((department) => department.children.length > 0);
   const loose = departments.filter((department) => department.children.length === 0);
+
+  const groups: Group[] = grouped.map((department) => ({
+    id: department.id,
+    name: department.name,
+    slug: department.slug,
+    children: department.children.slice(0, CHILDREN_SHOWN),
+    total: department.children.length,
+  }));
+
+  /* ---- The bare categories became a group like any other ----
+
+     They were a row of pill-shaped chips under the columns, on the argument
+     that they have no hierarchy to express and a flat list would read as one
+     more department.
+
+     Reading as one more department is exactly what they should do. A chip row
+     is a second visual language inside one panel, and it put a horizontal band
+     across the bottom of a layout whose entire logic is vertical — so the eye,
+     having learned to read down five columns, hit a row that runs across and
+     lost the thread. As a group with a heading they are one more column of
+     links, which is what they are: places to shop. */
+  if (loose.length > 0) {
+    groups.push({
+      id: "more",
+      name: grouped.length > 0 ? "More to shop" : "Shop by category",
+      // The heading is a label rather than a destination when it stands for a
+      // set with no parent of its own — /categories is the honest target.
+      slug: "",
+      children: loose,
+      total: loose.length,
+    });
+  }
+
+  const columns = packColumns(groups, COLUMN_COUNT);
 
   return (
     <div className="relative" onPointerEnter={show} onPointerLeave={scheduleClose}>
@@ -72,9 +159,6 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        // Bold and inked, matching the curated links it sits beside — this is
-        // the entry to the whole department tree and should not be the lightest
-        // thing in the row.
         /* Matched to the department links beside it — 13.5px at 400, colour
            rather than weight for the open state. The two are one row and a
            half-pixel of disagreement between them reads as a mistake. */
@@ -97,85 +181,117 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
 
       {open && (
         <div className="absolute left-0 top-full z-50 hidden pt-1 lg:block">
-          {/* Height follows the content rather than being fixed — a short
-              taxonomy gets a short panel instead of a wall of white. */}
-          <div className="max-h-[76vh] w-[940px] max-w-[94vw] overflow-y-auto rounded-lg border border-shop-line bg-white p-6 shadow-[0_12px_32px_rgba(23,23,23,0.10)]">
-            <div className="columns-4 gap-x-7 [column-fill:balance]">
-              {grouped.map((department) => {
-                const children = department.children.slice(0, CHILDREN_SHOWN);
-                const hidden = department.children.length - children.length;
+          {/* ---- The panel spans the page, not a card's worth of it ----
 
-                return (
-                  <div
-                    key={department.id}
-                    className="mb-5 break-inside-avoid"
-                  >
-                    <Link
-                      href={`/category/${department.slug}`}
-                      onClick={() => setOpen(false)}
-                      className="block text-[14px] font-semibold text-shop-ink transition-colors hover:text-shop-flame"
-                    >
-                      {department.name}
-                    </Link>
+              It was a 940px rounded box with a border, floating under the
+              button. Nine hundred pixels is half of the screens this shop is
+              read on, so five columns of links were crammed into the left half
+              of the window with the catalogue showing through beside them —
+              and the rounded card read as a dropdown belonging to the button
+              rather than as the shop's own index.
 
-                    {children.length > 0 && (
-                      <ul className="mt-1.5 space-y-1">
-                        {children.map((child) => (
+              It is the width of the page's content column now: `100vw` less
+              the nav row's own `md:px-8` gutters, capped at the shell so it
+              stops growing where the page stops growing. The two edges then
+              line up with everything else on the page, which is what makes it
+              read as full-bleed without the panel actually having to escape
+              its container — a trick worth preferring to `position: fixed`,
+              which would have to be told the header's height and would be
+              wrong the moment the masthead changed.
+
+              Square corners and no border for the same reason: the shadow and
+              the page edge do the separating, and a hairline box around
+              something this wide draws attention to the container instead of
+              the contents. */}
+          <div className="max-h-[76vh] w-[calc(100vw-4rem)] max-w-[calc(var(--shell)-4rem)] overflow-y-auto rounded-b-lg bg-white px-7 py-7 shadow-[0_16px_40px_rgba(23,23,23,0.13)] ring-1 ring-shop-ink/[0.05]">
+            {/* Five columns at every width this panel is shown at, which is
+                `lg` and up — the grid MUST agree with `COLUMN_COUNT` or the
+                packing is wrong. A responsive `grid-cols-3 xl:grid-cols-5`
+                looks reasonable and quietly breaks the whole point of packing:
+                three columns cannot hold five, so the fourth and fifth wrap to
+                a second row, and their headings sit at a y nothing else shares.
+
+                At the narrow end — a 1024px window — five columns of this panel
+                are about 155px each, which a 13px category name fits. Below
+                `lg` none of this renders; the drawer serves that width. */}
+            <div className="grid grid-cols-5 gap-x-6 xl:gap-x-8">
+              {columns.map((column, index) => (
+                // Keyed by position, which is stable: the column count is a
+                // constant and packing is deterministic for a given tree.
+                <div key={index} className="flex flex-col gap-7">
+                  {column.map((group) => (
+                    <div key={group.id}>
+                      {/* ---- The heading, and the rule under it ----
+
+                          The rule is what turns a column of links into a named
+                          group. Without it a bold word at the top of a stack is
+                          just the first link set heavier, which is how the old
+                          panel read — and it is the single clearest thing the
+                          reference does that this did not.
+
+                          It runs the width of the column rather than a fixed
+                          length, so the five of them draw one line across the
+                          top of the panel that the eye reads as a header row. */}
+                      {group.slug ? (
+                        <Link
+                          href={`/category/${group.slug}`}
+                          onClick={() => setOpen(false)}
+                          className="block border-b border-shop-line pb-2 text-[13.5px] font-bold tracking-[-0.01em] text-shop-ink transition-colors hover:text-shop-flame"
+                        >
+                          {group.name}
+                        </Link>
+                      ) : (
+                        <p className="block border-b border-shop-line pb-2 text-[13.5px] font-bold tracking-[-0.01em] text-shop-ink">
+                          {group.name}
+                        </p>
+                      )}
+
+                      <ul className="mt-2.5 space-y-[7px]">
+                        {group.children.map((child) => (
                           <li key={child.id}>
                             <Link
                               href={`/category/${child.slug}`}
                               onClick={() => setOpen(false)}
-                              className="block text-[13px] leading-5 text-shop-muted transition-colors hover:text-shop-flame"
+                              className="block text-[13px] leading-5 text-shop-body transition-colors hover:text-shop-flame"
                             >
                               {child.name}
                             </Link>
                           </li>
                         ))}
 
-                        {hidden > 0 && (
+                        {group.total > group.children.length && group.slug && (
                           <li>
                             <Link
-                              href={`/category/${department.slug}`}
+                              href={`/category/${group.slug}`}
                               onClick={() => setOpen(false)}
-                              className="block text-[13px] font-medium leading-5 text-shop-flame hover:underline"
+                              className="block text-[13px] font-semibold leading-5 text-shop-flame hover:underline"
                             >
-                              +{hidden} more
+                              View all
                             </Link>
                           </li>
                         )}
                       </ul>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
 
-            {loose.length > 0 && (
-              <div className={grouped.length > 0 ? "mt-1 border-t border-shop-line pt-5" : ""}>
-                {grouped.length > 0 && (
-                  <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-shop-faint">
-                    More to shop
-                  </p>
-                )}
-
-                {/* Chips rather than another column of text: these have no
-                    hierarchy to express, and a flat list of links under the
-                    grouped columns would read as one more department. */}
-                <ul className="flex flex-wrap gap-2">
-                  {loose.map((category) => (
-                    <li key={category.id}>
-                      <Link
-                        href={`/category/${category.slug}`}
-                        onClick={() => setOpen(false)}
-                        className="block rounded-full border border-shop-line px-3.5 py-1.5 text-[13px] text-shop-body transition-colors hover:border-shop-primary hover:text-shop-flame"
-                      >
-                        {category.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* One way into the full tree, at the foot of the panel. The old
+                layout had no such link at all: a shopper who could not see
+                their category in the columns had nowhere left to go. */}
+            <div className="mt-7 border-t border-shop-line pt-4">
+              <Link
+                href="/categories"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-shop-ink transition-colors hover:text-shop-flame"
+              >
+                All categories
+                <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
         </div>
       )}
