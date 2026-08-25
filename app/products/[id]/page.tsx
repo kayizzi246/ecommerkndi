@@ -11,6 +11,7 @@ import {
   productTitle,
 } from "@/lib/seo";
 import { formatPrice } from "@/lib/currency";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import ProductViewPing from "@/components/ProductViewPing";
@@ -334,8 +335,10 @@ export default async function ProductPage({
         ratingAverage={reviews.average_rating}
         ratingCount={reviews.rating_count}
         ratingBreakdown={ratingBreakdown}
-      />
-
+      >
+      {/* Nested rather than placed after the row, so it lands in the left
+          column under the gallery instead of in a full-width band below a
+          column of white. See the grid note in `ProductPurchase`. */}
       <ProductTabs
         tabs={[
           {
@@ -359,7 +362,12 @@ export default async function ProductPage({
                   // constrained here: tables scroll rather than widen the page.
                   <div
                     className="mt-4 max-w-3xl text-[15px] leading-7 text-shop-body [&_img]:h-auto [&_img]:max-w-full [&_li]:my-1 [&_p]:my-3 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-5"
-                    dangerouslySetInnerHTML={{ __html: product.description }}
+                    // Run through the allowlist first — see `lib/sanitize-html.ts`.
+                    // WordPress applies `wp_kses_post()` before sending this, so
+                    // in a healthy deployment nothing is removed here; the
+                    // second pass exists so an out-of-date plugin on the server
+                    // cannot put script into a shopper's browser.
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                   />
                 )}
               </ExpandableContent>
@@ -369,9 +377,13 @@ export default async function ProductPage({
             id: "details",
             label: "Details & care",
             content: (
-              // Two columns on wide screens, so the spec list stops being a
-              // long vertical scroll.
-              <dl className="grid gap-x-12 gap-y-0 md:grid-cols-2">
+              // One column, deliberately. This used to run two-up on wide
+              // screens, back when the panel had the full width of the page;
+              // it now sits in the left column beside the buy box, and
+              // `md:` is a VIEWPORT query — it would still have split a ~580px
+              // column into two, putting a 160px label and its value into
+              // roughly 130px each.
+              <dl className="grid gap-x-12 gap-y-0">
                 {detailRows.map(([label, value]) => (
                   <div
                     key={label}
@@ -388,7 +400,10 @@ export default async function ProductPage({
             id: "shipping",
             label: "Shipping & returns",
             content: (
-              <div className="grid max-w-4xl gap-8 text-[15px] leading-7 text-shop-body md:grid-cols-3">
+              // Stacked for the same reason as the spec list above: three
+              // columns of prose inside the left column would be three ~180px
+              // ribbons.
+              <div className="grid max-w-4xl gap-6 text-[15px] leading-7 text-shop-body">
                 <div>
                   <p className="mb-1.5 font-semibold text-shop-ink">Delivery</p>
                   <p>
@@ -421,6 +436,7 @@ export default async function ProductPage({
           },
         ]}
       />
+      </ProductPurchase>
 
       {/* ---- You may also like ----
            An endless grid rather than the five-tile rail this used to be.

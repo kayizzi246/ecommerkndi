@@ -69,6 +69,16 @@ export default function ProductPurchase({
   ratingAverage = 0,
   ratingCount = 0,
   ratingBreakdown = [],
+  /**
+   * The description and spec tabs, rendered in the left column under the
+   * gallery.
+   *
+   * Passed as children from the server page rather than built here: the tabs
+   * are made of the product's imported HTML, the settings-driven shipping copy
+   * and a sanitiser that all belong on the server. A slot keeps them there —
+   * this component only decides WHERE the block sits, not what is in it.
+   */
+  children,
 }: {
   product: Product;
   isNew: boolean;
@@ -77,6 +87,7 @@ export default function ProductPurchase({
   ratingAverage?: number;
   ratingCount?: number;
   ratingBreakdown?: number[];
+  children?: React.ReactNode;
 }) {
   const [activeImage, setActiveImage] = useState<string | null>(product.image);
   const [modal, setModal] = useState<Modal>(null);
@@ -134,26 +145,44 @@ export default function ProductPurchase({
 
   return (
     <>
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 rounded-lg bg-white p-0 lg:flex-row lg:items-start lg:gap-8">
+      {/* ---- The row, as a two-column grid rather than a flex row ----
+
+           Flex could only ever put two things side by side, so the description
+           and the spec tabs had to live in a full-width section BELOW the row —
+           and on a wide screen that left a column of white the height of the
+           buy box, directly under the photograph, with the copy that sells the
+           product pushed under it. The screenshot that prompted this shows it:
+           the left half of the page is empty from the gallery to the fold.
+
+           A grid can put a third block in the left column instead. `children`
+           is that block — the tabs — placed in row 2 of column 1, with the buy
+           box spanning both rows on the right. There is one copy of the markup,
+           not a `lg:hidden` duplicate: two copies of a description is two
+           copies in the DOM for a crawler to read and two `ExpandableContent`
+           states to disagree with each other.
+
+           On a phone the grid collapses back to the flex column and DOM order
+           decides: gallery, buy box, then description. The buy box must not end
+           up below the copy on the screen where it is hardest to reach. */}
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8 lg:gap-y-6">
         {/* ---- Gallery ----
-             Bigger, and the page around it is wider to pay for it: the row is
-             capped at 1320px rather than 1180, and the gallery takes 52% of it
-             up to 720px.
+             44% of the row, capped at 560px including the thumbnail rail — so
+             the frame itself lands near 480 square.
 
-             The old 460px cap came from a real problem — the photograph had been
-             running to 680px in a narrow row and pushing the price and Add to
-             cart below the fold. Shrinking the picture fixed the fold at the
-             expense of the thing the shopper came to look at. Widening the row
-             fixes it the other way round: at 1320 there is enough width for a
-             large photograph *and* a buy box that still starts at the top of the
-             screen, which is what the reference layout does. The buy box copy
-             was tightened in the same pass, so it needs less height than it did.
+             It was 52% and 720px, and this is the second time the cap has moved.
+             The first move made it BIGGER, to fix a photograph squeezed into a
+             narrow row; that was right at the time and is wrong now, because the
+             column no longer ends at the bottom of the picture. The description
+             sits under it, so the gallery is competing for the same space as the
+             copy that sells the thing rather than with white.
 
-             The 720px cap is on the whole gallery, thumbnail rail included, so
-             the frame itself lands at about 650 — roughly the size the reference
-             renders and comfortably the largest thing on the page. */}
-        <div className="w-full lg:basis-[52%]">
-          <div className="mx-auto w-full max-w-[720px] lg:mx-0">
+             480 square is still the largest object on the page and still bigger
+             than the thumbnails a shopper arrived from. Past roughly that size a
+             product photograph stops answering new questions — the shopper who
+             wants a closer look taps it and gets the 900px lightbox, which is
+             where the detail actually lives. */}
+        <div className="w-full lg:col-start-1 lg:row-start-1">
+          <div className="mx-auto w-full max-w-[560px] lg:mx-0">
             <ImageGallery
               images={images}
               productName={product.name}
@@ -167,8 +196,29 @@ export default function ProductPurchase({
           </div>
         </div>
 
-        {/* Buy box */}
-        <div className="w-full lg:basis-[48%]">
+        {/* ---- Buy box, pinned ----
+             Spans both grid rows on the right and sticks to the top of the
+             viewport, so the price, the size picker and the two buttons stay on
+             screen while the shopper reads the description beside them. That is
+             the whole point of moving the copy into the left column: a shopper
+             who has just been convinced by a spec line should not have to scroll
+             back up to act on it.
+
+             `top-[112px]` clears the desktop masthead. The masthead slides away
+             on scroll DOWN and returns on scroll UP (see `Header`), so the offset
+             only matters in the one direction where it would otherwise sit on
+             top of the price.
+
+             `self-start` is what makes sticky work at all here: a stretched grid
+             item is exactly as tall as its area and has nowhere to travel. It is
+             set explicitly rather than left to the row's `items-start`, so the
+             pinning does not quietly stop working the day someone changes the
+             row's alignment.
+
+             Below `lg` none of this applies — the column is a block in a flex
+             stack, and `StickyBuyBar` already pins the actions to the foot of a
+             phone screen. */}
+        <div className="w-full lg:sticky lg:top-[112px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
           {/* ---- Title ----
                The fulfilment badge runs inline with the name rather than above
                it, so it costs no line of its own, and the name itself is set at
@@ -585,6 +635,16 @@ export default function ProductPurchase({
 
           <TrustStrip className="mt-4" />
         </div>
+
+        {/* ---- The copy, under the picture ----
+             Row 2 of the left column: description, spec table and the shipping
+             terms, in the space that used to be blank. `min-w-0` because a
+             percentage-sized grid column does not stop an imported spec table
+             from widening it — without this a supplier's 900px table stretches
+             the column and pushes the buy box off the right of the page. */}
+        {children && (
+          <div className="w-full min-w-0 lg:col-start-1 lg:row-start-2">{children}</div>
+        )}
       </div>
 
       {/* Info dialogs */}
