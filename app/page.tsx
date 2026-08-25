@@ -9,7 +9,6 @@ import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import TrustBar from "@/components/home/TrustBar";
-import SellWithUs from "@/components/home/SellWithUs";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import Link from "next/link";
@@ -101,7 +100,6 @@ export default async function Home() {
     departmentRails,
     latest,
     latestTotalPages,
-    storeCount,
     departmentMinimum,
   } = await buildHomeFeed();
 
@@ -535,10 +533,31 @@ export default async function Home() {
 
         <TrustBar returnsDays={settings.commerce.returns_days} />
 
-        {/* Recruiting sellers at the foot of the page, after a shopper has seen
-            what the shop looks like — the trader worth having is the one who
-            liked the catalogue first. */}
-        <SellWithUs settings={settings} storeCount={storeCount} />
+        {/* ---- The seller recruitment panel is gone from here ----
+
+            It sat between the trust strip and the about block: an orange
+            eyebrow, a display headline, three terms of the deal and two
+            buttons, in a bordered panel the width of the page.
+
+            The argument for it was that the trader worth having is the one who
+            liked the catalogue first, so ask at the foot rather than on the way
+            in. That is still true, and it is still asked — "Sell on Kandi" is
+            in the department bar on every page of the shop, and it goes to
+            /sell, which is a page built to make this case at length and does it
+            far better than a panel can.
+
+            What the panel actually did here was end the shopping page on a
+            recruitment pitch. The reader who reaches the bottom of the
+            homepage is a shopper who has not bought anything yet, and the last
+            full screen they were given talked about commission rates and
+            payout schedules. `RecentlyViewed` directly above it is the right
+            answer to that reader — their own trail, handed back — and the
+            panel was stepping on it.
+
+            The component is still in the tree at `components/home/SellWithUs`
+            if this is wanted back; nothing else renders it. `storeCount` came
+            out of the destructure with it, but `buildHomeFeed` still computes
+            it because `/api/app/home` serves it to the phone app. */}
 
         {/* ---- About the shop, at the foot of the page ----
          *

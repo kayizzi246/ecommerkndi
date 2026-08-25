@@ -827,7 +827,21 @@ export default function ProductCard({
            has read forty times by the second screen, and it was costing 16px
            on every tile to say nothing. The stock warnings it shared a row with
            DO vary, so they stay — but only on the products they apply to. */}
-      <div className="flex flex-1 flex-col gap-0 pt-1.5">
+      {/* ---- The rows were each buying their own air, and it added up ----
+
+           `pt-1.5` under the photograph, `py-[3px]` on the meta row, another
+           `py-[3px]` on the swatches, `pt-[3px]` on the free-delivery line:
+           each of those is defensible on its own and together they were up to
+           15px of padding inside a block whose entire content is four rows of
+           11–13px type. Worse, the total DIFFERED per tile, because which rows
+           appear depends on the product — so the vertical distance from the
+           photograph to the price was a different number on almost every tile
+           in the grid, which is exactly the raggedness this was asked to fix.
+
+           They are `py-px` and `pt-px` now, and the block leans on the rows'
+           own `leading-*` for its rhythm instead. Leading is per-row and
+           uniform by construction; padding stacked on top of it is not. */}
+      <div className="flex flex-1 flex-col gap-0 pt-1">
         <Link href={href} className="block">
           {/* ---- One line, plain weight ----
 
@@ -913,8 +927,33 @@ export default function ProductCard({
             `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
             1.3 leading would otherwise open a 15.6px box under a tile that is
             trying to be short. */}
-        {(product.total_sales > 0 || product.rating_count > 0 || product.seller) && (
-          <div className="flex items-center gap-x-2 overflow-hidden py-[3px]">
+        {/* ---- The store name came off the tile ----
+
+            It used to ride the right-hand end of this row, and the argument for
+            it was a good one: this is a marketplace, the tiles in one grid come
+            from different shops, and the store is what a shopper uses to judge
+            a listing they know nothing else about.
+
+            What that argument missed is what the row does on the tiles with no
+            numbers in it. `product.seller` was one of the three conditions that
+            drew this row at all, so a product with no sales and no reviews —
+            most of a young catalogue — rendered a row containing nothing but a
+            store name pushed to the right by `ml-auto`, floating under a name
+            it was not aligned with. Down a grid of forty tiles the eye reads
+            that as forty rows of debris at forty different heights, which is
+            the opposite of what a store name was added to buy.
+
+            It is also the same words over and over. This catalogue is stocked
+            by a handful of shops, so "Sports Kicks" was printing on most tiles
+            on the screen — and a fact repeated on every tile stops being a way
+            to tell them apart, which was the entire point of showing it.
+
+            Nothing is lost: the store is named on the product page, where the
+            decision is actually made, and it has its own shop page linked from
+            there. The row now appears only when it has a NUMBER to carry, which
+            is what makes the block below the name uniform from tile to tile. */}
+        {(product.total_sales > 0 || product.rating_count > 0) && (
+          <div className="flex items-center gap-x-2 overflow-hidden py-px">
             {product.total_sales > 0 && (
               <span className="meta-note shrink-0 leading-none text-shop-muted">
                 {compactSold(product.total_sales)} sold
@@ -927,35 +966,6 @@ export default function ProductCard({
                   {product.average_rating.toFixed(1)}
                 </span>
               </span>
-            )}
-            {/* ---- Who is selling it ----
-                This is a marketplace: the tiles in one grid come from different
-                shops, and on every other marketplace the store name is the
-                thing a shopper uses to decide whether to trust a listing they
-                know nothing else about. It was the one fact on the tile that
-                the shop had and never showed.
-
-                It rides the meta row rather than taking one of its own, so on
-                the tiles that already show sales or a rating it costs no
-                height at all — and it is the item that gives way when the row
-                runs out of width, because a store name is context for the two
-                numbers beside it rather than a rival to them.
-
-                Hidden below `sm`: a 150px phone tile fits "2.2K sold" and five
-                stars and nothing more, and a store name squeezed to four
-                characters and an ellipsis identifies nobody.
-
-                Its own link, not the tile's — tapping the store should go to
-                the store. `relative z-10` keeps it above nothing in
-                particular today, but the tile has had an overlay link before
-                and this is the guard against the next one swallowing it. */}
-            {product.seller?.store_slug && (
-              <Link
-                href={`/sellers/${product.seller.store_slug}`}
-                className="meta-note relative z-10 ml-auto hidden min-w-0 truncate leading-none text-shop-muted transition-colors hover:text-shop-primary sm:block"
-              >
-                {product.seller.store_name}
-              </Link>
             )}
           </div>
         )}
@@ -971,7 +981,7 @@ export default function ProductCard({
             page, and a tile that let a colour be picked would be promising a
             preview it cannot show. */}
         {swatches.length > 0 && (
-          <div className="flex items-center gap-1 py-[3px]">
+          <div className="flex items-center gap-1 py-px">
             <span className="sr-only">
               Colours: {colorOptions.map((option) => option.name).join(", ")}
             </span>

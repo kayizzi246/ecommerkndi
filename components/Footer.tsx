@@ -76,37 +76,112 @@ export default function Footer({
     .filter((department) => (department.count ?? 0) > 0)
     .slice(0, FOOTER_DEPARTMENTS);
 
+  /* ---- The four promises, in one colour instead of four ----
+
+     These headings were green, blue, violet and orange — one hue each, in a
+     row, on black. Four hues picked to fill four slots rather than to mean
+     anything: nothing distinguishes returns-blue from payments-violet except
+     that they had to differ, and the row read as a set of unrelated badges
+     rather than as one statement the shop is making four times.
+
+     They are white now, with the icon carrying the single accent. That is the
+     same rule the rest of the shop follows — see the ONE ACCENT note on /sell —
+     and it is what lets the row be read as a group rather than scanned as four
+     separate objects.
+
+     The icons are what the colour was really for: a promise row wants a shape
+     the eye can catch at the foot of a long page, and a 16px stroked glyph does
+     that without spending a hue on it. */
   const serviceStrip = [
-    { title: "Free delivery", copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`, tone: "text-pop-green-on-dark" },
-    { title: "Easy returns", copy: `${commerce.returns_days} days to change your mind`, tone: "text-pop-blue-on-dark" },
-    { title: "Secure payments", copy: "Cash, MTN MoMo, Airtel Money, Visa", tone: "text-pop-violet-on-dark" },
-    { title: "Need help?", copy: `Call ${support.phone}`, tone: "text-pop-orange-on-dark" },
+    {
+      title: "Free delivery",
+      copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`,
+      icon: "M3 7.5A1.5 1.5 0 0 1 4.5 6h8A1.5 1.5 0 0 1 14 7.5V15H3V7.5ZM14 9h2.8a1.5 1.5 0 0 1 1.39.93L19 12v3h-5V9M7 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm11 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z",
+    },
+    {
+      title: "Easy returns",
+      copy: `${commerce.returns_days} days to change your mind`,
+      icon: "M3 9h13a4.5 4.5 0 0 1 0 9h-6M3 9l4-4M3 9l4 4",
+    },
+    {
+      title: "Secure payments",
+      copy: "Cash, MTN MoMo, Airtel Money, Visa",
+      icon: "M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 15.5v-7Zm0 2.5h18M6.5 14.5h3",
+    },
+    {
+      title: "Need help?",
+      copy: `Call ${support.phone}`,
+      icon: "M4 5.5A1.5 1.5 0 0 1 5.5 4h2.1a1 1 0 0 1 .96.73l.8 2.8a1 1 0 0 1-.42 1.1l-1.3.87a12 12 0 0 0 5.36 5.36l.87-1.3a1 1 0 0 1 1.1-.42l2.8.8a1 1 0 0 1 .73.96v2.1A1.5 1.5 0 0 1 17 18.5h-.5A12.5 12.5 0 0 1 4 6V5.5Z",
+    },
   ];
 
   const socialLinks = Object.entries(social).filter(([, url]) => Boolean(url));
 
   return (
-    <footer className="mt-14 bg-shop-footer text-white/70">
+    /* ---- Still `bg-shop-footer`, which is #000 ----
+
+       Black was already the ground here and it stays: the token note in
+       `globals.css` has the argument, and it is a good one — under warm product
+       photography and an orange masthead, any TINTED near-black is a third hue
+       on the page and the eye reads it as one. White on #000 is also 21:1, so
+       every step of white in here gains contrast rather than loses it.
+
+       ---- What the redesign actually changed ----
+
+       The height, and where it was being spent. This footer ran to roughly 620px
+       on a desktop, and most of that was one column: "Talk to us" carried the
+       phone, the email, WhatsApp, hours, an address, an app heading, a
+       paragraph, two store badges AND the social pills, while the four beside it
+       ran five links each and stopped. A five-column grid where one column is
+       three times the height of its neighbours is not a grid; it is a column
+       with four short ones parked next to it, and every row of white space down
+       the right of the other four was the cost of that.
+
+       So the tail of that column — the app block and the social row — came out
+       and became a bar of its own below the grid, where the two of them sit on
+       one line facing each other. The five columns are now roughly even, the
+       footer lost about a third of its height, and the app badges are more
+       visible rather than less: they are on their own line instead of buried at
+       the bottom of the fifth column.
+
+       Padding came down with it, everywhere: py-7 → py-5 on the promises,
+       py-11 → py-8 on the grid, py-5 → py-3.5 on the legal bar, and the
+       `mt-14` above the whole thing → mt-10. */
+    <footer className="mt-10 bg-shop-footer text-white/70">
       {/* Service promises */}
       <div className="border-b border-white/10">
-        <div className="mx-auto grid max-w-[var(--shell)] gap-6 px-4 py-7 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+        <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-4 px-4 py-5 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
           {serviceStrip.map((item) => (
-            <div key={item.title}>
-              <p className={`text-[15px] font-semibold ${item.tone}`}>{item.title}</p>
-              <p className="mt-1 text-[12px] text-white/55">{item.copy}</p>
+            <div key={item.title} className="flex items-start gap-2.5">
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mt-px h-[18px] w-[18px] shrink-0 text-shop-primary"
+              >
+                <path d={item.icon} />
+              </svg>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-semibold leading-tight text-white">{item.title}</p>
+                <p className="mt-0.5 text-[12px] leading-tight text-white/55">{item.copy}</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Link columns */}
-      <div className="mx-auto grid max-w-[var(--shell)] gap-8 px-4 py-11 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
+      <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-7 px-4 py-8 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
         {shopDepartments.length > 0 && (
           <div>
-            <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
+            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
               Shop by department
             </h2>
-            <ul className="space-y-2.5 text-[13px] text-white/70">
+            <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
               {shopDepartments.map((department) => (
                 <li key={department.id}>
                   <Link
@@ -136,10 +211,10 @@ export default function Footer({
 
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
+            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
               {column.title}
             </h2>
-            <ul className="space-y-2.5 text-[13px] text-white/70">
+            <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
               {column.items.map((item) => (
                 <li key={item.name}>
                   <Link className="hover:text-white hover:underline" href={item.href}>
@@ -152,10 +227,10 @@ export default function Footer({
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-4 text-[13px] font-bold uppercase tracking-wide text-white">
+          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
             Talk to us
           </h2>
-          <ul className="space-y-2.5 text-[13px] text-white/70">
+          <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
             <li>
               <a className="hover:text-white hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
                 {support.phone}
@@ -181,36 +256,52 @@ export default function Footer({
             <li className="text-white/55">{support.hours}</li>
             <li className="text-white/55">{support.address}</li>
           </ul>
+        </div>
+      </div>
 
-          <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-white">
-            {app.available ? "Get the app" : "App coming soon"}
-          </h2>
-          <p className="mb-3 text-[14px] leading-6 text-white/55">
-            {app.available
-              ? "Shop faster and track every order from your phone."
-              : "We are building it. Everything works in your phone's browser in the meantime."}
-          </p>
-          <AppStoreBadges app={app} />
+      {/* ---- The app and the socials, on one line ----
+
+           Both of these used to hang off the bottom of the "Talk to us" column,
+           which is what made that column three times the height of the four
+           beside it. Neither is column material: an app badge is a ~44px-tall
+           object and the socials are a row of pills, and stacking them in a
+           200px gutter is what forced the whole grid to that column's height.
+
+           Given the full width they face each other — app left, socials right —
+           and the pair costs one line instead of a third of the footer. The
+           badges are also more visible for it, not less: they were previously
+           the last thing in the fifth column of a five-column grid.
+
+           The app paragraph went with them. "Shop faster and track every order
+           from your phone", set beside two buttons reading App Store and Google
+           Play, is a sentence explaining an icon — and the heading next to it
+           already says which of the two states this is in. */}
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+              {app.available ? "Get the app" : "App coming soon"}
+            </h2>
+            <AppStoreBadges app={app} />
+          </div>
 
           {socialLinks.length > 0 && (
-            <>
-              <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wide text-white">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="mr-1 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
                 Follow us
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {socialLinks.map(([network, url]) => (
-                  <a
-                    key={network}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-full border border-white/10 px-3 py-1.5 text-[13px] font-semibold text-white/70 transition-colors hover:border-white hover:text-white"
-                  >
-                    {SOCIAL_LABELS[network] ?? network}
-                  </a>
-                ))}
-              </div>
-            </>
+              {socialLinks.map(([network, url]) => (
+                <a
+                  key={network}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border border-white/10 px-3 py-1 text-[12.5px] font-semibold text-white/70 transition-colors hover:border-white hover:text-white"
+                >
+                  {SOCIAL_LABELS[network] ?? network}
+                </a>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -221,7 +312,7 @@ export default function Footer({
           footer is black the strip lifts a hair instead of dropping — see the
           token in `globals.css` — and the hairline above carries the join. */}
       <div className="border-t border-white/10 bg-shop-footer-deep">
-        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-5 text-[13px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2 px-4 py-3.5 text-[12.5px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every
               page of the site, which is what turns one mention of the name
               people search into a site-wide one. */}

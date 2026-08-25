@@ -197,7 +197,7 @@ export default function InfiniteProducts({
           fits the bounded shell at a size a shopper can judge a garment from —
           229px, against the 277px five would give and the 172px eight did.
 
-          ---- Where the ramp actually landed: 2 → 3 → 4 → 6 → 7 ----
+          ---- Where the ramp actually landed: 2 → 3 → 4 → 5 → 6 → 7 ----
 
           Two things were asked of this grid in the same afternoon and they pull
           opposite ways: bigger product pictures, and seven of them across.
@@ -208,9 +208,31 @@ export default function InfiniteProducts({
             md   4  from 768px — down from five, because the tablet is where a
                     picture is scarcest: an 820px iPad goes from a 148px tile to
                     ~190px, and four is the count that buys that
+            lg   5  from 1024px
             xl   6  from 1280px
             2xl  7  from 1536px — the seven that was asked for, at ~226px in the
                     1720px shell
+
+          ---- The top step was documented for a long time before it existed ----
+
+          Everything above the `xl` line was prose only. The class list ran
+          `... lg:grid-cols-5 xl:grid-cols-6` and stopped, so the widest window
+          this shop has ever been opened in got six columns while this comment,
+          `GRID_SIZES` in `ProductCard` and the `/7.5` divisor in
+          `DealCarousel` all described seven.
+
+          That is not a cosmetic drift. `GRID_SIZES` promises the browser
+          `14vw` above 1536px, and a promise is what `sizes` IS — nothing
+          downstream corrects it. At six columns the tile is really ~17vw, so
+          every photograph in every grid on a large monitor was being chosen
+          from the srcset one step too small and arriving soft. The step is
+          real now and the three of them finally agree.
+
+          It is on all seven grids, not only this one: the catalogue, the
+          category pages, /sale, /search, a seller's own shop, the cart
+          recommendations and the loading skeleton. A skeleton that lays out a
+          different column count from the grid it stands in for is a layout
+          shift with extra steps.
 
           The phone's two are untouched. Below 768px the tile is already as wide
           as a useful grid can make it.
@@ -235,7 +257,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />
