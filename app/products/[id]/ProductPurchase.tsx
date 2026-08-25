@@ -15,6 +15,7 @@ import DeliveryPromise from "@/components/DeliveryPromise";
 import StarRating from "@/components/StarRating";
 import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
 import RatingSummary from "@/components/RatingSummary";
+import BackInStockForm from "@/components/BackInStockForm";
 import Link from "next/link";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
@@ -422,6 +423,15 @@ export default function ProductPurchase({
                 )}
                 .
               </p>
+
+              {/* ---- Keeping the shopper who wanted THIS one ----
+                   The link above serves the shopper who will take a substitute.
+                   This serves the one who will not, and who is the more
+                   valuable of the two: they came for a specific thing and
+                   found it gone, and every other route out of this page loses
+                   them for good. Ten seconds of typing turns a dead end into a
+                   sale the week the box is refilled. */}
+              <BackInStockForm productId={product.id} productName={product.name} />
             </div>
           ) : onBackorder ? (
             <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-primary-ink">

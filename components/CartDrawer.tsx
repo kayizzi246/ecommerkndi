@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { useCommerceTerms } from "@/lib/commerce-terms";
+import DrawerAddOns from "@/components/cart/DrawerAddOns";
 
 /**
  * Side cart, modelled on the Next.js Commerce cart modal: a panel that slides
@@ -239,6 +240,19 @@ export default function CartDrawer() {
                 </li>
               ))}
             </ul>
+
+            {/* ---- The answer to the bar at the top ----
+                 The free-delivery panel above names a figure and stops there.
+                 This row is what closes it: three one-tap items, ordered by how
+                 neatly each one gets the basket over the line. It sits below the
+                 lines and above the totals so it reads as part of the order
+                 rather than as an advertisement stapled to the bottom. */}
+            <DrawerAddOns
+              subtotal={subtotal}
+              freeDeliveryFrom={freeDeliveryFrom}
+              excludeIds={items.map((item) => item.productId)}
+              focusable={drawerOpen}
+            />
 
             <div className="py-4 text-[14px] text-shop-muted">
               <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
