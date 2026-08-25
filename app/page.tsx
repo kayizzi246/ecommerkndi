@@ -554,10 +554,14 @@ export default async function Home() {
             answer to that reader — their own trail, handed back — and the
             panel was stepping on it.
 
-            The component is still in the tree at `components/home/SellWithUs`
-            if this is wanted back; nothing else renders it. `storeCount` came
-            out of the destructure with it, but `buildHomeFeed` still computes
-            it because `/api/app/home` serves it to the phone app. */}
+            The component was deleted with it — `components/home/SellWithUs`
+            is gone rather than left sitting unrendered, since a component
+            nothing imports is a component nobody knows is dead. It is in the
+            history if the panel is ever wanted back.
+
+            `storeCount` came out of this page's destructure at the same time,
+            but `buildHomeFeed` still computes it: `/api/app/home` serves it to
+            the phone app, which is a separate reader with its own reasons. */}
 
         {/* ---- About the shop, at the foot of the page ----
          *
