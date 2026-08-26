@@ -9,6 +9,34 @@ in the project, because the old screens used them plus `url_launcher`.
 
 ---
 
+## The old widgets can stay while you do this
+
+Your project still has the previous custom widgets in it — `KandiCheckout`,
+`KandiOrdersPage`, `KandiSellerCentre`, `ProductDetailPage`, `SearchPage`,
+`ShoppingCartPage`, `WishlistPage` and the rest. Deleting the `.dart` files
+from the repo did not remove them from FlutterFlow, and it did not need to.
+
+**Nothing here collides with them**, which was checked rather than assumed:
+
+- No class name appears in both. `KandiCheckout` and `KandiCheckoutScreen` are
+  different names; so are `KandiOrdersPage` and `KandiOrdersScreen`.
+- Every public top-level name in the new files is `kandi`-prefixed —
+  `kandiPrice`, `kandiCompact`, `kandiAppBar`, `kandiToast`, `kandiApiBase`.
+  Everything else is `_`-private and therefore file-scoped.
+- Every top-level name in the OLD widgets is private. That is why they could
+  each carry their own `_ugx` and `_price` without clashing before, and it is
+  why they cannot clash with these.
+
+This matters because `index.dart` re-exports everything: one duplicated public
+name would break the whole build.
+
+**So migrate page by page.** Add all fifteen, then re-point one page at a time
+and check it. Delete an old widget only once its replacement is live on the
+page that used it. A big-bang switch gives you fifteen new widgets and seven
+broken pages at the same moment, with no way to tell which change caused what.
+
+---
+
 ## Before you start
 
 **Order is not optional.** Every screen names `KandiColors`, `KandiType` and
