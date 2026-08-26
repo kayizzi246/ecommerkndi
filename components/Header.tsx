@@ -450,52 +450,42 @@ export default function Header({
             // branding, and it is the one element on the row that does not
             // belong to the row.
             //
-            // ---- Two tone, not one: white goes black, everything else white ----
+            // ---- The logo is drawn in its own colours ----
             //
-            // This was `brightness(0) invert(1)`, which flattened the whole mark
-            // to a single white silhouette. That is legible and it throws away
-            // the logo's internal structure — the white K inside the bag
-            // disappeared into the bag, because both ended up the same white.
+            // No plate behind it and no filter over it. The file uploaded in
+            // wp-admin is what appears in the masthead.
             //
-            // The filter chain below is read right to left in effect, and each
-            // step is doing one job:
+            // ---- The two things this replaces, and why they are gone ----
             //
-            //   grayscale(1)     Colour out of the way first. What follows is a
-            //                    decision about LIGHTNESS, and it has to be made
-            //                    the same way for an orange bag and a navy one.
+            // A white PLATE came first: a rounded box behind the artwork, so a
+            // dark logo drawn for a white page stayed legible on the orange bar.
+            // It worked and it read as a sticker parked on the masthead — the
+            // one element in the row that did not belong to the row.
             //
-            //   brightness(0.75) Pulls the midtones down so the threshold below
-            //                    lands where it should. The brand orange sits at
-            //                    about 0.51 luma — almost exactly on a 0.5
-            //                    threshold, which is a coin toss. Scaling to
-            //                    ~0.36 puts it unambiguously on the dark side,
-            //                    while true white only falls to 0.75 and stays
-            //                    clearly on the light side.
+            // Then a FILTER, twice. `brightness(0) invert(1)` flattened the mark
+            // to a single white silhouette, which lost the white K inside the
+            // bag because both ended up the same white. A four-step chain
+            // replaced it and brought the K back as black. Both were solving the
+            // same problem: making an unknown file work on a saturated ground
+            // without knowing what is in it.
             //
-            //   contrast(4)      Separates the two groups hard. Anything above
-            //                    the midpoint is driven towards white, anything
-            //                    below towards black. Not `contrast(10)`: that
-            //                    is a true threshold and it takes the
-            //                    antialiasing with it, leaving stair-stepped
-            //                    edges on a 28px mark. 4 is enough to separate
-            //                    and soft enough to keep the edges.
+            // ---- What is being traded, stated plainly ----
             //
-            //   invert(1)        The flip that answers the brief. What was white
-            //                    is now black; what was anything else is now
-            //                    white.
+            // The shop asked for its own colours and that is the call. What it
+            // costs is the guarantee: a filter produced a predictable result
+            // from ANY upload, and artwork does not. Two files will look wrong
+            // here and neither can be fixed from this file —
             //
-            // Alpha is untouched by every one of these, so a transparent
-            // background stays transparent and the mark still sits directly on
-            // the orange.
+            //   • Dark artwork on transparency, drawn for a white page. It
+            //     muddies on #ff6a00, because dark-on-orange is a low-contrast
+            //     pair whatever the shape.
+            //   • A logo saved WITH a white rectangle behind it. That rectangle
+            //     is now visible as a white box on the orange.
             //
-            // ---- The one file this gets wrong ----
-            //
-            // A logo saved with a baked-in white RECTANGLE rather than
-            // transparency. Under the old filter that rectangle turned white and
-            // vanished into nothing; under this one it turns BLACK and becomes a
-            // black box on an orange bar. If that ever appears in the masthead,
-            // the fix is the upload — a transparent PNG — not another filter,
-            // because no filter can tell a white background from a white letter.
+            // Both are upload problems with upload fixes: a light-on-transparent
+            // PNG is the file this slot wants. If the masthead ever looks wrong
+            // after a logo change, that is the first thing to check — not this
+            // component, which now does nothing to the image at all.
             <span className="flex items-center">
               <Image
                 src={settings.brand.logo_url}
@@ -504,7 +494,7 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-7 w-auto max-w-[124px] object-contain [filter:grayscale(1)_brightness(0.75)_contrast(4)_invert(1)] md:h-9 md:max-w-[156px]"
+                className="h-7 w-auto max-w-[124px] object-contain md:h-9 md:max-w-[156px]"
               />
             </span>
           ) : (

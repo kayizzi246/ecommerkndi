@@ -497,35 +497,38 @@ export default function HeroBanner({
                   both are heights a shop chose by choosing that file, and
                   neither needs a cap.
 
-                  From md: a 250px band, full width, square corners. Both
-                  dimensions are fixed — `w-full` and `h-[250px]` — so the box
+                  From md: a 320px band, full width, square corners. Both
+                  dimensions are fixed — `w-full` and `h-[320px]` — so the box
                   stops following the file's own ratio, and `object-cover` is
                   what keeps that from stretching the artwork. It crops instead,
-                  taking the middle 250px and discarding the rest.
+                  taking the middle 320px and discarding the rest.
 
-                  ---- 250, down from 550, and the comment here said 450 ----
-                  
-                  Worth recording both numbers because the class and the prose
-                  had already drifted apart: the element said `h-[550px]` while
-                  the paragraph beneath it explained a 450px band and did the
-                  arithmetic for one. Anybody trusting the comment was reasoning
-                  about a layout that had not existed for some time.
+                  ---- 550, then 250, now 320 ----
 
-                  250 is what the slot now wants. This is no longer the page's
-                  hero — it is a campaign strip sitting between the deal panels
-                  and the rails (see `app/page.tsx`), and a 550px band there is
-                  not a banner, it is a second screen wedged into the middle of
-                  the merchandise. At 250 it reads as a strip of page, which is
-                  what it is.
+                  The first two are worth keeping because the class and the
+                  prose had already drifted apart once: the element said
+                  `h-[550px]` while the paragraph beneath it explained a 450px
+                  band and did the arithmetic for one. Anybody trusting the
+                  comment was reasoning about a layout that had not existed
+                  for some time.
+
+                  550 was a hero's height, and this stopped being the hero.
+                  250 was the correction and it overshot: at that height a
+                  file drawn for this slot is cropped hard enough that any
+                  artwork with vertical composition loses its top and bottom.
+
+                  320 is the settled figure. It still reads as a strip of page
+                  rather than a second screen, which is what the 250 pass was
+                  for, and it gives 70px back to the artwork.
 
                   ---- What this costs the artwork, stated plainly ----
 
-                  A shorter band crops harder. At 1656 wide the band is about
-                  6.6:1, so a banner drawn for it wants to be roughly 3312 x 500
-                  for a 2x screen. Anything squarer loses its top and bottom to
-                  `object-center`: a 2.44:1 upload wants 678px of height and
-                  shows 250, so more than half the file is off-screen, taken
-                  evenly from both edges.
+                  At 1656 wide the band is about 5.2:1, so a banner drawn for
+                  it wants to be roughly 3312 x 640 for a 2x screen. Anything
+                  squarer loses its top and bottom to `object-center`: a
+                  2.44:1 upload wants 678px of height and shows 320, so a
+                  little over half the file is off-screen, taken evenly from
+                  both edges.
 
                   That is a big loss and it is survivable for one reason — the
                   crop is centred, so artwork with its message in the middle
@@ -545,7 +548,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="h-auto w-full md:h-[250px] md:object-cover md:object-center"
+                className="h-auto w-full md:h-[320px] md:object-cover md:object-center"
               />
             </picture>
           </div>

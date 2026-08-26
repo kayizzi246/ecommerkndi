@@ -26,55 +26,53 @@ export default function SuperDeals({ products }: { products: Product[] }) {
   if (products.length === 0) return null;
 
   return (
-    /* ---- The one section with a ground of its own ----
+    /* ---- Ink, not yellow ----
 
-       Yellow, and it is the only coloured band left on this page — which is
-       what makes it work. Super Deals is the deepest-cut strip in the shop and
-       it sits between two sections drawn on plain white, so the band does the
-       job a heading cannot: saying "this part is different" before a word is
-       read.
+       This shelf has now been three things: white like every other section, a
+       saturated #facc15, and a soft #fef08a. The yellow was asked for and it
+       was tried honestly at two weights, so it is worth being precise about why
+       neither worked, because the failure is the same one both times.
 
-       `bfl-yellow-soft` (#fef08a), not the saturated `bfl-yellow` this first
-       shipped with. At full strength the ground fought the eight white product
-       cards sitting on it — they read as holes punched in a yellow sheet rather
-       than as products on a shelf. The soft step is about halfway to white,
-       which is enough to say "this section is different" and light enough that
-       the merchandise still sits on top of it.
+       A large field of a LIGHT colour cannot make white product cards stand
+       out, because the cards are lighter still. At full strength the tiles read
+       as holes punched in a yellow sheet; softened, the band lost its authority
+       and became a faint tint that looked more like a rendering artefact than a
+       decision. Yellow is a highlighter — it works on small objects against
+       their surroundings, which is exactly where it now lives on this page: the
+       Super Deal chip and the discount flag on the tiles this shelf collects.
 
-       The saturated value did not go to waste: it is the Super Deal chip on
-       the tiles this shelf collects, where a small object does need full
-       strength to hold against a photograph. Shelf and chip are the same hue at
-       two weights, which is the association without the shouting.
+       Ink inverts the problem instead of restating it. White cards on #111827
+       is the highest contrast this shop can draw, so the photography is the
+       brightest thing in the band and the products come forward rather than
+       being flattened by their own ground. It is also not a new colour —
+       `shop-band` is the shop's dark surface, already carrying the footer and
+       the closing panel — so the page gains a shelf without gaining a hue.
 
-       `bfl-yellow` was already in the palette and unused on the
-       storefront. It is worth knowing WHY it was unused, because the reason is
-       still true and is the constraint this has to respect: the masthead strip
-       was yellow once and came out for being a second brand colour in a shop
-       that has one. That argument was about CHROME — a permanent band across
-       every page. This is one merchandising section on one page, which is the
-       case a second colour is actually for.
+       The countdown needs no change: `shop-primary-soft` is a pale chip and
+       `shop-primary-ink` is dark type on it, which reads on any ground. The
+       "View All" link needs none either — #ff6a00 is 5.9:1 on #111827, the
+       same arithmetic the masthead runs.
 
-       Ink on #fef08a is about 16:1 — higher than the 11:1 the saturated step
-       gave — so the heading and the countdown inside stay
-       legible with no token changed. The tiles keep their white cards and read
-       as products on a coloured shelf rather than as a recoloured grid.
-
-       Full-bleed via `-mx-`, then padded back: the column this sits in carries
-       `px-3 md:px-8`, so a band that respected the gutter would float with a
-       white sliver down each edge and read as a card rather than a shelf. The
-       negative margin cancels the gutter and the padding puts the content back
-       — the same trick, for the same reason, as the promise band at the top of
-       the page. */
+       Full-bleed via `-mx-`, then padded back, matched exactly to the column's
+       own `px-3 md:px-8`. A band that respected the gutter would float with a
+       white sliver down each edge and read as a card rather than a shelf; a
+       band that overshot it would hang off the page and give the document a
+       horizontal scrollbar. */
     <section
       aria-labelledby="super-deals-heading"
-      className="-mx-3 bg-bfl-yellow-soft px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+      className="-mx-3 rounded-none bg-shop-band px-3 py-5 md:-mx-8 md:px-8 md:py-7"
     >
       <SectionHeader
         id="super-deals-heading"
         title="Super Deals"
         subtitle="Today's deepest cuts"
         href="/sale"
+        tone="dark"
       >
+        {/* The one chip on the page that keeps a pale ground on a dark band:
+            it is a countdown, it has to be read at a glance, and dark type on
+            a pale chip is the most legible pairing available in either
+            direction. */}
         <span className="flex items-center gap-2 rounded-lg bg-shop-primary-soft px-3 py-1.5 text-shop-primary-ink">
           <span className="text-[12px] font-semibold">Ends in</span>
           <CountdownBlocks />

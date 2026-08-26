@@ -4,6 +4,7 @@ import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import MaximiseSavings from "@/components/home/MaximiseSavings";
 import PromiseBand from "@/components/home/PromiseBand";
+import ShopByStore from "@/components/home/ShopByStore";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -89,6 +90,7 @@ export default async function Home() {
    */
   const {
     settings,
+    stores,
     trending,
     sellerArrivals,
     promoProducts,
@@ -543,6 +545,30 @@ export default async function Home() {
         ))}
 
         <SuperDeals products={deals} />
+
+        {/* ---- Who the shop actually is ----
+
+             Kandi is a marketplace and this page never said so. Every other
+             section is products in a different order — trending, new,
+             discounted — and a shopper could read the whole homepage without
+             learning that the goods come from independent Ugandan stores
+             rather than from one warehouse. That is the most distinctive fact
+             about this business, and it lived in the footer, in the nav, and
+             nowhere a shopper looks.
+
+             It is also the honest answer to "what else could go here". Every
+             alternative was more of the same catalogue in another order, and
+             a seventh rail of the same products does not make a page fuller —
+             it makes it padded. This adds something the page did not have.
+
+             After Super Deals on purpose. That shelf is an ink band now and
+             the loudest thing on the page; a quiet row of white cards is what
+             should follow it, and the pair gives the lower half of the page
+             the alternation the top half already has.
+
+             It costs no fetch. The feed has always called getStores() and
+             returned only the length from it. */}
+        <ShopByStore stores={stores} />
         </div>
         {/* ---- end of the desktop-only rails ---- */}
 

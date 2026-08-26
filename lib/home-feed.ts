@@ -5,6 +5,7 @@ import {
   buildCategoryTree,
   type CategoryNode,
   type Product,
+  type Store,
 } from "@/lib/woocommerce";
 import { findCategorySlug } from "@/lib/departments";
 import { getSiteSettings, type SiteSettings } from "@/lib/site-settings";
@@ -154,6 +155,7 @@ export type DepartmentRailData = {
 export type HomeFeed = {
   settings: SiteSettings;
   departments: CategoryNode[];
+  stores: Store[];
   storeCount: number;
   /** The shop's own picks, or the newest stock when nothing is flagged. */
   trending: Product[];
@@ -520,6 +522,18 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
   return {
     settings,
     departments,
+    /* ---- The list, not just the count ----
+     *
+     * `stores` has been fetched here since this feed was written and only
+     * `.length` was ever returned from it — the shop paid for the request and
+     * threw the answer away. `ShopByStore` on the homepage renders it, which
+     * costs no extra round trip.
+     *
+     * Capped at twelve for the same reason every other rail here is capped:
+     * the feed decides what a page may show, and a marketplace that grows to
+     * two hundred sellers should not start serialising two hundred of them into
+     * the homepage payload and the app's. */
+    stores: stores.slice(0, 12),
     storeCount: stores.length,
     trending,
     sellerArrivals: sellerArrivalsRail,
