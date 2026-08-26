@@ -34,7 +34,19 @@ export default function SuperDeals({ products }: { products: Product[] }) {
        job a heading cannot: saying "this part is different" before a word is
        read.
 
-       `bfl-yellow` (#facc15) was already in the palette and unused on the
+       `bfl-yellow-soft` (#fef08a), not the saturated `bfl-yellow` this first
+       shipped with. At full strength the ground fought the eight white product
+       cards sitting on it — they read as holes punched in a yellow sheet rather
+       than as products on a shelf. The soft step is about halfway to white,
+       which is enough to say "this section is different" and light enough that
+       the merchandise still sits on top of it.
+
+       The saturated value did not go to waste: it is the Super Deal chip on
+       the tiles this shelf collects, where a small object does need full
+       strength to hold against a photograph. Shelf and chip are the same hue at
+       two weights, which is the association without the shouting.
+
+       `bfl-yellow` was already in the palette and unused on the
        storefront. It is worth knowing WHY it was unused, because the reason is
        still true and is the constraint this has to respect: the masthead strip
        was yellow once and came out for being a second brand colour in a shop
@@ -42,19 +54,20 @@ export default function SuperDeals({ products }: { products: Product[] }) {
        every page. This is one merchandising section on one page, which is the
        case a second colour is actually for.
 
-       Black on #facc15 is 11:1, so the heading and the countdown inside stay
+       Ink on #fef08a is about 16:1 — higher than the 11:1 the saturated step
+       gave — so the heading and the countdown inside stay
        legible with no token changed. The tiles keep their white cards and read
        as products on a coloured shelf rather than as a recoloured grid.
 
        Full-bleed via `-mx-`, then padded back: the column this sits in carries
-       `px-4 md:px-8`, so a band that respected the gutter would float with a
+       `px-3 md:px-8`, so a band that respected the gutter would float with a
        white sliver down each edge and read as a card rather than a shelf. The
        negative margin cancels the gutter and the padding puts the content back
        — the same trick, for the same reason, as the promise band at the top of
        the page. */
     <section
       aria-labelledby="super-deals-heading"
-      className="-mx-4 bg-bfl-yellow px-4 py-5 md:-mx-8 md:px-8 md:py-6"
+      className="-mx-3 bg-bfl-yellow-soft px-3 py-5 md:-mx-8 md:px-8 md:py-6"
     >
       <SectionHeader
         id="super-deals-heading"

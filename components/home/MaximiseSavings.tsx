@@ -54,7 +54,7 @@ export default function MaximiseSavings({ settings }: { settings: SiteSettings }
          — the same `-mx-` trick as the yellow shelf and the promise band. A
          tinted band that respects the gutter floats with a white sliver down
          each edge and reads as a card rather than as a shelf. */
-      className="-mx-4 bg-[#fdf3e3] px-4 py-5 md:-mx-8 md:px-8 md:py-6"
+      className="-mx-3 bg-[#fdf3e3] px-3 py-5 md:-mx-8 md:px-8 md:py-6"
     >
       <h2
         id="savings-heading"

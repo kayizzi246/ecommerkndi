@@ -99,6 +99,16 @@ class Ledger {
 const DEPARTMENT_MINIMUM = 2;
 
 /**
+ * How many tiles a department rail aims to carry.
+ *
+ * Twelve, which is what `DealCarousel` needs to fill its widest step and still
+ * have something left to scroll to. A rail shorter than its visible column
+ * count renders as a row with a hole on the end, which reads as products
+ * failing to load rather than as a short department.
+ */
+const RAIL_TARGET = 12;
+
+/**
  * How many products a department must have IN THE CATALOGUE before its rail is
  * allowed on the homepage at all.
  *
@@ -468,16 +478,42 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * The ledger is still asked first, so a department prefers stock nothing else
    * has shown; it just falls back to its own catalogue rather than vanishing.
    */
+  /* ---- Topped up, rather than chosen between ----
+   *
+   * This was a straight either/or: take the ledger's leftovers if there were
+   * at least `DEPARTMENT_MINIMUM` of them, otherwise fall back to the
+   * department's own catalogue. Two is a very low bar, and the result was
+   * visible on the page — "For men" claimed three unclaimed products, cleared
+   * the bar with them, and rendered a three-tile rail under a heading and a
+   * "Shop all" button, on a shop whose men's department has plenty of stock.
+   * It looked like the catalogue was nearly empty.
+   *
+   * The bug is the SHAPE of the test, not the number in it. Raising the
+   * threshold only moves the cliff: at five, a rail with four fresh products
+   * throws all four away and starts again from the top of the department,
+   * showing products every other rail has already shown. Both sides of that
+   * branch are worse than the obvious third option.
+   *
+   * So it fills instead. The ledger is still asked first, so a department
+   * still prefers stock nothing else on the page has used; whatever it comes
+   * up short by is made up from the department's own products, skipping
+   * anything already in hand. A rail is now either as full as its department
+   * allows or as full as `RAIL_TARGET`, and never a sparse row that happened
+   * to clear a threshold.
+   *
+   * The exemption argued above is what makes the top-up legitimate: a product
+   * in Trending and again under For men is not a repetition, because the two
+   * are answering different questions. */
   const departmentRails = stockedDepartments.map((department) => {
-    const fresh = ledger.claim(department.products, 12, DEPARTMENT_MINIMUM);
+    const fresh = ledger.claim(department.products, RAIL_TARGET, DEPARTMENT_MINIMUM);
+    if (fresh.length >= RAIL_TARGET) return { ...department, products: fresh };
 
-    return {
-      ...department,
-      products:
-        fresh.length >= DEPARTMENT_MINIMUM
-          ? fresh
-          : department.products.slice(0, 12),
-    };
+    const alreadyShown = new Set(fresh.map((product) => product.id));
+    const topUp = department.products
+      .filter((product) => !alreadyShown.has(product.id))
+      .slice(0, RAIL_TARGET - fresh.length);
+
+    return { ...department, products: [...fresh, ...topUp] };
   });
 
 

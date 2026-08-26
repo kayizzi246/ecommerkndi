@@ -128,6 +128,20 @@
   /* Brand */
   --color-bfl-yellow: #facc15;
   --color-bfl-yellow-dark: #eab308;
+  /* ---- The soft step, for the Super Deals shelf ----
+   *
+   * #fef08a, roughly halfway between the saturated brand yellow and white.
+   *
+   * The shelf and the CHIP cannot share a value, which is why this exists as a
+   * token rather than as a lighter class on one element. A chip is a small
+   * object that has to hold its own against a photograph, so it needs #facc15
+   * at full strength; a shelf is a large ground that everything else on it has
+   * to stay readable against, and a full-strength yellow behind eight white
+   * product cards makes the cards look like holes punched in it.
+   *
+   * Ink on #fef08a is about 16:1, so the heading, the countdown and the "View
+   * All" link all keep their contrast without a single one of them changing. */
+  --color-bfl-yellow-soft: #fef08a;
   --color-bfl-black: #09090b;
   --color-bfl-ink: #18181b; /* headings, brand + product titles */
   --color-bfl-ink-soft: #52525b;

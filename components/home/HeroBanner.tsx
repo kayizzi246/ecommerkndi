@@ -448,7 +448,33 @@ export default function HeroBanner({
               and the hero is the one block that opts out — a picture with a
               sliver of page down each side reads as a layout mistake rather
               than as a hero. */}
-          <div className="mx-auto w-full max-w-[var(--shell)] md:px-8">
+          {/* ---- The banner aligns with the sections, because it stopped
+               being full-bleed chrome and became one of them ----
+
+               This was `mx-auto w-full max-w-[var(--shell)] md:px-8`, and every
+               one of those was correct while this component was the HERO: it
+               rendered directly inside `<main>`, outside the padded column, so
+               it had to centre itself, cap itself at the shell and put its own
+               gutter back.
+
+               It renders inside that column now (see `app/page.tsx`), and the
+               column already does all three — `mx-auto max-w-[var(--shell)]
+               px-3 md:px-8`. So the padding was landing TWICE: the banner sat
+               64px in from the page edge on a desktop while the product grid
+               beside it sat at 32, and the two read as belonging to different
+               layouts. That is the misalignment, and it was invisible in the
+               source because each wrapper is defensible on its own.
+
+               `w-full` and nothing else. The parent centres it, caps it and
+               gutters it, which is what makes the banner's edges land on the
+               same two lines as the grid below it.
+
+               The phone case changes with it: the banner now takes the column's
+               12px gutter instead of bleeding to the glass. That was a hero's
+               privilege — a picture with a sliver of page down each side reads
+               as a mistake when it is the top of the screen — and this is no
+               longer the top of the screen. Matching the cards is the point. */}
+          <div className="w-full">
             <picture>
               {/* The desktop crop, from 768px up. `sizes` is the painted box:
                   1436 CSS pixels on any window from 1500 up, and the window
