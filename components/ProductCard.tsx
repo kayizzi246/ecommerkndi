@@ -328,10 +328,32 @@ export default function ProductCard({
      1970. */
   const isNew = listedRecently(product.date_created);
 
+  /* ---- The Super Deal chip is yellow, and it had to become something ----
+   *
+   * It was `bg-shop-sale-price text-white`, which was a red chip and a good
+   * one: the deal chip and the reduced price beneath it were the same red, so
+   * the tile said one thing twice in one colour.
+   *
+   * Then red came out of the palette. `shop-sale-price` resolves to ink now, so
+   * this chip quietly became a black chip with white text — which is character
+   * for character what the "Choice" chip above it already is. Two labels
+   * meaning different things, drawn identically, on tiles sitting next to each
+   * other in the same grid. Nothing errored and nothing looked broken; the
+   * distinction just stopped existing.
+   *
+   * Yellow is the answer that was already in the shop. `bfl-yellow` is the
+   * ground under the Super Deals shelf further down the page, so the chip on a
+   * tile and the section that collects those tiles now carry the same colour —
+   * which is the association the red version had with the price, moved to
+   * where it is still true.
+   *
+   * Ink type on it, not white: black on #facc15 is 11:1, white on it is 1.6:1
+   * and illegible. A yellow chip is the one case in this file where the label
+   * colour has to flip, and it is why this is not just a background swap. */
   const chip = product.featured
     ? { label: "Choice", className: "bg-shop-ink text-white" }
     : discount >= 30
-      ? { label: "Super Deal", className: "bg-shop-sale-price text-white" }
+      ? { label: "Super Deal", className: "bg-bfl-yellow text-shop-ink" }
       : /* New sits above "Top rated" and below the two deal chips: a shopper
            who has been here before is looking for what changed, and a new
            listing has no rating yet to win the slot on anyway. */
