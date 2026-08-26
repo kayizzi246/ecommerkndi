@@ -48,7 +48,7 @@ export default function SectionHeader({
   // the head of the section list in `app/page.tsx`; the short version is that
   // both numbers move together or neither does.
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets

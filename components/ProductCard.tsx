@@ -237,7 +237,8 @@ const GRID_SIZES =
   //   ≤768   3       33vw
   //   ≤1024  4       25vw
   //   ≤1280  5       20vw   <- the step that was missing
-  //   above  6       17vw, and a fixed px once the shell stops growing
+  //   ≤1536  6       17vw
+  //   above  7       14vw, and a fixed px once the shell stops growing
   //
   // Seven was the top of this ramp for exactly one commit. The shop looked at
   // it on a 1920 display and asked for six back, which is the same answer the
@@ -248,7 +249,7 @@ const GRID_SIZES =
   // The two bands above 1536 collapse into one because they now carry the same
   // count. A breakpoint that does not change anything is a breakpoint that will
   // be read as meaning something later.
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1720px) 17vw, 266px";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1536px) 17vw, (max-width: 1720px) 14vw, 226px";
 
 export default function ProductCard({
   product,
@@ -579,7 +580,7 @@ export default function ProductCard({
               `Skeletons.tsx` carries the same ratio and has to change with
               it. A placeholder at the wrong shape makes the grid visibly
               re-draw itself when the products land. */}
-          <div className="relative aspect-[1/1.12] w-full overflow-hidden rounded-lg bg-shop-hairline">
+          <div className="relative aspect-[1/1.05] w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -696,19 +697,28 @@ export default function ProductCard({
 
              `shop-sale-price` rather than `shop-sale`: #dc2626 clears 4.8:1
              with white on it where the #e53935 error red manages 4.0:1, and
-             this label is 11px. The deal language is now one token — this
-             flag, the Super Deal chip and the discounted price are the same
-             red, which is the part the old orange arrangement got right and
-             worth keeping through the change.
+             this label is 11px.
 
-             What that costs, stated plainly: red no longer means only "wrong"
-             on a tile. The stock warning is red too, so a discounted product
-             with two left carries red in three places. The stock line is the
-             one that gives — it is 12px text with a dot, next to a bold chip
-             and a bold flag, and if it stops reading as a warning it should
-             move to near-black rather than the deal colour moving back. */}
+             ---- Yellow, with the chip ----
+
+             The deal language was one token: this flag, the Super Deal chip and
+             the discounted price were all the same red, which is the part the
+             old orange arrangement got right. Red then came out of the palette
+             entirely, `shop-sale-price` resolved to ink, and the flag became a
+             black box in the corner of every reduced photograph — heavier than
+             anything else on the tile, for the least important thing on it.
+
+             It is `bfl-yellow` now, which is where the deal language went: the
+             Super Deal chip, the Super Deals shelf and this flag are one hue
+             again. Ink type on it rather than white, for the same reason as the
+             chip — black on #facc15 is 11:1 and white on it is 1.6:1.
+
+             It also solves the collision the old note worried about. Red used
+             to mean both "reduced" and "nearly gone", so a discounted product
+             with two left carried it in three places; yellow means the deal and
+             nothing else, and the stock line keeps its own voice. */}
         {!soldOut && discount > 0 && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-shop-sale-price px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-bfl-yellow px-1.5 py-[3px] text-[11px] font-bold leading-none text-shop-ink">
             −{discount}%
           </span>
         )}
@@ -976,7 +986,7 @@ export default function ProductCard({
              `shop-save` rather than `shop-success` — 11px bold needs the
              darker step to clear AA. See the token in `globals.css`. */}
         {saving > 0 && (
-          <p className="truncate pt-[3px] text-[11px] font-bold leading-4 text-shop-save">
+          <p className="truncate pt-[3px] text-[11px] font-semibold leading-4 text-shop-muted">
             Save {formatPrice(saving)}
           </p>
         )}
@@ -1015,16 +1025,25 @@ export default function ProductCard({
                and the Super Deal chip are brand orange, so the red on a tile
                is the price and nothing else.
 
-               `shop-sale-price` is #dc2626 rather than the #e53935 the shop
-               uses for errors: a price is small text (15px at 800 is not
-               "large" under WCAG), #e53935 is 4.2:1 on white and this clears
-               4.8:1. The two reds being separate tokens is also what keeps
-               "reduced" and "something went wrong" from sharing a colour. */}
-          <span
-            className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale-price" : "text-shop-ink"
-            }`}
-          >
+               ---- And now every price is ink, reduced or not ----
+
+               That whole argument was about WHICH red a reduced price should
+               take. There is no red in the palette any more, so the question
+               dissolved: `shop-sale-price` resolves to ink, which is what a
+               resting price was already set in, and the ternary that chose
+               between them was choosing between one colour and itself.
+
+               Removed rather than left as a no-op. A conditional whose branches
+               are identical is worse than no conditional: it reads as a
+               distinction the tile is still making, and the next person to
+               touch this row would spend time working out why it appears not to
+               work.
+
+               Nothing is lost. "Reduced" is still said three times on the tile
+               — the yellow corner flag, the struck-through original beside this
+               number, and the "Save UGX x" line under it — and none of those
+               ever depended on the price's own colour. */}
+          <span className="price whitespace-nowrap text-shop-ink">
             {formatPrice(product.price)}
           </span>
           {/* ---- The struck-through original, and NOT the percentage ----
@@ -1054,7 +1073,7 @@ export default function ProductCard({
 
         {/* The stock warning, on the products that have one and nowhere else. */}
         {(soldOut || lowStock) && (
-          <p className="truncate text-[11px] font-medium leading-[15px] text-shop-sale">
+          <p className="truncate text-[11px] font-medium leading-[15px] text-shop-body">
             {soldOut ? (
               "Back in stock soon"
             ) : (

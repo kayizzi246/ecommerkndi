@@ -13,7 +13,7 @@ export function ProductCardSkeleton() {
           The text bars matter too: a bare box shimmering on its own reads as a
           broken image, where a box with lines beneath it reads as a product on
           its way. 8px corners on the photo box, matching the tile's — see ProductCard. */}
-      <div className="shimmer aspect-[1/1.12] w-full rounded-lg" />
+      <div className="shimmer aspect-[1/1.05] w-full rounded-lg" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
@@ -86,7 +86,7 @@ export function ProductRailSkeleton({
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
       {Array.from({ length: count }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}

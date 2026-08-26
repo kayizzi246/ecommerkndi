@@ -29,7 +29,7 @@ export default function TileFreeDelivery({ price }: { price: number }) {
   }
 
   return (
-    <p className="truncate pt-px text-[10.5px] font-bold leading-[14px] text-shop-save">
+    <p className="truncate pt-px text-[10.5px] font-semibold leading-[14px] text-shop-muted">
       Free delivery
     </p>
   );

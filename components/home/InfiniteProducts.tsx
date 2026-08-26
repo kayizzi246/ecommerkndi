@@ -165,7 +165,7 @@ export default function InfiniteProducts({
           From `md` the tile goes flat again and the wide gaps come straight
           back — they are the ONLY separator up there, and the two settings have
           to keep moving together or the wall of touching photographs returns. */}
-      {/* ---- The ramp is 2 -> 3 -> 4 -> 5 -> 6, one step per breakpoint ----
+      {/* ---- The ramp is 2 -> 3 -> 4 -> 5 -> 6 -> 7, one step per breakpoint ----
 
           Six across on a laptop is the anchor, and every breakpoint below it
           drops exactly one column.
@@ -206,7 +206,7 @@ export default function InfiniteProducts({
           `lg:grid-cols-5` was removed at one point on the argument that it
           restated `md`. That was true while `md` held five; `md` holds four
           now, so `lg` is a real step again and has been put back. */}
-      {/* ---- Six is the top of the ramp, and where it stops ----
+      {/* ---- Six was the top of the ramp; seven is ----
 
           The ramp once climbed to 8 at `2xl`. That was the full-bleed shop,
           where a wider window was spent on more products rather than bigger
@@ -218,24 +218,29 @@ export default function InfiniteProducts({
           fits the bounded shell at a size a shopper can judge a garment from —
           229px, against the 277px five would give and the 172px eight did.
 
-          ---- Where the ramp landed: 2 -> 3 -> 4 -> 5 -> 6 ----
+          ---- Where the ramp landed: 2 -> 3 -> 4 -> 5 -> 6 -> 7 ----
 
             sm   3  unchanged
             md   4  from 768px - down from five, because the tablet is where a
                     picture is scarcest: an 820px iPad goes from a 148px tile to
                     ~190px, and four is the count that buys that
             lg   5  from 1024px
-            xl   6  from 1280px, and six is where it stops
+            xl   6  from 1280px
+            2xl  7  from 1536px
 
-          ---- Seven was the top for exactly one commit ----
+          ---- Six, then seven, then six, then seven ----
 
-          It was asked for, built on all seven grids, looked at on a 1920
-          display, and the shop asked for six back. Worth recording rather than
-          quietly reverting, because the argument against seven is the one the
-          section above already makes and it was right the first time: six
-          columns of a bounded 1720px shell is a 266px tile and seven is 226px.
-          On the screen with the most room to spare, seven spent it making the
-          pictures smaller.
+          This count has now been changed four times, and the honest record is
+          that it is a preference rather than a derivation. The arithmetic has
+          not moved: against a bounded 1720px shell, six columns is a 266px
+          tile and seven is 226px. Seven fits more of the catalogue on a
+          screen; six shows each piece of it larger. Both are defensible, and
+          the shop has landed on seven.
+
+          What is NOT a preference is that four other places carry this number
+          and every one has had to be dragged back and forth with it. Before
+          changing it a fifth time, change all five in the same edit — they are
+          named below.
 
           A BOUNDED shell is what makes that true, and it is the whole of the
           argument. While `--shell` was 100% a wider window meant more products
@@ -285,7 +290,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

@@ -205,16 +205,34 @@ export default async function Home() {
           exactly the tell being asked about here. Amazon, AliExpress and Jumia
           all run their rails much closer than this.
 
-          So the gap comes down to 32px, and the separation is preserved by
-          bringing the *within*-section spacing down with it: a heading now sits
-          12px above its own rail, not 14. 32 against 12 is a ratio of 2.7 — the
-          same grouping the 48/14 pair bought, at two thirds of the height. Each
-          block still reads as one object; there is simply less nothing between
-          them.
+          So the gap came down to 32px, and the separation was preserved by
+          bringing the *within*-section spacing down with it: a heading sat
+          12px above its own rail, not 14. 32 against 12 is a ratio of 2.7 —
+          the same grouping the 48/14 pair bought, at two thirds of the
+          height.
 
-          If a future change makes this feel crowded again, move BOTH numbers,
-          not one. The moment the between-gap stops being roughly 2.5× the
-          header gap, the page reverts to a stream of tiles. */}
+          ---- And down again: 24 against 10 ----
+
+          Asked for after the page had grown coloured bands. That matters,
+          because a tinted shelf separates ITSELF: the Super Deals ground and
+          the savings shelf both draw their own edge, so the white gap either
+          side of them is doing a job the colour has already done. Air
+          between two white rails is the only place it is still load-bearing,
+          and 24px is enough there.
+
+          BOTH numbers moved, which is the rule this note has carried since
+          the 48px pass and the reason it is worth reading before touching
+          either: `SectionHeader` went from `mb-3` to `mb-2.5`, so 24 against
+          10 is a ratio of 2.4 — the same grouping again, at three quarters
+          of the height. Each block still reads as one object.
+
+          The phone step went 20 to 16 and its ratio is unchanged at about
+          1.6, which it has always been: a phone has no room for desktop
+          proportions, and the rails are gone below `md` anyway.
+
+          If this ever feels crowded, move BOTH again. The moment the
+          between-gap stops being roughly 2.5x the header gap, the page
+          reverts to a stream of tiles. */}
       {/* ---- A 12px gutter on a phone, 32px from md up ----
 
           The gutter was removed once and the reason it was removed is worth
@@ -234,7 +252,7 @@ export default async function Home() {
           Headings and copy inside no longer carry their own `px-3`: this is
           their gutter now, and doubling it would have set every section title
           24px in from a grid that starts at 12. */}
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-3 py-3 md:gap-8 md:px-8 md:py-5">
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-3 py-3 md:gap-6 md:px-8 md:py-5">
         {/* ---- The campaign banner opens the page ----
 
              It was under the deal panels; it is the first thing in the column

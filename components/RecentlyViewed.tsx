@@ -159,7 +159,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      with a hairline round it was the single most visible reason
                      this rail read as foreign — every other tile on the shop
                      separates from its neighbour by the track gap alone. */}
-                <div className="relative aspect-[1/1.12] w-full overflow-hidden rounded-lg bg-shop-hairline">
+                <div className="relative aspect-[1/1.05] w-full overflow-hidden rounded-lg bg-shop-hairline">
                   {item.image ? (
                     <Image
                       quality={90}
