@@ -284,7 +284,34 @@
    * can only do once: form errors, failed payments, and the stock warning on a
    * tile. It is not a DECORATION colour here — but see the price token
    * below, which is the one place red still carries a commercial meaning. */
-  --color-shop-sale: #e53935; /* errors and warnings */
+  /* ---- The promotional reds are retired, and the error red is not ----
+   *
+   * Red was on the discount flag in the corner of every reduced tile, on every
+   * reduced price, on the Clearance heading, on "Only 1 left", and on the
+   * stock bar under it. On a catalogue page that is a colour appearing in the
+   * same position on tile after tile, which is the failure this file has now
+   * described twice — once when the price came OUT of orange, and once when
+   * the price weight came back down from 800. A hue that lands in the same
+   * spot forty times stops being emphasis and becomes a field.
+   *
+   * They resolve to ink. The reduction is not lost with the colour: a tile
+   * still carries the corner percentage, the struck-through original and the
+   * "Save UGX x" line, which are three statements of the same fact and none of
+   * them needed red to be read.
+   *
+   * ---- What is deliberately still red ----
+   *
+   * `--color-shop-error`. An error message is the one place on this site where
+   * colour is doing safety work rather than decoration: it has to be
+   * distinguishable from the body copy around it at a glance, and a validation
+   * message set in ink is one people submit past without seeing.
+   *
+   * It had no call sites before this change — the three that needed it were
+   * borrowing `shop-sale`, which is exactly why they were repointed in the
+   * same commit. Retiring a token that other things are leaning on takes them
+   * down with it silently, and the failure shows up as a form that no longer
+   * says it is wrong. */
+  --color-shop-sale: #111827; /* stock warnings and discount flags — no longer red, see above */
 
   /* ---- Red on a reduced price ----
    *
@@ -306,7 +333,7 @@
    * #dc2626 rather than #e53935 because a price is small text: 15px at 800
    * weight is not "large" under WCAG, #e53935 is 4.2:1 on white and this
    * clears 4.8:1. */
-  --color-shop-sale-price: #dc2626; /* a reduced price, and nothing else */
+  --color-shop-sale-price: #111827; /* a reduced price, and nothing else */
   --color-shop-success: #16a34a;
   /* ---- The saving on a tile ----
    *
@@ -331,7 +358,7 @@
    */
   --color-pop-orange: #ff6a00;
   --color-pop-orange-bright: #ff8c33;
-  --color-pop-red: #e53935;
+  --color-pop-red: #111827;
   --color-pop-green: #16a34a;
   --color-pop-blue: #1a4fd6;
   --color-pop-violet: #6d28d9;

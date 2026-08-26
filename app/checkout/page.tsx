@@ -576,7 +576,7 @@ export default function CheckoutPage() {
                   aria-invalid={phoneError || undefined}
                   aria-describedby="phone-hint"
                   placeholder="0772 123 456"
-                  className={`field-shop ${phoneError ? "border-shop-sale" : ""}`}
+                  className={`field-shop ${phoneError ? "border-shop-error" : ""}`}
                 />
                 {phoneError ? (
                   <FieldError>

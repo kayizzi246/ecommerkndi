@@ -522,12 +522,6 @@ export default function Header({
                   role="img"
                   aria-label={brandName(settings)}
                 >
-                  <defs>
-                    <linearGradient id="kandi-bag" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ff6a00" />
-                      <stop offset="100%" stopColor="#e85d00" />
-                    </linearGradient>
-                  </defs>
                   <path
                     d="M2 13h6M0 19h5M3 25h5"
                     stroke="#ff6a00"
@@ -537,7 +531,28 @@ export default function Header({
                   />
                   <path
                     d="M13 11h18a2 2 0 0 1 2 2.2l-1.8 20A3 3 0 0 1 28.2 36H15.8a3 3 0 0 1-3-2.8L11 13.2A2 2 0 0 1 13 11Z"
-                    fill="url(#kandi-bag)"
+                    /* Flat, not a gradient.
+
+                       The bag was filled with a two-stop ramp from #ff6a00 to
+                       #e85d00 — a 6% shift in lightness across 22 pixels. At
+                       the size this mark actually renders, 32px on a phone and
+                       40 on a desktop, that is invisible: it is a gradient
+                       nobody can see, costing a `<defs>`, an id, and a
+                       url() indirection.
+
+                       Where it was NOT invisible was against the orange
+                       masthead it now sits on, and there it worked against the
+                       mark — a bag that starts at exactly the ground colour and
+                       darkens across its width reads as a shape half-dissolving
+                       into the bar rather than as a logo on it.
+
+                       Flat #ff6a00 is also what the id in `globals.css` calls
+                       "the one gradient allowed" being spent somewhere it
+                       matters instead of here. A logo is the last thing on a
+                       site that should carry a gradient: it is reproduced at
+                       every size, in one colour on an invoice, and embroidered
+                       on a shirt if the shop ever prints one. */
+                    fill="#ff6a00"
                   />
                   <path
                     d="M17.5 12V9a4.5 4.5 0 0 1 9 0v3"

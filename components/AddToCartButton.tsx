@@ -223,7 +223,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         );
       })}
 
-      {error && <p className="text-[14px] font-medium text-shop-sale">{error}</p>}
+      {error && <p className="text-[14px] font-medium text-shop-error">{error}</p>}
 
       {/* Quantity stepper, then a full-width primary action — the Shopify order. */}
       <div ref={actionRef}>

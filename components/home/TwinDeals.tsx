@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
-import DealCarousel from "@/components/DealCarousel";
+import ProductCard from "@/components/ProductCard";
 import CountdownBlocks from "@/components/home/CountdownBlocks";
 
 /**
@@ -98,7 +98,22 @@ export default function TwinDeals({ products }: { products: Product[] }) {
     // column, not against the track's own content.
     <section
       aria-labelledby="twin-deals-heading"
-      className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6"
+      /* ---- Not on a phone ----
+
+         Hidden below `md` outright. On a phone this section is two stacked
+         panels, each with its own heading, countdown and grid, and together
+         they were most of the opening screen — a shopper arrived at the shop
+         and met two blocks of chrome before a single unpriced product.
+
+         The homepage note about the hero makes exactly this argument and the
+         panels had quietly become the thing it warned about. The phone page now
+         opens on merchandise; the deals are still one tap away in the masthead
+         and on /sale, which is where a shopper looking for a discount goes.
+
+         `hidden md:grid`, not `md:block`: this element IS the grid that lays
+         the two panels side by side, so restoring it as a block would put them
+         one under the other at every width above the breakpoint. */
+      className="hidden grid-cols-1 gap-5 md:grid md:grid-cols-2 md:gap-6"
     >
       {/* The section needs one accessible name and has two visible headings, so
           the first panel's heading is the labelled one and the second is a
@@ -173,6 +188,21 @@ export default function TwinDeals({ products }: { products: Product[] }) {
  * Clearance keeps `shop-sale-price` (#dc2626), which is already the vivid red
  * the reference runs and already clears the bar. The token exists precisely
  * because plain #e53935 did not. */
+/**
+ * Tiles a panel renders, which is the widest row it ever draws.
+ *
+ * Four, because `xl` is the widest column count in the grid below and the panel
+ * shows exactly one row at every width. The tiles past the current column count
+ * are hidden by CSS rather than never rendered — the server cannot know the
+ * viewport, so the choice is between shipping four and hiding some, or shipping
+ * a guess and being wrong on half the screens.
+ *
+ * Still a cap and not a target: a panel holding three deals shows three and
+ * stops. Padding a deal panel to a round number means showing things that are
+ * not deals.
+ */
+const PANEL_TILES = 4;
+
 const TONES = {
   flame: "text-shop-primary-dark",
   clearance: "text-shop-sale-price",
@@ -309,14 +339,68 @@ function DealPanel({
           `px-3` page gutter plus the two `gap-2` seams standing between three
           tiles; see the long note on `itemWidth` in `DealCarousel` for why the
           count is neither a plain percentage nor measured against the track. */}
-      <DealCarousel
-        products={products}
-        itemWidth="w-[calc((100vw-40px)/2.3)] sm:w-[31%] md:w-[45%] lg:w-[31%] xl:w-[23%]"
-        priority={priority}
-        // "All Lightning" / "All Clearance" — the panel titles minus the word
-        // both of them share, which the tile's own context already supplies.
-        viewAll={{ href, label: `All ${title.replace(" Deals", "")}` }}
-      />
+      {/* ---- A grid, not a rail ----
+
+          These two panels ran `DealCarousel` — a snapping track with edge
+          arrows and a sliced peek. A rail is the right shape when the track is
+          long: the peek says "there is more this way" and the swipe is how you
+          get it, which is why every other strip on this page is still one.
+
+          A deal panel is not long. It holds a handful of marked-down items and
+          it sits in half the page width, so the peek was promising a depth that
+          was not there — two or three tiles, then the end — and the arrows were
+          controls for a journey of one click. Worse, the two panels sit side by
+          side, so the opening screen carried two independent scroll surfaces
+          within a few hundred pixels of each other, and a drag that started on
+          the wrong one moved the wrong products.
+
+          Laid out flat, the whole offer is visible at once, which is what a
+          deal panel is for. The tile count is capped to what fits the row
+          rather than left to the rail to hide.
+
+          `viewAll` went with the rail; the panel HEADING is already a link to
+          the same place and always was, so nothing was lost but a duplicate. */}
+      {/* ---- Exactly one row, at every width ----
+
+          The grid held eight tiles against a column count that changes with the
+          breakpoint, so it wrapped: four rows on a tablet, three at `lg`, two at
+          `xl`. A deal panel that is four rows deep is not a panel, it is a
+          second catalogue sitting on the opening screen — and it pushed the
+          rails below it off the page.
+
+          One row is the rule now, and the only honest way to hold it is to make
+          the TILE COUNT follow the column count. That cannot be sliced in
+          JavaScript, because the server has no idea how wide the window is; so
+          the maximum is rendered and the surplus is hidden by the same
+          breakpoints that set the columns. `PANEL_TILES` is 4 for that reason —
+          it is the widest row this panel ever draws, not a target.
+
+          The two have to move together. Change `xl:grid-cols-4` without
+          changing the `hidden` classes below and the panel silently wraps
+          again; change the hides without the columns and the row comes up
+          short. They are three lines apart so that is hard to miss. */}
+      <ul className="grid grid-cols-2 gap-x-2 gap-y-0 lg:grid-cols-3 xl:grid-cols-4">
+        {products.slice(0, PANEL_TILES).map((product, index) => (
+          <li
+            key={product.id}
+            className={`min-w-0 ${
+              // Tile 3 appears when a third column does; tile 4 with the fourth.
+              index === 2 ? "hidden lg:block" : index === 3 ? "hidden xl:block" : ""
+            }`}
+          >
+            <ProductCard
+              product={product}
+              priority={priority && index < 2}
+              // Half the page, then split again by the grid above: two columns
+              // of a half-width panel is a quarter of the shell, three is a
+              // sixth, four is an eighth. Stated per breakpoint because a
+              // `sizes` that disagrees with the layout is how a page downloads
+              // the wrong file — see `GRID_SIZES` in `ProductCard`.
+              sizes="(max-width: 768px) 45vw, (max-width: 1024px) 22vw, (max-width: 1280px) 15vw, 11vw"
+            />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

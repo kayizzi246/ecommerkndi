@@ -129,11 +129,30 @@ export default function DealCarousel({
    * grid directly below it shows five. The two are the same products in the
    * same card at the same moment on the same screen, and they disagreed.
    *
-   * The counts now mirror `InfiniteProducts` exactly: 2 → 3 → 4 → 6 → 7.
+   * The counts mirror `InfiniteProducts`: 2 → 3 → 4 → 6, and then they part.
    *
    *   md   23%    four, from 768px — the tablet step
    *   xl   15%    six, from 1280px
-   *   2xl  /7.5   seven, from 1536px, where a % starts drifting on the gaps
+   *   2xl  /7.5   SEVEN, from 1536px, where the grid holds six
+   *
+   * ---- The top step diverges on purpose, which the rest of this note argues
+   * against ----
+   *
+   * Everything above says a rail and the grid under it must not disagree, and
+   * that is still the rule for every step but the last one. At 2xl they now
+   * differ by one tile, and it was asked for after seeing both.
+   *
+   * It is defensible, which is why it is written down rather than resisted. A
+   * rail and a grid are answering different questions: the grid is the
+   * catalogue, where the tile is the unit of judgement and 266px of photograph
+   * is worth having, while a rail is a shelf you skim — its job is to show
+   * that there is MORE, and a seventh tile plus the sliced peek says so more
+   * plainly than a sixth does. The two shapes sit far enough apart on the page
+   * that a 206px rail tile above a 266px grid tile reads as two kinds of
+   * object rather than as one object at two sizes.
+   *
+   * What would NOT be defensible is drifting further. Two counts apart and the
+   * rail stops looking like a shelf of the same shop.
    *
    * `lg` is deliberately absent. A rail at `lg` would have to show either four
    * (what `md` already sets) or six (what `xl` sets), and a step that repeats
@@ -153,7 +172,7 @@ export default function DealCarousel({
    * The `sizes` string on the ProductCard below mirrors these numbers and has to
    * be changed with them, or the browser downloads the wrong file.
    */
-  itemWidth = "w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] lg:w-[19%] xl:w-[15%] 2xl:w-[calc((100%-96px)/6.5)]",
+  itemWidth = "w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] lg:w-[19%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]",
   priority = false,
   viewAll,
 }: {
@@ -269,7 +288,7 @@ export default function DealCarousel({
               // 38.6vw at 390px, 40.5vw at 640px. Declared a little over the
               // measurement on purpose: under-declaring picks the next srcset
               // step down and the photograph arrives soft.
-              sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1024px) 23vw, (max-width: 1280px) 19vw, (max-width: 1720px) 15vw, 250px"
+              sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1024px) 23vw, (max-width: 1280px) 19vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 210px"
             />
           </div>
         ))}

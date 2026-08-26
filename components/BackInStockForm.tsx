@@ -117,7 +117,7 @@ export default function BackInStockForm({
           {state === "sending" ? "Saving…" : "Notify me"}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-[12.5px] text-shop-sale">{error}</p>}
+      {error && <p className="mt-1.5 text-[12.5px] text-shop-error">{error}</p>}
     </form>
   );
 }
