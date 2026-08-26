@@ -26,48 +26,52 @@ export default function SuperDeals({ products }: { products: Product[] }) {
   if (products.length === 0) return null;
 
   return (
-    /* ---- Ink, not yellow ----
+    /* ---- White, after yellow and after ink ----
 
-       This shelf has now been three things: white like every other section, a
-       saturated #facc15, and a soft #fef08a. The yellow was asked for and it
-       was tried honestly at two weights, so it is worth being precise about why
-       neither worked, because the failure is the same one both times.
+       Four grounds have been under this shelf and the last two failed on the
+       SAME axis, which is the part worth recording.
 
-       A large field of a LIGHT colour cannot make white product cards stand
-       out, because the cards are lighter still. At full strength the tiles read
-       as holes punched in a yellow sheet; softened, the band lost its authority
-       and became a faint tint that looked more like a rendering artefact than a
-       decision. Yellow is a highlighter — it works on small objects against
-       their surroundings, which is exactly where it now lives on this page: the
-       Super Deal chip and the discount flag on the tiles this shelf collects.
+       Yellow, at two weights: a large field of a LIGHT colour cannot make
+       white product cards stand out, because the cards are lighter still.
+       The tiles read as holes punched in a sheet.
 
-       Ink inverts the problem instead of restating it. White cards on #111827
-       is the highest contrast this shop can draw, so the photography is the
-       brightest thing in the band and the products come forward rather than
-       being flattened by their own ground. It is also not a new colour —
-       `shop-band` is the shop's dark surface, already carrying the footer and
-       the closing panel — so the page gains a shelf without gaining a hue.
+       Ink: the opposite error, and worse. White cards on #111827 do have the
+       contrast — but `ProductCard` is not a card above `md`. It is a
+       transparent block whose text sits directly on whatever is behind it,
+       and all of that text is `text-shop-ink`. On an ink band the product
+       names, the prices and the savings lines were ink on ink: invisible.
+       The shelf looked right in isolation and deleted the information inside
+       it.
 
-       The countdown needs no change: `shop-primary-soft` is a pale chip and
-       `shop-primary-ink` is dark type on it, which reads on any ground. The
-       "View All" link needs none either — #ff6a00 is 5.9:1 on #111827, the
-       same arithmetic the masthead runs.
+       That is the real constraint and it is not about taste: this shelf can
+       only take a ground that `ProductCard`'s own ink type reads against.
+       That means LIGHT, and light cannot also make white cards pop. The two
+       requirements are in direct conflict, so the shelf stops attempting the
+       second.
 
-       Full-bleed via `-mx-`, then padded back, matched exactly to the column's
-       own `px-3 md:px-8`. A band that respected the gutter would float with a
-       white sliver down each edge and read as a card rather than a shelf; a
-       band that overshot it would hang off the page and give the document a
-       horizontal scrollbar. */
+       So the ground is white, like every other section, and the separation is
+       drawn rather than filled: a hairline above and a hairline below, running
+       the full width. That is the smallest mark that says "this is one shelf"
+       and the only one that costs the tiles nothing — a rule has no area, so
+       there is no field for the photography or the type to fight.
+
+       The deal language is carried by the yellow chip and the yellow flag ON
+       the tiles, where a small saturated object works, rather than by the
+       ground under them. That is where it should have been all along.
+
+       Full-bleed via `-mx-`, matched exactly to the column's own `px-3
+       md:px-8`: a band that respected the gutter would float with a white
+       sliver down each edge, and one that overshot would hang off the page
+       and give the document a horizontal scrollbar. */
     <section
       aria-labelledby="super-deals-heading"
-      className="-mx-3 rounded-none bg-shop-band px-3 py-5 md:-mx-8 md:px-8 md:py-7"
+      className="-mx-3 border-y border-shop-line px-3 py-5 md:-mx-8 md:px-8 md:py-6"
     >
       <SectionHeader
         id="super-deals-heading"
         title="Super Deals"
         subtitle="Today's deepest cuts"
         href="/sale"
-        tone="dark"
       >
         {/* The one chip on the page that keeps a pale ground on a dark band:
             it is a countdown, it has to be read at a glance, and dark type on

@@ -17,24 +17,7 @@ export default function SectionHeader({
   linkLabel = "View All",
   id,
   children,
-  /**
-   * Which ground this heading sits on.
-   *
-   * A section with a dark band behind it cannot use the default — the title
-   * is `text-shop-ink` and would be invisible on it. The alternative was for
-   * that section to hand-roll its own `<h2>`, which is precisely what this
-   * component exists to stop: the page carried four heading treatments before
-   * it, and a fifth added "because that one is on a dark background" is how it
-   * gets back to four.
-   *
-   * The link keeps the brand orange in BOTH tones, deliberately. #ff6a00 is
-   * 5.9:1 on #111827 — the same arithmetic the masthead note in `Header` runs
-   * — so it is one of the few things in this shop that needs no adjustment
-   * when the ground flips.
-   */
-  tone = "light",
 }: {
-  tone?: "light" | "dark";
   title: string;
   subtitle?: string;
   href?: string;
@@ -76,23 +59,10 @@ export default function SectionHeader({
               for a page where a coloured ground was doing half that work. Outfit
               is also a wider, rounder face than the one this was set for, so it
               carries the extra size without the line looking heavy. */}
-          <h2
-            id={id}
-            className={`heading-black text-[22px] md:text-[26px] ${
-              tone === "dark" ? "text-white" : "text-shop-ink"
-            }`}
-          >
+          <h2 id={id} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
             {title}
           </h2>
-          {subtitle && (
-            <p
-              className={`section-sub mt-0.5 text-[13.5px] ${
-                tone === "dark" ? "text-white/60" : ""
-              }`}
-            >
-              {subtitle}
-            </p>
-          )}
+          {subtitle && <p className="section-sub mt-0.5 text-[13.5px]">{subtitle}</p>}
         </div>
         {children}
       </div>

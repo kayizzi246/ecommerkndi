@@ -42,14 +42,27 @@ import SectionHeader from "@/components/home/SectionHeader";
 const SHOWN = 8;
 
 export default function ShopByStore({ stores }: { stores: Store[] }) {
-  // A store with nothing listed is a dead end, and a name with no slug cannot
-  // be linked at all.
-  const open = stores.filter((store) => store.store_slug && store.product_count > 0);
+  /* ---- The filter that hid this section entirely ----
+   *
+   * It was `store.store_slug && store.product_count > 0`, and the second
+   * half was wrong in a way that could not fail loudly. `getStores` builds
+   * that field as `Number(store.product_count ?? 0) || 0`, so a WordPress
+   * install that does not send a per-store count reports zero for EVERY
+   * store — the filter removed all of them, the list came out empty, and
+   * the section returned null. No error, no empty state, just a section
+   * that was never there.
+   *
+   * A missing count is missing METADATA, not an empty shop. The slug is the
+   * only field this row genuinely cannot work without, because it is the
+   * link, so it is the only one tested. The count is treated as what it is
+   * — optional — and printed only when it says something.
+   */
+  const open = stores.filter((store) => store.store_slug);
 
-  // Under four this is a row that failed to fill rather than a section. A
-  // marketplace with three sellers should not advertise the fact on its front
-  // page.
-  if (open.length < 4) return null;
+  // Under two this is a row that failed to fill rather than a section. Kept
+  // low deliberately: the previous four was a second way for this to vanish
+  // on a shop that has sellers, and one silent disappearance is enough.
+  if (open.length < 2) return null;
 
   return (
     <section aria-labelledby="stores-heading">
@@ -102,9 +115,11 @@ export default function ShopByStore({ stores }: { stores: Store[] }) {
                 </span>
                 {/* The count is the useful half. A store name alone is a name;
                     a name with "42 products" behind it is a reason to tap. */}
-                <span className="mt-0.5 block text-[12px] leading-tight text-shop-muted">
-                  {store.product_count} {store.product_count === 1 ? "product" : "products"}
-                </span>
+                {store.product_count > 0 && (
+                  <span className="mt-0.5 block text-[12px] leading-tight text-shop-muted">
+                    {store.product_count} {store.product_count === 1 ? "product" : "products"}
+                  </span>
+                )}
               </span>
             </Link>
           </li>

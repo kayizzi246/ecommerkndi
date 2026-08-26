@@ -27,18 +27,17 @@ import type { SiteSettings } from "@/lib/site-settings";
  *
  * ---- The ground ----
  *
- * `#fdf3e3`, a warm cream, and it is the second and last coloured band on the
- * homepage — the other being the yellow Super Deals shelf further down. Two is
- * the budget. The palette note in `globals.css` gives the whole page 5–8%
- * colour, and these two bands plus the orange masthead is that spent.
+ * White, with a hairline above and below. It was a warm cream for a while, on
+ * the argument that a tinted band separates a section without a heading having
+ * to. That is true and it stopped being the shop's answer: the page carried a
+ * cream shelf, a yellow shelf and then an ink one within a few screens, and
+ * every one of them fought the white product cards standing on it. The rule
+ * this section follows now is the shop's: white everywhere, and structure drawn
+ * rather than filled.
  *
- * Cream rather than yellow so the two shelves do not read as the same section
- * repeated: Super Deals is loud because it is the deepest discount in the shop,
- * and this is quieter because an offer with conditions attached should not
- * shout louder than a price that has already been cut.
- *
- * A literal rather than a token, like the `#faf9f6` on /sell: it is used on one
- * band on one page, and a token implies a system it is not part of.
+ * A rule has no area, which is exactly why it works here — there is no field
+ * for the photography or the type to argue with, and the section still reads as
+ * one object.
  */
 export default function MaximiseSavings({ settings }: { settings: SiteSettings }) {
   const offers = settings.promotions.filter((promotion) => promotion.headline);
@@ -54,7 +53,7 @@ export default function MaximiseSavings({ settings }: { settings: SiteSettings }
          — the same `-mx-` trick as the yellow shelf and the promise band. A
          tinted band that respects the gutter floats with a white sliver down
          each edge and reads as a card rather than as a shelf. */
-      className="-mx-3 bg-[#fdf3e3] px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+      className="-mx-3 border-y border-shop-line px-3 py-5 md:-mx-8 md:px-8 md:py-6"
     >
       <h2
         id="savings-heading"

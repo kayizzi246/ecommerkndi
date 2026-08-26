@@ -110,11 +110,20 @@
  * 768px rather than a Tailwind token because this file is plain CSS; it is the
  * same `md` breakpoint the tile's card and the page gutter use, and the three
  * have to agree. */
-@media (max-width: 767px) {
-  :root {
-    --background: #f9fafb;
-  }
-}
+/* ---- And white on a phone too, which is the fifth turn of this argument ----
+ *
+ * Everything above is left in place because it is all still true; what
+ * changed is the shop's answer, and the shop wants white edge to edge.
+ *
+ * What the tint was buying is real and is paid for elsewhere now: on a white
+ * page a white card has no boundary of its own, so `ProductCard` draws a
+ * hairline ring below `md`. That is the same 'exactly one separator' rule the
+ * card has always followed — the tint WAS the separator, the ring is the
+ * separator now, and the one state that must never happen is neither.
+ *
+ * Kept as a comment rather than deleted, so a sixth reversal does not have to
+ * rediscover the five before it. */
+/* @media (max-width: 767px) { :root { --background: #f9fafb; } } */
 
 @theme inline {
   --color-background: var(--background);

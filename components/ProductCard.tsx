@@ -530,7 +530,7 @@ export default function ProductCard({
     // separating a tile from the #f9fafb page below 768px, per the argument
     // above — and a square white card on an off-white ground separates exactly
     // as well as a rounded one did.
-    <article className="group relative flex h-full flex-col bg-white p-1 md:bg-transparent md:p-0">
+    <article className="group relative flex h-full flex-col rounded-[10px] bg-white p-1 ring-1 ring-shop-line md:rounded-none md:bg-transparent md:p-0 md:ring-0">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
