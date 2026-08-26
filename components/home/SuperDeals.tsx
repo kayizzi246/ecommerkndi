@@ -26,52 +26,48 @@ export default function SuperDeals({ products }: { products: Product[] }) {
   if (products.length === 0) return null;
 
   return (
-    /* ---- White, after yellow and after ink ----
+    /* ---- Ink, and the reason the first attempt failed ----
 
-       Four grounds have been under this shelf and the last two failed on the
-       SAME axis, which is the part worth recording.
+       Four grounds have been under this shelf: white, #facc15, #fef08a, and
+       ink. Only the last one is right, and the first ink attempt was reverted
+       within the hour because it made every product in the band unreadable.
+       That failure is the useful part, so here is exactly what it was.
 
-       Yellow, at two weights: a large field of a LIGHT colour cannot make
-       white product cards stand out, because the cards are lighter still.
-       The tiles read as holes punched in a sheet.
+       `ProductCard` is not a card above `md`. It is a TRANSPARENT block whose
+       text sits directly on whatever is behind it, and all of that text is
+       `text-shop-ink`. Dropping it onto #111827 put ink on ink: the names, the
+       prices and the savings lines vanished. The band looked correct in
+       isolation and deleted the information inside it.
 
-       Ink: the opposite error, and worse. White cards on #111827 do have the
-       contrast — but `ProductCard` is not a card above `md`. It is a
-       transparent block whose text sits directly on whatever is behind it,
-       and all of that text is `text-shop-ink`. On an ink band the product
-       names, the prices and the savings lines were ink on ink: invisible.
-       The shelf looked right in isolation and deleted the information inside
-       it.
+       The mistake was treating the ground as the whole decision. A shelf's
+       ground and the readability of the tiles standing on it are ONE decision,
+       and the fix is not a lighter ground — it is giving the tiles a surface.
+       Which the card already knows how to do: below `md` it is a white card
+       with a hairline ring, precisely because the phone ground is not white
+       either. This shelf turns that treatment on at every width.
 
-       That is the real constraint and it is not about taste: this shelf can
-       only take a ground that `ProductCard`'s own ink type reads against.
-       That means LIGHT, and light cannot also make white cards pop. The two
-       requirements are in direct conflict, so the shelf stops attempting the
-       second.
+       `md:[&_article]:…` rather than a prop on `ProductCard`. The card is
+       rendered by a rail this component does not own, so there is no prop to
+       thread; and the descendant selector has higher specificity than the
+       card's own `md:bg-transparent`, so it wins without `!important`. The
+       rule reads as what it is — "tiles inside this shelf are cards" — and it
+       lives with the shelf that needs it rather than as a mode inside a
+       component used in thirty other places.
 
-       So the ground is white, like every other section, and the separation is
-       drawn rather than filled: a hairline above and a hairline below, running
-       the full width. That is the smallest mark that says "this is one shelf"
-       and the only one that costs the tiles nothing — a rule has no area, so
-       there is no field for the photography or the type to fight.
-
-       The deal language is carried by the yellow chip and the yellow flag ON
-       the tiles, where a small saturated object works, rather than by the
-       ground under them. That is where it should have been all along.
-
-       Full-bleed via `-mx-`, matched exactly to the column's own `px-3
-       md:px-8`: a band that respected the gutter would float with a white
-       sliver down each edge, and one that overshot would hang off the page
-       and give the document a horizontal scrollbar. */
+       With the tiles on white, ink is finally free to do what yellow never
+       could: white cards on #111827 is the highest contrast this shop can
+       draw, so the photography is the brightest thing in the band. `shop-band`
+       is not a new colour either — it already carries the footer. */
     <section
       aria-labelledby="super-deals-heading"
-      className="-mx-3 border-y border-shop-line px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+      className="-mx-3 bg-shop-band px-3 py-5 md:-mx-8 md:px-8 md:py-7 md:[&_article]:rounded-[10px] md:[&_article]:bg-white md:[&_article]:p-2 md:[&_article]:ring-1 md:[&_article]:ring-white/10"
     >
       <SectionHeader
         id="super-deals-heading"
         title="Super Deals"
         subtitle="Today's deepest cuts"
         href="/sale"
+        tone="dark"
       >
         {/* The one chip on the page that keeps a pale ground on a dark band:
             it is a countdown, it has to be read at a glance, and dark type on

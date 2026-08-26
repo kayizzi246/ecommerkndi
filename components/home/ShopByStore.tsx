@@ -65,7 +65,25 @@ export default function ShopByStore({ stores }: { stores: Store[] }) {
   if (open.length < 2) return null;
 
   return (
-    <section aria-labelledby="stores-heading">
+    /* ---- A ground of its own, and a light one on purpose ----
+
+       This sits directly under the Super Deals ink band, so it cannot be dark
+       too: two dark bands touching read as one very tall dark region with a gap
+       in the middle, and the page would have a black hole through its lower
+       third.
+
+       `shop-hairline` — #f3f4f6, a 4% grey — is the quietest ground that is
+       still a ground. It works here where it did NOT work under Super Deals,
+       and the difference is what stands on it: these cards are already
+       `bg-white` with a hairline ring, so they have their own surface and read
+       against a grey. Product tiles above `md` are transparent and do not,
+       which is the whole story of that shelf's four attempts.
+
+       Full-bleed via `-mx-`, matched exactly to the column's `px-3 md:px-8`. */
+    <section
+      aria-labelledby="stores-heading"
+      className="-mx-3 bg-shop-hairline px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+    >
       <SectionHeader
         id="stores-heading"
         title="Shop by store"
