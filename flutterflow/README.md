@@ -1,10 +1,8 @@
 # The Kandi app, rebuilt
 
-Fifteen files that replace the twelve `*_widget.dart` screens beside them.
+Fifteen files. **Start with `SETUP.md`** — it walks through adding them to
+FlutterFlow one at a time, with the parameters each one needs.
 
-The old files are still here on purpose. They are what is **running in
-FlutterFlow right now**, and they stay until the new ones are pasted and
-working. Delete them after, not before — git has them either way.
 
 ---
 
