@@ -31,13 +31,24 @@ finds nothing, and every screen that depends on it fails.
 **Use the exact names in the table below.** All fifteen were chosen so their
 snake_case matches the file name in this folder.
 
-> **Why not just use `index.dart`?** FlutterFlow generates
-> `/custom_code/widgets/index.dart` and re-exports each widget with a
-> `show <WidgetName>` clause — so it carries the widget class across files and
-> nothing else. That was enough for the old screens, which only ever referenced
-> each other's widgets. It is not enough here: every screen needs
+> **You do not create `index.dart`, and you do not need to.**
+>
+> FlutterFlow generates it and regenerates it every time a custom widget is
+> added or renamed, which is why it does not appear in the builder's file list
+> alongside `main.dart` — generated files are not editable there. It already
+> exists in your project: every one of the old screens imports it on line 24
+> and they run today.
+>
+> **Why these files do not lean on it.** FlutterFlow re-exports each widget from
+> index.dart with a `show <WidgetName>` clause, so it carries the widget class
+> across files and nothing else. That was enough for the old screens, which only
+> ever referenced each other's widgets. It is not enough here: every screen needs
 > `KandiColors`, `KandiType`, `KandiCache` and `KandiCart`, none of which is a
-> widget. A direct import takes the whole file.
+> widget. A direct import takes the whole file, and works either way.
+>
+> The `import '/custom_code/widgets/index.dart';` line near the top of each file
+> is FlutterFlow's own — it writes that header itself. Leave it; it costs
+> nothing and removing it just means FlutterFlow puts it back.
 
 ### 3. The old widgets can stay while you do this
 
