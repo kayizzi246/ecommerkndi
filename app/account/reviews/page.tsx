@@ -82,6 +82,7 @@ export default function AccountReviews() {
               >
                 {review.product_image && (
                   <Image
+                    quality={90}
                     src={review.product_image}
                     alt=""
                     fill

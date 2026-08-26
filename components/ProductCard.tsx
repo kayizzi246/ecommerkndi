@@ -570,6 +570,7 @@ export default function ProductCard({
                     would fight each other. Eager loading with a high fetch
                     priority gets the same head start without the contention. */}
                 <Image
+                  quality={90}
                   src={product.image}
                   alt={product.name}
                   fill
@@ -590,6 +591,7 @@ export default function ProductCard({
                     shows the same picture again reads as a glitch. */}
                 {secondPhoto && (
                   <Image
+                    quality={90}
                     src={secondPhoto}
                     alt=""
                     aria-hidden

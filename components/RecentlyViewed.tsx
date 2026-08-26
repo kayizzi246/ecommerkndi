@@ -162,6 +162,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                 <div className="relative aspect-[1/1.12] w-full overflow-hidden rounded-lg bg-shop-hairline">
                   {item.image ? (
                     <Image
+                      quality={90}
                       src={item.image}
                       alt={item.name}
                       fill

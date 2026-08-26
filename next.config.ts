@@ -176,6 +176,49 @@ const nextConfig: NextConfig = {
      */
     minimumCacheTTL: 2678400,
 
+    /**
+     * The encoder qualities this shop is allowed to ask for.
+     *
+     * ---- Why this is a list and not a number ----
+     *
+     * Next 16 changed the default for `images.qualities` from "anything" to
+     * `[75]`, and the optimizer ENFORCES it: a request for a quality outside
+     * the list is answered with `"q" parameter (quality) of N is not allowed`,
+     * not quietly rounded. The upgrade note says out-of-range values are
+     * "coerced to the closest value", and that describes the client half only
+     * — the server half rejects. Getting this wrong does not degrade an image,
+     * it fails to serve one.
+     *
+     * So 75 stays in the list even though nothing should request it any more.
+     * It is the default when no `quality` prop is passed, and there are 39
+     * `<Image>` call sites in this shop: the day somebody adds the fortieth
+     * without the prop, the image should render at the old quality rather than
+     * 404.
+     *
+     * ---- Why 90 ----
+     *
+     * 75 is a sensible default for a general-purpose site and the wrong one
+     * for this shop. Every photograph here is a garment or a shoe that somebody
+     * is deciding whether to buy from the picture alone, and WebP at 75 puts
+     * visible mush into exactly the places that decision turns on: the weave of
+     * a fabric, the stitching on a seam, the transition from a white product to
+     * a white background. The catalogue is also mostly studio shots on white,
+     * which is the hardest case for a lossy encoder — large flat areas make
+     * banding and ringing obvious rather than hiding them.
+     *
+     * 90 rather than 100 because the curve flattens hard above it: 90 to 100
+     * roughly doubles the file for a difference that needs a loupe. 75 to 90 is
+     * about 40% more bytes for a difference that is visible at arm's length on
+     * a phone, which is the trade worth making on a shop where the photograph
+     * IS the product page.
+     *
+     * The bandwidth this costs is real and it is bought back elsewhere: every
+     * `sizes` string in the shop is matched to its grid (see `GRID_SIZES` in
+     * `ProductCard`), so a tile fetches a tile-sized file rather than a
+     * screen-sized one. Quality went up; the number of pixels did not.
+     */
+    qualities: [75, 90],
+
     // WebP only, deliberately. AVIF compresses about 20% smaller but takes
     // roughly 50% longer to encode, and that cost lands on the *first* request
     // for an image — which is precisely the moment this shop cares about, when

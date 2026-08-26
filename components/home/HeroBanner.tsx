@@ -172,8 +172,12 @@ const HERO_WIDTHS = [640, 828, 1080, 1920] as const;
  * these URLs is in the `next/image` docs — and the `srcSet` below is the same
  * set of widths `<Image>` would have emitted.
  *
- * `q=75` is the optimiser's default quality and the one value certain to be
- * accepted; a quality outside the configured set is another 400.
+ * `q=90` matches the quality every `<Image>` in the shop now asks for, and it
+ * is in `images.qualities` in `next.config.ts` — which is not optional. This
+ * URL is hand-built, so nothing type-checks it: a quality outside the
+ * configured set is a 400 from the optimiser and a hero that does not render.
+ * The two have to be changed together, and this is the only place in the shop
+ * where that coupling is not enforced by the compiler.
  *
  * A src that is not an absolute http(s) URL is returned untouched: the built-in
  * hero's own artwork is a local file, and a data: URI would be nonsense to send
@@ -182,7 +186,7 @@ const HERO_WIDTHS = [640, 828, 1080, 1920] as const;
 function optimised(src: string, width: number): string {
   if (!/^https?:\/\//i.test(src)) return src;
 
-  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=75`;
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=90`;
 }
 
 /**
@@ -657,6 +661,7 @@ export default function HeroBanner({
         {withPhoto && (
           <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[418px] md:w-auto">
             <Image
+              quality={90}
               src="/hero-model.png"
               alt=""
               /* Empty alt, `aria-hidden` by consequence: the banner's message is

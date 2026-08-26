@@ -190,6 +190,7 @@ export default function CartDrawer() {
                             alt={item.name}
                             fill
                             sizes="64px"
+                            quality={90}
                             className="object-contain p-1"
                           />
                         )}

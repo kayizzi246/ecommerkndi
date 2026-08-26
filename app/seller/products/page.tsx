@@ -334,7 +334,7 @@ function ProductRow({
         <div className="flex min-w-0 flex-1 items-center gap-3.5">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-shop-hairline">
             {product.image && (
-              <Image src={product.image} alt="" fill sizes="64px" className="object-cover" />
+              <Image src={product.image} alt="" fill sizes="64px" className="object-cover" quality={90} />
             )}
           </div>
 

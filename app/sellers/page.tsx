@@ -240,6 +240,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
                           current page. */}
                       {product.image && (
                         <Image
+                          quality={90}
                           src={product.image}
                           alt=""
                           fill

@@ -109,7 +109,7 @@ export default function AccountOrders() {
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-shop-hairline"
                     >
                       {item.image && (
-                        <Image src={item.image} alt="" fill sizes="80px" className="object-cover" />
+                        <Image src={item.image} alt="" fill sizes="80px" className="object-cover" quality={90} />
                       )}
                     </Link>
 

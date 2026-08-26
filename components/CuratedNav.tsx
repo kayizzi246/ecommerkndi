@@ -403,6 +403,7 @@ function MegaPanel({
                           alt=""
                           fill
                           sizes="130px"
+                          quality={90}
                           className="object-contain p-1 transition-transform duration-300 group-hover:scale-105"
                         />
                       )}

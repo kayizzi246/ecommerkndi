@@ -440,7 +440,7 @@ export default function CheckoutPage() {
               {/* Guarded: an imageless product stores "" here, and `next/image`
                   treats an empty src as a request for the current page. */}
               {item.image && (
-                <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" />
+                <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" quality={90} />
               )}
               <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-500 px-1 text-[11px] font-semibold text-white">
                 {item.quantity}

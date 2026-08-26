@@ -145,6 +145,7 @@ export default function DrawerAddOns({
                   treats an empty src as a request for the current page. */}
               {product.image && (
                 <Image
+                  quality={90}
                   src={product.image}
                   alt={product.name}
                   fill

@@ -162,7 +162,7 @@ export default function CartPage() {
                         `next/image` treats an empty src as a request for the
                         current page. */}
                     {item.image && (
-                      <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
+                      <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" quality={90} />
                     )}
                   </Link>
 

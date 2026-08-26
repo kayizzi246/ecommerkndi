@@ -116,7 +116,7 @@ export default function AccountOverview() {
                   className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-shop-hairline"
                 >
                   {item.image && (
-                    <Image src={item.image} alt="" fill sizes="64px" className="object-cover" />
+                    <Image src={item.image} alt="" fill sizes="64px" className="object-cover" quality={90} />
                   )}
                 </Link>
                 <div className="min-w-0">

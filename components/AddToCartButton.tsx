@@ -322,7 +322,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             {/* Guarded: an imageless product stores "" here, and `next/image`
                 treats an empty src as a request for the current page. */}
             {product.image && (
-              <Image src={product.image} alt="" fill sizes="48px" className="object-contain p-1" />
+              <Image src={product.image} alt="" fill sizes="48px" className="object-contain p-1" quality={90} />
             )}
           </div>
           <div className="min-w-0 flex-1">

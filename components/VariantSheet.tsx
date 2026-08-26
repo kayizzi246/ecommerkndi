@@ -152,7 +152,7 @@ export default function VariantSheet({
         <div className="flex items-center gap-3 px-4 pb-4">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-shop-hairline">
             {product.image && (
-              <Image src={product.image} alt="" fill sizes="64px" className="object-cover" />
+              <Image src={product.image} alt="" fill sizes="64px" className="object-cover" quality={90} />
             )}
           </div>
           <div className="min-w-0">

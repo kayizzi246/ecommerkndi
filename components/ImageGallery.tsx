@@ -124,6 +124,7 @@ export default function ImageGallery({
                     alt=""
                     width={64}
                     height={64}
+                    quality={90}
                     className="h-full w-full object-contain p-1"
                   />
                 </button>
@@ -146,6 +147,7 @@ export default function ImageGallery({
             alt={`${productName} — image ${activeIndex + 1}`}
             fill
             sizes="(min-width: 1024px) 680px, 100vw"
+            quality={90}
             className={`h-full w-full object-contain p-1.5 ${soldOut ? "opacity-45" : ""}`}
             priority
           />
@@ -250,6 +252,7 @@ export default function ImageGallery({
                   alt=""
                   width={64}
                   height={64}
+                  quality={90}
                   className="h-full w-full object-contain p-1"
                 />
               </button>
@@ -273,6 +276,7 @@ export default function ImageGallery({
               alt={`${productName} — full size`}
               fill
               sizes="900px"
+              quality={90}
               className="object-contain"
             />
           </div>

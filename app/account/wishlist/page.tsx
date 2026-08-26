@@ -38,7 +38,7 @@ export default function AccountWishlist() {
                 className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-shop-hairline"
               >
                 {item.image && (
-                  <Image src={item.image} alt="" fill sizes="96px" className="object-cover" />
+                  <Image src={item.image} alt="" fill sizes="96px" className="object-cover" quality={90} />
                 )}
               </Link>
 

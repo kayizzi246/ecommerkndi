@@ -131,7 +131,28 @@ export default function InfiniteProducts({
           unchanged. A grid is scanned down, so the horizontal gap only has to
           say "these are two products", while the vertical one has to separate a
           tile's last line of text from the next tile's photograph — a much
-          harder join, and the one that fails first. */}
+          harder join, and the one that fails first.
+
+          ---- The column gap went 12px to 8px, to widen the photograph ----
+
+          On a desktop the card has no padding of its own, so the picture is
+          exactly as wide as its grid cell and the gap is the ONLY slack in the
+          row. Six columns share five gaps: at 12px that is 60px of the shell
+          spent on air, at 8px it is 40, and the 20px recovered goes to the
+          photographs at a little over 3px each.
+
+          That is a small number and it is honestly the whole of what this lever
+          can give. The two things that actually set tile width are the column
+          count and `--shell`, and both are deliberate: six is the count the
+          note below argues for at length, and the shell stops at 1720 so the
+          page does not sprawl on a wide monitor. Widening the picture past this
+          means moving one of those, not shaving the gaps further — below 8px
+          the borderless tiles start reading as one continuous strip of
+          photography, which is the failure the paragraphs above exist to
+          prevent.
+
+          The ROW gap is untouched at 20px. It is doing the harder job and it
+          was not what was asked about. */}
       {/* ---- The gaps are tight again below md, and that is not a reversal ----
           The paragraphs above are still the rule: a tile needs exactly one
           separator. What changed is which one it gets on a phone. `ProductCard`
@@ -264,7 +285,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

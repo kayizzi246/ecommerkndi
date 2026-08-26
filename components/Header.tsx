@@ -436,21 +436,40 @@ export default function Header({
             // rather than distorting, and the intrinsic size stays generous so
             // the file is never upscaled.
             //
-            // ---- The white plate is back, with the coloured row ----
+            // ---- The white plate is gone; the logo is recoloured instead ----
             //
-            // It was removed when the masthead went white, under the note "put
-            // it back in the same commit as any future dark masthead". The row
-            // is orange rather than dark, but the problem the plate solves does
-            // not care which colour it is: what gets uploaded in wp-admin is
-            // somebody's existing logo file, and most of those are dark artwork
-            // on a transparent background, drawn for a white page. On orange
-            // that artwork muddies; a logo saved WITH a white background
-            // becomes a bright rectangle with hard edges. The plate makes both
-            // cases correct without knowing which one it has.
+            // The plate solved a real problem and solved it bluntly. What gets
+            // uploaded in wp-admin is somebody's existing logo file: usually
+            // dark artwork on transparency, drawn for a white page. On orange
+            // that artwork muddies, and a logo saved WITH a white background
+            // becomes a bright rectangle with hard edges. A white plate makes
+            // both cases legible without knowing which one it has.
             //
-            // Tight padding and a small radius, not a card: the plate should
-            // read as the logo's own edge, not as a tile parked in the row.
-            <span className="flex items-center rounded-lg bg-white px-2 py-1">
+            // What it costs is that the masthead then carries a white card
+            // parked on an orange bar. It reads as a sticker rather than as
+            // branding, and it is the one element on the row that does not
+            // belong to the row.
+            //
+            // `brightness(0) invert(1)` is the way out. The first step drives
+            // every colour channel to zero — any artwork, any palette, all of
+            // it black — while leaving the ALPHA channel untouched. The second
+            // flips that black to white. So whatever was uploaded comes out as
+            // a clean white silhouette of itself on the orange, with its
+            // transparency intact and its edges still antialiased.
+            //
+            // It is deliberately not conditional on what the file contains,
+            // because that is exactly what cannot be known here. Dark artwork,
+            // light artwork and a logo with a baked-in white box all collapse
+            // to the same white mark — the box included, which is why the hard
+            // rectangle stops being visible rather than merely being covered.
+            //
+            // The trade, stated plainly: a multi-coloured logo loses its
+            // colours. That is the right trade on a saturated bar — a
+            // three-colour mark on orange was never going to read as intended
+            // anyway — and it is the same treatment the footer gives its own
+            // marks. A shop that wants its exact palette in the masthead needs
+            // a light-on-transparent file and this filter removed.
+            <span className="flex items-center">
               <Image
                 src={settings.brand.logo_url}
                 alt={brandName(settings)}
@@ -458,7 +477,7 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-7 w-auto max-w-[124px] object-contain md:h-9 md:max-w-[156px]"
+                className="h-7 w-auto max-w-[124px] object-contain brightness-0 invert md:h-9 md:max-w-[156px]"
               />
             </span>
           ) : (
