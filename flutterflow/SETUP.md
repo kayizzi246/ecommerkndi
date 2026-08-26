@@ -37,7 +37,41 @@ broken pages at the same moment, with no way to tell which change caused what.
 
 ---
 
+## Widget names are load-bearing
+
+Each file imports the ones it needs **directly**:
+
+```dart
+import '/custom_code/widgets/kandi_design.dart';
+```
+
+That path is not decorative. FlutterFlow writes a custom widget to
+`lib/custom_code/widgets/<widget_name_in_snake_case>.dart` — so a widget named
+`KandiDesign` lands at `kandi_design.dart` and the import resolves. Name it
+`KandiDesignPreview` and it lands at `kandi_design_preview.dart`, the import
+finds nothing, and every screen fails.
+
+**Use the exact names in the sections below.** All fifteen are chosen so their
+snake_case matches the file name in this folder.
+
+### Why not rely on index.dart
+
+FlutterFlow generates `/custom_code/widgets/index.dart` and re-exports each
+widget with a `show <WidgetName>` clause — so it carries the WIDGET across
+files and nothing else. That was enough for the old screens, which only ever
+referenced each other's widget classes. It is not enough here: every screen
+needs `KandiColors`, `KandiType`, `KandiCache` and `KandiCart`, none of which
+is a widget.
+
+Importing the sibling file directly takes the whole of it, and works whether or
+not index.dart re-exports anything.
+
+---
+
 ## Before you start
+
+**Order is still what it was**, and now for a second reason: a direct import of
+a file that does not exist yet is an error, not a warning.
 
 **Order is not optional.** Every screen names `KandiColors`, `KandiType` and
 the rest directly. FlutterFlow resolves that through
@@ -79,14 +113,14 @@ Every file starts with a header FlutterFlow also generates. Do this:
 
 ## 1. `kandi_design.dart`
 
-**Widget name:** `KandiDesignPreview`
+**Widget name:** `KandiDesign`  ← exactly this
 **Parameters:** none beyond the automatic `width` / `height`.
 
 This is the whole design system — palette, type, spacing, the cache, the HTTP
 layer, the product model, the tile, the rail, the skeletons. Everything else
 depends on it.
 
-**Check it landed:** drop `KandiDesignPreview` on a blank test page and run.
+**Check it landed:** drop `KandiDesign` on a blank test page and run.
 You should see the orange swatches, the type scale, and a price in tabular
 figures. If that renders, the foundation is in.
 
@@ -94,12 +128,12 @@ figures. If that renders, the foundation is in.
 
 ## 2. `kandi_cart_store.dart`
 
-**Widget name:** `KandiCartProbe`
+**Widget name:** `KandiCartStore`  ← exactly this
 **Parameters:** none.
 
 The basket, shared by five screens. Also gives you `KandiCartBadge`.
 
-**Check it landed:** drop `KandiCartProbe` on the test page. It shows the live
+**Check it landed:** drop `KandiCartStore` on the test page. It shows the live
 basket and the storage key. It should read `kandi-cart-v2` — the same key the
 old app wrote, so an existing basket survives the switch.
 
@@ -263,8 +297,14 @@ Start with the easy route. The shell is an improvement, not a requirement.
 
 ## If something goes wrong
 
-**"Undefined name `KandiColors`"** — `kandi_design.dart` is not in yet, or its
-widget name is not exactly `KandiDesignPreview`. Paste it first and recompile.
+**"Undefined name `KandiColors`"** — `kandi_design.dart` is not in yet, or the
+widget is not named exactly `KandiDesign`. Check the name first: an import of
+`kandi_design.dart` cannot resolve if FlutterFlow filed the widget as
+`kandi_design_preview.dart`.
+
+**"Target of URI doesn't exist: '/custom_code/widgets/kandi_….dart'"** — same
+cause. The widget that file belongs to is either missing or misnamed. The name
+must snake_case to the path exactly.
 
 **Every widget breaks at once** — check for the two `backend` imports at the
 top of whichever file you pasted last. That is the failure mode described in
@@ -273,6 +313,6 @@ step 4, and it takes the whole build down rather than one file.
 **A screen compiles but shows nothing** — check the parameter names match the
 table exactly, including case. A mistyped parameter is silently null.
 
-**The basket looks empty after switching** — check `KandiCartProbe` shows
+**The basket looks empty after switching** — check `KandiCartStore` shows
 `kandi-cart-v2`. If it does and the basket is still empty, the old basket was
 genuinely empty.

@@ -8,11 +8,15 @@ FlutterFlow one at a time, with the parameters each one needs.
 
 ## Paste order
 
-FlutterFlow resolves cross-file references through
-`/custom_code/widgets/index.dart`, which it regenerates as widgets are added.
-Every screen below names `KandiColors`, `KandiType` and the rest directly, so
-**the design system has to exist first** or the pastes fail one after another
-with undefined-name errors.
+Each file imports the ones it needs directly, by path —
+`import '/custom_code/widgets/kandi_design.dart';` — rather than relying on
+FlutterFlow's generated `index.dart`, which re-exports each widget with a
+`show <WidgetName>` clause and therefore carries only the widget class.
+
+That means two things. **The design system has to exist first**, or a direct
+import of it is a hard error. And **the widget names matter**: FlutterFlow files
+a widget at `lib/custom_code/widgets/<snake_case_name>.dart`, so the name has
+to snake_case to the path the imports use. `SETUP.md` lists them.
 
 Add each under **Custom Code → Widgets → Add**, in this order:
 
@@ -39,10 +43,10 @@ Within 7–14 the order does not matter.
 
 ### Check it landed
 
-`kandi_design.dart` exports `KandiDesignPreview` — drop it on a blank page and
+`kandi_design.dart` exports `KandiDesign` — drop it on a blank page and
 it renders the palette and the type scale. If the swatches are the right orange
 and the prices are in tabular figures, the paste worked. `kandi_cart_store.dart`
-exports `KandiCartProbe`, which shows the live basket and the storage key it is
+exports `KandiCartStore`, which shows the live basket and the storage key it is
 reading.
 
 Neither is meant to ship on a shopper-facing screen.
@@ -141,11 +145,10 @@ Do not add either import without the pubspec entry first.
 ## Verifying changes
 
 Every file here was checked with `dart analyze` against a real Flutter SDK, not
-read over. The harness lives in the scratchpad and does three things: strips the
-FlutterFlow-only imports (they resolve only inside a FlutterFlow project),
-replaces them with relative imports of every sibling — which is what
-`index.dart` actually does — and runs the analyser.
+read over. The harness strips the `/flutter_flow/` imports, rewrites
+`import '/custom_code/widgets/kandi_x.dart'` to `import 'kandi_x.dart'` — the
+same import, addressed relatively — and runs the analyser.
 
-That middle step matters. The first run reported fourteen undefined-name errors
-that were not real, because the harness was only importing the design system
-while the code legitimately referenced `KandiCart` across files.
+It is deliberately not allowed to paper over a missing import. Deleting one
+line from a screen produces 119 errors; putting it back produces none. A check
+that cannot fail is not a check.

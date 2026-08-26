@@ -17,6 +17,27 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+// ---- Direct imports, rather than leaning on index.dart ----
+//
+// FlutterFlow's generated `/custom_code/widgets/index.dart` re-exports each
+// custom widget with a `show <WidgetName>` clause — so it carries the WIDGET
+// across files and nothing else. That is enough for the old screens, which
+// only ever referenced each other's widget classes; it is not enough here,
+// where every screen needs `KandiColors`, `KandiType`, `KandiCache` and the
+// rest, none of which is a widget.
+//
+// Importing the sibling file directly takes the whole of it. Harmless if
+// index.dart turns out to re-export everything, and essential if it does
+// not — which is why it is done this way rather than assumed either way.
+//
+// The paths follow FlutterFlow's own naming: a custom widget called
+// `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
+// Name the widgets exactly as SETUP.md says or these paths will not resolve.
+import '/custom_code/widgets/kandi_design.dart';
+import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_auth_screen.dart';
+import '/custom_code/widgets/kandi_account_screen.dart';
+
 // ============================================================
 //  KANDI — THE SHELL
 //

@@ -1050,8 +1050,8 @@ void kandiToast(BuildContext context, String message, {bool error = false}) {
 /// seeing the values I think it is" in one glance.
 ///
 /// Not meant to ship on a shopper-facing screen.
-class KandiDesignPreview extends StatelessWidget {
-  const KandiDesignPreview({super.key, this.width, this.height});
+class KandiDesign extends StatelessWidget {
+  const KandiDesign({super.key, this.width, this.height});
 
   final double? width;
   final double? height;

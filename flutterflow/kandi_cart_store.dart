@@ -17,6 +17,24 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+// ---- Direct imports, rather than leaning on index.dart ----
+//
+// FlutterFlow's generated `/custom_code/widgets/index.dart` re-exports each
+// custom widget with a `show <WidgetName>` clause — so it carries the WIDGET
+// across files and nothing else. That is enough for the old screens, which
+// only ever referenced each other's widget classes; it is not enough here,
+// where every screen needs `KandiColors`, `KandiType`, `KandiCache` and the
+// rest, none of which is a widget.
+//
+// Importing the sibling file directly takes the whole of it. Harmless if
+// index.dart turns out to re-export everything, and essential if it does
+// not — which is why it is done this way rather than assumed either way.
+//
+// The paths follow FlutterFlow's own naming: a custom widget called
+// `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
+// Name the widgets exactly as SETUP.md says or these paths will not resolve.
+import '/custom_code/widgets/kandi_design.dart';
+
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -406,17 +424,17 @@ class KandiCartBadge extends StatelessWidget {
 /// otherwise a store. Rather than an empty box, it shows the live basket — so
 /// dropping it on a page answers "is the count right, and is it reading the
 /// same storage the old app wrote" without opening a debugger.
-class KandiCartProbe extends StatefulWidget {
-  const KandiCartProbe({super.key, this.width, this.height});
+class KandiCartStore extends StatefulWidget {
+  const KandiCartStore({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
 
   @override
-  State<KandiCartProbe> createState() => _KandiCartProbeState();
+  State<KandiCartStore> createState() => _KandiCartStoreState();
 }
 
-class _KandiCartProbeState extends State<KandiCartProbe> {
+class _KandiCartStoreState extends State<KandiCartStore> {
   @override
   void initState() {
     super.initState();
