@@ -144,7 +144,7 @@ export default function InfiniteProducts({
           From `md` the tile goes flat again and the wide gaps come straight
           back — they are the ONLY separator up there, and the two settings have
           to keep moving together or the wall of touching photographs returns. */}
-      {/* ---- The ramp is 2 → 3 → 4 → 5 → 6 → 7, one step per breakpoint ----
+      {/* ---- The ramp is 2 -> 3 -> 4 -> 5 -> 6, one step per breakpoint ----
 
           Six across on a laptop is the anchor, and every breakpoint below it
           drops exactly one column.
@@ -197,42 +197,49 @@ export default function InfiniteProducts({
           fits the bounded shell at a size a shopper can judge a garment from —
           229px, against the 277px five would give and the 172px eight did.
 
-          ---- Where the ramp actually landed: 2 → 3 → 4 → 5 → 6 → 7 ----
-
-          Two things were asked of this grid in the same afternoon and they pull
-          opposite ways: bigger product pictures, and seven of them across.
-          Every step here is one or the other winning at the width where it
-          matters most.
+          ---- Where the ramp landed: 2 -> 3 -> 4 -> 5 -> 6 ----
 
             sm   3  unchanged
-            md   4  from 768px — down from five, because the tablet is where a
+            md   4  from 768px - down from five, because the tablet is where a
                     picture is scarcest: an 820px iPad goes from a 148px tile to
                     ~190px, and four is the count that buys that
             lg   5  from 1024px
-            xl   6  from 1280px
-            2xl  7  from 1536px — the seven that was asked for, at ~226px in the
-                    1720px shell
+            xl   6  from 1280px, and six is where it stops
 
-          ---- The top step was documented for a long time before it existed ----
+          ---- Seven was the top for exactly one commit ----
 
-          Everything above the `xl` line was prose only. The class list ran
-          `... lg:grid-cols-5 xl:grid-cols-6` and stopped, so the widest window
-          this shop has ever been opened in got six columns while this comment,
-          `GRID_SIZES` in `ProductCard` and the `/7.5` divisor in
-          `DealCarousel` all described seven.
+          It was asked for, built on all seven grids, looked at on a 1920
+          display, and the shop asked for six back. Worth recording rather than
+          quietly reverting, because the argument against seven is the one the
+          section above already makes and it was right the first time: six
+          columns of a bounded 1720px shell is a 266px tile and seven is 226px.
+          On the screen with the most room to spare, seven spent it making the
+          pictures smaller.
 
-          That is not a cosmetic drift. `GRID_SIZES` promises the browser
-          `14vw` above 1536px, and a promise is what `sizes` IS — nothing
-          downstream corrects it. At six columns the tile is really ~17vw, so
-          every photograph in every grid on a large monitor was being chosen
-          from the srcset one step too small and arriving soft. The step is
-          real now and the three of them finally agree.
+          A BOUNDED shell is what makes that true, and it is the whole of the
+          argument. While `--shell` was 100% a wider window meant more products
+          at the same size, and more of them was the obvious win; against a
+          shell that stops growing at 1720 every extra column comes straight
+          out of the photograph.
 
-          It is on all seven grids, not only this one: the catalogue, the
-          category pages, /sale, /search, a seller's own shop, the cart
-          recommendations and the loading skeleton. A skeleton that lays out a
-          different column count from the grid it stands in for is a layout
-          shift with extra steps.
+          ---- Three other places carry this count ----
+
+          `GRID_SIZES` in `ProductCard`, the rail widths in `DealCarousel`, and
+          the skeleton. All three moved back with it, and they have to: `sizes`
+          is a PROMISE about layout that nothing downstream corrects, so a
+          string still claiming 14vw while the tile renders at 17vw picks a
+          file one srcset step too small and the photograph arrives soft. That
+          exact drift is what going to seven fixed, and leaving it behind now
+          would recreate it in the opposite direction.
+
+          The two bands above 1536 collapsed into one in `GRID_SIZES` for the
+          same reason - a breakpoint that no longer changes the count is a
+          breakpoint somebody will later read as meaning something.
+
+          All seven grids carry the ramp: the catalogue, the category pages,
+          /sale, /search, a seller's own shop, the cart recommendations and the
+          loading skeleton. A skeleton laying out a different column count from
+          the grid it stands in for is a layout shift with extra steps.
 
           The phone's two are untouched. Below 768px the tile is already as wide
           as a useful grid can make it.
@@ -257,7 +264,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-3 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

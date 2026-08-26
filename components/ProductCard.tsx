@@ -237,10 +237,18 @@ const GRID_SIZES =
   //   ≤768   3       33vw
   //   ≤1024  4       25vw
   //   ≤1280  5       20vw   <- the step that was missing
-  //   ≤1536  6       17vw
-  //   ≤1720  7       14vw
-  //   above  7 of a shell that has stopped growing, so a fixed px
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1536px) 17vw, (max-width: 1720px) 14vw, 240px";
+  //   above  6       17vw, and a fixed px once the shell stops growing
+  //
+  // Seven was the top of this ramp for exactly one commit. The shop looked at
+  // it on a 1920 display and asked for six back, which is the same answer the
+  // note in `InfiniteProducts` reached on its own the first time round: six
+  // columns of a bounded 1720px shell is a 266px tile, and seven is 226px —
+  // close to the phone tile, on the screen with the most room to avoid that.
+  //
+  // The two bands above 1536 collapse into one because they now carry the same
+  // count. A breakpoint that does not change anything is a breakpoint that will
+  // be read as meaning something later.
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1720px) 17vw, 266px";
 
 export default function ProductCard({
   product,

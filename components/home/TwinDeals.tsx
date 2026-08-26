@@ -224,9 +224,35 @@ function DealPanel({
           href={href}
           className={`group flex min-w-0 items-center gap-1 transition-opacity hover:opacity-80 ${TONES[tone]}`}
         >
+          {/* ---- Genuinely heavy, which needed changing the FACE ----
+
+              This read `heading-black ... font-extrabold` and rendered at 700.
+              Not approximately — exactly 700, every time, on every machine.
+              `.heading-black` sets the display face, this shop loads Poppins as
+              two static instances (600 and 700, see `layout.tsx`), and
+              `font-synthesis-weight: none` in `globals.css` means a weight that
+              was not downloaded is not faked. So the 800 resolved to the nearest
+              real instance and the class had no effect at all. Asking for
+              "very bold" here could not be answered by asking harder.
+
+              There were two ways out. Add 800 to the Poppins array, which costs
+              a Ugandan shopper another font file on first paint — the exact
+              cost `layout.tsx` spends a paragraph refusing. Or set these two
+              headings in the UI face, which is Inter, loaded VARIABLE, covering
+              100-900 in the file the page already downloads.
+
+              The second is free, so it is the one taken. 900 is a real weight
+              here rather than a request, and it is the register the reference
+              runs: an uppercase grotesque at maximum weight. `font-ui` is
+              deliberately spelled as an arbitrary family so nothing has to be
+              added to the theme for two headings.
+
+              The rest of the page keeps Poppins. This is the one place on the
+              homepage where the type IS the promotion, which is the same
+              exception the note below already argued for. */}
           <h2
             id={id}
-            className="heading-black truncate text-[18px] font-extrabold uppercase tracking-[0.01em] md:text-[21px]"
+            className="truncate font-[family-name:var(--font-ui)] text-[19px] font-black uppercase leading-none tracking-[0.005em] md:text-[23px]"
           >
             {title}
           </h2>

@@ -3,7 +3,6 @@ import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import PromiseBand from "@/components/home/PromiseBand";
 import TwinDeals from "@/components/home/TwinDeals";
-import CategoryCircles from "@/components/home/CategoryCircles";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -89,7 +88,6 @@ export default async function Home() {
    */
   const {
     settings,
-    departments,
     trending,
     sellerArrivals,
     promoProducts,
@@ -266,42 +264,32 @@ export default async function Home() {
              is the only swipe on the phone page. */}
         <TwinDeals products={dailyDeals} />
 
-        {/* ---- Explore your interests ----
+        {/* ---- The department shortcut row is gone from the homepage ----
 
-             One line of department chips, under the deals rather than over
-             them.
+             It was chips, then circles, and now nothing. Worth recording all
+             three, because the reason it kept being rebuilt is the reason it
+             is now removed: nobody could say what it was for that the
+             masthead was not already doing.
 
-             Order matters here and it is the whole lesson of the four-block
-             stack this page removed once already: navigation above merchandise
-             pushes the goods down, navigation below merchandise catches the
-             shopper who has looked at the goods and wants a different kind.
-             Chips are the cheapest possible form of it — one line tall, no
-             artwork, horizontally scrolling — which is why they survive here
-             where the card grid did not.
+             Every department on it is in the Categories mega-menu, which is
+             on this page and every other page of the shop, and the menu shows
+             the CHILDREN too — so the row was the shallower of two routes to
+             the same place, sitting in the middle of the merchandise. The
+             argument that kept it here was that a phone shopper reaches
+             departments only through the masthead; that is true and the
+             masthead is one tap away, which is the same distance the row was.
 
-             Also at every width. A phone shopper otherwise reaches the
-             departments only through the masthead menu, and this row is one
-             tap from the six products above it. */}
-        {/* ---- Circles, not chips, and no heading over them ----
+             What it cost was a band across the page between the deals and the
+             rails. On a homepage whose whole layout argument is that
+             navigation goes BELOW merchandise rather than above it, a strip of
+             navigation wedged between two blocks of merchandise was the one
+             thing on the page not obeying it.
 
-             This was a row of outlined pills under "Explore your interests".
-             A chip is the right shape for a FILTER — a state you toggle on a
-             list already in front of you — and the wrong one at the top of a
-             homepage, where nothing has been listed yet and this row is the
-             shop's front door.
-
-             A circle is a target the eye finds without reading: the row is
-             scanned in one sweep and a department picked before a word has been
-             processed. Fourteen identical outlined pills have to be read left
-             to right, which on a phone is fourteen words standing between the
-             shopper and the products.
-
-             The heading went with them. "Explore your interests" was a label
-             explaining a list of labels, and the line it occupied is now a line
-             of products further up the page. `aria-label` on the nav inside
-             carries the name for a screen reader, which is what the visible
-             heading was doing that was worth keeping. */}
-        {departments.length >= 3 && <CategoryCircles categories={departments} />}
+             `CategoryCircles` is deleted rather than left unrendered, and
+             `departments` came out of this page's destructure with it — the row
+             was its last reader here. The tree is still built and still served:
+             the header takes it for the mega-menu from the layout, and
+             `departmentRails` is a separate, already-composed field. */}
 
         {/* ---- Every carousel rail, desktop only ----
          *
