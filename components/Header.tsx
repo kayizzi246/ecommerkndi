@@ -450,25 +450,52 @@ export default function Header({
             // branding, and it is the one element on the row that does not
             // belong to the row.
             //
-            // `brightness(0) invert(1)` is the way out. The first step drives
-            // every colour channel to zero — any artwork, any palette, all of
-            // it black — while leaving the ALPHA channel untouched. The second
-            // flips that black to white. So whatever was uploaded comes out as
-            // a clean white silhouette of itself on the orange, with its
-            // transparency intact and its edges still antialiased.
+            // ---- Two tone, not one: white goes black, everything else white ----
             //
-            // It is deliberately not conditional on what the file contains,
-            // because that is exactly what cannot be known here. Dark artwork,
-            // light artwork and a logo with a baked-in white box all collapse
-            // to the same white mark — the box included, which is why the hard
-            // rectangle stops being visible rather than merely being covered.
+            // This was `brightness(0) invert(1)`, which flattened the whole mark
+            // to a single white silhouette. That is legible and it throws away
+            // the logo's internal structure — the white K inside the bag
+            // disappeared into the bag, because both ended up the same white.
             //
-            // The trade, stated plainly: a multi-coloured logo loses its
-            // colours. That is the right trade on a saturated bar — a
-            // three-colour mark on orange was never going to read as intended
-            // anyway — and it is the same treatment the footer gives its own
-            // marks. A shop that wants its exact palette in the masthead needs
-            // a light-on-transparent file and this filter removed.
+            // The filter chain below is read right to left in effect, and each
+            // step is doing one job:
+            //
+            //   grayscale(1)     Colour out of the way first. What follows is a
+            //                    decision about LIGHTNESS, and it has to be made
+            //                    the same way for an orange bag and a navy one.
+            //
+            //   brightness(0.75) Pulls the midtones down so the threshold below
+            //                    lands where it should. The brand orange sits at
+            //                    about 0.51 luma — almost exactly on a 0.5
+            //                    threshold, which is a coin toss. Scaling to
+            //                    ~0.36 puts it unambiguously on the dark side,
+            //                    while true white only falls to 0.75 and stays
+            //                    clearly on the light side.
+            //
+            //   contrast(4)      Separates the two groups hard. Anything above
+            //                    the midpoint is driven towards white, anything
+            //                    below towards black. Not `contrast(10)`: that
+            //                    is a true threshold and it takes the
+            //                    antialiasing with it, leaving stair-stepped
+            //                    edges on a 28px mark. 4 is enough to separate
+            //                    and soft enough to keep the edges.
+            //
+            //   invert(1)        The flip that answers the brief. What was white
+            //                    is now black; what was anything else is now
+            //                    white.
+            //
+            // Alpha is untouched by every one of these, so a transparent
+            // background stays transparent and the mark still sits directly on
+            // the orange.
+            //
+            // ---- The one file this gets wrong ----
+            //
+            // A logo saved with a baked-in white RECTANGLE rather than
+            // transparency. Under the old filter that rectangle turned white and
+            // vanished into nothing; under this one it turns BLACK and becomes a
+            // black box on an orange bar. If that ever appears in the masthead,
+            // the fix is the upload — a transparent PNG — not another filter,
+            // because no filter can tell a white background from a white letter.
             <span className="flex items-center">
               <Image
                 src={settings.brand.logo_url}
@@ -477,7 +504,7 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-7 w-auto max-w-[124px] object-contain brightness-0 invert md:h-9 md:max-w-[156px]"
+                className="h-7 w-auto max-w-[124px] object-contain [filter:grayscale(1)_brightness(0.75)_contrast(4)_invert(1)] md:h-9 md:max-w-[156px]"
               />
             </span>
           ) : (
