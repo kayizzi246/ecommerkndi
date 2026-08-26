@@ -73,7 +73,7 @@ export default function SellerCommissionsPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
+        <p role="alert" className="mb-4 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink">
           {error}
         </p>
       )}

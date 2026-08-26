@@ -119,7 +119,7 @@ export default function VerifyEmailCard({
         {error && (
           <p
             role="alert"
-            className="mt-3 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]"
+            className="mt-3 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink"
           >
             {error}
           </p>

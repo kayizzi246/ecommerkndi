@@ -131,7 +131,7 @@
   --color-bfl-black: #09090b;
   --color-bfl-ink: #18181b; /* headings, brand + product titles */
   --color-bfl-ink-soft: #52525b;
-  --color-bfl-red: #e53935; /* Super Price Store, discount % */
+  --color-bfl-red: #111827; /* was red; retired with the rest — see shop-error */
   --color-bfl-green: #16a34a; /* NEW badge */
   --color-bfl-grey: #71717a;
   --color-bfl-line: #e4e4e7;
@@ -349,7 +349,31 @@
   --color-shop-save: #15803d;
   --color-shop-successbg: #f0fdf4;
   --color-shop-warning: #f59e0b;
-  --color-shop-error: #e53935;
+  /* ---- And the error red goes too, on the shop's instruction ----
+   *
+   * The note further up kept exactly one red on the site, on the argument that
+   * an error message is the single place where colour is doing safety work
+   * rather than decoration: it has to separate from the body copy around it at
+   * a glance, and a validation line set in ink is one people submit past
+   * without seeing.
+   *
+   * That concern was raised, considered and overruled. It is recorded here
+   * rather than argued a second time — the call is the shop's and it has been
+   * made. There is now no red anywhere in this palette.
+   *
+   * ---- What carries "this is wrong" now ----
+   *
+   * Weight and position, and nothing else. The three call sites are the
+   * checkout phone field, the add-to-cart error and the back-in-stock form.
+   * The field still swaps to a dark border, which against the usual hairline is
+   * a change the eye does catch; the two messages are font-medium directly
+   * beneath the input they belong to.
+   *
+   * That is weaker than it was and it is worth being plain about it. If a
+   * shopper ever mistypes a phone number and does not notice, the fix is an
+   * inline alert glyph beside the message — a SHAPE rather than a hue, which
+   * spends no colour and serves a colourblind reader better than red ever did. */
+  --color-shop-error: #111827;
 
   /* ---------- Marketing accents ----------
    * One saturated step per hue for text and fills, one bright step for large
@@ -381,7 +405,7 @@
   /* Legacy aliases kept so existing pages keep compiling */
   --color-kandi: #ff6a00;
   --color-kandi-dark: #e85d00;
-  --color-sale: #e53935;
+  --color-sale: #111827; /* was red; retired with the rest — see shop-error */
   --color-fresh: #16a34a;
   --color-sun: #facc15;
   --color-market: #d24500;

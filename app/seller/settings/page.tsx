@@ -186,7 +186,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
         </section>
 
         {error && (
-          <p role="alert" className="border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
+          <p role="alert" className="border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink">
             {error}
           </p>
         )}

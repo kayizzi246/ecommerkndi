@@ -471,26 +471,46 @@ export default function HeroBanner({
                   both are heights a shop chose by choosing that file, and
                   neither needs a cap.
 
-                  From md: a 450px band, full width, square corners. Both
-                  dimensions are fixed — `w-full` and `h-[450px]` — so the box
+                  From md: a 250px band, full width, square corners. Both
+                  dimensions are fixed — `w-full` and `h-[250px]` — so the box
                   stops following the file's own ratio, and `object-cover` is
-                  what keeps that from stretching the artwork. It crops
-                  instead: at 1436 wide a 2.44:1 upload wants 588px, the band
-                  shows 450, and `object-center` takes the 450 out of the
-                  middle. Around an eighth of such a file is lost off the top
-                  and the same off the bottom.
+                  what keeps that from stretching the artwork. It crops instead,
+                  taking the middle 250px and discarding the rest.
 
-                  That crop is a real cost, so it is worth saying where it
-                  lands: a band this short shows a whole picture only if the
-                  picture is drawn for it. 1436 x 450 is about 3.2:1, so a
-                  banner uploaded at that ratio (2880 x 900 for a 2x screen)
-                  fills the band with nothing cropped. A 2.44:1 file loses its
-                  outer bands — on the shipped artwork, the dotted corner off
-                  the top and the feature strip off the bottom.
+                  ---- 250, down from 550, and the comment here said 450 ----
+                  
+                  Worth recording both numbers because the class and the prose
+                  had already drifted apart: the element said `h-[550px]` while
+                  the paragraph beneath it explained a 450px band and did the
+                  arithmetic for one. Anybody trusting the comment was reasoning
+                  about a layout that had not existed for some time.
 
-                  No `rounded-2xl`: at 450px the band reads as a strip of page
-                  rather than as a card on it, and a rounded strip reads as a
-                  card that failed to fill its slot. */}
+                  250 is what the slot now wants. This is no longer the page's
+                  hero — it is a campaign strip sitting between the deal panels
+                  and the rails (see `app/page.tsx`), and a 550px band there is
+                  not a banner, it is a second screen wedged into the middle of
+                  the merchandise. At 250 it reads as a strip of page, which is
+                  what it is.
+
+                  ---- What this costs the artwork, stated plainly ----
+
+                  A shorter band crops harder. At 1656 wide the band is about
+                  6.6:1, so a banner drawn for it wants to be roughly 3312 x 500
+                  for a 2x screen. Anything squarer loses its top and bottom to
+                  `object-center`: a 2.44:1 upload wants 678px of height and
+                  shows 250, so more than half the file is off-screen, taken
+                  evenly from both edges.
+
+                  That is a big loss and it is survivable for one reason — the
+                  crop is centred, so artwork with its message in the middle
+                  band survives it. Artwork with wording near the top or bottom
+                  edge does not. A campaign banner for this slot should be drawn
+                  wide and shallow with everything that matters in the middle
+                  third.
+
+                  No `rounded-2xl`: at this height the band reads as a strip of
+                  page rather than as a card on it, and a rounded strip reads as
+                  a card that failed to fill its slot. */}
               <img
                 src={optimised(mobileSrc, 1080)}
                 srcSet={heroSrcSet(mobileSrc)}
@@ -499,7 +519,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="h-auto w-full md:h-[550px] md:object-cover md:object-center"
+                className="h-auto w-full md:h-[250px] md:object-cover md:object-center"
               />
             </picture>
           </div>

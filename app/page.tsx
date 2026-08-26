@@ -2,8 +2,8 @@ import { buildHomeFeed, MIN_RAIL } from "@/lib/home-feed";
 import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
+import MaximiseSavings from "@/components/home/MaximiseSavings";
 import PromiseBand from "@/components/home/PromiseBand";
-import TwinDeals from "@/components/home/TwinDeals";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -93,7 +93,6 @@ export default async function Home() {
     sellerArrivals,
     promoProducts,
     deals,
-    dailyDeals,
     newArrivals,
     bestSellers,
     departmentRails,
@@ -236,69 +235,47 @@ export default async function Home() {
           their gutter now, and doubling it would have set every section title
           24px in from a grid that starts at 12. */}
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-5 px-3 py-3 md:gap-8 md:px-8 md:py-5">
-        {/* ---- The page opens on priced goods, at every width ----
+        {/* ---- The campaign banner opens the page ----
 
-             Two deal panels, and they are the first thing under the chrome
-             because the hero that used to be here is gone. Sixteen products are
-             in this block where previously there was a photograph and, below the
-             fold, an undifferentiated grid.
+             It was under the deal panels; it is the first thing in the column
+             now, and the deal panels are gone entirely.
 
-             ---- This is OUTSIDE the desktop-only block below, and it is now a
-             scroller, so the reason has changed ----
+             ---- What went, and why it is not a loss ----
 
-             Every other rail on this page is hidden on a phone, for the reason
-             set out at length under this comment: a horizontal carousel needs a
-             pointer, arrows and the width for six tiles, and on a 390px screen
-             it is two and a half tiles with the rest behind a swipe nobody
-             makes. That used to be a clean line, because {@link TwinDeals} was a
-             grid and had none of the properties the rails are hidden for. It is
-             two carousels now, so it no longer sits on the safe side of that
-             line by construction.
+             `TwinDeals` (now deleted) drew Lightning and Clearance side by
+             side. It had been
+             rebuilt three times in short order — carousels taken out for grids,
+             grids capped to one row, the whole section hidden below `md` — and
+             each of those repairs was narrowing what it was allowed to do. That
+             is usually the signal that a block is being kept for its history
+             rather than its job.
 
-             It stays out here anyway, because the argument against phone rails
-             is about EIGHT of them: eight swipes to see a fraction of the
-             catalogue, with the shopper's whole job being scrolling past
-             headings. That block's own note names the middle path — "keep ONE
-             rail above the grid — Daily Deals is the candidate, since price is
-             what the banner promises". This is that rail, split in two so the
-             timed offer and the permanent markdown stay distinguishable, and it
-             is the only swipe on the phone page. */}
-        <TwinDeals products={dailyDeals} />
+             Its job is done better elsewhere and always was. `SuperDeals`
+             further down is the deepest-cut strip in the shop and now has a
+             yellow shelf of its own; /sale is the page a shopper looking for a
+             discount actually goes to, and it is linked from the masthead on
+             every page. Two headings, two countdowns and eight tiles of
+             markdown on the opening screen was the third telling of the same
+             story, before the shopper had seen a single ordinary product.
 
-        {/* ---- The promo banner, under the deals ----
+             ---- Why the banner takes the slot ----
 
-             A full-width strip in the slot directly after Lightning and
-             Clearance — the position the reference storefronts put a campaign
-             band in, and the right one: the shopper has just been shown the two
-             price stories, and a banner here is the third thing the shop wants
-             to say rather than an interruption before the first.
+             A campaign band is what the top of a marketplace homepage is for,
+             and this one is empty until the shop uploads artwork — so on a shop
+             with no campaign running, the page now opens directly on
+             merchandise, which is exactly what the hero note above spent six
+             paragraphs arguing for. The slot costs nothing when unused, which
+             the deal panels never could.
 
-             It is `HeroBanner` rather than anything new. That component already
-             does every hard part of this — an art-directed pair of crops so a
-             2.4:1 banner is not letterboxed on a phone, a hand-built srcset,
-             and `image_alt` carrying what the artwork SAYS, since words baked
-             into a picture are invisible to Google and to a screen reader. It
-             was written for the hero slot at the top of the page, and that slot
-             no longer exists (see the note above), so it has been sitting in
-             the tree rendering nowhere.
+             `priority` is back on, and it has to be: this is the first element
+             in the column now, so it IS the Largest Contentful Paint when it
+             renders at all. It was `false` while the banner sat below the fold,
+             where a high-priority preload would have competed with the product
+             rails. Position changed, so the flag changed with it.
 
-             Two props keep it honest down here:
-
-             `imageOnly` — no upload, no banner. Without it the component falls
-             back to its built-in TEXT hero, which is correct at the top of a
-             page and absurd wedged between two rails of merchandise.
-
-             `priority={false}` — the preload pair inside it is `fetchPriority:
-             high`, which is right for the first screen and harmful below it: it
-             would make a promo strip compete with the real Largest Contentful
-             Paint, the first row of product photographs. The goods outrank the
-             advertisement.
-
-             The artwork itself is uploaded in wp-admin under "Kandi Storefront"
-             — image, optional phone crop, link and alt text. Nothing is
-             hard-coded here, so a campaign can start and end without a
-             deploy. */}
-        <HeroBanner settings={settings} imageOnly priority={false} />
+             `imageOnly` still holds. No upload, no banner, no fallback text
+             hero — see the prop's own note. */}
+        <HeroBanner settings={settings} imageOnly />
 
         {/* ---- The department shortcut row is gone from the homepage ----
 
@@ -375,6 +352,33 @@ export default async function Home() {
             <DealCarousel products={trending} priority />
           </section>
         )}
+
+        {/* ---- The savings shelf, directly after the first rail ----
+
+             A cream band of offers — a code, a headline, the qualifying line —
+             in the slot immediately below Trending. The position is the whole
+             argument: a shopper who has just scrolled one rail of products has
+             shown they are shopping, and "here is how to pay less for these" is
+             the right next sentence. Put it above the rail and it is a coupon
+             page nobody asked for; put it four rails down and it is never read.
+
+             It renders `settings.promotions`, which has carried exactly this
+             shape — badge, headline, note, url — for a long time with NO
+             consumer anywhere in the shop. It was declared, parsed, defaulted to
+             an empty array and read by nothing. So this is not a new field to
+             fill in; it is the screen that finally renders one that existed.
+
+             Empty is the shipped state and the section draws nothing for it,
+             which is what makes it safe to put this high on the page. A
+             "Maximise your savings" band holding two placeholder offers is
+             worse than no band at all.
+
+             It sits INSIDE the desktop-only `md:contents` wrapper with the
+             rails, and that is deliberate rather than incidental: the phone page
+             is a grid of products and nothing else, and a band of offers with
+             conditions attached is exactly the kind of thing the note above
+             stripped out of it. */}
+        <MaximiseSavings settings={settings} />
 
         {/* ---- New in ----
              The newest listings from the shop's independent sellers, in the

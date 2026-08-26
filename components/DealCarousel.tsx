@@ -75,7 +75,8 @@ export default function DealCarousel({
    * itself to its contents — a grid `auto` column, say — and the track becomes
    * as wide as every tile laid end to end, roughly 1630px, at which point
    * "38.5% of the track" is a 620px tile and the phone shows one product. That
-   * is not hypothetical; it is what {@link TwinDeals} did, and the percentage
+   * is not hypothetical; it is what the old TwinDeals panel did before it was
+   * deleted, and the percentage
    * looked correct in the source the whole time it was happening.
    *
    * `vw` has no such dependency. Below `sm` this rail always spans the page

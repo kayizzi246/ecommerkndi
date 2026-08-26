@@ -19,7 +19,7 @@ const STATUS_BADGE: Record<string, string> = {
   processing: "bg-[#fff6dd] text-[#8a6100]",
   completed: "bg-[#e7f7ea] text-[#0a7a2f]",
   cancelled: "bg-bfl-surface text-bfl-grey",
-  refunded: "bg-[#fdeaea] text-[#a51f1f]",
+  refunded: "bg-shop-hairline text-shop-ink",
   "on-hold": "bg-bfl-surface text-bfl-grey",
   pending: "bg-bfl-surface text-bfl-grey",
 };
@@ -114,7 +114,7 @@ export default function SellerOrdersPage() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 border-l-2 border-bfl-red bg-[#fdeaea] px-3 py-2 text-[14px] text-[#a51f1f]">
+        <p role="alert" className="mb-4 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink">
           {error}
         </p>
       )}

@@ -394,11 +394,14 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
   const sellerArrivalsRail = ledger.claim(sellerArrivals, 12);
 
   /**
-   * Daily Deals is filled before Promotions because it sits above it, and it
-   * is titled "Lowest prices today" — so it should genuinely hold the deepest
-   * cuts rather than the leftovers of two rails that took theirs first. It used
-   * to get `bySaving.slice(24)`, the shallowest discounts in the pool, under a
-   * badge announcing the best.
+   * Daily Deals is filled before Promotions because it sits above it in the
+   * APP's feed — it no longer appears on the website at all. It used to get
+   * `bySaving.slice(24)`, the shallowest discounts in the pool, under a badge
+   * announcing the best, which is the bug this ordering was written to fix.
+   *
+   * It now takes the tier below Super Deals rather than the top one; see the
+   * note on that claim directly above for why the web page's only remaining
+   * deals shelf outranks a rail the web page does not render.
    *
    * Topped up here rather than by the component. `DailyDeals` accepts a
    * `fallback` list and pads itself from it — and the page was handing it the
@@ -406,6 +409,32 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * into it. The top-up now comes from the ledger's unclaimed remainder, so it
    * can only ever add something new.
    */
+  /* ---- Super Deals claims FIRST now, and this is a real change ----
+   *
+   * It used to claim last, with the comment "Super Deals sits near the foot of
+   * the page, so it claims last of the rails". That was true and it stopped
+   * being true, because the page changed underneath it.
+   *
+   * The ledger hands each product to one rail only, so claim ORDER is
+   * allocation. Super Deals claiming last meant it got what `dailyDeals` (16),
+   * `promoProducts` (12) and the department rails had already passed over — so
+   * on a catalogue with fewer than about thirty discounted products it received
+   * NOTHING, and `SuperDeals` returns null on an empty list. The shop's
+   * loudest deals shelf was silently absent, and the yellow ground added to it
+   * was invisible for the same reason: there was no section to paint.
+   *
+   * Two things make it first now. It is the only deals section left on the
+   * homepage — Lightning and Clearance were removed — so "deepest cuts" is a
+   * promise nothing else is competing to keep. And `dailyDeals`, which used to
+   * outrank it because it sat higher on the page, no longer appears on the web
+   * page at all; it is still built because `/api/app/home` serves it to the
+   * phone app, which is a different screen with its own ordering.
+   *
+   * So the web page's one deals shelf takes the best twelve, and the app's rail
+   * takes the next sixteen. Both are genuinely discounted; only the order
+   * changed. */
+  const deals = ledger.claim(bySaving, 12);
+
   const dailyDeals = ledger.claim(bySaving, 16, 1);
   if (dailyDeals.length > 0 && dailyDeals.length < 6) {
     const cheapest = ledger
@@ -451,8 +480,6 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     };
   });
 
-  // Super Deals sits near the foot of the page, so it claims last of the rails.
-  const deals = ledger.claim(bySaving, 12);
 
   return {
     settings,
