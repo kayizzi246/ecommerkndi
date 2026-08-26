@@ -1,6 +1,7 @@
 import { buildHomeFeed, MIN_RAIL } from "@/lib/home-feed";
 import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
+import HeroBanner from "@/components/home/HeroBanner";
 import PromiseBand from "@/components/home/PromiseBand";
 import TwinDeals from "@/components/home/TwinDeals";
 import SuperDeals from "@/components/home/SuperDeals";
@@ -263,6 +264,41 @@ export default async function Home() {
              timed offer and the permanent markdown stay distinguishable, and it
              is the only swipe on the phone page. */}
         <TwinDeals products={dailyDeals} />
+
+        {/* ---- The promo banner, under the deals ----
+
+             A full-width strip in the slot directly after Lightning and
+             Clearance — the position the reference storefronts put a campaign
+             band in, and the right one: the shopper has just been shown the two
+             price stories, and a banner here is the third thing the shop wants
+             to say rather than an interruption before the first.
+
+             It is `HeroBanner` rather than anything new. That component already
+             does every hard part of this — an art-directed pair of crops so a
+             2.4:1 banner is not letterboxed on a phone, a hand-built srcset,
+             and `image_alt` carrying what the artwork SAYS, since words baked
+             into a picture are invisible to Google and to a screen reader. It
+             was written for the hero slot at the top of the page, and that slot
+             no longer exists (see the note above), so it has been sitting in
+             the tree rendering nowhere.
+
+             Two props keep it honest down here:
+
+             `imageOnly` — no upload, no banner. Without it the component falls
+             back to its built-in TEXT hero, which is correct at the top of a
+             page and absurd wedged between two rails of merchandise.
+
+             `priority={false}` — the preload pair inside it is `fetchPriority:
+             high`, which is right for the first screen and harmful below it: it
+             would make a promo strip compete with the real Largest Contentful
+             Paint, the first row of product photographs. The goods outrank the
+             advertisement.
+
+             The artwork itself is uploaded in wp-admin under "Kandi Storefront"
+             — image, optional phone crop, link and alt text. Nothing is
+             hard-coded here, so a campaign can start and end without a
+             deploy. */}
+        <HeroBanner settings={settings} imageOnly priority={false} />
 
         {/* ---- The department shortcut row is gone from the homepage ----
 

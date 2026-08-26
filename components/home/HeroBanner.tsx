@@ -206,9 +206,31 @@ export default function HeroBanner({
   settings,
   /** Where SHOP NOW goes. The sale page by default — the banner is about price. */
   href = "/sale",
+  /**
+   * Render nothing when no banner has been uploaded, instead of falling back to
+   * the built-in text hero.
+   *
+   * The fallback is right for the slot this component was built for — the top
+   * of the page, where something has to be there. It is wrong for a promo slot
+   * further down: a shop that has not uploaded a banner should get no banner,
+   * not a second hero wedged between two rails of merchandise.
+   */
+  imageOnly = false,
+  /**
+   * Suppress the LCP preload.
+   *
+   * The two `<link rel="preload">` tags below are correct for a banner in the
+   * first screen and actively harmful anywhere else: preloading a below-the-fold
+   * image at `fetchPriority="high"` makes it compete with whatever the real
+   * Largest Contentful Paint is — here, the first row of product photographs.
+   * A promo strip halfway down the page must not outrank the goods.
+   */
+  priority = true,
 }: {
   settings: SiteSettings;
   href?: string;
+  imageOnly?: boolean;
+  priority?: boolean;
 }) {
   /* ---- An uploaded banner wins, and takes the whole width ----
    *
@@ -252,6 +274,10 @@ export default function HeroBanner({
   const mobileSrc = narrow || wide;
   const desktopSrc = wide || narrow;
 
+  // Asked for the uploaded banner and there is none: draw nothing. See the
+  // `imageOnly` prop for why a promo slot must not inherit the text hero.
+  if (imageOnly && !(mobileSrc && desktopSrc)) return null;
+
   if (mobileSrc && desktopSrc) {
     return (
       <section aria-label={image_alt || "Featured offer"}>
@@ -278,6 +304,8 @@ export default function HeroBanner({
          * a head start, which is worse than not preloading at all. Change
          * these and the `<picture>` below in the same edit.
          */}
+        {priority && (
+          <>
         <link
           rel="preload"
           as="image"
@@ -296,6 +324,8 @@ export default function HeroBanner({
           imageSizes="(min-width: 1720px) 1656px, 100vw"
           fetchPriority="high"
         />
+          </>
+        )}
         <Link href={image_href || "/sale"} className="block">
           {/* ---- Why two <Image>s and not one with a srcset ----
                `next/image` chooses between sizes of the SAME picture. These are
