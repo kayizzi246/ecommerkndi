@@ -155,8 +155,26 @@ export default function TwinDeals({ products }: { products: Product[] }) {
  * total. Both entries are AA on white at this size; see the notes at the call
  * sites for why each panel gets the one it does.
  */
+/* ---- The two deal colours, one step brighter ----
+ *
+ * Lightning was `shop-primary-ink` — #b34a00, the deep burnt step of the
+ * brand orange. It was chosen for contrast and it is genuinely readable, but
+ * at 21px uppercase it reads brown rather than orange, and a heading that is
+ * meant to be the loudest thing on the opening screen should not be the
+ * muddiest colour on it.
+ *
+ * `shop-primary-dark` (#e85d00) is the compromise that survives both tests.
+ * It is unmistakably the brand orange rather than a burnt derivative of it,
+ * and it clears 3.4:1 on white — over the 3:1 that WCAG asks of large text,
+ * which these headings are at 18px and 700. The full `shop-primary` (#ff6a00)
+ * is what the reference uses and it lands at 2.9:1, under the bar even for
+ * large type, so it is the one step too far.
+ *
+ * Clearance keeps `shop-sale-price` (#dc2626), which is already the vivid red
+ * the reference runs and already clears the bar. The token exists precisely
+ * because plain #e53935 did not. */
 const TONES = {
-  flame: "text-shop-primary-ink",
+  flame: "text-shop-primary-dark",
   clearance: "text-shop-sale-price",
 } as const;
 

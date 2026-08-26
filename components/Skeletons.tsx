@@ -13,7 +13,7 @@ export function ProductCardSkeleton() {
           The text bars matter too: a bare box shimmering on its own reads as a
           broken image, where a box with lines beneath it reads as a product on
           its way. 8px corners on the photo box, matching the tile's — see ProductCard. */}
-      <div className="shimmer aspect-square w-full rounded-lg" />
+      <div className="shimmer aspect-[1/1.12] w-full rounded-lg" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />

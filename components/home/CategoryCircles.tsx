@@ -84,7 +84,21 @@ export default function CategoryCircles({ categories }: { categories: ProductCat
 
           `items-start` so a two-line caption under one circle does not drag the
           whole row's baseline down with it. */}
-      <ul className="flex items-start gap-x-5 gap-y-4 overflow-x-auto pb-1 no-scrollbar sm:gap-x-7">
+      {/* ---- Centred when it fits, scrolling when it does not ----
+
+           `justify-center` directly on a scrolling flex row is the obvious way
+           to do this and it is broken: once the content overflows, the
+           overflowing half is pushed off the START edge and cannot be scrolled
+           back to, so the first two or three departments become unreachable.
+           It is a long-standing browser behaviour, not a bug in one engine.
+
+           `w-max` plus `mx-auto` on the inner row gets it right in both states
+           without a media query. The row is exactly as wide as its contents;
+           `auto` margins centre it while there is room, and collapse to zero
+           the moment there is not — at which point the scroll container takes
+           over and every circle is still reachable from the left edge. */}
+      <div className="overflow-x-auto pb-1 no-scrollbar">
+        <ul className="mx-auto flex w-max items-start gap-x-5 sm:gap-x-7">
         {shown.map((category) => (
           <li key={category.id} className="w-[68px] shrink-0 sm:w-[76px]">
             <Link
@@ -125,7 +139,8 @@ export default function CategoryCircles({ categories }: { categories: ProductCat
             </Link>
           </li>
         ))}
-      </ul>
+        </ul>
+      </div>
     </nav>
   );
 }

@@ -499,7 +499,7 @@ export default function ProductCard({
     // separating a tile from the #f9fafb page below 768px, per the argument
     // above — and a square white card on an off-white ground separates exactly
     // as well as a rounded one did.
-    <article className="group relative flex h-full flex-col bg-white p-1.5 md:bg-transparent md:p-0">
+    <article className="group relative flex h-full flex-col bg-white p-1 md:bg-transparent md:p-0">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -549,7 +549,7 @@ export default function ProductCard({
               `Skeletons.tsx` carries the same ratio and has to change with
               it. A placeholder at the wrong shape makes the grid visibly
               re-draw itself when the products land. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline">
+          <div className="relative aspect-[1/1.12] w-full overflow-hidden rounded-lg bg-shop-hairline">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -872,6 +872,154 @@ export default function ProductCard({
           </h3>
         </Link>
 
+        {/* ---- The price comes straight after the name ----
+
+           It used to be the LAST thing in the block, pinned to the bottom of
+           the tile with `mt-auto` so that every price in a grid row landed on
+           the same line. That is a real property and it is not free: it means
+           the gap between the name and the price is however much the tile has
+           left over, so on a product with no rating, no swatches and no
+           delivery line the two sat an inch apart with nothing between them —
+           and the shopper's eye had to cross that gap on every tile.
+
+           Name then price, touching, is what every marketplace this shop is
+           measured against does, and the reason is that they are one thought:
+           what it is, what it costs. Everything else on the tile — who else
+           bought it, what colours it comes in, how fast it arrives — is
+           evidence for a decision those two lines have already framed, so it
+           belongs after them.
+
+           The alignment that `mt-auto` bought is given up deliberately. It only
+           ever paid off on a row of tiles whose text blocks happened to differ,
+           and the price of it was a hole in every sparse tile in the grid. */}
+
+        {/* ---- The money, and the last thing in the tile ----
+
+             All on one line: what it costs, what it cost, and the reduction. A
+             discounted price turns red — the one place red is allowed — because
+             at a glance the colour is the discount.
+
+             `mt-auto` is what holds the grid together now that every row above
+             it can be absent. A grid row stretches its tiles to a common
+             height, so pinning the price to the bottom of each one puts all the
+             prices in a row on the same line — which is the alignment the fixed
+             row heights used to buy, at no cost in space.
+
+             The size and weight live in `.price` and `.was-price` — the shop's
+             type scale — so a tile cannot drift away from the product page.
+
+             ---- Why the struck-through original disappears below `sm` ----
+
+             On a 382px phone showing 2.5 tiles a tile is about 150px wide, and
+             the three figures — "UGX 120,000  UGX 300,000  −10%" — need roughly
+             double that. `whitespace-nowrap` stops a price ever breaking
+             mid-number, and below `sm` the original and the percentage are
+             dropped rather than squeezed: the discount is already on the
+             photograph as a corner flag, so nothing is lost and the resting
+             price gets the whole width to itself. */}
+        {/* ---- What the shopper keeps, in money ----
+
+             A reduction is on the tile twice already — the corner flag says
+             "−35%" and the struck-through original says what it was — and both
+             of those are ratios a shopper has to do arithmetic on. This is the
+             same fact as the number they would arrive at: what stays in their
+             pocket.
+
+             It is the row worth adding because a percentage is a comparison
+             and a sum is a decision. "−35%" is read against other tiles;
+             "Save UGX 19,000" is read against what else that money buys, which
+             is the thought that ends in a purchase.
+
+             Only on discounted tiles, so it costs nothing on the rest — and it
+             sits ABOVE the price rather than in it, because that row is
+             `overflow-hidden` and a third figure inside it is what produced
+             the sliced "−(" the percentage was removed for.
+
+             Green, and it is the only green in the grid. The price below is
+             red and the corner flag and chip are orange, so this row is the
+             one place on a tile where a third hue is doing work rather than
+             decorating: red is what it costs, green is what it saves. That
+             pairing is the oldest one in retail and it needs no explaining.
+
+             `shop-save` rather than `shop-success` — 11px bold needs the
+             darker step to clear AA. See the token in `globals.css`. */}
+        {saving > 0 && (
+          <p className="truncate pt-[3px] text-[11px] font-bold leading-4 text-shop-save">
+            Save {formatPrice(saving)}
+          </p>
+        )}
+        <p className="flex items-baseline gap-x-1.5 overflow-hidden pt-px">
+          {/* ---- The resting price is near-black, not orange ----
+               It was orange for a while, on the argument that one saturated
+               colour repeated in the same position on every tile gives the eye
+               something to track down the page.
+
+               What that argument missed is how many prices are on a screen at
+               once here. Forty orange numbers is not one accent repeated, it is
+               a second colour field competing with the photographs, and orange
+               is also the brand — the masthead, the buttons and the links all
+               use it, so a price set in it stops reading as information and
+               starts reading as decoration.
+
+               Near-black is what the product page has always used for a resting
+               price, so the grid and the PDP agree.
+
+               ---- A reduced price is RED ----
+
+               The argument above is about the RESTING price and it is
+               untouched: forty orange numbers would still be a second colour
+               field, so a price with no reduction behind it stays near-black.
+
+               A reduced price is the other case. Only some tiles carry one, so
+               it is the exception on the page rather than a colour field, and
+               that is the condition under which a colour reads as information.
+               Red is the colour every marketplace this shop competes with uses
+               for it, and a shopper does not have to learn it.
+
+               This went orange for a while, on the argument that a tile
+               carrying a red flag, a red chip and a red price on an orange
+               site was running two colour families at once. That is a real
+               risk and the answer is to ration the OTHER two — the corner flag
+               and the Super Deal chip are brand orange, so the red on a tile
+               is the price and nothing else.
+
+               `shop-sale-price` is #dc2626 rather than the #e53935 the shop
+               uses for errors: a price is small text (15px at 800 is not
+               "large" under WCAG), #e53935 is 4.2:1 on white and this clears
+               4.8:1. The two reds being separate tokens is also what keeps
+               "reduced" and "something went wrong" from sharing a colour. */}
+          <span
+            className={`price whitespace-nowrap ${
+              discount > 0 ? "text-shop-sale-price" : "text-shop-ink"
+            }`}
+          >
+            {formatPrice(product.price)}
+          </span>
+          {/* ---- The struck-through original, and NOT the percentage ----
+
+               The row carried "UGX 145,000  UGX 160,000  −9%" and the third
+               figure was being cut in half: the row is `overflow-hidden` to
+               keep the tile's height honest, and three figures need about
+               double the width of a tile in a six-column grid. What a shopper
+               saw was a sliced "−(".
+
+               The percentage is the one that goes, because it is the only thing
+               in the tile said twice — the corner flag on the photograph is the
+               same number, in the same red, where it is read first. Dropping it
+               here costs no information and gives the two figures that ARE
+               distinct the whole width.
+
+               The original still disappears below `sm`, where a 150px phone
+               tile has room for one price and nothing else. */}
+          {discount > 0 && (
+            <span className="was-price hidden whitespace-nowrap sm:inline">
+              {formatPrice(product.regular_price)}
+            </span>
+          )}
+        </p>
+
+        {/* The corroboration, under the two lines that matter. */}
+
         {/* The stock warning, on the products that have one and nowhere else. */}
         {(soldOut || lowStock) && (
           <p className="truncate text-[11px] font-medium leading-[15px] text-shop-sale">
@@ -1010,135 +1158,6 @@ export default function ProductCard({
             above the pin flows from the top and can appear and disappear
             freely, which is where a conditional row belongs. */}
         {!soldOut && <TileFreeDelivery price={product.price} />}
-
-        {/* ---- The money, and the last thing in the tile ----
-
-             All on one line: what it costs, what it cost, and the reduction. A
-             discounted price turns red — the one place red is allowed — because
-             at a glance the colour is the discount.
-
-             `mt-auto` is what holds the grid together now that every row above
-             it can be absent. A grid row stretches its tiles to a common
-             height, so pinning the price to the bottom of each one puts all the
-             prices in a row on the same line — which is the alignment the fixed
-             row heights used to buy, at no cost in space.
-
-             The size and weight live in `.price` and `.was-price` — the shop's
-             type scale — so a tile cannot drift away from the product page.
-
-             ---- Why the struck-through original disappears below `sm` ----
-
-             On a 382px phone showing 2.5 tiles a tile is about 150px wide, and
-             the three figures — "UGX 120,000  UGX 300,000  −10%" — need roughly
-             double that. `whitespace-nowrap` stops a price ever breaking
-             mid-number, and below `sm` the original and the percentage are
-             dropped rather than squeezed: the discount is already on the
-             photograph as a corner flag, so nothing is lost and the resting
-             price gets the whole width to itself. */}
-        {/* ---- What the shopper keeps, in money ----
-
-             A reduction is on the tile twice already — the corner flag says
-             "−35%" and the struck-through original says what it was — and both
-             of those are ratios a shopper has to do arithmetic on. This is the
-             same fact as the number they would arrive at: what stays in their
-             pocket.
-
-             It is the row worth adding because a percentage is a comparison
-             and a sum is a decision. "−35%" is read against other tiles;
-             "Save UGX 19,000" is read against what else that money buys, which
-             is the thought that ends in a purchase.
-
-             Only on discounted tiles, so it costs nothing on the rest — and it
-             sits ABOVE the price rather than in it, because that row is
-             `overflow-hidden` and a third figure inside it is what produced
-             the sliced "−(" the percentage was removed for.
-
-             Green, and it is the only green in the grid. The price below is
-             red and the corner flag and chip are orange, so this row is the
-             one place on a tile where a third hue is doing work rather than
-             decorating: red is what it costs, green is what it saves. That
-             pairing is the oldest one in retail and it needs no explaining.
-
-             `shop-save` rather than `shop-success` — 11px bold needs the
-             darker step to clear AA. See the token in `globals.css`. */}
-        {saving > 0 && (
-          <p className="mt-auto truncate pt-[3px] text-[11px] font-bold leading-4 text-shop-save">
-            Save {formatPrice(saving)}
-          </p>
-        )}
-        <p
-          className={`flex items-baseline gap-x-1.5 overflow-hidden pt-[3px] ${
-            saving > 0 ? "" : "mt-auto"
-          }`}
-        >
-          {/* ---- The resting price is near-black, not orange ----
-               It was orange for a while, on the argument that one saturated
-               colour repeated in the same position on every tile gives the eye
-               something to track down the page.
-
-               What that argument missed is how many prices are on a screen at
-               once here. Forty orange numbers is not one accent repeated, it is
-               a second colour field competing with the photographs, and orange
-               is also the brand — the masthead, the buttons and the links all
-               use it, so a price set in it stops reading as information and
-               starts reading as decoration.
-
-               Near-black is what the product page has always used for a resting
-               price, so the grid and the PDP agree.
-
-               ---- A reduced price is RED ----
-
-               The argument above is about the RESTING price and it is
-               untouched: forty orange numbers would still be a second colour
-               field, so a price with no reduction behind it stays near-black.
-
-               A reduced price is the other case. Only some tiles carry one, so
-               it is the exception on the page rather than a colour field, and
-               that is the condition under which a colour reads as information.
-               Red is the colour every marketplace this shop competes with uses
-               for it, and a shopper does not have to learn it.
-
-               This went orange for a while, on the argument that a tile
-               carrying a red flag, a red chip and a red price on an orange
-               site was running two colour families at once. That is a real
-               risk and the answer is to ration the OTHER two — the corner flag
-               and the Super Deal chip are brand orange, so the red on a tile
-               is the price and nothing else.
-
-               `shop-sale-price` is #dc2626 rather than the #e53935 the shop
-               uses for errors: a price is small text (15px at 800 is not
-               "large" under WCAG), #e53935 is 4.2:1 on white and this clears
-               4.8:1. The two reds being separate tokens is also what keeps
-               "reduced" and "something went wrong" from sharing a colour. */}
-          <span
-            className={`price whitespace-nowrap ${
-              discount > 0 ? "text-shop-sale-price" : "text-shop-ink"
-            }`}
-          >
-            {formatPrice(product.price)}
-          </span>
-          {/* ---- The struck-through original, and NOT the percentage ----
-
-               The row carried "UGX 145,000  UGX 160,000  −9%" and the third
-               figure was being cut in half: the row is `overflow-hidden` to
-               keep the tile's height honest, and three figures need about
-               double the width of a tile in a six-column grid. What a shopper
-               saw was a sliced "−(".
-
-               The percentage is the one that goes, because it is the only thing
-               in the tile said twice — the corner flag on the photograph is the
-               same number, in the same red, where it is read first. Dropping it
-               here costs no information and gives the two figures that ARE
-               distinct the whole width.
-
-               The original still disappears below `sm`, where a 150px phone
-               tile has room for one price and nothing else. */}
-          {discount > 0 && (
-            <span className="was-price hidden whitespace-nowrap sm:inline">
-              {formatPrice(product.regular_price)}
-            </span>
-          )}
-        </p>
       </div>
     </article>
   );

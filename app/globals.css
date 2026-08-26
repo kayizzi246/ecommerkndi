@@ -190,8 +190,34 @@
   --color-shop-search: #f3f4f6; /* the search field ground */
   /* The thin announcement strip above the masthead. Pulled onto the same
      gray-900 as `ink` so the darkest surface and the darkest type agree. */
-  --color-shop-nav: #111827;
-  --color-shop-nav-dark: #000000;
+  /* ---- Black, not gray-900 ----
+   *
+   * This is the shop's dark chrome: the announcement strip above the masthead,
+   * the search button, the cart badge, the admin masthead and the seller
+   * sign-in panel. It was #111827 — a near-black with a slate cast — while the
+   * footer directly below it on the same page was already #000.
+   *
+   * Two near-blacks that differ by a hint of blue do not read as two shades.
+   * They read as one of them being slightly wrong, and on a page whose chrome
+   * is orange the cool cast is the one that looks off: it is a third hue
+   * competing with the brand, which is the argument the footer token already
+   * makes at length a few lines down. The strip and the footer now bracket the
+   * page in the same black.
+   *
+   * It is also the highest contrast available here. White at 85% on #000 is
+   * about 15:1, up from 12:1 on gray-900. */
+  --color-shop-nav: #000000;
+  /* The hover step, and with the base at black it LIFTS rather than deepens.
+     That only looks backwards written down: it was already #000 while the base
+     was gray-900, so moving the base to black left the two identical and the
+     search button's `hover:bg-shop-nav-dark` stopped doing anything at all —
+     a hover that changes nothing reads as a dead control.
+
+     #1c1c1c is the smallest step that is visible against #000 without the
+     button appearing to switch colour. Exactly the trade `--color-shop-footer-
+     deep` makes a few lines down, for exactly the same reason: once a surface
+     is black there is nothing darker to move to. */
+  --color-shop-nav-dark: #1c1c1c;
   --color-shop-band: #111827;
   /* ---- The footer ground ----
    *
