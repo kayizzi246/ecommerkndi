@@ -434,6 +434,17 @@ class KandiCache {
     _entries[key] = _KandiEntry(value, DateTime.now());
   }
 
+  /// Stores a value directly, without a fetch.
+  ///
+  /// For the screens that cannot express their load as a single `read` — the
+  /// seller dashboard issues two calls in parallel and has to interpret a 401
+  /// across both, so it fetches by hand and hands the results here.
+  ///
+  /// Without this, a screen that seeds its state from `peek` never hits:
+  /// nothing would ever put a value under the key it is peeking at. That is
+  /// exactly the bug this was added to fix.
+  static void write(String key, Object? value) => _put(key, value);
+
   /// Drops one key, or everything.
   ///
   /// Called after a write that invalidates a read — adding to the cart makes
