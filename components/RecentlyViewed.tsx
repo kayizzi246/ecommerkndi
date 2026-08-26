@@ -198,7 +198,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      matching `ProductCard`: one line means every tile in the row
                      is the same height, which is the whole reason that card
                      fixes its text rows. */}
-                <h3 className="product-name mt-2 truncate text-[13px] leading-[18px] text-shop-ink transition-colors group-hover:text-shop-primary">
+                <h3 className="product-name mt-2 truncate text-[12px] leading-[17px] text-shop-ink transition-colors group-hover:text-shop-primary">
                   {item.name}
                 </h3>
                 <p className="price mt-1 whitespace-nowrap">{formatPrice(item.price)}</p>

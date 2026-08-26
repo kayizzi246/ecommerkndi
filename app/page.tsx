@@ -3,7 +3,7 @@ import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import PromiseBand from "@/components/home/PromiseBand";
 import TwinDeals from "@/components/home/TwinDeals";
-import CategoryChips from "@/components/home/CategoryChips";
+import CategoryCircles from "@/components/home/CategoryCircles";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -282,14 +282,26 @@ export default async function Home() {
              Also at every width. A phone shopper otherwise reaches the
              departments only through the masthead menu, and this row is one
              tap from the six products above it. */}
-        {departments.length >= 3 && (
-          <section aria-labelledby="explore-heading">
-            <h2 id="explore-heading" className="heading-black mb-3 text-[17px] md:text-[19px]">
-              Explore your interests
-            </h2>
-            <CategoryChips categories={departments} />
-          </section>
-        )}
+        {/* ---- Circles, not chips, and no heading over them ----
+
+             This was a row of outlined pills under "Explore your interests".
+             A chip is the right shape for a FILTER — a state you toggle on a
+             list already in front of you — and the wrong one at the top of a
+             homepage, where nothing has been listed yet and this row is the
+             shop's front door.
+
+             A circle is a target the eye finds without reading: the row is
+             scanned in one sweep and a department picked before a word has been
+             processed. Fourteen identical outlined pills have to be read left
+             to right, which on a phone is fourteen words standing between the
+             shopper and the products.
+
+             The heading went with them. "Explore your interests" was a label
+             explaining a list of labels, and the line it occupied is now a line
+             of products further up the page. `aria-label` on the nav inside
+             carries the name for a screen reader, which is what the visible
+             heading was doing that was worth keeping. */}
+        {departments.length >= 3 && <CategoryCircles categories={departments} />}
 
         {/* ---- Every carousel rail, desktop only ----
          *

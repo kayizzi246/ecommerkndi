@@ -860,10 +860,10 @@ export default function ProductCard({
               `truncate` rather than `line-clamp-1`: on a single line they look
               identical, and `truncate` is one property that also guarantees the
               row cannot wrap in the first place. */}
-          <h3 className="product-name truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary">
+          <h3 className="product-name truncate text-[12px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
-                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[10px] font-bold leading-[15px] ${chip.className}`}
+                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9.5px] font-bold leading-[14px] ${chip.className}`}
               >
                 {chip.label}
               </span>
@@ -874,7 +874,7 @@ export default function ProductCard({
 
         {/* The stock warning, on the products that have one and nowhere else. */}
         {(soldOut || lowStock) && (
-          <p className="truncate text-[12px] font-medium leading-4 text-shop-sale">
+          <p className="truncate text-[11px] font-medium leading-[15px] text-shop-sale">
             {soldOut ? (
               "Back in stock soon"
             ) : (
