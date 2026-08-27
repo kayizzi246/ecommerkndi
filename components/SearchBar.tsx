@@ -234,23 +234,25 @@ export default function SearchBar() {
             lives inside that block: with a placeholder this explicit, a second
             icon on the left was decoration taking up room the query needs.
 
-            ---- The edge, now that the row behind it is orange ----
+            ---- The edge, now that the row behind it is white again ----
 
-            The resting border was `shop-line`, a pale grey, and the focus
-            border was brand orange. Both were drawn for a white masthead and
-            both fail on an orange one: the grey reads as a dirty halo around
-            the field, and an orange focus ring on an orange row is not a ring
-            at all — the field would appear to lose its edge at the exact moment
-            a shopper started typing into it.
+            The resting edge spent the orange era as the field's own white,
+            which made the pill read as one clean shape against the brand
+            colour. On a white masthead that is not an edge at all — the field
+            and the row are the same colour, and a search box with no boundary
+            is the one control in this shop that cannot afford to go missing.
 
-            So the resting edge is the field's own white, which makes the pill
-            read as one clean shape against the brand colour, and focus goes to
-            near-black — the only hue in the palette that is unambiguous against
-            both the white field and the orange row. `border-2` stays: with the
-            row no longer neutral, the edge is what holds the field's shape. */}
+            So the resting edge is `shop-line` again, the pale grey it had the
+            last time this row was neutral. Focus stays near-black rather than
+            going back to brand orange: near-black is unambiguous against both
+            the white field and the white row, and it is already what the
+            submit block beside it is drawn in, so focusing the field pulls its
+            edge into the same colour as its action. `border-2` stays — it is
+            what gives the most-used control in the shop its weight now that
+            the ground is not doing that job. */}
         <div
           className={`flex items-center gap-2 overflow-hidden rounded-lg border-2 bg-white pl-4 transition-colors duration-200 ${
-            focused ? "border-shop-nav" : "border-white hover:border-shop-nav/25"
+            focused ? "border-shop-nav" : "border-shop-line hover:border-shop-nav/25"
           }`}
         >
           {/* ---- Scope ----

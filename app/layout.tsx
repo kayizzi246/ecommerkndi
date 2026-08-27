@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -90,6 +90,36 @@ const poppins = Poppins({
      adding a third. */
   weight: ["600", "700"],
 });
+
+/**
+ * ---- The shop is light-only, said to the browser rather than to the reader ----
+ *
+ * A static `viewport` export rather than `generateViewport`, because none of
+ * this depends on wp-admin: the answer is the same for every page and every
+ * shop, so it can be a constant and cost nothing at request time.
+ *
+ * `colorScheme: "light"` emits `<meta name="color-scheme" content="light">`.
+ * It is the half of the declaration that lands in `<head>` before the
+ * stylesheet has parsed; the other half is `color-scheme: light` on `:root` in
+ * `globals.css`, and the long note there explains what goes wrong without it —
+ * Chrome on Android re-tinting a page that never opted into a dark rendering,
+ * which is the reason this storefront could look right in development and
+ * arrive dark on a phone in production.
+ *
+ * `themeColor` is white to match. It colours the browser's own chrome — the
+ * address bar on Android, the status bar area of an installed PWA — and a
+ * single value rather than a light/dark pair, for the same reason: there is
+ * one rendering of this site and this is it.
+ *
+ * The `width`/`initialScale` defaults Next already emits are left alone. They
+ * are correct, and `maximumScale`/`userScalable` are deliberately NOT set —
+ * pinch-zoom is how a shopper reads a product photograph or a size chart, and
+ * taking it away is an accessibility failure, not a polish step.
+ */
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#ffffff",
+};
 
 /**
  * Site-wide metadata, read from wp-admin.

@@ -497,13 +497,13 @@ export default function HeroBanner({
                   both are heights a shop chose by choosing that file, and
                   neither needs a cap.
 
-                  From md: a 320px band, full width, square corners. Both
-                  dimensions are fixed — `w-full` and `h-[320px]` — so the box
+                  From md: a 400px band, full width, square corners. Both
+                  dimensions are fixed — `w-full` and `h-[400px]` — so the box
                   stops following the file's own ratio, and `object-cover` is
                   what keeps that from stretching the artwork. It crops instead,
-                  taking the middle 320px and discarding the rest.
+                  taking the middle 400px and discarding the rest.
 
-                  ---- 550, then 250, now 320 ----
+                  ---- 550, then 250, then 320, now 400 ----
 
                   The first two are worth keeping because the class and the
                   prose had already drifted apart once: the element said
@@ -516,18 +516,23 @@ export default function HeroBanner({
                   250 was the correction and it overshot: at that height a
                   file drawn for this slot is cropped hard enough that any
                   artwork with vertical composition loses its top and bottom.
+                  320 was the settled figure for a while, and it read as a
+                  strip of page rather than as a banner — which was the point
+                  then, and is not what the shop wants from the slot now.
 
-                  320 is the settled figure. It still reads as a strip of page
-                  rather than a second screen, which is what the 250 pass was
-                  for, and it gives 70px back to the artwork.
+                  400 is the figure the shop asked for. It is a hero again
+                  without being a second screen: on a 900px laptop viewport it
+                  takes a little under half the fold, so the first row of tiles
+                  still shows under it, and it hands the artwork another 80px
+                  of the uploaded file back.
 
                   ---- What this costs the artwork, stated plainly ----
 
-                  At 1656 wide the band is about 5.2:1, so a banner drawn for
-                  it wants to be roughly 3312 x 640 for a 2x screen. Anything
+                  At 1656 wide the band is about 4.1:1, so a banner drawn for
+                  it wants to be roughly 3312 x 800 for a 2x screen. Anything
                   squarer loses its top and bottom to `object-center`: a
-                  2.44:1 upload wants 678px of height and shows 320, so a
-                  little over half the file is off-screen, taken evenly from
+                  2.44:1 upload wants 678px of height and shows 400, so a
+                  little over 40% of the file is off-screen, taken evenly from
                   both edges.
 
                   That is a big loss and it is survivable for one reason — the
@@ -548,7 +553,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="h-auto w-full md:h-[320px] md:object-cover md:object-center"
+                className="h-auto w-full md:h-[400px] md:object-cover md:object-center"
               />
             </picture>
           </div>
@@ -598,26 +603,28 @@ export default function HeroBanner({
       />
 
       <div
-        /* A 450px band: 16px of padding from md around a photograph fixed at
-           418px. This used to be the same height as the uploaded banner,
-           which was capped at 450 — switching one for the other in wp-admin
-           moved nothing on the page.
+        /* A 400px band: 16px of padding from md around a photograph fixed at
+           368px, which is the same 400 the uploaded banner is drawn at. The
+           two heroes are the same height on purpose — switching one for the
+           other in wp-admin should move nothing else on the page.
 
-           The pairing still holds, by a different route. The uploaded banner
-           is a fixed 450px band now — a stated height with the picture
-           `object-cover`ed into it, rather than a cap a ratio might not
-           reach — so the two heroes are the same height again and switching
-           one for the other in wp-admin still moves nothing.
+           That pairing HAS drifted before. The uploaded banner spent a while
+           at 320 while this comment went on describing a 450px band it was
+           matched to, so anybody reading it was reasoning about a layout that
+           had not existed for some time. Both numbers moved to 400 together;
+           if either moves again, the other has to move with it.
 
-           They have to be changed TOGETHER, and this one is the harder half:
-           it is TYPE — headline, badge, three promises and a button — and
-           type does not rescale with its container the way a photograph does.
-           Moving the band means retuning the scale in the copy column below,
-           not editing this number on its own.
+           This is the harder half of the pair: it is TYPE — headline, badge,
+           three promises and a button — and type does not rescale with its
+           container the way a photograph does. Moving the band means checking
+           the copy column still fits rather than editing this number on its
+           own.
 
-           The type and the feature discs come down a step with it so the copy
-           column still fits inside that height rather than being clipped by
-           the section's `overflow-hidden`. */
+           At 400 it does, with room to spare: the badge, the headline at its
+           `lg` size, the paragraph and the promises row come to roughly 280px,
+           so the column clears the band's inside height and nothing is cut by
+           the section's `overflow-hidden`. The photograph is what sets the
+           height here, not the copy. */
         className={`relative mx-auto flex max-w-[var(--shell)] flex-col items-center gap-5 px-5 py-6 md:flex-row md:gap-8 md:px-10 md:py-4 ${
           withPhoto ? "" : "md:justify-center md:text-center"
         }`}
@@ -738,7 +745,7 @@ export default function HeroBanner({
         {/* ---- The photograph, and the disc button over it ----
              Rendered only when the cutout exists. See `hasModelCutout`. */}
         {withPhoto && (
-          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[418px] md:w-auto">
+          <div className="relative order-1 w-[210px] shrink-0 sm:w-[260px] md:order-none md:h-[368px] md:w-auto">
             <Image
               quality={90}
               src="/hero-model.png"

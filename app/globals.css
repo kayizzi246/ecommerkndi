@@ -19,6 +19,35 @@
  */
 
 :root {
+  /* ---- Light-only, and now the browser is actually told so ----
+   *
+   * The note at the head of this file has always said the storefront is
+   * light-only by design. It said it to the reader. It did not say it to the
+   * user agent, and that is a different audience with its own powers.
+   *
+   * `color-scheme` is the declaration that a document only has a light
+   * rendering. Without it a browser is entitled to assume the page has not
+   * thought about the question, and several of them act on that:
+   *
+   *   • Chrome on Android applies Auto Dark Theme — it re-tints backgrounds
+   *     and inverts text on pages that never opted in. It is on by default
+   *     for a large share of the phones this shop sells to.
+   *   • Form controls, scrollbars, and the `<select>` in the search scope are
+   *     painted by the OS, so on a device set to dark they come back dark
+   *     inside an otherwise white page.
+   *
+   * That is why the shop can look right in development on a light desktop and
+   * arrive dark in production on somebody's phone: nothing about the deploy
+   * changed the colours, the device did. One line settles it, and it has to
+   * live here rather than only on `.viz-root` further down, which declares the
+   * same thing for the Seller Centre charts and is the reason this omission
+   * went unnoticed for so long.
+   *
+   * The matching `<meta name="color-scheme">` is emitted from `app/layout.tsx`
+   * via the `viewport` export, which covers the window before this stylesheet
+   * has parsed. Both are wanted; neither replaces the other. */
+  color-scheme: light;
+
   /* ---- One ground: white, everywhere ----
    *
    * The page, the gutters and the content are all #ffffff. There is no sheet,

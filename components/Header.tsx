@@ -331,55 +331,55 @@ export default function Header({
         </div>
       </div>
       {/* ---- Main row ----
-           Brand orange, tight, and dominated by the search field — the
-           marketplace masthead. Search is the primary way into a catalogue this
-           size, so it takes the whole middle of the row and grows with the
-           window instead of sitting at a fixed width. Below md it wraps to its
-           own line.
+           White, tight, and dominated by the search field — the marketplace
+           masthead. Search is the primary way into a catalogue this size, so it
+           takes the whole middle of the row and grows with the window instead
+           of sitting at a fixed width. Below md it wraps to its own line.
 
-           ---- This ground has been gray-900, then white, and is now orange ----
+           ---- Gray-900, then white, then orange, and white again ----
 
-           Both earlier notes were right about what they were solving and both
-           are superseded, so what is kept here is the conclusion of each rather
-           than the argument:
+           Every earlier note was right about what it was solving, so what is
+           kept here is the conclusion of each rather than the argument:
 
-             • Gray-900 made `SearchBar` — a white pill with an orange submit
+             • Gray-900 made `SearchBar` — a white pill with a dark submit
                button — the brightest object on the screen, which is what the
                most-used control in the shop should be. It cost an uploaded logo
                its legibility, and it ran three bands of chrome before a single
                product appeared.
              • White fixed the bands and let an uploaded logo alone, and handed
                the search field's prominence to `border-2` to carry by itself.
+             • Orange kept the pill bright and kept the count of bands down, at
+               the price of a saturated slab across the top of every page.
 
-           Orange keeps the first property and still drops the third band: the
-           white pill is the brightest object in the row again, and there are
-           two bands above the merchandise rather than three, because the row IS
-           the brand now instead of sitting between two things that are. The
-           chrome reads near-black utility, brand, white goods.
+           White is where it lands, and the argument this time is about the PAGE
+           rather than the row: the shop wants a light storefront, and a
+           full-width block of #ff6a00 above the fold was the largest and
+           heaviest object on the homepage. The brand still gets its colour —
+           the wordmark, the deal links, the buttons, the hero disc — but it is
+           spent on marks rather than on a ground.
 
-           What comes back with a coloured ground is the white plate behind an
-           uploaded logo — the note at that branch asked for exactly this, and
-           it is now honoured.
+           The row draws its own `border-b` because the department bar under it
+           is white too. Without it the two are one undivided white block and
+           the masthead loses its edge.
 
-           ---- The type in this row is near-black, and that is the rule ----
+           ---- What moves with the ground, and what does not ----
 
-           The obvious build of an orange masthead sets every label in it white,
-           because that is what the marketplaces it is modelled on do. It was
-           built that way first and it is wrong here: the palette note at the
-           head of `globals.css` measures white on #ff6a00 at 2.9:1, and the
-           labels in this row — "Cart", the running total, the account name —
-           are 12.5 and 13px, well inside the range that needs 4.5:1. Near-black
-           on the same orange is 5.5:1.
+           The type in this row is near-black and stays near-black. It was
+           picked to clear 4.5:1 against orange and it clears 16:1 against
+           white, so nothing in the resting state has to change.
 
-           So the row keeps the ink it had on white, and the colour it gained is
-           spent on the ground rather than the type. Hover is where white gets
-           used: lifting a control to white on a coloured row is a stronger
-           affordance than a hue shift, and a hover state is not something
-           anyone has to be able to read at rest.
+           Three things DO depend on the ground and are corrected with it:
 
-           The two exceptions are deliberate and both are large or reversed —
-           the wordmark's name, which is display type, and the cart badge, which
-           is white on a near-black disc.
+             • Hover was `text-white`, a lift that only reads on a coloured row.
+               On white it would erase the control, so hover goes to brand
+               orange instead.
+             • The wordmark's name was white, because orange on orange is not a
+               colour. It goes back to orange — which is exactly what the note
+               at that branch said would happen if this row ever returned to a
+               neutral, and nothing else in the mark moves.
+             • The search field's resting edge was its own white, which is no
+               edge at all on a white row. It goes back to `shop-line`. See the
+               note in `SearchBar`.
 
            ---- Tighter ----
 
@@ -388,7 +388,7 @@ export default function Header({
            them needs 28px of air above and below to be found, and the height
            saved is height the first row of products gets on the opening
            screen. The scrolled state comes down with it, to py-1.5. */}
-      <div className="bg-shop-primary">
+      <div className="border-b border-shop-line bg-white">
       <div
         className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-4 gap-y-2 px-4 md:flex-nowrap md:px-8 md:py-2 ${
           scrolled ? "py-1.5" : "py-2"
@@ -473,19 +473,22 @@ export default function Header({
             //
             // The shop asked for its own colours and that is the call. What it
             // costs is the guarantee: a filter produced a predictable result
-            // from ANY upload, and artwork does not. Two files will look wrong
-            // here and neither can be fixed from this file —
+            // from ANY upload, and artwork does not.
             //
-            //   • Dark artwork on transparency, drawn for a white page. It
-            //     muddies on #ff6a00, because dark-on-orange is a low-contrast
-            //     pair whatever the shape.
-            //   • A logo saved WITH a white rectangle behind it. That rectangle
-            //     is now visible as a white box on the orange.
+            // The row is white again, which makes this cheaper than it was.
+            // The two files that used to break here were a dark-on-transparent
+            // logo, which muddied against #ff6a00, and a logo saved WITH a
+            // white rectangle behind it, which showed as a box parked on the
+            // orange. On white both of those are simply correct — a
+            // dark-on-transparent PNG is now the file this slot wants, and it
+            // is also the file most shops already have.
             //
-            // Both are upload problems with upload fixes: a light-on-transparent
-            // PNG is the file this slot wants. If the masthead ever looks wrong
-            // after a logo change, that is the first thing to check — not this
-            // component, which now does nothing to the image at all.
+            // What breaks on white instead is the opposite case: light or
+            // white artwork on transparency, drawn for a dark masthead, which
+            // disappears here. That is an upload problem with an upload fix.
+            // If the masthead ever looks wrong after a logo change, that is
+            // the first thing to check — not this component, which does
+            // nothing to the image at all.
             <span className="flex items-center">
               <Image
                 src={settings.brand.logo_url}
@@ -561,17 +564,18 @@ export default function Header({
                   />
                 </svg>
               </span>
-              {/* The wordmark survives the move by inverting rather than by
-                  flattening. Its two tones were brand orange for the name and
-                  near-black for the suffix; the orange half cannot stay,
-                  because on a brand-orange ground it IS the ground. So the name
-                  takes white — it is 23/27px display type, where white on
-                  #ff6a00 is a legibility call rather than an AA failure — and
-                  the suffix keeps exactly the ink it always had, at 5.5:1. Two
-                  tones, both readable, and the mark still reads as one word
-                  made of two parts. If this row ever returns to a neutral, the
-                  name goes back to orange and nothing else moves. */}
-              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-white md:text-[22px]">
+              {/* Two tones: brand orange for the name, near-black for the
+                  suffix, so the mark reads as one word made of two parts.
+
+                  The name spent the orange era in white, because on a
+                  brand-orange ground orange type IS the ground. That note ended
+                  by saying the name goes back to orange if the row ever returns
+                  to a neutral, and this is that return. Orange on white is
+                  2.9:1, which is a legibility call rather than an AA failure at
+                  23/27px display type — the same allowance the palette note in
+                  `globals.css` makes for the logo. The suffix keeps the ink it
+                  has always had, at 16:1. */}
+              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
@@ -627,7 +631,7 @@ export default function Header({
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
               aria-expanded={false}
-              className="text-shop-ink transition-colors hover:text-white md:hidden"
+              className="text-shop-ink transition-colors hover:text-shop-primary md:hidden"
             >
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path
@@ -649,7 +653,7 @@ export default function Header({
             type="button"
             onClick={openDrawer}
             aria-label="Open cart"
-            className="flex items-center gap-2 text-shop-ink transition-colors hover:text-white"
+            className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
           >
             <span className="relative">
               <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -662,7 +666,7 @@ export default function Header({
                   cleanly out of the white cart glyph behind it. An orange fill
                   would be invisible here — it was the contrast against a white
                   row that made the old badge a badge at all. */}
-              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-nav px-1 text-[11px] font-bold text-white ring-2 ring-shop-primary">
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-nav px-1 text-[11px] font-bold text-white ring-2 ring-white">
                 {count > 9 ? "9+" : count}
               </span>
             </span>
@@ -687,7 +691,7 @@ export default function Header({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
-            className="text-shop-ink transition-colors hover:text-white lg:hidden"
+            className="text-shop-ink transition-colors hover:text-shop-primary lg:hidden"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
