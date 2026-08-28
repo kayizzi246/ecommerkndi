@@ -3,7 +3,7 @@ import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import MaximiseSavings from "@/components/home/MaximiseSavings";
-import PromiseBand from "@/components/home/PromiseBand";
+import TrustRibbon from "@/components/home/TrustRibbon";
 import ShopByStore from "@/components/home/ShopByStore";
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
@@ -101,6 +101,7 @@ export default async function Home() {
     latest,
     latestTotalPages,
     departmentMinimum,
+    proof,
   } = await buildHomeFeed();
 
   /** Brand plus suffix, spaced — for the closing about block. */
@@ -143,7 +144,7 @@ export default async function Home() {
            So this slot now carries a 36px band of terms instead of a banner,
            and the merchandise starts immediately under it. If a hero is ever
            proposed again, the question to answer first is what it would say
-           that {@link PromiseBand} and the first deal panel do not.
+           that {@link TrustRibbon} and the first deal panel do not.
 
            ---- Why the band is here and not inside the flex column ----
 
@@ -172,9 +173,43 @@ export default async function Home() {
 
           From md up the container's own `md:px-8` would inset this, which is
           why the hero sits outside that container — see the note above. */}
-      <PromiseBand
+      {/* ---- The band is now evidence as well as terms, and it shows on a
+           phone ----
+
+           `PromiseBand` stood here and is deleted. It was three promises on
+           pale green, hidden below `md`, and both of those turned out to be
+           wrong for the page as it now stands — the full reasoning is at the
+           head of {@link TrustRibbon}, but the short version is worth having
+           here because this slot has a history of being argued about.
+
+           On a phone the page had NOTHING above the merchandise: no hero
+           unless the shop has uploaded artwork, no rails, no department row.
+           The band was hidden back when it was the fourth strip competing for
+           the opening screen, and it has been outlived by every one of the
+           other three. So the shop's majority device was reading a bare grid of
+           tiles with no statement anywhere on it about delivery, payment or
+           returns — those words survive only in the footer, past an endless
+           grid nobody reaches.
+
+           And it carries live figures now: a star rating with the review count
+           behind it, a floor on units delivered, the number of vetted stores.
+           That is the half the old band could not do. Terms are the shop
+           talking about itself; a review count is a shopper being asked to
+           check. Every figure is computed from data the feed already fetched
+           and every one is deliberately smaller than the truth — see
+           `HomeProof` in lib/home-feed.ts.
+
+           The height budget is held to the test this slot has always been
+           given, and measured rather than asserted. From `sm` up it is 36px —
+           the same single line the old band cost, because the two promises the
+           announcement strip already carries hide themselves at exactly the
+           widths that strip shows them. On a phone it wraps to two rows and 59px,
+           which is what a device that had no band at all now pays for the whole
+           statement. No artwork, no offer, nothing clipped at 360px. */}
+      <TrustRibbon
         freeDeliveryFrom={settings.commerce.free_delivery_from}
         returnsDays={settings.commerce.returns_days}
+        proof={proof}
       />
       {/* The page opens on merchandise.
 
@@ -324,45 +359,69 @@ export default async function Home() {
              the header takes it for the mega-menu from the layout, and
              `departmentRails` is a separate, already-composed field. */}
 
-        {/* ---- Every carousel rail, desktop only ----
+        {/* ---- Three blocks reach a phone. The other six still do not ----
          *
-         * On a phone this whole block is gone and the homepage is the hero
-         * followed by one endless grid.
+         * The rule used to be simpler and it was too simple: EVERY rail sat
+         * inside `hidden md:contents`, so a phone got the banner and one
+         * endless grid and nothing else. The reasoning behind that is still
+         * mostly right and is kept below, because the middle path taken here is
+         * the one it named.
          *
          * The rails are a DESKTOP idiom. A horizontal carousel works when there
          * is a pointer to drag it, arrows to click and enough width to show six
          * tiles at once — then a rail is a curated shelf. On a 390px screen it
          * shows two and a half tiles, the rest is off-screen behind a swipe most
-         * shoppers never make, and eight rails stacked means eight separate
-         * swipes to see a fraction of the catalogue. What that actually
-         * produces is a page where almost every product is hidden and the
-         * shopper's whole job is scrolling past headings.
+         * shoppers never make, and NINE rails stacked means nine separate swipes
+         * to see a fraction of the catalogue. What that produces is a page where
+         * almost every product is hidden and the shopper's whole job is
+         * scrolling past headings. A single endless grid is the phone answer,
+         * and it is what every large marketplace serves on mobile.
          *
-         * A single endless grid is the phone answer, and it is what every large
-         * marketplace serves on mobile: two columns, no interaction to learn,
-         * every product on the vertical scroll the thumb is already doing.
+         * ---- What "all of them or none of them" cost ----
          *
-         * ---- What is lost, stated plainly ----
+         * Stated plainly at the time, and it turned out to be the expensive
+         * half: phones are most of this shop's traffic, and "Picked for you" is
+         * newest-first, so the shopper on a phone never saw the deepest
+         * discount, never saw who they were buying from, and had the whole
+         * marketplace presented to them as an undifferentiated stream of
+         * newest-first stock. Nine rails on a phone is a page nobody can use;
+         * nought rails is a shop with no shopfront. The note itself proposed
+         * the answer — "the middle path is to keep ONE rail above the grid" —
+         * and this is that, with the count argued rather than assumed.
          *
-         * The merchandising. Trending, New in, Daily Deals, Promotions, New
-         * arrivals, Best sellers, the department rails and Super Deals do not
-         * appear on a phone at all — and phones are most of this shop's
-         * traffic. "Picked for you" is newest-first, so a shopper on a phone no
-         * longer sees the deepest discount or the department landmarks unless
-         * they go looking through the header.
+         * ---- The three that earn a phone screen ----
          *
-         * That is a real merchandising cost and it was asked for deliberately.
-         * If it turns out to matter, the middle path is to keep ONE rail above
-         * the grid — Daily Deals is the candidate, since price is what the
-         * banner promises — rather than to bring all eight back.
+         *   • Trending now. One rail of what is actually moving. It is the
+         *     cheapest possible answer to "is anything here worth having", and
+         *     it is the rail the note above nominated in spirit.
+         *   • Super Deals. Price is the reason most of this shop's traffic
+         *     arrives, and it is the one thing the endless grid cannot say —
+         *     the grid is newest-first, so the deepest cut in the catalogue can
+         *     sit forty screens down it. One ink shelf puts it on screen two.
+         *   • Shop by store. Not a rail at all: a two-column GRID of vetted
+         *     sellers, so it costs no swipe. It is also the only block on the
+         *     phone page that says this is a marketplace of real Ugandan shops
+         *     rather than one anonymous warehouse, which is the thing a
+         *     first-time buyer is actually deciding about.
+         *
+         * Everything else stays desktop-only, and the reason is that each one
+         * is the same catalogue in another order: New in, Promotions, New
+         * arrivals and Best sellers are all cuts of stock the endless grid
+         * below already carries, so on a phone they buy four extra swipes and
+         * no new information. The department rails are the closest call — they
+         * answer "where do I go for my own things" — but the departments are
+         * one tap away in the masthead on every screen, and four more rails is
+         * exactly the stack this note exists to prevent.
+         *
+         * The phone page is therefore: banner, ribbon, one rail, one deals
+         * shelf, the sellers, then the endless grid. Two swipes, not nine.
          *
          * `hidden md:contents` rather than `hidden md:block`: `display: contents`
          * makes this wrapper vanish from the layout at md and up, so the
          * sections inside stay direct flex children of the column and keep the
-         * `gap-5 md:gap-8` spacing exactly as before. A `block` wrapper would
-         * collapse all eight rails into one flex item and destroy the spacing
-         * between them. */}
-        <div className="hidden md:contents">
+         * `gap-4 md:gap-6` spacing exactly as before. A `block` wrapper would
+         * collapse the rails into one flex item and destroy the spacing between
+         * them. */}
         {trending.length > 0 && (
           <section id="trending" className="scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
@@ -373,14 +432,67 @@ export default async function Home() {
           </section>
         )}
 
-        {/* ---- The savings shelf, directly after the first rail ----
+        {/* Moved up from the foot of the rails, where it was the eighth of nine
+            sections and — below `md` — was not drawn at all.
+
+            Position two on both screens now. On a desktop that is a change of
+            emphasis rather than of kind: the ink shelf was the loudest thing on
+            the lower half of the page and is now the loudest thing near the top
+            of it, which is where the shop's sharpest prices belong on a page
+            competing with marketplaces that lead on price. On a phone it is the
+            difference between the deepest cut in the catalogue being on screen
+            two and being invisible.
+
+            It draws nothing when nothing is on sale, so a shop running no
+            discounts gets Trending followed straight by the sellers rather than
+            an empty shelf where the deals should be. */}
+        <SuperDeals products={deals} />
+
+        {/* ---- Who the shop actually is ----
+
+             Kandi is a marketplace and this page never said so. Every other
+             section is products in a different order — trending, new,
+             discounted — and a shopper could read the whole homepage without
+             learning that the goods come from independent Ugandan stores
+             rather than from one warehouse. That is the most distinctive fact
+             about this business, and it lived in the footer, in the nav, and
+             nowhere a shopper looks.
+
+             It is also the honest answer to "what else could go here". Every
+             alternative was more of the same catalogue in another order, and
+             a seventh rail of the same products does not make a page fuller —
+             it makes it padded. This adds something the page did not have.
+
+             After Super Deals on purpose, and the pair has moved up the page
+             together rather than being broken by the move. That shelf is an ink
+             band and the loudest thing on the page; a quiet row of white cards
+             is what should follow it. Two dark bands touching would read as one
+             very tall dark region with a gap in the middle — the ground note in
+             ShopByStore is written against exactly this neighbour, so the two
+             sections travel as one block or not at all.
+
+             It costs no fetch. The feed has always called getStores() and
+             returned only the length from it. */}
+        <ShopByStore stores={stores} />
+
+        <div className="hidden md:contents">
+
+        {/* ---- The savings shelf, after the shopfront and before the rails ----
 
              A cream band of offers — a code, a headline, the qualifying line —
-             in the slot immediately below Trending. The position is the whole
-             argument: a shopper who has just scrolled one rail of products has
-             shown they are shopping, and "here is how to pay less for these" is
-             the right next sentence. Put it above the rail and it is a coupon
-             page nobody asked for; put it four rails down and it is never read.
+             in the first slot of the desktop-only block. It used to sit
+             immediately below Trending; Super Deals and the seller grid now
+             stand between, which does not weaken the argument for the position
+             and arguably strengthens it.
+
+             The argument was always about what the shopper has just done, not
+             about which rail is above: somebody who has scrolled a rail of
+             products has shown they are shopping, and "here is how to pay less
+             for these" is the right next sentence. Put it above the first rail
+             and it is a coupon page nobody asked for; put it four rails down
+             and it is never read. A reader who has now passed Trending, the
+             deals shelf AND the sellers has shown it three times over, and this
+             is still the third screen rather than the tenth.
 
              It renders `settings.promotions`, which has carried exactly this
              shape — badge, headline, note, url — for a long time with NO
@@ -402,14 +514,21 @@ export default async function Home() {
 
         {/* ---- New in ----
              The newest listings from the shop's independent sellers, in the
-             slot directly under Trending.
+             first product rail of the desktop-only block.
 
              Placed this high on purpose. A marketplace only works if sellers
              believe that listing here gets their goods in front of people, and
-             the second rail on the front page is the most concrete form that
-             promise can take: put something up, and it is on the homepage.
+             a rail near the top of the front page is the most concrete form
+             that promise can take: put something up, and it is on the homepage.
              Nobody has to merchandise it — the rail refreshes itself every time
              anyone lists anything.
+
+             It reads as one rail lower than it used to, and it is not: Shop by
+             store now sits above it, which names the same sellers by their own
+             shopfronts. A trader arriving to see whether listing here means
+             anything meets their storefront first and their newest stock
+             immediately after, which is a stronger answer than the rail gave on
+             its own.
 
              It is not the same as "New arrivals" further down, despite the
              similar name. That rail is the newest stock from any source, most
@@ -544,33 +663,15 @@ export default async function Home() {
           />
         ))}
 
-        <SuperDeals products={deals} />
-
-        {/* ---- Who the shop actually is ----
-
-             Kandi is a marketplace and this page never said so. Every other
-             section is products in a different order — trending, new,
-             discounted — and a shopper could read the whole homepage without
-             learning that the goods come from independent Ugandan stores
-             rather than from one warehouse. That is the most distinctive fact
-             about this business, and it lived in the footer, in the nav, and
-             nowhere a shopper looks.
-
-             It is also the honest answer to "what else could go here". Every
-             alternative was more of the same catalogue in another order, and
-             a seventh rail of the same products does not make a page fuller —
-             it makes it padded. This adds something the page did not have.
-
-             After Super Deals on purpose. That shelf is an ink band now and
-             the loudest thing on the page; a quiet row of white cards is what
-             should follow it, and the pair gives the lower half of the page
-             the alternation the top half already has.
-
-             It costs no fetch. The feed has always called getStores() and
-             returned only the length from it. */}
-        <ShopByStore stores={stores} />
         </div>
-        {/* ---- end of the desktop-only rails ---- */}
+        {/* ---- end of the desktop-only rails ----
+
+             Super Deals and Shop by store used to close this block; they are
+             now above it, outside the wrapper, so a phone gets them. The
+             department rails are the last thing a desktop reader meets before
+             the endless grid, which is the right handover: they answer "where
+             do I go for my own things", and "Picked for you" directly below is
+             where that browse actually happens. */}
 
         {/* The wide orange offer slab used to sit here, between Super Deals and
             the endless grid. It carried the shop's terms — free delivery over a

@@ -152,6 +152,116 @@ export type DepartmentRailData = {
   products: Product[];
 };
 
+/**
+ * What the shop can prove about itself, in three numbers.
+ *
+ * ---- Why this is computed here rather than in the component ----
+ *
+ * Every figure below is derived from fetches `buildHomeFeed` already makes for
+ * the rails. Counting them here costs no WordPress round trip and no second
+ * cache entry; a component that wanted the same numbers would have had to fetch
+ * the catalogue again to count what this feed had already counted. It is the
+ * same argument that put the rail composition in this module: the decision is
+ * made once and the web and the app read the same answer.
+ *
+ * ---- Every figure is a floor, and that is the whole design ----
+ *
+ * The band that renders these makes claims to a first-time shopper who has
+ * never bought from a Ugandan marketplace before, and a shopper who catches one
+ * soft number stops believing the other three — the rule the trust ribbon
+ * has always been held to. So none of them is allowed to be generous:
+ *
+ *   • `stores` is the length of the seller list. Exact.
+ *   • `sold` and `reviews` are summed over the products this feed happened to
+ *     fetch — roughly a hundred rows, not the whole catalogue — so both are
+ *     genuinely SMALLER than the truth. They are printed with a "+" for
+ *     exactly that reason.
+ *   • `rating` is the mean of `average_rating` weighted by `rating_count`
+ *     across those same rows, which is the honest average of the reviews
+ *     counted rather than an average of averages. It is still a sample, and the
+ *     sample leans towards stock the shop features and discounts — which is why
+ *     the band prints nothing until `reviews` clears {@link PROOF_MINIMUM_REVIEWS}.
+ *     A 5.0 drawn from two reviews is not evidence, it is an accident.
+ */
+export type HomeProof = {
+  /**
+   * Vetted seller storefronts.
+   *
+   * A catalogue size sat here too — `latest.total`, WooCommerce's own count of
+   * published products, free with a listing the feed already fetched. It came
+   * out because nothing rendered it, which is the failure this whole band was
+   * built to correct: `storeCount` was computed and discarded for months, and a
+   * second field going the same way in the same commit would be a poor joke.
+   *
+   * It is also the weakest of the four as evidence. "We have 4,000 products" is
+   * a claim about inventory; a review count, a sales floor and a vetted seller
+   * count are claims about other people having bought here and been served. Add
+   * it back only alongside somewhere that shows it.
+   */
+  stores: number;
+  /** Units sold across the sampled rows — a floor, never the total. */
+  sold: number;
+  /** Customer reviews behind `rating` — a floor, never the total. */
+  reviews: number;
+  /** Mean star rating over those reviews, to one decimal, rounded down. */
+  rating: number;
+};
+
+/**
+ * Reviews needed before the rating is worth printing.
+ *
+ * Below this the ribbon drops the stars and keeps the rest. Twenty-five is the
+ * point at which one furious customer stops being able to move the headline
+ * figure by half a star, which is the only thing this threshold is guarding
+ * against — the shop is not hiding a bad average, it is refusing to publish a
+ * meaningless one in either direction.
+ */
+export const PROOF_MINIMUM_REVIEWS = 25;
+
+/**
+ * Sums the evidence across every product the feed has in hand.
+ *
+ * Deduplicated by id first, and that is not a tidiness detail: the same product
+ * is routinely in `latest`, in `onSale` and in a department pool, so counting
+ * the arrays end to end would treble its sales and its reviews. A proof band
+ * whose numbers are inflated by an implementation accident is worse than no
+ * band, because it is the one thing on the page nobody can check.
+ */
+function summariseProof(pools: Product[][], stores: number): HomeProof {
+  const seen = new Map<number, Product>();
+  for (const pool of pools) {
+    for (const product of pool) if (!seen.has(product.id)) seen.set(product.id, product);
+  }
+
+  let sold = 0;
+  let reviews = 0;
+  let stars = 0;
+
+  for (const product of seen.values()) {
+    sold += Math.max(0, product.total_sales || 0);
+
+    // A product with a rating but no count, or a count with no rating, is
+    // WordPress metadata half-written rather than a review anybody left. Both
+    // halves have to be present before the row is allowed to move the average.
+    const count = Math.max(0, product.rating_count || 0);
+    const average = product.average_rating || 0;
+    if (count > 0 && average > 0) {
+      reviews += count;
+      stars += average * count;
+    }
+  }
+
+  return {
+    stores,
+    sold,
+    reviews,
+    // Rounded DOWN to one decimal. A 4.78 prints as 4.7 rather than 4.8: the
+    // figure is already a sample, and the sample already leans favourable, so
+    // the rounding is the one place the arithmetic can be made to lean back.
+    rating: reviews > 0 ? Math.floor((stars / reviews) * 10) / 10 : 0,
+  };
+}
+
 export type HomeFeed = {
   settings: SiteSettings;
   departments: CategoryNode[];
@@ -182,6 +292,14 @@ export type HomeFeed = {
   latestTotalPages: number;
   /** Minimum products a department rail needs before it renders. */
   departmentMinimum: number;
+  /**
+   * Live evidence for the trust ribbon at the top of the homepage.
+   *
+   * Never null. The ribbon itself decides which of the four numbers are strong
+   * enough to print, so a shop with no reviews yet gets a ribbon of terms with
+   * no stars on it rather than a missing field every caller has to test for.
+   */
+  proof: HomeProof;
 };
 
 /**
@@ -556,5 +674,17 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     latest: latest.products,
     latestTotalPages: latest.total_pages,
     departmentMinimum: DEPARTMENT_MINIMUM,
+    /* Summed over every pool the feed already fetched — the general catalogue,
+       the discount pool, the featured picks and each department's twelve. No
+       extra request of any kind. */
+    proof: summariseProof(
+      [
+        latest.products,
+        onSale.products,
+        featured.products,
+        ...departmentPools.map((department) => department.products),
+      ],
+      stores.length
+    ),
   };
 }
