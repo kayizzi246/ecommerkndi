@@ -60,7 +60,37 @@ export default function SuperDeals({ products }: { products: Product[] }) {
        is not a new colour either — it already carries the footer. */
     <section
       aria-labelledby="super-deals-heading"
-      className="-mx-3 bg-shop-band px-3 py-5 md:-mx-8 md:px-8 md:py-7 md:[&_article]:rounded-[10px] md:[&_article]:bg-white md:[&_article]:p-2 md:[&_article]:ring-1 md:[&_article]:ring-white/10"
+      /* ---- An ink panel, no longer a full-bleed band ----
+
+         This escaped the column with `-mx-3 md:-mx-8` so its ink could reach
+         the glass, which meant restating the column's own gutter here — a
+         number that then lived in four files and could only be changed in all
+         four at once. The page is a canvas with panels on it now, so the shelf
+         stops where every other shelf stops and the canvas either side does
+         what the bleed was for.
+
+         `home-panel home-panel-ink` rather than a hand-rolled ground: the
+         radius and the padding come from the shared class, so the loudest
+         shelf on the page is the same shape and width as the quiet ones
+         above and below it.
+
+         ---- The tiles keep their white cards, and now at EVERY width ----
+
+         The rule was `md:[&_article]:…`, because below `md` the tile drew its
+         own white card and needed no help. It does not any more — `ProductCard`
+         is one flat treatment at all widths now that sections are white panels
+         — so on a phone this shelf was about to put ink-on-ink text straight
+         onto a dark ground, which is the exact failure the note above records
+         and which was reverted within the hour the first time.
+
+         Dropping the `md:` prefix is the whole fix. A tile standing on this
+         shelf gets a white card at any width, and the reasoning is unchanged:
+         a shelf's ground and the readability of what stands on it are ONE
+         decision. The descendant selector still beats the card's own classes
+         without `!important`, and the rule still lives with the shelf that
+         needs it rather than as a mode inside a component used in thirty
+         other places. */
+      className="home-panel home-panel-ink [&_article]:rounded-xl [&_article]:bg-white [&_article]:p-2 [&_article]:ring-1 [&_article]:ring-white/10"
     >
       <SectionHeader
         id="super-deals-heading"

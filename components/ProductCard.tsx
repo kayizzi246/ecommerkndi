@@ -530,7 +530,32 @@ export default function ProductCard({
     // separating a tile from the #f9fafb page below 768px, per the argument
     // above — and a square white card on an off-white ground separates exactly
     // as well as a rounded one did.
-    <article className="group relative flex h-full flex-col rounded-[10px] bg-white p-1 ring-1 ring-shop-line md:rounded-none md:bg-transparent md:p-0 md:ring-0">
+    /* ---- One tile at every width, for the first time ----
+
+       This carried two designs and a breakpoint between them: below `md` a
+       white card with a hairline ring and 4px of padding, from `md` up a
+       transparent block with none of that. The card existed because the phone
+       page ground was off-white and a borderless tile on it had nothing to sit
+       on; the transparent block existed because the desktop page ground was
+       white and a white card on white draws a rectangle nobody can see.
+
+       Both were correct answers to a question that no longer has two forms. The
+       page is a canvas with white PANELS on it now (see `.home-panel` in
+       globals.css), and a tile stands on panel white at every width — so the
+       phone case and the desktop case became the same case, and the card was
+       drawing a second edge inside an edge the panel had already drawn.
+
+       What replaces the card is a hover state rather than a resting one, which
+       is the trade this whole file has been circling: a grid of forty tiles
+       does not need forty boxes at rest, it needs to show which one the pointer
+       is on. That lives on the photograph below — a soft lift — so nothing in
+       the layout moves and the grid cannot be knocked out of alignment by a
+       hover.
+
+       `h-full` stays. A grid row stretches its tiles to a common height and the
+       price is bottom-pinned against that, so the tile has to actually fill the
+       row for the pinning to line anything up. */
+    <article className="group relative flex h-full flex-col">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -580,7 +605,46 @@ export default function ProductCard({
               `Skeletons.tsx` carries the same ratio and has to change with
               it. A placeholder at the wrong shape makes the grid visibly
               re-draw itself when the products land. */}
-          <div className="relative aspect-[1/1.05] w-full overflow-hidden rounded-lg bg-shop-hairline">
+          {/* ---- A true square, and a corner to match the panel ----
+
+              The ratio walked square → 8:9 → 5:6 → 3:4 and back to 1/1.05, and
+              the note above records why: `object-cover` fills the box either
+              way, so height taken past square is crop off a square supplier
+              photograph rather than product gained. 1/1.05 was that argument
+              arriving *nearly* at its own conclusion — a 5% tail left over from
+              the walk back, costing every tile in the shop five percent of its
+              height to no end. It is 1:1 now, which is what the reasoning said
+              and what the supplier photography actually is.
+
+              12px corners rather than 8. The tile no longer draws a card, so
+              the photograph IS the tile's shape, and it now sits inside a panel
+              with a 16px corner — a 12px picture inside a 16px sheet reads as
+              nested; an 8px picture inside it reads as a slightly wrong
+              rectangle that happened to land there. One radius scale, stepping
+              down as the objects nest: panel 16, photograph 12, chips 6.
+
+              ---- The hover lift, which replaced the resting card ----
+
+              A shadow only while the pointer is on the tile. At rest the grid
+              is flat — forty boxes with forty shadows is the haze this shop has
+              refused everywhere else — and on hover the photograph rises off
+              the panel just enough to say which tile is live.
+
+              It is drawn on the PHOTOGRAPH and not on the article, which is the
+              part that matters: the article is a grid item, and a shadow or a
+              transform on it would either be clipped by the grid gap or shift
+              the text under it. The picture is an absolutely-sized box inside
+              that item, so it can lift without moving anything.
+
+              The ring is 4% ink rather than `shop-line`. A photograph shot on
+              white needs its own edge against a white panel, but at the full
+              hairline weight forty of them read as a wireframe; 4% is the
+              lightest edge that still closes the shape.
+
+              `Skeletons.tsx` carries this ratio and radius and has to change
+              with it — a placeholder at the wrong shape makes the grid visibly
+              re-draw itself when the products land. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-hairline ring-1 ring-shop-ink/[0.04] transition-shadow duration-200 ease-out group-hover:shadow-[0_8px_22px_-8px_rgba(17,24,39,0.22)]">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -639,7 +703,7 @@ export default function ProductCard({
         </Link>
 
         {soldOut && (
-          <span className="absolute left-2 top-2 rounded bg-shop-ink px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute left-2 top-2 rounded-lg bg-shop-ink px-2 py-1 text-[11px] font-bold leading-none text-white">
             Sold out
           </span>
         )}
@@ -718,7 +782,15 @@ export default function ProductCard({
              with two left carried it in three places; yellow means the deal and
              nothing else, and the stock line keeps its own voice. */}
         {!soldOut && discount > 0 && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-md bg-bfl-yellow px-1.5 py-[3px] text-[11px] font-bold leading-none text-shop-ink">
+          /* Heavier and rounder than it was, and that is the whole change: the
+             flag is now the only object drawn ON a resting tile — the card,
+             its ring and its padding are gone — so it has to carry the corner
+             on its own rather than as one detail among several. `rounded-lg`
+             matches the chips below it, 800 weight and a hair more padding
+             make it read as a stamp rather than as a caption that drifted
+             into the corner. Colour is untouched: yellow is the deal language,
+             shared with the Super Deal chip and the deals shelf. */
+          <span className="pointer-events-none absolute right-2 top-2 rounded-lg bg-bfl-yellow px-2 py-1 text-[11px] font-extrabold leading-none text-shop-ink">
             −{discount}%
           </span>
         )}
@@ -769,7 +841,13 @@ export default function ProductCard({
             deal, it is what other shoppers did. A second orange object on the
             same photograph would read as another discount. */}
         {!soldOut && ribbon && (
-          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-md bg-shop-ink/90 px-1.5 py-[3px] text-[11px] font-bold leading-none text-white backdrop-blur-sm">
+          /* `rounded-lg` and a touch more padding, in step with the discount
+             flag in the opposite corner. The two are the only marks on a
+             resting photograph and they are read as a pair — one saying what
+             the shop has done to the price, one saying what other shoppers
+             have done about it — so a shape shared between them is what stops
+             the picture looking like it collected two unrelated stickers. */
+          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-lg bg-shop-ink/90 px-2 py-1 text-[11px] font-bold leading-none text-white backdrop-blur-sm">
             {ribbon}
           </span>
         )}
@@ -883,7 +961,13 @@ export default function ProductCard({
            They are `py-px` and `pt-px` now, and the block leans on the rows'
            own `leading-*` for its rhythm instead. Leading is per-row and
            uniform by construction; padding stacked on top of it is not. */}
-      <div className="flex flex-1 flex-col gap-0 pt-1">
+      {/* `pt-2`, up from `pt-1`. The photograph gained a hover lift and a
+          12px corner and lost the card that used to box it, so the gap between
+          it and the first line of the name is now the only thing separating the
+          picture from the copy — at 4px the name read as a caption stuck to the
+          bottom edge of the image. 8px is the figure the rest of the page uses
+          between an object and its label. */}
+      <div className="flex flex-1 flex-col gap-0 pt-2">
         <Link href={href} className="block">
           {/* ---- One line, plain weight ----
 
@@ -986,8 +1070,31 @@ export default function ProductCard({
              `shop-save` rather than `shop-success` — 11px bold needs the
              darker step to clear AA. See the token in `globals.css`. */}
         {saving > 0 && (
-          <p className="truncate pt-[3px] text-[11px] font-semibold leading-4 text-shop-muted">
-            Save {formatPrice(saving)}
+          <p className="pt-[3px]">
+            {/* ---- Green again, and this time it is drawn rather than asserted ----
+
+                The note above spends a paragraph on why this row is green —
+                "red is what it costs, green is what it saves, the oldest
+                pairing in retail" — and then set it in `text-shop-muted`,
+                which is the grey used for sold counts and secondary labels.
+                The reasoning and the class had drifted apart, so the one line
+                on the tile that was supposed to be the reward read as
+                small print.
+
+                It is a chip rather than coloured text because the row it sits
+                in is otherwise all greys and the saving is competing with a
+                price directly below it at 13px/700. `shop-successbg` is the
+                palest green in the palette and `shop-save` is the 4.6:1 step
+                that clears AA at this size — the same pair the trust ribbon
+                uses, so the shop has one green rather than a family of them.
+
+                It stays off the price row itself. That row is
+                `overflow-hidden` to keep tile heights honest, and a third
+                figure inside it is what produced the sliced "−(" the
+                percentage was removed for. */}
+            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-[2px] text-[10.5px] font-bold leading-[15px] text-shop-save">
+              Save {formatPrice(saving)}
+            </span>
           </p>
         )}
         <p className="flex items-baseline gap-x-1.5 overflow-hidden pt-px">
@@ -1078,7 +1185,24 @@ export default function ProductCard({
               "Back in stock soon"
             ) : (
               <span className="inline-flex items-center gap-1.5 align-top">
-                <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-sale" aria-hidden />
+                {/* ---- Orange, where the dot and the bar below were ink ----
+
+                    `shop-sale` resolved to #111827 when red came out of the
+                    palette, so the scarcity mark and the bar under it were
+                    drawn in the same near-black as the product name and the
+                    price. On a tile that is otherwise photograph and figures,
+                    a 3px black rule under the price does not read as "nearly
+                    gone" — it reads as a border that escaped, and in the
+                    redesigned grid it was the one mark on a tile that looked
+                    like a mistake.
+
+                    Brand orange is the right colour for it and it is the only
+                    hue left with nothing else to do: yellow is the deal
+                    language (the corner flag, the Super Deal chip, the deals
+                    shelf), green is the saving, ink is type. Scarcity is the
+                    remaining thing a tile says, and orange is what the shop
+                    already spends on urgency in the masthead. */}
+                <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-primary" aria-hidden />
                 Only {product.stock_quantity} left
               </span>
             )}
@@ -1105,10 +1229,10 @@ export default function ProductCard({
         {lowStock && product.stock_quantity !== null && (
           <span
             aria-hidden
-            className="mt-0.5 block h-[3px] w-full max-w-[90px] overflow-hidden bg-shop-hairline"
+            className="mt-1 block h-[3px] w-full max-w-[90px] overflow-hidden rounded-full bg-shop-hairline"
           >
             <span
-              className="block h-full bg-shop-sale"
+              className="block h-full bg-shop-primary"
               style={{ width: `${Math.max(12, (product.stock_quantity / LOW_STOCK_AT) * 100)}%` }}
             />
           </span>

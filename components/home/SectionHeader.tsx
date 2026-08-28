@@ -85,9 +85,28 @@ export default function SectionHeader({
               for a page where a coloured ground was doing half that work. Outfit
               is also a wider, rounder face than the one this was set for, so it
               carries the extra size without the line looking heavy. */}
+          {/* ---- 20/24, down from 22/26 ----
+
+              The bigger pair was set when the heading was the ONLY thing
+              separating one section of the homepage from the next — the tinted
+              bands had just been removed from the department rails, and the
+              note here said so explicitly. A title carrying a section boundary
+              on its own has to be loud enough to be that boundary.
+
+              It is not carrying it any more. Every section is a panel with its
+              own edge now, so the break between shelves is drawn rather than
+              implied, and a 26px title inside a bounded panel is a heading
+              competing with the boundary that already did its job. Two steps
+              down puts it back to being a signpost over its own merchandise —
+              which is what the paragraph at the top of this file says a section
+              heading is for.
+
+              This is the same trade the whole redesign makes: structure takes
+              over the work that size and colour were doing, and the type gets
+              quieter as a result. */}
           <h2
             id={id}
-            className={`heading-black text-[22px] md:text-[26px] ${
+            className={`heading-black text-[20px] md:text-[24px] ${
               tone === "dark" ? "text-white" : "text-shop-ink"
             }`}
           >

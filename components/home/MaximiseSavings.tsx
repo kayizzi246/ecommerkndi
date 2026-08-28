@@ -53,7 +53,11 @@ export default function MaximiseSavings({ settings }: { settings: SiteSettings }
          — the same `-mx-` trick as the yellow shelf and the promise band. A
          tinted band that respects the gutter floats with a white sliver down
          each edge and reads as a card rather than as a shelf. */
-      className="-mx-3 border-y border-shop-line px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+      /* A panel, where this was a full-bleed band ruled top and bottom. The
+         rules were how a tinted strip announced its own edges on a flat white
+         page; a panel draws its own, so they were describing a boundary that
+         is now visible. */
+      className="home-panel"
     >
       <h2
         id="savings-heading"

@@ -82,7 +82,14 @@ export default function ShopByStore({ stores }: { stores: Store[] }) {
        Full-bleed via `-mx-`, matched exactly to the column's `px-3 md:px-8`. */
     <section
       aria-labelledby="stores-heading"
-      className="-mx-3 bg-shop-hairline px-3 py-5 md:-mx-8 md:px-8 md:py-6"
+      /* A white panel like every other section, where this used to be a grey
+         full-bleed band. The grey was chosen to separate this row from the ink
+         shelf directly above it without being a second dark region; the canvas
+         between the two panels now draws that separation, so the tint was a
+         second answer to a question already answered — and it was the reason
+         the cards inside had to be white-on-grey rather than simply the
+         panel's own surface. */
+      className="home-panel"
     >
       <SectionHeader
         id="stores-heading"

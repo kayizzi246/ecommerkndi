@@ -220,6 +220,44 @@
   --color-shop-faint: #9ca3af; /* struck-through was-prices */
   --color-shop-line: #e5e7eb;
   --color-shop-hairline: #f3f4f6;
+
+  /* ---- The homepage canvas, and the panels that stand on it ----
+   *
+   * This is the sixth turn of the argument recorded at the head of this file,
+   * and the first one that does not simply flip the page between white and
+   * off-white. The five before it were all answering "what colour is the page",
+   * and every answer was wrong in the same way: a flat page of any colour, with
+   * sections running edge to edge down it, gives the eye nothing to group by.
+   * White made the tiles float; off-white put a grey cast under photography
+   * shot on white. Neither problem was ever about the page's colour.
+   *
+   * The structure is the answer. The page becomes a CANVAS and every section
+   * becomes a PANEL standing on it — see `.home-panel` further down — so the
+   * grouping is drawn with an edge instead of implied with air, and each block
+   * of merchandise is visibly one object with a beginning and an end.
+   *
+   * That is also what makes a real tint safe here where a flat one was not: no
+   * product photograph ever touches the canvas. Every tile stands on
+   * `--color-shop-panel`, which is the white the five previous rounds were
+   * protecting, and the canvas shows only in the gutter and in the gaps between
+   * panels. So it can be deep enough to actually read as a ground — #eef0f4 is
+   * a 6% grey, where the #f9fafb that kept being reverted was 2% and visible
+   * against almost nothing.
+   *
+   * ---- Scoped to the homepage, deliberately ----
+   *
+   * These are applied by `app/page.tsx` and by `.home-panel`. They are NOT
+   * assigned to `--background`, and that restraint is the important part:
+   * changing the global page colour would restyle /search, /category, every
+   * policy page and the whole Seller Centre as a side effect of a homepage
+   * redesign, and those pages lay their content straight onto the page with no
+   * panel to stand in. They would go grey with nothing on them.
+   *
+   * A shopfront that looks different from the aisles behind it is what every
+   * marketplace this shop is measured against does.
+   */
+  --color-shop-canvas: #eef0f4;
+  --color-shop-panel: #ffffff;
   /* The tinted panel, now that the PAGE is #f9fafb. It used to be #fafafa,
      which was a step off a white page; against a #f9fafb page that is
      indistinguishable, so it moves down to gray-100 to stay a real step. */
@@ -1227,6 +1265,74 @@ h6,
 }
 
 /* Rounded white panel that carries most storefront content. */
+/**
+ * One homepage section, drawn as a panel standing on the canvas.
+ *
+ * ---- Why this is a class and not five hand-rolled sections ----
+ *
+ * The homepage carried FIVE section treatments at once: white and unbordered,
+ * an ink full-bleed band, a grey full-bleed band, a bordered cream band, and a
+ * rounded tinted box for the department rails. Every one of them was argued
+ * well on its own, and together they were the reason the page read as a
+ * template rather than as a shop — a reader scrolling it met a different idea
+ * of what a section IS every few hundred pixels.
+ *
+ * One class means the treatment is decided once. A section that needs a
+ * different GROUND overrides the colour and keeps the geometry, so the shelves
+ * still line up down the page even where they disagree about colour.
+ *
+ * ---- The full-bleed bands went with it ----
+ *
+ * Three sections used to escape the column through matched negative margins,
+ * `-mx-3 md:-mx-8`, so their tint could reach the glass. Each one had to
+ * restate the column's own padding to do it, which put the gutter in four
+ * places that could only ever be changed together. A panel needs none of that:
+ * it stops where the column stops, and the canvas showing either side of it is
+ * doing the job the bleed was invented for.
+ *
+ * ---- The numbers ----
+ *
+ * 16px radius, not the 24 the department rails used. A panel this wide with a
+ * 24px corner reads as a card floating over the page; 16 reads as a sheet laid
+ * on it, which is what a shelf of merchandise should be.
+ *
+ * The edge is an inset ring rather than a shadow. A shadow under a dozen
+ * stacked panels is a dozen soft grey halos down the page, and the canvas is
+ * already doing the separating — the ring exists only so a white panel does not
+ * dissolve into a light grey ground at its own corners. Inset rather than a
+ * border so it costs the panel no layout width, which keeps the tiles inside it
+ * on the same grid as the tiles in the panel above.
+ */
+.home-panel {
+  background: var(--color-shop-panel);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px var(--color-shop-line);
+  padding: 14px 12px;
+}
+
+@media (min-width: 768px) {
+  .home-panel {
+    padding: 20px 24px;
+  }
+}
+
+/**
+ * The ink variant, for the deals shelf.
+ *
+ * Only the ground changes. The radius, the padding and the width come from
+ * `.home-panel` above, which is the whole reason for splitting it: the loudest
+ * shelf on the page is still the same shape as the quiet ones either side, so
+ * the column reads as a stack rather than as a collision.
+ *
+ * The ring is dropped rather than recoloured. A hairline exists to stop a white
+ * panel dissolving into the canvas; ink against a 6% grey has no such problem,
+ * and a light ring around a dark panel is a halo.
+ */
+.home-panel-ink {
+  background: var(--color-shop-band);
+  box-shadow: none;
+}
+
 .card-shop {
   background: #fff;
   border: 1px solid var(--color-shop-line);

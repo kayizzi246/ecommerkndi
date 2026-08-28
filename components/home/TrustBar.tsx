@@ -105,7 +105,13 @@ export default function TrustBar({ returnsDays }: { returnsDays: number }) {
   return (
     <section
       aria-labelledby="confidence-heading"
-      className="rounded-2xl border border-shop-line bg-white px-4 py-6 md:px-8 md:py-7"
+      /* This drew its own panel by hand — a 24px radius, a real border and its
+         own padding — back when it was the only bordered block on a flat white
+         page. Every section is a panel now, so it takes the shared class and
+         stops being a slightly different shape from the twelve shelves above
+         it. `py-` is added back on top because this block is text rather than
+         merchandise and wants a little more air than a rail does. */
+      className="home-panel py-6 md:py-7"
     >
       {/* ---- A heading, where there was only an `aria-label` ----
 

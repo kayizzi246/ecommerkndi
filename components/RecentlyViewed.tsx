@@ -104,7 +104,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
   if (items.length === 0) return null;
 
   return (
-    <section className={className}>
+    <section className={`home-panel ${className}`}>
       {/* The shop's one section heading, rather than the hand-rolled `h2` that
           used to sit here at 20/24 with a plain count beside it. That heading
           was a fifth treatment on a page whose whole argument for a shared
@@ -159,7 +159,11 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      with a hairline round it was the single most visible reason
                      this rail read as foreign — every other tile on the shop
                      separates from its neighbour by the track gap alone. */}
-                <div className="relative aspect-[1/1.05] w-full overflow-hidden rounded-lg bg-shop-hairline">
+                {/* Ratio and radius copied from `ProductCard`, which went to a
+                    true square with a 12px corner. This rail sits directly
+                    above the grid on the same page, so a tile here at a
+                    different shape reads as a different kind of product. */}
+                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-hairline">
                   {item.image ? (
                     <Image
                       quality={90}

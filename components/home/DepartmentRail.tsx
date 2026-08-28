@@ -115,12 +115,16 @@ export default function DepartmentRail({
     // better and costs nothing — these are the biggest titles on the page now,
     // and a title that can be found at a glance is the whole job the band was
     // hired for.
-    <section aria-labelledby={id} className="pt-4 md:pt-5">
+    <section aria-labelledby={id} className="home-panel">
       {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
           than using that component, so the homepage's spacing ratio has to be
           repeated here by hand or the tinted sections drift looser than the
           plain ones. See `app/page.tsx`. */}
-      <div className="mb-3.5 flex items-center gap-3 px-3 md:px-5">
+      {/* No horizontal padding of its own any more. It carried `px-3 md:px-5`
+          to hold the heading off the edge of a tinted band that ran the width
+          of the column; the panel supplies that inset now, and keeping both
+          would set the title in from the rail of products it names. */}
+      <div className="mb-3.5 flex items-center gap-3">
         {/* The glyph, in ink and with no disc under it. The white plate existed
             to lift it off the tint; against white it would be a circle drawn
             around nothing. It stays because it is the one thing that tells the
@@ -135,7 +139,12 @@ export default function DepartmentRail({
             {/* The largest heading on the homepage, and the same size as the
                 curated rails' — see `SectionHeader`. Outfit at 700 with the
                 tracking closed up, which is what a display face is for. */}
-            <h2 id={id} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
+            {/* Kept in step with `SectionHeader`, which came down to 20/24 when
+                the sections became bounded panels. This heading is hand-rolled
+                because it carries a chip and an icon beside it, so the size has
+                to be copied rather than inherited — if that one moves, this
+                moves. */}
+            <h2 id={id} className="heading-black text-[20px] text-shop-ink md:text-[24px]">
               {title}
             </h2>
             {/* The chip, in the neutral the rest of the page uses. It was the

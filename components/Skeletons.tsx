@@ -1,19 +1,21 @@
 export function ProductCardSkeleton() {
   return (
-    // A white card on a phone and flat from md up, because that is what
-    // `ProductCard` is again — the padding and both radii are copied from it
-    // deliberately. A placeholder that is a different shape from what replaces
-    // it makes the grid visibly re-draw itself when the products land, which
-    // reads as a layout bug rather than as loading.
-    <div className="bg-white p-1.5 md:bg-transparent md:p-0">
-      {/* Matches ProductCard row for row: the photo at its square box, ONE line of
-          name, the short sold-and-rating line, then the price. The ratio is the
-          part that has to track — it is nearly all of the tile's height, so a
-          skeleton at the wrong one is a grid that jumps when the products land.
-          The text bars matter too: a bare box shimmering on its own reads as a
-          broken image, where a box with lines beneath it reads as a product on
-          its way. 8px corners on the photo box, matching the tile's — see ProductCard. */}
-      <div className="shimmer aspect-[1/1.05] w-full rounded-lg" />
+    // Flat at every width, because that is what `ProductCard` is now. It used
+    // to be a white card below `md` and flat above it, matching the tile's own
+    // breakpoint; the tile lost that split when the homepage sections became
+    // white panels, and this lost it in the same pass.
+    //
+    // Everything here is copied from `ProductCard` rather than chosen: a
+    // placeholder that is a different shape from what replaces it makes the
+    // grid visibly re-draw itself when the products land, which reads as a
+    // layout bug rather than as loading.
+    <div>
+      {/* Row for row: the square photograph, one line of name, the short
+          sold-and-rating line, then the price. The ratio is the part that has
+          to track — it is nearly all of the tile's height. The text bars matter
+          too: a bare box shimmering on its own reads as a broken image, where a
+          box with lines under it reads as a product on its way. */}
+      <div className="shimmer aspect-square w-full rounded-xl" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />

@@ -118,7 +118,27 @@ export default async function Home() {
     // The tiles get their definition from spacing and their hover hairline
     // instead. The `--background` token in globals.css is the one place the
     // page's colour is decided, and this defers to it.
-    <main className="pb-20">
+    /* ---- The page is a canvas now, and the sections stand on it ----
+
+       This was `bg-white`, under a long note arguing that white is the right
+       page colour because most of this catalogue is photographed on white and a
+       tint puts every product in a faintly visible grey box. That note is kept
+       in globals.css because it is still true — and it was answering the wrong
+       question. Both of the colours it kept choosing between were flat pages
+       with sections running edge to edge down them, and a flat page of any
+       colour gives the eye nothing to group by: the homepage arrived as one
+       continuous stream of tiles with occasional words in it.
+
+       So the colour moves off the page and onto the SECTIONS. Every block below
+       is a white `.home-panel`, the canvas shows in the gutter and in the gaps
+       between them, and no product photograph ever touches the tint — which is
+       the exact objection the white argument was built on, answered by
+       structure rather than by picking the other colour.
+
+       `bg-shop-canvas` rather than `--background`, so this is the homepage's
+       ground and not the shop's. See the token's own note for why the other
+       twelve page types must not inherit it. */
+    <main className="bg-shop-canvas pb-20">
       {/* ---- The hero is gone, and this is the third time ----
 
            A hero banner has now been removed from this slot twice and added
@@ -423,7 +443,7 @@ export default async function Home() {
          * collapse the rails into one flex item and destroy the spacing between
          * them. */}
         {trending.length > 0 && (
-          <section id="trending" className="scroll-mt-32">
+          <section id="trending" className="home-panel scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
             {/* The first rail on the page, and so the one carrying the largest
                 paint. Its leading tiles load eagerly; every rail below stays
@@ -542,7 +562,7 @@ export default async function Home() {
              which is the thing that makes them come back to browse rather than
              to buy one item. */}
         {sellerArrivals.length >= MIN_RAIL && (
-          <section aria-labelledby="new-in-heading">
+          <section aria-labelledby="new-in-heading" className="home-panel">
             <SectionHeader
               id="new-in-heading"
               title="New in"
@@ -586,7 +606,7 @@ export default async function Home() {
             same tiles as every other rail, so the offer is the price rather
             than a sentence about a price. */}
         {promoProducts.length >= MIN_RAIL && (
-          <section aria-labelledby="promotions-heading">
+          <section aria-labelledby="promotions-heading" className="home-panel">
             <SectionHeader
               id="promotions-heading"
               title="Promotions"
@@ -600,7 +620,7 @@ export default async function Home() {
         {/* A row of cards is a claim; these are the products a shopper can act
             on without leaving the page. */}
         {newArrivals.length >= MIN_RAIL && (
-          <section aria-labelledby="new-arrivals-heading">
+          <section aria-labelledby="new-arrivals-heading" className="home-panel">
             <SectionHeader
               id="new-arrivals-heading"
               title="New arrivals"
@@ -611,7 +631,7 @@ export default async function Home() {
         )}
 
         {bestSellers.length >= MIN_RAIL && (
-          <section aria-labelledby="best-sellers-heading">
+          <section aria-labelledby="best-sellers-heading" className="home-panel">
             <SectionHeader
               id="best-sellers-heading"
               title="Best sellers"
@@ -681,7 +701,7 @@ export default async function Home() {
             free-delivery threshold from settings. None of them needs a
             full-width advertisement in the middle of the merchandise. */}
 
-        <section>
+        <section className="home-panel">
           <SectionHeader title="Picked for you" />
           <InfiniteProducts
             initialProducts={latest}
@@ -782,7 +802,11 @@ export default async function Home() {
           // also the widest gap on the page. The rule is the separation; it
           // does not need to be underlined with air as well. `pt-6` rather than
           // `pt-8` for the same reason.
-          className="border-t border-shop-line px-4 pt-6 md:px-8"
+          /* A panel, where this was a rule drawn across a white page. The
+             rule was the only thing separating the closing copy from the
+             merchandise above it; the canvas does that now, and a hairline on
+             top of a panel edge is the same boundary stated twice. */
+          className="home-panel"
         >
           <h1
             id="about-kandi"

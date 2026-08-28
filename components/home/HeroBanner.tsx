@@ -491,60 +491,83 @@ export default function HeroBanner({
                   matching `<source>` paints into, so its classes describe both
                   states.
 
-                  Below md: `h-auto w-full`, the whole picture at its own
-                  ratio. A phone is 390px wide, so a 2.44:1 banner is 160px
-                  tall there and a purpose-made portrait crop is about 520 —
-                  both are heights a shop chose by choosing that file, and
-                  neither needs a cap.
+                  ---- The fixed 400px band is gone; it cropped in two
+                       directions at once ----
 
-                  From md: a 400px band, full width, square corners. Both
-                  dimensions are fixed — `w-full` and `h-[400px]` — so the box
-                  stops following the file's own ratio, and `object-cover` is
-                  what keeps that from stretching the artwork. It crops instead,
-                  taking the middle 400px and discarding the rest.
+                  Measured on the shipped artwork, which is a single 3.1:1 wide
+                  upload with no phone crop beside it:
 
-                  ---- 550, then 250, then 320, now 400 ----
+                    - At 1440px the band was 1361 wide and forced to 400 tall.
+                      The picture's own height there is 439, so 39px — the
+                      bottom row, which on this artwork carries the app-store
+                      badges — was sliced off every desktop view.
+                    - At 768px the band was 689 wide and STILL forced to 400.
+                      That is a 1.7:1 box holding a 3.1:1 picture, so
+                      `object-cover` discarded nearly half the width. From 768
+                      to about 1240px the banner showed its middle third and
+                      nothing else.
+                    - On a 390px phone `h-auto` gave the picture its own ratio
+                      honestly, and its own ratio there is 118px. Any wording
+                      drawn into a 3.1:1 banner is unreadable at that size.
 
-                  The first two are worth keeping because the class and the
-                  prose had already drifted apart once: the element said
-                  `h-[550px]` while the paragraph beneath it explained a 450px
-                  band and did the arithmetic for one. Anybody trusting the
-                  comment was reasoning about a layout that had not existed
-                  for some time.
+                  No single number serves those three, because the height was
+                  being asked to describe an upload whose shape only the file
+                  knows. So it is bounded rather than set:
 
-                  550 was a hero's height, and this stopped being the hero.
-                  250 was the correction and it overshot: at that height a
-                  file drawn for this slot is cropped hard enough that any
-                  artwork with vertical composition loses its top and bottom.
-                  320 was the settled figure for a while, and it read as a
-                  strip of page rather than as a banner — which was the point
-                  then, and is not what the shop wants from the slot now.
+                    - `md:max-h-[520px]` is a ceiling, not a height. Under it —
+                      every window up to about 1610px — the picture lays out at
+                      its own ratio and is not cropped at all. Past it
+                      `object-cover` takes the excess, which is the case the cap
+                      exists for: a shop that uploads a 1:1 banner must not get
+                      a 1656px-tall hero.
+                    - The tablet over-crop disappears with the fixed height, and
+                      1440 gets its missing 39px back.
 
-                  400 is the figure the shop asked for. It is a hero again
-                  without being a second screen: on a 900px laptop viewport it
-                  takes a little under half the fold, so the first row of tiles
-                  still shows under it, and it hands the artwork another 80px
-                  of the uploaded file back.
+                  ---- The phone is short, and there is deliberately no floor ----
 
-                  ---- What this costs the artwork, stated plainly ----
+                  118px is not a banner, and two attempts to fix that in CSS
+                  both made it worse. Recording them, because the conclusion is
+                  the useful part and it is a CONTENT conclusion rather than a
+                  code one.
 
-                  At 1656 wide the band is about 4.1:1, so a banner drawn for
-                  it wants to be roughly 3312 x 800 for a 2x screen. Anything
-                  squarer loses its top and bottom to `object-center`: a
-                  2.44:1 upload wants 678px of height and shows 400, so a
-                  little over 40% of the file is off-screen, taken evenly from
-                  both edges.
+                  The first branched on `narrow`, the shop's optional phone
+                  upload, reasoning that only a shop without one needs rescuing
+                  from the wide file. That test is the wrong one and this shop
+                  is the proof: it HAS filled the phone slot, with another 3.1:1
+                  wide image. The field records that a second file was uploaded.
+                  It says nothing about its shape, and shape is the whole
+                  question.
 
-                  That is a big loss and it is survivable for one reason — the
-                  crop is centred, so artwork with its message in the middle
-                  band survives it. Artwork with wording near the top or bottom
-                  edge does not. A campaign banner for this slot should be drawn
-                  wide and shallow with everything that matters in the middle
-                  third.
+                  The second worked on any upload — `min-h-[180px]` with
+                  `object-cover`, so a wide file was raised from 118 to 180 and
+                  the difference came out of the sides. It did exactly that, and
+                  a screenshot killed it: a third of the width off a banner
+                  composed edge to edge takes the wordmark and both ends of the
+                  headline with it. "FASHION YOU LOVE." rendered as "N YOU
+                  LOVE." A taller banner that has eaten its own headline is not
+                  an improvement on a short one.
 
-                  No `rounded-2xl`: at this height the band reads as a strip of
-                  page rather than as a card on it, and a rounded strip reads as
-                  a card that failed to fill its slot. */}
+                  There is no third arrangement. A 3.1:1 picture cannot be made
+                  tall on a 390px screen without either cropping it or
+                  stretching it, and the artwork here has no dead margin to give
+                  up. So the phone shows the file whole and short, which is at
+                  least honest about what was uploaded.
+
+                  The fix is a portrait phone crop in wp-admin — `banner
+                  image_mobile_url` — and it is a real fix rather than a
+                  workaround: a file drawn at, say, 4:3 lays out around 275px on
+                  a 390px screen with its own composition intact, needs no crop
+                  and trips no cap. The `<picture>` below is already wired for
+                  it; the slot is filled with a duplicate of the wide file.
+
+                  ---- Corners ----
+
+                  `rounded-xl md:rounded-2xl`, where this was square. The old
+                  note argued that a rounded strip reads as a card which failed
+                  to fill its slot, and that was right on a flat white page with
+                  unrounded blocks above and below. It is one panel in a column
+                  of 16px-cornered panels now, and square was the odd corner
+                  out. */}
               <img
                 src={optimised(mobileSrc, 1080)}
                 srcSet={heroSrcSet(mobileSrc)}
@@ -553,7 +576,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="h-auto w-full md:h-[400px] md:object-cover md:object-center"
+                className="max-h-[520px] w-full rounded-xl object-cover object-center md:rounded-2xl"
               />
             </picture>
           </div>
