@@ -108,21 +108,50 @@ function toTiles(departments: CategoryNode[]): Tile[] {
        `sort` preserves. */
     .sort((a, b) => b.count - a.count);
 
-  /* A child can repeat a department's id on a shop that has filed a category
-     under itself, and a duplicate tile is the kind of thing nobody catches in
-     review and everybody catches on the page. */
-  const seen = new Set(tops.map((item) => item.id));
-  return [...tops, ...children.filter((item) => !seen.has(item.id))];
+  /* ---- Deduplicated by NAME, not just by id ----
+   *
+   * An id check alone was not enough and the page showed exactly why: this
+   * catalogue files "Shoes" under both Men and Women, "Hoodies" under both, and
+   * "Jewelry" twice over. Those are genuinely different terms with different
+   * ids, so an id-keyed set let every one of them through, and the strip
+   * rendered "Shoes … Shoes … Hoodies … Hoodies" — which reads as a bug to a
+   * shopper whatever the taxonomy says, because two tiles with the same word
+   * under them are indistinguishable at a glance.
+   *
+   * Keying on the lower-cased name collapses them to the first occurrence, and
+   * `children` is already sorted widest-first, so the survivor is the one with
+   * the most stock behind it. That is the right one to keep: a shopper tapping
+   * "Shoes" wants the biggest shoe aisle, not whichever branch sorted first.
+   *
+   * The id stays in the set as well, for the separate case of a shop that has
+   * filed a category under itself and so repeats a department among its own
+   * children.
+   */
+  const seenIds = new Set(tops.map((item) => item.id));
+  const seenNames = new Set(tops.map((item) => item.name.trim().toLowerCase()));
+
+  const extra = children.filter((item) => {
+    const name = item.name.trim().toLowerCase();
+    if (seenIds.has(item.id) || seenNames.has(name)) return false;
+    seenIds.add(item.id);
+    seenNames.add(name);
+    return true;
+  });
+
+  return [...tops, ...extra];
 }
 
 export default function ShopByCategory({
   departments,
+  categoryImages = {},
 }: {
   departments: CategoryNode[];
+  /** A product photograph per category id, from `buildHomeFeed`. */
+  categoryImages?: Record<number, string>;
 }) {
   const tiles = toTiles(departments).slice(0, SHOWN);
 
-  /* Under four this is a grid that failed to fill rather than a section, and a
+  /* Under four this is a strip that failed to fill rather than a section, and a
      shop with three categories has a masthead already showing all three. */
   if (tiles.length < 4) return null;
 
@@ -136,80 +165,106 @@ export default function ShopByCategory({
         linkLabel="All categories"
       />
 
-      {/* Four across on a phone, up to eight from `lg`.
-          Not a scrolling strip: twelve tiles fit three phone rows with no
-          interaction to learn, and a track that ends after one swipe promises
-          more than it holds. A grid also puts every category on screen at once,
-          which is the entire job of a signpost. */}
-      <ul className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-6 lg:grid-cols-8">
-        {tiles.map((category) => (
-          <li key={category.id}>
-            <Link
-              href={`/category/${category.slug}`}
-              className="group flex flex-col items-center gap-1.5 text-center"
-            >
-              {/* ---- A rounded square, where this was a circle ----
+      {/* ---- A scrolling strip, where this was a wrapping grid ----
 
-                  The circles were borrowed from the seller row, where they are
-                  right: a store is a brand and a brand mark is round. A
-                  category is a shelf, and every marketplace this shop is
-                  measured against draws its category grid as squares — because
-                  a square holds a product photograph without cropping the
-                  corners off it, and most category images ARE product
-                  photographs.
+          The grid was chosen on the argument that a track ending after one
+          swipe promises more than it holds, and that a signpost should put
+          every destination on screen at once. Both are true of a row of EIGHT
+          departments. They stop being true at twelve and beyond: three stacked
+          rows of tiles is no longer a signpost, it is a page of navigation
+          above the merchandise, which is the thing this page's layout rule
+          exists to prevent.
 
-                  It also buys the row its density back. A circle inscribed in
-                  the tile's width wastes four corners, so the artwork had to be
-                  small; at the same tile width a `rounded-2xl` square shows
-                  noticeably more picture, which is what lets twelve of these
-                  sit where eight circles did without the row feeling cramped.
+          A strip costs one row of height whatever the catalogue grows to. The
+          shop asked for the arrangement the large marketplaces use here and
+          that is the reason they use it — the category row is the one block on
+          a marketplace homepage that must not grow with the catalogue.
 
-                  ---- The fallback is the normal case ----
+          `overflow-x-auto` with `no-scrollbar`, the same track the product
+          rails use, so the whole page scrolls one way and the shelves scroll
+          the other. A tile cut by the right edge is what says there is more.
 
-                  A category image is optional in WooCommerce and most shops
-                  never set one, so the lettered tile is what most of these
-                  render. A broken image is worse than no image, and a tinted
-                  square with a letter in it reads as a designed mark rather
-                  than as a photograph that failed to load.
+          It is markup-only: no arrows, no state, no `"use client"`. The rails
+          need a client component because they have scroll buttons and a
+          disabled state to track; a category strip is short enough to swipe or
+          flick, and adding a client bundle to the top of the homepage for two
+          chevrons would cost more than it buys. */}
+      <ul className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar sm:gap-3">
+        {tiles.map((category) => {
+          /* The shop's own category artwork wins where it exists; otherwise a
+             real product photograph from that category, picked by the feed.
+             See `collectCategoryImages` in lib/home-feed.ts for why that pick
+             is stable rather than random. */
+          const image = category.image || categoryImages[category.id] || null;
 
-                  `bg-shop-primary-soft` with `shop-primary-ink` on it is the
-                  shop's standard small-orange-on-light pairing at 5.9:1. The
-                  ring tightens on hover rather than the tile scaling, so a grid
-                  of twelve never shifts under the pointer. */}
-              <span className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-shop-primary-soft ring-1 ring-shop-line-warm transition-all group-hover:ring-2 group-hover:ring-shop-primary">
-                {category.image ? (
-                  <Image
-                    src={category.image}
-                    alt=""
-                    fill
-                    /* The tile is a twelfth of the shell at most and a quarter
-                       of a phone screen at least, so the browser is told the
-                       real box rather than being left to fetch a full-viewport
-                       file for a thumbnail. */
-                    sizes="(max-width: 640px) 23vw, (max-width: 1024px) 15vw, 120px"
-                    quality={90}
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <span
-                    aria-hidden
-                    className="flex h-full w-full items-center justify-center text-[26px] font-bold text-shop-primary-ink"
-                  >
-                    {category.name.trim().charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </span>
+          return (
+            /* Fixed widths rather than a fraction of the container: a strip
+               sized in percentages shows a different number of tiles at every
+               breakpoint and never quite cuts one at the edge, which is what
+               tells a shopper to swipe. 96px on a phone puts three and a half
+               tiles on a 390px screen; 128 from `sm` is the size the labels
+               below need before two-word names start wrapping to three lines. */
+            <li key={category.id} className="w-[96px] shrink-0 sm:w-[128px]">
+              <Link href={`/category/${category.slug}`} className="group block">
+                {/* ---- The picture sits in a tinted well ----
 
-              {/* Two lines allowed, then clamped. Names here run from "Men" to
-                  "Home & Living", and truncating the long ones to "Home &…"
-                  would make the row unreadable exactly where it is least
-                  obvious what was cut. */}
-              <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight text-shop-ink transition-colors group-hover:text-shop-primary md:text-[12.5px]">
-                {category.name}
-              </span>
-            </Link>
-          </li>
-        ))}
+                    A square tile with a soft ground and the photograph inside
+                    it, which is the arrangement every large marketplace uses
+                    for this row. The tint matters: these are product cut-outs
+                    shot on white, so on a white panel they would float with no
+                    edge at all, and the well is what turns a photograph into a
+                    tile.
+
+                    `object-contain` with padding, NOT `object-cover`. A
+                    category tile is showing one representative object and a
+                    cover crop would slice it — this is the opposite case from
+                    the product grid, where the photograph IS the tile and
+                    filling the box is right.
+
+                    The ground lifts to the brand's soft tint on hover rather
+                    than the tile moving, so a strip of twelve never shifts
+                    under the pointer. */}
+                <span className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-shop-hairline ring-1 ring-shop-line-warm transition-colors group-hover:bg-shop-primary-soft group-hover:ring-shop-primary">
+                  {image ? (
+                    <Image
+                      src={image}
+                      alt=""
+                      fill
+                      /* The tile is 96px on a phone and 128 above it, so the
+                         browser is told the real box rather than being left to
+                         fetch a full-viewport file for a thumbnail. */
+                      sizes="(max-width: 640px) 96px, 128px"
+                      quality={90}
+                      className="object-contain p-2.5 transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    /* The last resort, and it now really is one: the feed
+                       supplies a photograph for any category the catalogue has
+                       stock in, so a lettered tile means an empty aisle. */
+                    <span
+                      aria-hidden
+                      className="flex h-full w-full items-center justify-center text-[26px] font-bold text-shop-primary-ink"
+                    >
+                      {category.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+
+                {/* Under the tile rather than on it. A label burned into the
+                    corner of a photograph is unreadable against whatever the
+                    photograph happens to be there; underneath, on the panel, it
+                    is ink on white every time.
+
+                    Two lines then clamped: names run from "Men" to "Home &
+                    Living", and truncating to "Home &…" would be least legible
+                    exactly where it is least obvious what was cut. */}
+                <span className="mt-2 block text-center text-[11.5px] font-semibold leading-tight text-shop-ink transition-colors line-clamp-2 group-hover:text-shop-primary md:text-[12.5px]">
+                  {category.name}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

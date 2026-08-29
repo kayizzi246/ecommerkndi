@@ -302,7 +302,7 @@ export default async function ProductPage({
        capped at the shell, so tinting it directly would have left a white
        margin down each side — exactly the seam the shop asked to have removed
        from the homepage. */
-    <main className="bg-shop-canvas pb-20 pt-3 lg:pb-12">
+    <main className="pb-20 pt-3 lg:pb-12">
       <div className="mx-auto max-w-[var(--shell)] px-4 md:px-8">
       <script
         type="application/ld+json"

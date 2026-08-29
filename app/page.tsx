@@ -92,6 +92,7 @@ export default async function Home() {
   const {
     settings,
     departments,
+    categoryImages,
     trending,
     sellerArrivals,
     promoProducts,
@@ -139,7 +140,7 @@ export default async function Home() {
        `bg-shop-canvas` rather than `--background`, so this is the homepage's
        ground and not the shop's. See the token's own note for why the other
        twelve page types must not inherit it. */
-    <main className="bg-shop-canvas pb-20">
+    <main className="pb-20">
       {/* ---- The hero is gone, and this is the third time ----
 
            A hero banner has now been removed from this slot twice and added
@@ -400,7 +401,7 @@ export default async function Home() {
              stacked into the opening screen, which is what it was written for.
              This is one block, and it is the block that decides whether a
              shopper who arrived wanting shoes finds out this shop sells them. */}
-        <ShopByCategory departments={departments} />
+        <ShopByCategory departments={departments} categoryImages={categoryImages} />
 
         {/* ---- Three blocks reach a phone. The other six still do not ----
          *
@@ -470,9 +471,10 @@ export default async function Home() {
              two shelves that sell — what is moving, and what is cheapest — and
              with the page and its panels sharing one off-white they had nothing
              marking them out from the nine shelves that merely list. See
-             `.shop-panel-accent` for why it is two sections and must stay
+             the accent-shelf note in globals.css for why it is two sections,
+             why they take different colours, and why it must stay
              two. */
-          <section id="trending" className="shop-panel shop-panel-accent scroll-mt-32">
+          <section id="trending" className="shop-panel shop-panel-trending scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
             {/* The first rail on the page, and so the one carrying the largest
                 paint. Its leading tiles load eagerly; every rail below stays

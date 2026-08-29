@@ -80,7 +80,7 @@ export default function SuperDeals({ products }: { products: Product[] }) {
          The emphasis it gives up is real. What carries the section now is the
          countdown, the subtitle and the depth of the cuts themselves — content
          rather than colour. */
-      className="shop-panel shop-panel-accent"
+      className="shop-panel shop-panel-deals"
     >
       <SectionHeader
         id="super-deals-heading"

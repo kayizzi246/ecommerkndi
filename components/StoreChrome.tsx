@@ -143,7 +143,28 @@ export default function StoreChrome({
        * width without fighting its `md:px-8` padding. Without this, the hero
        * would stretch across an entire ultrawide monitor while every rail
        * beneath it stopped at 1600px. This is what bounds it. */}
-      <div className="flex-1">
+      {/* ---- The page ground lives HERE, on the full-width element ----
+
+           This is the only element in the storefront that is both full width
+           and behind every page, and that turns out to matter more than it
+           looks.
+
+           The ground was set on `<main>` by each page that wanted it. `<main>`
+           is inside the shell cap on the line below, so on a 1920px monitor it
+           is 1720 wide and the tint stopped 100px short of each edge — leaving
+           two white strips down the sides of the window, exactly where the
+           floating contact rail sits. Every page that set its own ground
+           reproduced the same two strips, because they were all setting it in
+           the same wrong place.
+
+           One declaration here fixes it for the whole storefront and gives the
+           shop a single ground rather than a per-page one. The pages that used
+           to carry `bg-shop-canvas` on their own `<main>` have had it removed;
+           there is one source of truth for the page colour now.
+
+           The Seller Centre, admin, checkout and /sell all return before this
+           point, so none of them inherits it. */}
+      <div className="flex-1 bg-shop-canvas">
         <div className="mx-auto w-full max-w-[var(--shell)]">{children}</div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's
