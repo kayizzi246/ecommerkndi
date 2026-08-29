@@ -540,7 +540,7 @@ export default function ProductCard({
        white and a white card on white draws a rectangle nobody can see.
 
        Both were correct answers to a question that no longer has two forms. The
-       page is a canvas with white PANELS on it now (see `.home-panel` in
+       page is a canvas with white PANELS on it now (see `.shop-panel` in
        globals.css), and a tile stands on panel white at every width — so the
        phone case and the desktop case became the same case, and the card was
        drawing a second edge inside an edge the panel had already drawn.

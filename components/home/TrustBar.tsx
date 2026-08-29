@@ -111,7 +111,7 @@ export default function TrustBar({ returnsDays }: { returnsDays: number }) {
          stops being a slightly different shape from the twelve shelves above
          it. `py-` is added back on top because this block is text rather than
          merchandise and wants a little more air than a rail does. */
-      className="home-panel py-6 md:py-7"
+      className="shop-panel py-6 md:py-7"
     >
       {/* ---- A heading, where there was only an `aria-label` ----
 

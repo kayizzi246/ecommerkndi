@@ -129,7 +129,31 @@ export default function TrustRibbon({
     // hue at all.
     <section
       aria-label="Why shop with KandiUg"
-      className="border-b border-white/10 bg-shop-band text-white"
+      /* ---- Desktop only, which reverses what this band was built for ----
+
+         It was added specifically so a phone would stop opening on a bare grid
+         with no statement anywhere about delivery, payment or returns, and it
+         is now `hidden md:block`. Recording the reversal honestly rather than
+         quietly, because the reason is not that the argument was wrong.
+
+         The shop counted the bands above the merchandise on a phone and asked
+         for two of them back: this one and the department row. That is the same
+         accounting the original `PromiseBand` note did — it was hidden on a
+         phone precisely because it was the fourth strip competing for the
+         opening screen — and the masthead has since taken a permanently open
+         search field, which is a better use of that height than either.
+
+         What the phone keeps: `TrustBar` at the foot of the page states all
+         four promises at length with the payment marks, the footer carries the
+         delivery threshold and the returns window, and every product page
+         carries the returns window beside the price. What the phone loses is
+         those facts ABOVE the fold, which was the point of the band — so if
+         phone conversion moves, this is the first thing to put back.
+
+         The evidence figures — the rating, the sales floor, the seller count —
+         have no other home on the page at all and are simply not shown on a
+         phone now. */
+      className="hidden border-b border-white/10 bg-shop-band text-white md:block"
     >
       {/* ---- Wrapped on a phone, one scrolling line from `sm` up ----
 
@@ -200,8 +224,8 @@ export default function TrustRibbon({
           </Item>
         )}
 
-        {/* Two, matching the floor `ShopByStore` uses before it will draw a row:
-            below that this is a marketplace claim resting on one trader. */}
+        {/* Two. Below that this is a marketplace claim resting on one trader,
+            which is a claim about a shop rather than about a marketplace. */}
         {proof.stores >= 2 && (
           <Item>
             <Tick />

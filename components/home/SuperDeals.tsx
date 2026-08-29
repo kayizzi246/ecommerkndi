@@ -60,49 +60,39 @@ export default function SuperDeals({ products }: { products: Product[] }) {
        is not a new colour either — it already carries the footer. */
     <section
       aria-labelledby="super-deals-heading"
-      /* ---- An ink panel, no longer a full-bleed band ----
+      /* ---- The same panel as everything else, and no card override ----
 
-         This escaped the column with `-mx-3 md:-mx-8` so its ink could reach
-         the glass, which meant restating the column's own gutter here — a
-         number that then lived in four files and could only be changed in all
-         four at once. The page is a canvas with panels on it now, so the shelf
-         stops where every other shelf stops and the canvas either side does
-         what the bleed was for.
+         Five grounds have now been under this shelf: white, #facc15, #fef08a,
+         ink, and the page's own panel. The history is kept in globals.css where
+         `.shop-panel-ink` used to live; the short version is that ink was
+         reverted once within the hour for making every tile on the shelf
+         unreadable, brought back with a rule that gave the tiles white cards,
+         and is now gone for a different reason — the shop wants one background
+         across the page.
 
-         `home-panel home-panel-ink` rather than a hand-rolled ground: the
-         radius and the padding come from the shared class, so the loudest
-         shelf on the page is the same shape and width as the quiet ones
-         above and below it.
+         What that retires is not just a colour. The `[&_article]:` overrides
+         went with it, and so did `tone="dark"` on the header below: a shelf
+         whose ground matches every other shelf needs no special contrast
+         reasoning, no card mode, and no second heading treatment. This section
+         is now the shortest one in the folder, which is the correct size for
+         "a rail of discounted products under a countdown".
 
-         ---- The tiles keep their white cards, and now at EVERY width ----
-
-         The rule was `md:[&_article]:…`, because below `md` the tile drew its
-         own white card and needed no help. It does not any more — `ProductCard`
-         is one flat treatment at all widths now that sections are white panels
-         — so on a phone this shelf was about to put ink-on-ink text straight
-         onto a dark ground, which is the exact failure the note above records
-         and which was reverted within the hour the first time.
-
-         Dropping the `md:` prefix is the whole fix. A tile standing on this
-         shelf gets a white card at any width, and the reasoning is unchanged:
-         a shelf's ground and the readability of what stands on it are ONE
-         decision. The descendant selector still beats the card's own classes
-         without `!important`, and the rule still lives with the shelf that
-         needs it rather than as a mode inside a component used in thirty
-         other places. */
-      className="home-panel home-panel-ink [&_article]:rounded-xl [&_article]:bg-white [&_article]:p-2 [&_article]:ring-1 [&_article]:ring-white/10"
+         The emphasis it gives up is real. What carries the section now is the
+         countdown, the subtitle and the depth of the cuts themselves — content
+         rather than colour. */
+      className="shop-panel shop-panel-accent"
     >
       <SectionHeader
         id="super-deals-heading"
         title="Super Deals"
         subtitle="Today's deepest cuts"
         href="/sale"
-        tone="dark"
       >
-        {/* The one chip on the page that keeps a pale ground on a dark band:
-            it is a countdown, it has to be read at a glance, and dark type on
-            a pale chip is the most legible pairing available in either
-            direction. */}
+        {/* The countdown chip. It kept a pale ground back when the shelf was
+            ink and everything else on it had to be inverted; the ground is the
+            page's own now, so the chip is simply the brand's soft tint with
+            `shop-primary-ink` on it — 5.9:1, the pairing the shop uses for any
+            small orange-on-light label. */}
         <span className="flex items-center gap-2 rounded-lg bg-shop-primary-soft px-3 py-1.5 text-shop-primary-ink">
           <span className="text-[12px] font-semibold">Ends in</span>
           <CountdownBlocks />

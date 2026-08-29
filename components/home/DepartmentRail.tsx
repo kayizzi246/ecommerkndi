@@ -85,6 +85,7 @@ export default function DepartmentRail({
   title,
   subtitle,
   chip,
+  band,
   href,
   products,
   /** Below this many the rail reads as a mistake rather than a department. */
@@ -95,6 +96,12 @@ export default function DepartmentRail({
   subtitle: string;
   /** The one-word label in the chip — "For him", "For her". */
   chip: string;
+  /**
+   * The panel class giving this rail its ground — one per department, defined
+   * in globals.css and chosen in `DEPARTMENTS`. Optional so a caller that has
+   * no opinion still gets a plain panel rather than an undefined class.
+   */
+  band?: string;
   href: string;
   products: Product[];
   minimum?: number;
@@ -115,7 +122,17 @@ export default function DepartmentRail({
     // better and costs nothing — these are the biggest titles on the page now,
     // and a title that can be found at a glance is the whole job the band was
     // hired for.
-    <section aria-labelledby={id} className="home-panel">
+    // ---- The coloured ground is back, one per department ----
+    //
+    // The note below records why the original gradient band was removed, and
+    // that reasoning held for as long as every section on this page was white
+    // and a heading was the only landmark. It stopped holding when the page
+    // became a stack of panels: the department rails were then four consecutive
+    // identical shelves, which is the undifferentiated run the panel system
+    // exists to break up. A department is the section a shopper navigates BY,
+    // so a colour per aisle is what makes the page scannable at a flick. See
+    // the `.shop-panel-*` block in globals.css.
+    <section aria-labelledby={id} className={`shop-panel ${band ?? ""}`}>
       {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
           than using that component, so the homepage's spacing ratio has to be
           repeated here by hand or the tinted sections drift looser than the

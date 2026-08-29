@@ -290,7 +290,20 @@ export default async function ProductPage({
      * that could have been selling. A product page's job is to keep the buy box
      * and the reasons to use it inside one or two screens; the air between
      * blocks is the first thing that should give way. */
-    <main className="mx-auto max-w-[var(--shell)] px-4 pb-20 pt-3 md:px-8 lg:pb-12">
+    /* ---- The product page joins the shop's ground ----
+
+       This was a centred column on the plain white page. The storefront and the
+       cart both sit on `shop-canvas` now, so a white product page between them
+       was the one screen in the buying path still wearing the previous design —
+       and it is the screen a shopper spends longest on.
+
+       `<main>` takes the ground and hands the centring to the div inside it: a
+       page colour has to reach both edges of the window, and this element is
+       capped at the shell, so tinting it directly would have left a white
+       margin down each side — exactly the seam the shop asked to have removed
+       from the homepage. */
+    <main className="bg-shop-canvas pb-20 pt-3 lg:pb-12">
+      <div className="mx-auto max-w-[var(--shell)] px-4 md:px-8">
       <script
         type="application/ld+json"
         // The payload is built from our own typed data, never from user input,
@@ -473,6 +486,7 @@ export default async function ProductPage({
       <RecentlyViewed />
 
       <ReviewSection productId={product.id} initial={reviews} />
+      </div>
     </main>
   );
 }

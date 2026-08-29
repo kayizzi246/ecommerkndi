@@ -49,7 +49,11 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-24 text-center">
+      /* The empty state takes the canvas as well. It is the same page and a
+         shopper reaches it by removing their last line, so a white screen here
+         after a tinted one a moment ago reads as a navigation error rather than
+         as an empty basket. */
+      <main className="mx-auto max-w-2xl bg-shop-canvas px-4 py-24 text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-shop-surface">
           <svg className="h-9 w-9 text-shop-muted" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
@@ -69,7 +73,22 @@ export default function CartPage() {
   const allSelected = deselected.length === 0;
 
   return (
-    <main className="mx-auto max-w-[1200px] px-4 py-8 pb-28 md:px-8 lg:pb-16">
+    /* ---- The cart joins the shop's canvas-and-panels system ----
+
+       This was a centred column laid straight onto the white page, with the
+       free-delivery meter and the order summary drawn as `card-shop` boxes and
+       the line items as a bare `divide-y` list. That was coherent when every
+       page in the shop was white; the storefront's ground is a warm canvas now
+       and its blocks are panels, so a white cart with two hand-rolled cards on
+       it read as a page from the previous design.
+
+       `<main>` takes the canvas and stops being the centred container — a
+       ground has to reach both edges of the window, and this element was capped
+       at 1200px, so tinting it would have left two white margins down the sides.
+       The centring moves to the div inside it, which is what the homepage does
+       for the same reason. */
+    <main className="bg-shop-canvas pb-28 lg:pb-16">
+      <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-8">
       <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="section-title text-[21px] text-shop-ink md:text-[26px]">Your cart</h1>
         <Link
@@ -83,7 +102,11 @@ export default function CartPage() {
       {/* Free-delivery progress. Suppressed rather than drawn empty when the
           shop is not running a free-delivery offer at all. */}
       {freeDeliveryOn && (
-        <div className="card-shop mb-6 px-5 py-4">
+        /* The shop panel rather than `card-shop`, which was this page's own
+           idea of a box: a different radius and a different border from the
+           twelve shelves on the homepage. One class across the shop means the
+           cart cannot drift away from the storefront again. */
+        <div className="shop-panel mb-6">
           <p className="text-[14px] text-shop-body">
             {qualifiesFree ? (
               <span className="font-semibold text-shop-success">
@@ -134,7 +157,11 @@ export default function CartPage() {
             </button>
           </div>
 
-          {/* Lines */}
+          {/* The lines get a panel of their own, so the basket reads as one
+              object rather than as a list floating on the page beside a boxed
+              summary — which is what it looked like once the page took a
+              ground. The select-all bar above is inside it for the same
+              reason: it is a control over these lines, not over the page. */}
           <ul className="divide-y divide-shop-line">
             {items.map((item) => {
               const selected = !deselected.includes(item.key);
@@ -236,7 +263,11 @@ export default function CartPage() {
         </div>
 
         {/* Order summary */}
-        <aside className="card-shop p-6 lg:sticky lg:top-32">
+        {/* The summary is the second panel on the page and the one that has
+            to look like the end of a process. `lg:sticky` is unchanged — it
+            follows the shopper down a long basket so the total and the checkout
+            button are never scrolled away from. */}
+        <aside className="shop-panel lg:sticky lg:top-32">
           <h2 className="text-[18px] font-extrabold text-shop-ink">Order summary</h2>
 
           <dl className="mt-5 space-y-3 text-[15px]">
@@ -333,6 +364,7 @@ export default function CartPage() {
             Checkout
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );

@@ -75,7 +75,17 @@ export default function SectionHeader({
   // both numbers move together or neither does.
   return (
     <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {/* `min-w-0 flex-1`, so the "View All" link beside this keeps the first
+          line to itself.
+
+          Without it this group is sized by its content, and on a 390px phone
+          the Super Deals header — a title, a subtitle and a countdown chip —
+          filled the line on its own and pushed the link onto a second row,
+          where it sat orphaned and left-aligned under the heading it belongs
+          to. Letting the group take the remaining width instead means anything
+          that does not fit wraps INSIDE it, under the title, and the link stays
+          where a shopper looks for it: the far end of the heading row. */}
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
         <div>
           {/* `heading-black` carries the weight: the global heading rule sets
               600, and these two anchor the page. */}

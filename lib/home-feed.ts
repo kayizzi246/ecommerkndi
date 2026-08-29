@@ -145,7 +145,16 @@ export type DepartmentRailData = {
   chip: string;
   /** Tailwind classes for the web chip. The app maps the id to its palette. */
   tone: string;
-  /** Tailwind classes tinting the whole band on the web. Ignored by the app. */
+  /**
+   * The panel class tinting this rail on the web — one of the `.shop-panel-*`
+   * grounds in globals.css. Ignored by the app, which maps `id` to its own
+   * palette.
+   *
+   * It held a Tailwind gradient class for the original coloured band and went
+   * unread for the whole time that band was removed. It carries the flat ground
+   * now, so the per-department colour is decided in this list beside the
+   * department's name and chip rather than in a lookup somewhere else.
+   */
   band: string;
   /** Null when the shop has not created this department yet. */
   slug: string | null;
@@ -329,7 +338,7 @@ const DEPARTMENTS = [
      * every product photograph in it, which is the one thing a shop cannot
      * afford to do to its own stock.
      */
-    band: "from-pop-blue-soft",
+    band: "shop-panel-men",
   },
   {
     id: "dept-women",
@@ -338,7 +347,7 @@ const DEPARTMENTS = [
     subtitle: "The pieces moving fastest right now",
     chip: "For her",
     tone: "text-pop-violet",
-    band: "from-pop-violet-soft",
+    band: "shop-panel-women",
   },
   {
     id: "dept-kids",
@@ -347,7 +356,7 @@ const DEPARTMENTS = [
     subtitle: "Hard-wearing, and priced to be replaced",
     chip: "Little ones",
     tone: "text-pop-green",
-    band: "from-pop-green-soft",
+    band: "shop-panel-kids",
   },
   {
     /**
@@ -366,7 +375,27 @@ const DEPARTMENTS = [
     subtitle: "Trainers, boots and everyday pairs",
     chip: "Step out",
     tone: "text-pop-orange",
-    band: "from-pop-orange-soft",
+    band: "shop-panel-shoes",
+  },
+  {
+    /* Sports, asked for by the shop.
+       Like every other entry here it is a REQUEST rather than a guarantee:
+       `findCategorySlug` resolves the slug from the shop's own catalogue, so a
+       shop that has not created a sports category gets no rail rather than a
+       rail linking nowhere, and `DEPARTMENT_CATALOGUE_MINIMUM` drops it again
+       if the category exists but is too thin to send a shopper into.
+
+       "sports" as the match rather than "sport": the matcher is a substring
+       test, so the longer form still finds "Sport", "Sports" and "Sports &
+       Outdoors", while the shorter one would also match "Sportswear" filed
+       under Men and hand this rail somebody else's department. */
+    id: "dept-sports",
+    match: "sports",
+    title: "Sports",
+    subtitle: "Kit, trainers and gear for training",
+    chip: "Get moving",
+    tone: "text-pop-blue",
+    band: "shop-panel-sports",
   },
 ] as const;
 
@@ -644,8 +673,11 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
      *
      * `stores` has been fetched here since this feed was written and only
      * `.length` was ever returned from it — the shop paid for the request and
-     * threw the answer away. `ShopByStore` on the homepage renders it, which
-     * costs no extra round trip.
+     * threw the answer away. The homepage rendered it for a while as a row of
+     * seller cards; that row is gone, so `stores` currently has no web reader
+     * again — the list is kept rather than reduced to a count because it costs
+     * nothing beyond the request already made, and /sellers or the app may want
+     * it without a second fetch.
      *
      * Capped at twelve for the same reason every other rail here is capped:
      * the feed decides what a page may show, and a marketplace that grows to

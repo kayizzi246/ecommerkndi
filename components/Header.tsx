@@ -108,7 +108,7 @@ export default function Header({
    * always on screen, so this is reset when the shopper scrolls into that state
    * rather than leaving a stale flag behind them.
    */
-  const [searchOpen, setSearchOpen] = useState(false);
+
 
   /**
    * Whether the masthead is currently slid up out of the way.
@@ -158,10 +158,6 @@ export default function Header({
         // flicker for anyone resting at the boundary.
         setScrolled((current) => {
           const next = current ? y > 60 : y > 120;
-          // Scrolling pins the field on its own; the hand-opened state has
-          // nothing left to do and would otherwise keep the icon hidden after
-          // the shopper returned to the top.
-          if (next) setSearchOpen(false);
           return next;
         });
 
@@ -599,10 +595,48 @@ export default function Header({
 
             Desktop is unaffected: there is room for the full field always, and
             it stays where it has always been. */}
+        {/* ---- The field is open on a phone now, not behind an icon ----
+
+             It used to be `hidden` below `md` until the shopper either tapped
+             the magnifier or scrolled far enough to pin it. The reasoning was
+             that the masthead had no room for a full-width field beside the
+             logo and the cart, which was true — and it was true because the
+             phone header was four bands deep. Two of those are gone (the
+             department row and the homepage trust ribbon), so the room exists,
+             and the field is the single most-used control on a marketplace
+             this size. Making the primary action of the page a two-tap
+             discovery was buying vertical space that is no longer scarce.
+
+             `order-last` on its own line below the logo row, which is what
+             `w-full` in a `flex-wrap` container produces: logo and cart on the
+             first line, the field across the whole of the second. From `md` it
+             goes back into the row exactly as before.
+
+             `searchOpen` is still honoured so the pinned-on-scroll behaviour
+             and the icon fallback both keep working; it is simply no longer
+             the only way to see the field. */}
+        {/* ---- `basis-full` on a phone, and `w-full` was not enough ----
+
+             The first attempt kept the element's existing `w-full min-w-0
+             flex-1` and simply stopped hiding it. It rendered squeezed onto the
+             logo line beside the cart and the hamburger, about 140px wide with
+             its submit button crowding the field.
+
+             `flex-1` is why. It expands to `flex: 1 1 0%`, and a zero
+             flex-basis is what the wrapping algorithm measures — so the item
+             was small enough to fit the first line and never wrapped, with
+             `width: 100%` losing to the flex sizing that comes after it.
+             `basis-full` sets the basis itself, which is the number the line
+             is packed against, so the field takes a line of its own.
+
+             From `md` it goes back to `flex-1` with an auto basis: the row is
+             `md:flex-nowrap` there, everything is on one line by definition,
+             and the field should grow into whatever the logo and the account
+             cluster leave — which is exactly what `flex-1` is for. */}
         <div
-          className={`w-full min-w-0 flex-1 md:order-none md:block ${
-            scrolled ? "order-none" : "order-last"
-          } ${scrolled || searchOpen ? "block" : "hidden"}`}
+          className={`order-last block w-full min-w-0 basis-full md:order-none md:block md:flex-1 md:basis-auto ${
+            scrolled ? "order-none" : ""
+          }`}
         >
           <SearchBar />
         </div>
@@ -623,25 +657,11 @@ export default function Header({
             scrolled ? "ml-0 hidden" : "ml-auto flex"
           }`}
         >
-          {/* The phone-sized search control. Hidden once the pinned field is on
-              screen, so there are never two ways to start the same search. */}
-          {!scrolled && !searchOpen && (
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              aria-label="Search"
-              aria-expanded={false}
-              className="text-shop-ink transition-colors hover:text-shop-primary md:hidden"
-            >
-              <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
-                />
-              </svg>
-            </button>
-          )}
+          {/* The magnifier that used to sit here is gone. It existed to open a
+              field that was hidden on a phone; the field is open on a phone
+              now, so the button was a second way to reach a control already on
+              screen — which is precisely the "never two ways to start the same
+              search" rule its own note was written to enforce. */}
 
           <div className="hidden lg:block">
             <AccountMenu />
@@ -707,9 +727,24 @@ export default function Header({
            links, and the only colour is the one deal link that earns it. */}
       {!hideNavRow && (
         <nav
-          className={`border-b border-shop-line bg-white text-shop-body ${
-            scrolled ? "hidden md:block" : ""
-          }`}
+          /* ---- Desktop only ----
+             This row was the third band of chrome stacked above the merchandise
+             on a phone — announcement strip, masthead, this — and on a 390px
+             screen it showed four of its twelve links before running off the
+             edge, so it was a horizontal scroll most shoppers never performed
+             sitting on top of a vertical scroll they were already doing.
+
+             Nothing is lost on a phone. The same tree is one tap away in the
+             hamburger, which opens `CategoryDrawer` with the children as well;
+             the fixed bottom bar carries Categories as a full tab; and the
+             search field the masthead now keeps open is the route most people
+             actually take into a catalogue this size.
+
+             It was already `hidden md:block` once scrolled, which was the same
+             judgement made half way — the row is worth its height on a desktop
+             and is not worth it on a phone, and the scroll state was never the
+             thing that decided that. */
+          className={`hidden border-b border-shop-line bg-white text-shop-body md:block`}
         >
           <div className="mx-auto flex max-w-[var(--shell)] items-center gap-2 px-4 md:px-8">
             {/* The mega-menu is a hover surface, which needs a pointer; below lg

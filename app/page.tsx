@@ -4,7 +4,8 @@ import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import MaximiseSavings from "@/components/home/MaximiseSavings";
 import TrustRibbon from "@/components/home/TrustRibbon";
-import ShopByStore from "@/components/home/ShopByStore";
+import ShopByCategory from "@/components/home/ShopByCategory";
+
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
@@ -90,7 +91,7 @@ export default async function Home() {
    */
   const {
     settings,
-    stores,
+    departments,
     trending,
     sellerArrivals,
     promoProducts,
@@ -130,7 +131,7 @@ export default async function Home() {
        continuous stream of tiles with occasional words in it.
 
        So the colour moves off the page and onto the SECTIONS. Every block below
-       is a white `.home-panel`, the canvas shows in the gutter and in the gaps
+       is a white `.shop-panel`, the canvas shows in the gutter and in the gaps
        between them, and no product photograph ever touches the tint — which is
        the exact objection the white argument was built on, answered by
        structure rather than by picking the other colour.
@@ -309,6 +310,35 @@ export default async function Home() {
           Headings and copy inside no longer carry their own `px-3`: this is
           their gutter now, and doubling it would have set every section title
           24px in from a grid that starts at 12. */}
+      {/* ---- The banner is full bleed, and so it lives outside the column ----
+
+           It was the first child of the padded column, which capped it at the
+           shell and inset it by the column's own gutter — 12px on a phone,
+           32px from md. That was deliberate at the time: the note in
+           `HeroBanner` argued the banner and the product grid should share two
+           edges so the artwork reads as part of the page rather than as a
+           picture floating over it.
+
+           The shop wants the full width, and on a canvas-and-panels page that
+           is the better arrangement anyway. Every section below is a bounded
+           object with margin around it; the banner running edge to edge is what
+           makes it read as the page's opening image rather than as the first
+           panel in the stack. It is the one block on the homepage that is
+           artwork rather than merchandise, and it is now the only one that is
+           not inset.
+
+           It has to be a sibling of the column rather than a child of it, since
+           a child cannot escape `max-w-[var(--shell)]` without a negative
+           margin matched to a padding that changes at a breakpoint — the exact
+           arrangement the panel system was introduced to delete.
+
+           `priority` still holds and matters more here: this is the first thing
+           in `<main>` now, so it is unambiguously the Largest Contentful Paint.
+
+           `imageOnly` also still holds. No upload, no banner, no fallback text
+           hero — see the prop's own note. */}
+      <HeroBanner settings={settings} imageOnly />
+
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-3 py-3 md:gap-6 md:px-8 md:py-5">
         {/* ---- The campaign banner opens the page ----
 
@@ -350,34 +380,27 @@ export default async function Home() {
 
              `imageOnly` still holds. No upload, no banner, no fallback text
              hero — see the prop's own note. */}
-        <HeroBanner settings={settings} imageOnly />
 
-        {/* ---- The department shortcut row is gone from the homepage ----
+        {/* ---- The department shortcut row is back, and this time it has a job ----
 
-             It was chips, then circles, and now nothing. Worth recording all
-             three, because the reason it kept being rebuilt is the reason it
-             is now removed: nobody could say what it was for that the
-             masthead was not already doing.
+             It has been chips, then circles, then a card grid, and all three
+             were deleted with the same verdict: nobody could say what the row
+             was for that the masthead was not already doing. That verdict was
+             right every time it was made.
 
-             Every department on it is in the Categories mega-menu, which is
-             on this page and every other page of the shop, and the menu shows
-             the CHILDREN too — so the row was the shallower of two routes to
-             the same place, sitting in the middle of the merchandise. The
-             argument that kept it here was that a phone shopper reaches
-             departments only through the masthead; that is true and the
-             masthead is one tap away, which is the same distance the row was.
+             It stopped being right when the department bar came out of the
+             masthead below `md`. A phone now reaches the catalogue's structure
+             through the hamburger and nothing else, so this row is not a second
+             route to the departments any more — on the shop's majority device
+             it is the only one. The full argument is at the head of
+             {@link ShopByCategory}.
 
-             What it cost was a band across the page between the deals and the
-             rails. On a homepage whose whole layout argument is that
-             navigation goes BELOW merchandise rather than above it, a strip of
-             navigation wedged between two blocks of merchandise was the one
-             thing on the page not obeying it.
-
-             `CategoryCircles` is deleted rather than left unrendered, and
-             `departments` came out of this page's destructure with it — the row
-             was its last reader here. The tree is still built and still served:
-             the header takes it for the mega-menu from the layout, and
-             `departmentRails` is a separate, already-composed field. */}
+             Above the merchandise, against this page's own rule, and the rule
+             survives it: what the rule forbids is FOUR blocks of navigation
+             stacked into the opening screen, which is what it was written for.
+             This is one block, and it is the block that decides whether a
+             shopper who arrived wanting shoes finds out this shop sells them. */}
+        <ShopByCategory departments={departments} />
 
         {/* ---- Three blocks reach a phone. The other six still do not ----
          *
@@ -443,7 +466,13 @@ export default async function Home() {
          * collapse the rails into one flex item and destroy the spacing between
          * them. */}
         {trending.length > 0 && (
-          <section id="trending" className="home-panel scroll-mt-32">
+          /* Accent-tinted, with Super Deals directly below it. These are the
+             two shelves that sell — what is moving, and what is cheapest — and
+             with the page and its panels sharing one off-white they had nothing
+             marking them out from the nine shelves that merely list. See
+             `.shop-panel-accent` for why it is two sections and must stay
+             two. */
+          <section id="trending" className="shop-panel shop-panel-accent scroll-mt-32">
             <SectionHeader title="Trending now" href="/search?sort=popular" />
             {/* The first rail on the page, and so the one carrying the largest
                 paint. Its leading tiles load eagerly; every rail below stays
@@ -468,32 +497,62 @@ export default async function Home() {
             an empty shelf where the deals should be. */}
         <SuperDeals products={deals} />
 
-        {/* ---- Who the shop actually is ----
+        {/* ---- Best sellers takes this slot, and Shop by store is gone ----
 
-             Kandi is a marketplace and this page never said so. Every other
-             section is products in a different order — trending, new,
-             discounted — and a shopper could read the whole homepage without
-             learning that the goods come from independent Ugandan stores
-             rather than from one warehouse. That is the most distinctive fact
-             about this business, and it lived in the footer, in the nav, and
-             nowhere a shopper looks.
+             The seller row stood here — eight vetted storefronts, on the
+             argument that Kandi is a marketplace and the homepage never said
+             so. That argument was sound and it is not what the slot is worth.
+             This is the third screen of the page on every device, directly
+             under the deals shelf, and it was spending that position on
+             NAVIGATION: eight links to eight listing pages, none of them
+             showing a price, a photograph or anything a shopper can buy.
 
-             It is also the honest answer to "what else could go here". Every
-             alternative was more of the same catalogue in another order, and
-             a seventh rail of the same products does not make a page fuller —
-             it makes it padded. This adds something the page did not have.
+             What goes here instead is the one rail with a claim behind it that
+             no other rail on the page can make. Trending is the shop's own
+             picks; New in and New arrivals are sorted by date; Promotions and
+             Super Deals are sorted by discount. Best sellers is the only shelf
+             ordered by what other people actually bought — and `buildHomeFeed`
+             will not fill it from products with no sales at all, so the claim
+             is enforced rather than decorative. On a page whose job is
+             persuading a first-time buyer, "these are the ones that sell" is
+             the strongest sentence available, and it was buried at position
+             seven behind four rails of the same catalogue in other orders.
 
-             After Super Deals on purpose, and the pair has moved up the page
-             together rather than being broken by the move. That shelf is an ink
-             band and the loudest thing on the page; a quiet row of white cards
-             is what should follow it. Two dark bands touching would read as one
-             very tall dark region with a gap in the middle — the ground note in
-             ShopByStore is written against exactly this neighbour, so the two
-             sections travel as one block or not at all.
+             It also moves the rail onto phones, which is the larger half of the
+             change: it was inside the desktop-only block, so the shop's
+             majority device never saw it.
 
-             It costs no fetch. The feed has always called getStores() and
-             returned only the length from it. */}
-        <ShopByStore stores={stores} />
+             The marketplace fact the seller row carried is not lost. "New in"
+             is filtered on `product.seller` and subtitled "From independent
+             Ugandan stores, not our own shelves"; the closing copy names the
+             marketplace in the page's `<h1>`; the masthead carries "Shop by
+             store" on every page of the shop; and /sellers is still the
+             directory it always was. What is gone is a row of shopfronts in
+             the middle of the merchandise.
+
+             `components/home/ShopByStore.tsx` is DELETED rather than left
+             sitting unrendered. This page was its only importer — /sellers
+             builds its own directory and never used it — so leaving the file
+             behind would have left a component nobody knows is dead, which is
+             the rule this codebase applies to every block it has removed. It
+             is in the history if the row is ever wanted back.
+
+             `stores` came out of this page's destructure with it, and
+             `buildHomeFeed` still computes both `stores` and `storeCount`:
+             `/api/app/home` serialises the count for the phone app, which is a
+             separate reader with its own reasons. */}
+        {bestSellers.length >= MIN_RAIL && (
+          <section aria-labelledby="best-sellers-heading" className="shop-panel">
+            <SectionHeader
+              id="best-sellers-heading"
+              title="Best sellers"
+              subtitle="The ones other shoppers keep buying"
+              href="/search?sort=popular"
+              linkLabel="All best sellers"
+            />
+            <DealCarousel products={bestSellers} />
+          </section>
+        )}
 
         <div className="hidden md:contents">
 
@@ -562,7 +621,7 @@ export default async function Home() {
              which is the thing that makes them come back to browse rather than
              to buy one item. */}
         {sellerArrivals.length >= MIN_RAIL && (
-          <section aria-labelledby="new-in-heading" className="home-panel">
+          <section aria-labelledby="new-in-heading" className="shop-panel">
             <SectionHeader
               id="new-in-heading"
               title="New in"
@@ -606,7 +665,7 @@ export default async function Home() {
             same tiles as every other rail, so the offer is the price rather
             than a sentence about a price. */}
         {promoProducts.length >= MIN_RAIL && (
-          <section aria-labelledby="promotions-heading" className="home-panel">
+          <section aria-labelledby="promotions-heading" className="shop-panel">
             <SectionHeader
               id="promotions-heading"
               title="Promotions"
@@ -620,7 +679,7 @@ export default async function Home() {
         {/* A row of cards is a claim; these are the products a shopper can act
             on without leaving the page. */}
         {newArrivals.length >= MIN_RAIL && (
-          <section aria-labelledby="new-arrivals-heading" className="home-panel">
+          <section aria-labelledby="new-arrivals-heading" className="shop-panel">
             <SectionHeader
               id="new-arrivals-heading"
               title="New arrivals"
@@ -630,16 +689,6 @@ export default async function Home() {
           </section>
         )}
 
-        {bestSellers.length >= MIN_RAIL && (
-          <section aria-labelledby="best-sellers-heading" className="home-panel">
-            <SectionHeader
-              id="best-sellers-heading"
-              title="Best sellers"
-              href="/search?sort=popular"
-            />
-            <DealCarousel products={bestSellers} />
-          </section>
-        )}
 
         {/* The three departments a shopper usually arrives already knowing they
             want. Placed after the discount and novelty rails deliberately:
@@ -659,6 +708,7 @@ export default async function Home() {
             title={department.title}
             subtitle={department.subtitle}
             chip={department.chip}
+            band={department.band}
             href={department.slug ? `/category/${department.slug}` : "/categories"}
             products={department.products}
             /**
@@ -701,7 +751,7 @@ export default async function Home() {
             free-delivery threshold from settings. None of them needs a
             full-width advertisement in the middle of the merchandise. */}
 
-        <section className="home-panel">
+        <section className="shop-panel">
           <SectionHeader title="Picked for you" />
           <InfiniteProducts
             initialProducts={latest}
@@ -806,7 +856,7 @@ export default async function Home() {
              rule was the only thing separating the closing copy from the
              merchandise above it; the canvas does that now, and a hairline on
              top of a panel edge is the same boundary stated twice. */
-          className="home-panel"
+          className="shop-panel"
         >
           <h1
             id="about-kandi"

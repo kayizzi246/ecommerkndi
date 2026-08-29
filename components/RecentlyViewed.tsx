@@ -104,7 +104,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
   if (items.length === 0) return null;
 
   return (
-    <section className={`home-panel ${className}`}>
+    <section className={`shop-panel ${className}`}>
       {/* The shop's one section heading, rather than the hand-rolled `h2` that
           used to sit here at 20/24 with a plain count beside it. That heading
           was a fifth treatment on a page whose whole argument for a shared

@@ -321,7 +321,7 @@ export default function HeroBanner({
           media="(min-width: 768px)"
           href={optimised(desktopSrc, 1920)}
           imageSrcSet={heroSrcSet(desktopSrc)}
-          imageSizes="(min-width: 1720px) 1656px, 100vw"
+          imageSizes="100vw"
           fetchPriority="high"
         />
           </>
@@ -476,16 +476,22 @@ export default function HeroBanner({
                longer the top of the screen. Matching the cards is the point. */}
           <div className="w-full">
             <picture>
-              {/* The desktop crop, from 768px up. `sizes` is the painted box:
-                  1436 CSS pixels on any window from 1500 up, and the window
-                  itself below that. A flat `100vw` would have a 1920px monitor
-                  download the 1920 file for a 1436px box; this asks for the
-                  file that fits, and a 2x display still takes the 1920 from
-                  the srcSet, which is what it needs. */}
+              {/* The desktop crop, from 768px up.
+
+                  `sizes` is a plain `100vw` at every width. It used to describe
+                  a 1656px painted box — the shell minus the column's gutter —
+                  because the banner was capped at the shell and inset by it. It
+                  is full bleed now, so the painted box IS the viewport, and the
+                  honest hint is the simple one.
+
+                  The preload hint further up has to say the same thing. The two
+                  are read together by the browser, and a `sizes` that disagrees
+                  with its preload gets one file fetched at high priority and a
+                  different one painted. */}
               <source
                 media="(min-width: 768px)"
                 srcSet={heroSrcSet(desktopSrc) ?? optimised(desktopSrc, 1920)}
-                sizes="(min-width: 1720px) 1656px, 100vw"
+                sizes="100vw"
               />
               {/* The `<img>` carries the PHONE crop and is also the element a
                   matching `<source>` paints into, so its classes describe both
@@ -522,6 +528,32 @@ export default function HeroBanner({
                       a 1656px-tall hero.
                     - The tablet over-crop disappears with the fixed height, and
                       1440 gets its missing 39px back.
+
+                  ---- `md:aspect-[2.9/1]`, a deliberate slight crop ----
+
+                  The shop asked for a little more height than the artwork's own
+                  ratio gives, so from `md` up the band is pinned at 2.9:1 and
+                  `object-cover` takes the difference. Against the shipped 3.1:1
+                  upload that is about a 7% crop — three and a half percent off
+                  each side — bought for roughly 13% more height: 439px becomes
+                  497 at 1440, 330 becomes 353 at 1024, 247 becomes 265 at 768.
+
+                  2.9 rather than a rounder 2.5 is the whole care here. The
+                  phone attempt at exactly this move, recorded below, cropped a
+                  third of the width and took the wordmark and both ends of the
+                  headline off a banner composed edge to edge. A few percent off
+                  each edge lands in the artwork's margin instead of in its
+                  message; a third of the width lands in the message.
+
+                  It stays off phones for the reason the next section gives:
+                  below `md` the `<picture>` paints `mobileSrc`, a different
+                  file the shop may one day fill with a portrait crop, and a
+                  2.9:1 floor would crop such a file to ruin.
+
+                  The ceiling still governs the top end. Past about 1510px wide,
+                  2.9:1 asks for more than 520 and `max-h` takes over, so a very
+                  wide window crops a little more rather than growing a hero
+                  without limit.
 
                   ---- The phone is short, and there is deliberately no floor ----
 
@@ -567,7 +599,18 @@ export default function HeroBanner({
                   to fill its slot, and that was right on a flat white page with
                   unrounded blocks above and below. It is one panel in a column
                   of 16px-cornered panels now, and square was the odd corner
-                  out. */}
+                  out.
+
+                  ---- And square again, because it went full bleed ----
+
+                  It briefly took `rounded-xl md:rounded-2xl` to match the
+                  panels, which was right while the banner was one inset block
+                  in a column of inset blocks. It moved out of that column and
+                  now touches both edges of the glass, and a rounded corner on a
+                  full-bleed element reads as a card that failed to fill its
+                  slot — which is the argument the ORIGINAL square-cornered
+                  version made, arriving back the moment the element went full
+                  width again. */}
               <img
                 src={optimised(mobileSrc, 1080)}
                 srcSet={heroSrcSet(mobileSrc)}
@@ -576,7 +619,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="max-h-[520px] w-full rounded-xl object-cover object-center md:rounded-2xl"
+                className="max-h-[520px] w-full object-cover object-center md:aspect-[2.9/1]"
               />
             </picture>
           </div>

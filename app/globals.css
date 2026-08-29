@@ -232,7 +232,7 @@
    * shot on white. Neither problem was ever about the page's colour.
    *
    * The structure is the answer. The page becomes a CANVAS and every section
-   * becomes a PANEL standing on it — see `.home-panel` further down — so the
+   * becomes a PANEL standing on it — see `.shop-panel` further down — so the
    * grouping is drawn with an edge instead of implied with air, and each block
    * of merchandise is visibly one object with a beginning and an end.
    *
@@ -246,7 +246,7 @@
    *
    * ---- Scoped to the homepage, deliberately ----
    *
-   * These are applied by `app/page.tsx` and by `.home-panel`. They are NOT
+   * These are applied by `app/page.tsx` and by `.shop-panel`. They are NOT
    * assigned to `--background`, and that restraint is the important part:
    * changing the global page colour would restyle /search, /category, every
    * policy page and the whole Seller Centre as a side effect of a homepage
@@ -256,8 +256,130 @@
    * A shopfront that looks different from the aisles behind it is what every
    * marketplace this shop is measured against does.
    */
-  --color-shop-canvas: #eef0f4;
-  --color-shop-panel: #ffffff;
+  /* ---- Warm sand, not cool grey ----
+   *
+   * The first pair was #eef0f4 on #ffffff — a cool neutral canvas under white
+   * panels. It worked structurally and it was the wrong temperature for this
+   * shop: the brand is #ff6a00, the masthead and every button on the site are
+   * orange, and a blue-grey ground under all of it put the page half a turn
+   * away from its own accent colour. Warm ground, warm brand, one page.
+   *
+   * The panel is #faf7f2 rather than white, which is the part that took the
+   * argument at the head of this file somewhere new. Five rounds had been spent
+   * choosing between a white page and an off-white page; the panel structure
+   * made that question local, and once a shelf is a bounded object it does not
+   * need to be white to hold photography — it needs to be light enough not to
+   * tint it. At 97% luminance this is lighter than the #f9fafb that kept being
+   * reverted as "too grey", and it is warm, so a product shot on white sits in
+   * it as a paper-white object on paper rather than as a cut-out on a screen.
+   *
+   * The canvas is two steps deeper so the panel edge is visible without the
+   * ring doing all the work.
+   *
+   * Nothing else in the palette moves. Orange is still the brand, yellow is
+   * still the deal language, green is still the saving and ink is still type —
+   * a warm neutral ground makes all four read slightly stronger, which is the
+   * point of choosing it.
+   */
+  /* ---- One colour, margins included ----
+   *
+   * These were two tones — #f0ece6 for the canvas, #faf7f2 for the panels
+   * standing on it — and the shop asked for the page's left and right margins
+   * to match the sections. They are the same token now, which means they
+   * always match: there is no arrangement of window width, shell cap or
+   * gutter where a two-tone page can show a seam again, because there is no
+   * second tone.
+   *
+   * Keeping them as two NAMES rather than collapsing to one is deliberate.
+   * They mean different things — "the page" and "a shelf on it" — and the
+   * whole panel system reads better with both spelled out at the point of use.
+   * If a future pass wants the shelves to lift off the page again, it changes
+   * one line here rather than hunting through a dozen components.
+   *
+   * ---- What now separates one shelf from the next ----
+   *
+   * The hairline, and only the hairline. With the grounds identical, a panel is
+   * an outlined region rather than a raised one, so the edge has to be visible
+   * on its own — which is why `--color-shop-line-warm` exists below. The cool
+   * #e5e7eb the panels borrowed reads faintly blue against a warm sand ground
+   * and, at one pixel on a near-identical fill, faint is the whole budget.
+   */
+  /* Off-white, and the same value for both, so the page's margins and its
+     ordinary shelves are one surface with no seam anywhere between them. The
+     warm sand this replaced was a step too far into cream — at #f7f3ec a
+     product photographed on white sat in a visibly tinted box, which is the
+     objection five earlier rounds of this argument were built on. #f8f7f4 is
+     a 3% warm neutral: enough to stop being a screen, not enough to colour
+     the merchandise. */
+  /* ---- The page is off-white and the ordinary shelves add nothing to it ----
+   *
+   * The canvas is a 3% warm neutral: enough to stop reading as a screen, not
+   * enough to tint a product photographed on white — which is the objection
+   * every earlier round of this argument was built on.
+   *
+   * The panel fill is `transparent`, which is the part worth explaining. It has
+   * been white, then warm sand, then the same off-white as the canvas, and the
+   * shop's last note on it was that the strip down the left and right of the
+   * content should not be a different surface from the shelves in the middle.
+   * Setting the two to the same VALUE got there, but it left a fill that has to
+   * be kept in step with the canvas by hand for ever — change one and a seam
+   * reappears down both margins.
+   *
+   * Transparent removes the possibility rather than the symptom. An ordinary
+   * shelf now paints nothing at all: it is the page, with a hairline drawn
+   * round it to say where it starts and stops. There is no value to keep in
+   * step, so the margins cannot drift away from the sections again.
+   *
+   * The hairline is what still makes a section an object. That is the whole
+   * budget for an ordinary shelf, and it is enough because the two shelves that
+   * matter are not ordinary — see `--color-shop-panel-accent`.
+   */
+  --color-shop-canvas: #f8f7f4;
+  --color-shop-panel: transparent;
+
+  /* ---- The accent shelf ----
+   *
+   * Two sections are drawn on this instead: Trending now and Super Deals.
+   *
+   * With the page and its panels sharing one colour, nothing on the homepage
+   * separated the two shelves that actually sell from the nine that merely
+   * list. The hairline made every section equally an object, which is exactly
+   * what it was asked to do and left the page with no hierarchy at all — the
+   * ink deals shelf that used to carry that job was retired when the shop asked
+   * for one background.
+   *
+   * So the emphasis comes back as a tint rather than as a slab.
+   *
+   * ---- Purple, which is a new hue and is the point ----
+   *
+   * This was the brand's own soft orange, on the long-standing rule at the head
+   * of this file that the shop spends one accent colour and orange is it. As a
+   * tint behind merchandise that rule worked against itself: a pale orange
+   * shelf on an off-white page sat inside the same warm family as the ground,
+   * the product photography and every chip on the tiles, so the thing meant to
+   * separate two shelves from nine was the one colour already everywhere.
+   *
+   * A cool tint separates because nothing else on the page is cool. #f4efff is
+   * the palest step of `pop-violet`, which the palette already carries — so
+   * this is a hue the shop owns rather than an import, and it appears in
+   * exactly one role. Orange keeps every job it had: the brand mark, the
+   * buttons, the links, the deal flags and the scarcity marks all sit ON these
+   * shelves and are now more legible, not less, for having a neutral-cool
+   * ground behind them instead of a warm one.
+   *
+   * Light enough to be a ground: at 96% luminance a white-shot product does not
+   * read as boxed, and the tile text (ink on transparent) keeps well past AA.
+   *
+   * Two sections, and it has to stay two. A tint that marks everything marks
+   * nothing, and the moment a third shelf asks for it the right answer is to
+   * work out which of the three has stopped earning it.
+   */
+  --color-shop-panel-accent: #f4efff;
+
+  /* The panel edge: the canvas taken four steps darker, same hue. A neutral
+     grey hairline on a warm ground is the one place a cool line is unmissable,
+     because there is no colour around it to absorb the difference. */
+  --color-shop-line-warm: #e7dfd2;
   /* The tinted panel, now that the PAGE is #f9fafb. It used to be #fafafa,
      which was a step off a white page; against a #f9fafb page that is
      indistinguishable, so it moves down to gray-100 to stay a real step. */
@@ -1303,35 +1425,140 @@ h6,
  * border so it costs the panel no layout width, which keeps the tiles inside it
  * on the same grid as the tiles in the panel above.
  */
-.home-panel {
-  background: var(--color-shop-panel);
-  border-radius: 16px;
-  box-shadow: inset 0 0 0 1px var(--color-shop-line);
-  padding: 14px 12px;
+/* ---- No panel at all on a phone ----
+ *
+ * Below 768px a section draws no ground, no edge and no side padding: it is a
+ * heading and a row of merchandise sitting straight on the canvas, and the only
+ * thing separating one shelf from the next is the column's own gap.
+ *
+ * The panel was doing a job on a desktop that it cannot do on a phone. A panel
+ * groups by drawing a boundary, and that boundary costs 24px of side padding —
+ * which is affordable at 1361px wide and is not affordable at 366, where it is
+ * an eighth of the screen taken from tiles that are already only 150px across.
+ * A phone screen shows one shelf at a time anyway, so there is nothing on
+ * screen for the boundary to separate it FROM; the grouping it buys is grouping
+ * the reader can already see.
+ *
+ * The horizontal padding goes to zero rather than shrinking, because with no
+ * background there is no edge to inset from — the page gutter in `page.tsx` is
+ * the inset, and adding a second one here would set every heading in from the
+ * grid it names. The vertical padding stays: it is the air around a shelf, not
+ * a property of the panel.
+ */
+.shop-panel {
+  padding: 14px 0;
 }
 
 @media (min-width: 768px) {
-  .home-panel {
+  .shop-panel {
+    background: var(--color-shop-panel);
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--color-shop-line-warm);
     padding: 20px 24px;
   }
 }
 
 /**
- * The ink variant, for the deals shelf.
+ * The accent variant, for the two shelves that carry the page.
  *
- * Only the ground changes. The radius, the padding and the width come from
- * `.home-panel` above, which is the whole reason for splitting it: the loudest
- * shelf on the page is still the same shape as the quiet ones either side, so
- * the column reads as a stack rather than as a collision.
+ * Only the ground changes — radius, padding and width come from `.shop-panel`,
+ * so an emphasised shelf is the same shape and width as the quiet ones above
+ * and below it and the column still reads as a stack. That is the same split
+ * `.shop-panel-ink` used before the ink shelf was retired; what changed is how
+ * loud the emphasis is allowed to be.
  *
- * The ring is dropped rather than recoloured. A hairline exists to stop a white
- * panel dissolving into the canvas; ink against a 6% grey has no such problem,
- * and a light ring around a dark panel is a halo.
+ * It keeps its hairline, unlike the ink variant, because it is a light panel on
+ * a light page — without an edge a 2% tint reads as a printing fault rather
+ * than as a decision. The edge is the same warm line every other panel uses, so
+ * the two kinds of shelf differ in fill and in nothing else.
  */
-.home-panel-ink {
-  background: var(--color-shop-band);
-  box-shadow: none;
+.shop-panel-accent {
+  background: var(--color-shop-panel-accent);
 }
+
+/**
+ * One pale ground per department rail.
+ *
+ * ---- The coloured band, three years later ----
+ *
+ * The department rails once carried a tinted gradient band with a glyph and a
+ * chip on it, and it was removed on the argument that a heading which can be
+ * found at a glance does the whole job the band was doing. That was true of a
+ * page where every section was white and the heading was the only landmark.
+ *
+ * It is not true of this page. Sections are panels now, Trending and Super
+ * Deals carry a violet ground, and the department rails were the one run of
+ * shelves left with nothing to tell them apart — four consecutive transparent
+ * panels reading "For men", "For women", "For kids", "Sports", which is exactly
+ * the undifferentiated stream the panel system was introduced to break up.
+ *
+ * So the colour comes back, and this time as a flat ground rather than a
+ * gradient behind a glyph. A department is the one section on the homepage a
+ * shopper navigates BY — they are looking for their own aisle — and a colour
+ * per aisle is the cheapest way to make the page scannable at a flick.
+ *
+ * ---- The values ----
+ *
+ * Every one is the palest step of a hue the palette already owns (`pop-*`),
+ * lightened again so it can sit under photography: all five are at 96-97%
+ * luminance, which is light enough that a product shot on white does not read
+ * as boxed and dark enough to be visible against the 3% off-white page.
+ *
+ * They are deliberately NOT the brand orange. Orange is spent on the marks that
+ * sit on top of these shelves — the deal flags, the scarcity dots, the links —
+ * and a shelf tinted in the same hue as the chips standing on it takes the
+ * contrast away from the chips. Shoes is the exception and takes the warm one,
+ * because it is the department the brand's own artwork is built around.
+ *
+ * ---- Which id gets which ----
+ *
+ * The mapping lives in `DEPARTMENTS` in lib/home-feed.ts, on the `band` field
+ * that has held a Tailwind gradient class since the original band and has been
+ * unread since it was removed. It carries one of these class names now, so the
+ * decision stays where every other per-department decision is made and this
+ * file only has to define what the colours ARE.
+ */
+.shop-panel-men {
+  background: #eef3fd;
+}
+
+.shop-panel-women {
+  background: #fdeff6;
+}
+
+.shop-panel-kids {
+  background: #ecfaf0;
+}
+
+.shop-panel-shoes {
+  background: #fdf3e8;
+}
+
+.shop-panel-sports {
+  background: #e9f6f9;
+}
+
+/* ---- `.shop-panel-ink` is gone ----
+ *
+ * The deals shelf had a ground of its own — #111827, the footer's near-black —
+ * and it was the loudest object on the page by a wide margin. Four grounds had
+ * been under it (white, #facc15, #fef08a, ink) and the ink one carried a long
+ * note about the tiles needing white cards to stand on it, because
+ * `ProductCard` sets all of its text in near-black and dropping it onto
+ * near-black deleted the information inside the band.
+ *
+ * All of that machinery is retired at once. The shelf takes the same
+ * `.shop-panel` as everything else, so it needs no card override, no dark
+ * `SectionHeader` tone, and no separate reasoning about contrast — the tiles on
+ * it are the tiles everywhere else on the page.
+ *
+ * What it gives up is emphasis by colour, and it is worth being clear that this
+ * is a real loss: a black shelf in a column of light ones is unmissable. What
+ * replaces it is emphasis by CONTENT — the countdown, the "Today's deepest
+ * cuts" subtitle and the deepest-cut products themselves, which is what the
+ * section actually has to say. A page where one shelf shouts is a page where
+ * the others are being ignored.
+ */
 
 .card-shop {
   background: #fff;

@@ -57,7 +57,7 @@ export default function MaximiseSavings({ settings }: { settings: SiteSettings }
          rules were how a tinted strip announced its own edges on a flat white
          page; a panel draws its own, so they were describing a boundary that
          is now visible. */
-      className="home-panel"
+      className="shop-panel"
     >
       <h2
         id="savings-heading"
