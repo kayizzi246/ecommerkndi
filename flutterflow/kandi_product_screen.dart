@@ -1,14 +1,4 @@
 // Automatic FlutterFlow imports
-// ---- Two boilerplate imports are deliberately absent ----
-//
-// FlutterFlow's generated header normally opens with
-//
-//     import '/backend/backend.dart';
-//     import '/backend/supabase/supabase.dart';
-//
-// and this project has neither file. See the note at the head of
-// kandi_design.dart — adding them back breaks the web build in every custom
-// widget at once. Do not add them back.
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
@@ -17,319 +7,107 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// ---- Direct imports, rather than leaning on index.dart ----
-//
-// FlutterFlow's generated `/custom_code/widgets/index.dart` re-exports each
-// custom widget with a `show <WidgetName>` clause — so it carries the WIDGET
-// across files and nothing else. That is enough for the old screens, which
-// only ever referenced each other's widget classes; it is not enough here,
-// where every screen needs `KandiColors`, `KandiType`, `KandiCache` and the
-// rest, none of which is a widget.
-//
-// Importing the sibling file directly takes the whole of it. Harmless if
-// index.dart turns out to re-export everything, and essential if it does
-// not — which is why it is done this way rather than assumed either way.
-//
-// The paths follow FlutterFlow's own naming: a custom widget called
-// `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
-// Name the widgets exactly as SETUP.md says or these paths will not resolve.
-import '/custom_code/widgets/kandi_design.dart';
-import '/custom_code/widgets/kandi_cart_store.dart';
-import '/custom_code/widgets/kandi_support_screen.dart';
+// Imports go BELOW the header — FlutterFlow rewrites it on save and drops
+// anything added there. Do not add the `/backend/` imports it offers.
+import 'dart:convert';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Navigation only. No design, model or helper is shared between pages.
+import '/custom_code/widgets/kandi_cart_screen.dart';
 
 // ============================================================
-//  KANDI — PRODUCT
+//  KANDI — PRODUCT PAGE
 //
-//  The screen a shopper decides on, rebuilt on the design
-//  system. The one it replaces was 4,462 lines — the largest
-//  file in the app by a wide margin.
+//  One product: its pictures, its price, the choice a shopper
+//  has to make before buying, and the button that buys it.
 //
-//  THE SHAPE OF THE PAGE
-//  -----------------------------------------------------------
-//  Gallery, then the two lines that matter (name and price),
-//  then the choice, then everything that is evidence for the
-//  choice. In that order, because that is the order the decision
-//  is made in, and a page that puts the delivery terms above the
-//  price is answering a question nobody has asked yet.
+//  Self-contained like every page in this app — its own
+//  palette, HTTP and model, all file-private so two pages
+//  cannot collide in FlutterFlow's flat widget folder. The
+//  reasoning is written out in full at the head of
+//  kandi_home_screen.dart.
 //
-//  THE BUY BAR IS PINNED
-//  -----------------------------------------------------------
-//  Add to cart sits in a bar at the foot of the screen rather
-//  than in the flow of the page. On a phone the description, the
-//  reviews and the related products are all longer than a
-//  screen, so an inline button is a button the shopper has to
-//  scroll BACK to — and the moment they are convinced is the
-//  moment it has to be under their thumb.
+//  ---- How it knows which product ----
 //
-//  WHAT A VARIATION COSTS IF IT IS WRONG
-//  -----------------------------------------------------------
-//  A variable product cannot be added until every attribute has
-//  been chosen, and the bar says which one is missing rather
-//  than sitting there disabled. A disabled button with no
-//  explanation is the single most common dead end in a shopping
-//  app: the shopper cannot tell whether it is broken, whether
-//  the item is out of stock, or whether they have missed a step.
+//  From the route. FlutterFlow custom widgets take no
+//  parameters, so the id cannot be a constructor argument; Home
+//  pushes this screen with `RouteSettings(arguments: id)` and
+//  it is read in `didChangeDependencies`, which is the first
+//  callback where `ModalRoute.of(context)` is available.
+//
+//  With no argument — which is what FlutterFlow's own preview
+//  does — the screen says so rather than showing a spinner
+//  forever.
 // ============================================================
 
-/// One selectable value of an attribute — a size, a colour.
-class _Option {
-  const _Option({required this.name, this.swatch, this.image});
+class _KColors {
+  const _KColors._();
+  static const Color canvas = Color(0xFFF8F7F4);
+  static const Color panel = Color(0xFFFFFFFF);
+  static const Color ink = Color(0xFF111827);
+  static const Color body = Color(0xFF4B5563);
+  static const Color muted = Color(0xFF6B7280);
+  static const Color faint = Color(0xFF9CA3AF);
+  static const Color line = Color(0xFFE5E7EB);
+  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color primary = Color(0xFFFF6A00);
+  static const Color primarySoft = Color(0xFFFFF3E8);
+  static const Color save = Color(0xFF15803D);
+  static const Color saveSoft = Color(0xFFF0FDF4);
+  static const Color dealFlag = Color(0xFFFACC15);
+  static const Color star = Color(0xFFF59E0B);
+}
 
+class _KSpace {
+  const _KSpace._();
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+}
+
+const double _radiusChip = 8;
+const String _apiBase = 'https://kandiug.com';
+
+/// The one string every page in this app agrees on. Change it here and it must
+/// change in every page file at the same time.
+const String _basketKey = 'kandi-cart-v1';
+
+String _money(num amount) {
+  final whole = amount.round().toString();
+  final out = StringBuffer();
+  for (int i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) out.write(',');
+    out.write(whole[i]);
+  }
+  return 'UGX $out';
+}
+
+/// One selectable attribute — "Size", with its values.
+class _KAttribute {
+  const _KAttribute({required this.name, required this.values});
   final String name;
+  final List<String> values;
 
-  /// A hex or a CSS colour word, when the attribute is a colour.
-  final String? swatch;
-
-  /// A thumbnail, when the seller uploaded one for this option.
-  final String? image;
-
-  static _Option? fromJson(dynamic raw) {
-    if (raw is! Map) return null;
-    final name = (raw['name'] ?? '').toString().trim();
-    if (name.isEmpty) return null;
-    return _Option(
-      name: name,
-      swatch: _text(raw['value']),
-      image: _text(raw['image']),
-    );
-  }
-
-  static String? _text(dynamic v) {
-    final s = v?.toString().trim() ?? '';
-    return s.isEmpty ? null : s;
-  }
-}
-
-/// One attribute — "Size", "Colour" — and the values it offers.
-class _Attribute {
-  const _Attribute({required this.name, required this.options});
-
-  final String name;
-  final List<_Option> options;
-
-  bool get isColour {
-    final lower = name.toLowerCase();
-    return lower == 'color' || lower == 'colour';
-  }
-
-  static _Attribute? fromJson(dynamic raw) {
-    if (raw is! Map) return null;
-    final name = (raw['name'] ?? '').toString().trim();
-    final options = (raw['options'] is List)
-        ? (raw['options'] as List)
-            .map(_Option.fromJson)
-            .whereType<_Option>()
-            .toList()
-        : <_Option>[];
-    if (name.isEmpty || options.isEmpty) return null;
-    return _Attribute(name: name, options: options);
-  }
-}
-
-/// One buyable combination of attributes.
-class _Variation {
-  const _Variation({
-    required this.id,
-    required this.price,
-    required this.attributes,
-    required this.inStock,
-  });
-
-  final int id;
-  final num price;
-  final Map<String, String> attributes;
-  final bool inStock;
-
-  /// Whether this variation is the one the shopper has selected.
-  ///
-  /// Matched case-insensitively on both sides. WooCommerce is inconsistent
-  /// about the case of attribute keys between the product and its variations —
-  /// "Size" on one and "size" on the other is common — and an exact match
-  /// silently finds nothing, which presents as "Add to cart does nothing" with
-  /// no error anywhere.
-  bool matches(Map<String, String> chosen) {
-    if (chosen.length != attributes.length) return false;
-    for (final entry in attributes.entries) {
-      final picked = chosen.entries
-          .where((e) => e.key.toLowerCase() == entry.key.toLowerCase())
-          .map((e) => e.value)
-          .firstOrNull;
-      if (picked == null) return false;
-      if (picked.toLowerCase() != entry.value.toLowerCase()) return false;
+  static List<_KAttribute> listFrom(dynamic json) {
+    if (json is! List) return const [];
+    final out = <_KAttribute>[];
+    for (final entry in json) {
+      if (entry is! Map) continue;
+      final name = (entry['name'] ?? '').toString();
+      final values = (entry['values'] is List)
+          ? (entry['values'] as List).map((v) => v.toString()).toList()
+          : <String>[];
+      if (name.isEmpty || values.isEmpty) continue;
+      out.add(_KAttribute(name: name, values: values));
     }
-    return true;
-  }
-
-  static _Variation? fromJson(dynamic raw) {
-    if (raw is! Map) return null;
-    final id = raw['id'] is int ? raw['id'] as int : 0;
-    if (id == 0) return null;
-
-    final attributes = <String, String>{};
-    final rawAttributes = raw['attributes'];
-    if (rawAttributes is Map) {
-      rawAttributes.forEach((key, value) {
-        attributes[key.toString()] = value?.toString() ?? '';
-      });
-    }
-
-    return _Variation(
-      id: id,
-      price: raw['price'] is num ? raw['price'] as num : 0,
-      attributes: attributes,
-      inStock: raw['inStock'] != false,
-    );
+    return out;
   }
 }
 
-/// One review, as the page prints it.
-class _Review {
-  const _Review({
-    required this.author,
-    required this.rating,
-    required this.body,
-    this.verified = false,
-    this.date = '',
-  });
-
-  final String author;
-  final int rating;
-  final String body;
-  final bool verified;
-  final String date;
-
-  static _Review? fromJson(dynamic raw) {
-    if (raw is! Map) return null;
-    final body = (raw['body'] ?? '').toString().trim();
-    if (body.isEmpty) return null;
-    return _Review(
-      author: (raw['author'] ?? 'Shopper').toString(),
-      rating: raw['rating'] is int ? raw['rating'] as int : 0,
-      body: body,
-      verified: raw['verified'] == true,
-      date: (raw['date'] ?? '').toString(),
-    );
-  }
-}
-
-/// Everything the screen draws.
-class _Detail {
-  const _Detail({
-    required this.product,
-    required this.images,
-    required this.attributes,
-    required this.variations,
-    required this.description,
-    required this.reviews,
-    required this.ratingAverage,
-    required this.ratingCount,
-    this.sellerName,
-    this.sellerSlug,
-    this.freeDeliveryFrom = 0,
-    this.returnsDays = 0,
-  });
-
-  final KandiProduct product;
-  final List<String> images;
-  final List<_Attribute> attributes;
-  final List<_Variation> variations;
-  final String description;
-  final List<_Review> reviews;
-  final double ratingAverage;
-  final int ratingCount;
-  final String? sellerName;
-  final String? sellerSlug;
-  final num freeDeliveryFrom;
-  final int returnsDays;
-
-  static _Detail? fromJson(dynamic raw) {
-    if (raw is! Map) return null;
-    final rawProduct = raw['product'];
-    final product = KandiProduct.fromJson(rawProduct);
-    if (product == null || rawProduct is! Map) return null;
-
-    final rawReviews = raw['reviews'];
-    final rawTerms = raw['commerce'] ?? raw['terms'];
-    final seller = rawProduct['seller'];
-
-    return _Detail(
-      product: product,
-      images: (rawProduct['images'] is List)
-          ? (rawProduct['images'] as List)
-              .map((e) => e.toString())
-              .where((e) => e.isNotEmpty)
-              .toList()
-          // Falls back to the tile shot so the gallery is never empty on a
-          // product whose extra photographs failed to serialise.
-          : (product.image.isEmpty ? <String>[] : <String>[product.image]),
-      attributes: (rawProduct['attributes'] is List)
-          ? (rawProduct['attributes'] as List)
-              .map(_Attribute.fromJson)
-              .whereType<_Attribute>()
-              .toList()
-          : const [],
-      variations: (rawProduct['variations'] is List)
-          ? (rawProduct['variations'] as List)
-              .map(_Variation.fromJson)
-              .whereType<_Variation>()
-              .toList()
-          : const [],
-      // The server sends HTML because a future in-app renderer may want it.
-      // Until there is one, the tags come out here — printing raw `<p>` at a
-      // shopper is worse than printing nothing.
-      description: _plain(
-        (rawProduct['description'] ?? rawProduct['shortDescription'] ?? '')
-            .toString(),
-      ),
-      reviews: (rawReviews is Map && rawReviews['latest'] is List)
-          ? (rawReviews['latest'] as List)
-              .map(_Review.fromJson)
-              .whereType<_Review>()
-              .toList()
-          : const [],
-      ratingAverage: (rawReviews is Map && rawReviews['average'] is num)
-          ? (rawReviews['average'] as num).toDouble()
-          : product.rating,
-      ratingCount: (rawReviews is Map && rawReviews['count'] is int)
-          ? rawReviews['count'] as int
-          : product.ratingCount,
-      sellerName: seller is Map ? seller['name']?.toString() : null,
-      sellerSlug: seller is Map ? seller['slug']?.toString() : null,
-      freeDeliveryFrom: (rawTerms is Map && rawTerms['freeDeliveryFrom'] is num)
-          ? rawTerms['freeDeliveryFrom'] as num
-          : 0,
-      returnsDays: (rawTerms is Map && rawTerms['returnsDays'] is int)
-          ? rawTerms['returnsDays'] as int
-          : 0,
-    );
-  }
-
-  /// HTML to something a `Text` can print.
-  ///
-  /// Block tags become newlines before everything else is stripped, or a
-  /// description written as five paragraphs arrives as one run-on sentence.
-  /// The named entities are the four WordPress emits constantly; a full entity
-  /// table would be a parser, and a parser belongs on the server.
-  static String _plain(String html) {
-    return html
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'</(p|div|li|h[1-6])>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#039;', "'")
-        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-        .trim();
-  }
-}
-
-/// One product, in full.
-///
-/// Opened as `KandiNav.open(context, const KandiProductScreen(), args: id)`.
-/// The id rides on the route rather than the constructor so that this class
-/// has no parameters at all — see [KandiNav.open].
 class KandiProductScreen extends StatefulWidget {
   const KandiProductScreen({super.key, this.width, this.height});
 
@@ -341,953 +119,730 @@ class KandiProductScreen extends StatefulWidget {
 }
 
 class _KandiProductScreenState extends State<KandiProductScreen> {
-  int _productId = 0;
-  String _key = '';
-
-  _Detail? _detail;
+  int? _productId;
+  bool _loading = true;
   bool _failed = false;
 
-  final PageController _gallery = PageController();
-  int _photo = 0;
-  int _quantity = 1;
+  String _name = '';
+  String _priceLabel = '';
+  num _price = 0;
+  String? _wasPriceLabel;
+  String? _savingLabel;
+  int _discountPercent = 0;
+  bool _inStock = true;
+  int? _stockQuantity;
+  num _rating = 0;
+  int _ratingCount = 0;
+  String _shortDescription = '';
+  List<String> _images = const [];
+  List<_KAttribute> _attributes = const [];
+  String? _sellerName;
+  int _returnsDays = 0;
+  num _freeDeliveryFrom = 0;
 
-  /// Attribute name to chosen value.
-  final Map<String, String> _chosen = <String, String>{};
+  /// What the shopper has picked, keyed by attribute name.
+  final Map<String, String> _chosen = {};
 
-  /// Guards the one-time setup below.
-  bool _started = false;
+  int _gallery = 0;
+  bool _adding = false;
 
-  /// Reads the product id off the route, once.
-  ///
-  /// Here rather than in `initState` because `ModalRoute.of` is an
-  /// inherited-widget lookup and `initState` runs before there is anything to
-  /// look up. `didChangeDependencies` can fire again — a theme change, a
-  /// rotation — so the flag is what keeps this from refetching.
-  ///
-  /// The synchronous `peek` matters as much as it did when the id came from a
-  /// constructor: `build` runs with the detail already in hand on a second
-  /// visit, so the screen paints the product rather than a skeleton.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-
-    _productId = KandiNav.argsOf<int>(context) ?? 0;
-    _key = 'product:$_productId';
-    _detail = KandiCache.peek<_Detail>(_key);
-
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _gallery.dispose();
-    super.dispose();
+    // The first callback where the route — and so the argument — is readable.
+    if (_productId != null) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is int) {
+      _productId = args;
+      _load();
+    } else {
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+    }
   }
 
   Future<void> _load() async {
+    final id = _productId;
+    if (id == null) return;
+    if (mounted) setState(() => _loading = true);
+
+    dynamic data;
+    int status = 0;
     try {
-      final detail = await KandiCache.read<_Detail?>(
-        _key,
-        // Shorter than the home feed's ten minutes. This is the screen a
-        // shopper decides on, so its price and its stock line want to be
-        // closer to the truth than a merchandising rail does.
-        ttl: const Duration(minutes: 3),
-        fetch: () async {
-          final result =
-              await KandiApi.get('/api/app/product/$_productId');
-          if (result.status != 200) throw StateError('product');
-          return _Detail.fromJson(result.data);
-        },
-        onRefresh: (fresh) {
-          if (mounted && fresh != null) setState(() => _detail = fresh);
-        },
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _detail = detail;
-        _failed = detail == null;
-        _preselect();
-      });
+      final response = await http
+          .get(Uri.parse('$_apiBase/api/app/product/$id'))
+          .timeout(const Duration(seconds: 20));
+      status = response.statusCode;
+      data = jsonDecode(response.body);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _failed = _detail == null);
+      status = 0;
     }
-  }
 
-  /// Chooses the only value of any single-value attribute.
-  ///
-  /// A product that comes in one colour still declares Colour as an attribute,
-  /// and asking a shopper to "choose" from a list of one is a step that exists
-  /// only because the data has a shape. Multi-value attributes are left
-  /// deliberately unset — preselecting a size is how somebody ends up buying
-  /// a 38 they never picked.
-  void _preselect() {
-    final detail = _detail;
-    if (detail == null) return;
-    for (final attribute in detail.attributes) {
-      if (attribute.options.length == 1) {
-        _chosen[attribute.name] = attribute.options.first.name;
+    if (!mounted) return;
+
+    final product = (data is Map) ? data['product'] : null;
+    if (status != 200 || product is! Map) {
+      setState(() {
+        _loading = false;
+        _failed = true;
+      });
+      return;
+    }
+
+    final reviews = (data as Map)['reviews'];
+    final commerce = data['commerce'];
+    final seller = product['seller'];
+
+    setState(() {
+      _loading = false;
+      _failed = false;
+      _name = (product['name'] ?? '').toString();
+      _priceLabel = (product['priceLabel'] ?? '').toString();
+      _price = product['price'] is num ? product['price'] as num : 0;
+      _wasPriceLabel = product['wasPriceLabel']?.toString();
+      _savingLabel = product['savingLabel']?.toString();
+      _discountPercent =
+          product['discountPercent'] is int ? product['discountPercent'] as int : 0;
+      _inStock = product['inStock'] != false;
+      _stockQuantity =
+          product['stockQuantity'] is int ? product['stockQuantity'] as int : null;
+      _shortDescription = (product['shortDescription'] ?? '')
+          .toString()
+          // The API sends WordPress HTML. Stripping tags is enough for a short
+          // description; rendering it properly is a job for a webview, and a
+          // webview inside a product page costs more than the formatting is
+          // worth.
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      final images = product['images'];
+      _images = images is List
+          ? images.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
+          : <String>[];
+      if (_images.isEmpty) {
+        final single = (product['image'] ?? '').toString();
+        if (single.isNotEmpty) _images = [single];
       }
-    }
+
+      _attributes = _KAttribute.listFrom(product['attributes']);
+      // A one-value attribute is a fact about the product ("Material: Cotton"),
+      // not a question — it is pre-selected rather than asked, which is the
+      // same threshold the tile's `hasOptions` uses.
+      for (final attribute in _attributes) {
+        if (attribute.values.length == 1) {
+          _chosen[attribute.name] = attribute.values.first;
+        }
+      }
+
+      if (seller is Map) _sellerName = seller['name']?.toString();
+      if (reviews is Map) {
+        _rating = reviews['average'] is num ? reviews['average'] as num : 0;
+        _ratingCount = reviews['count'] is int ? reviews['count'] as int : 0;
+      }
+      if (commerce is Map) {
+        _returnsDays =
+            commerce['returnsDays'] is int ? commerce['returnsDays'] as int : 0;
+        _freeDeliveryFrom = commerce['freeDeliveryFrom'] is num
+            ? commerce['freeDeliveryFrom'] as num
+            : 0;
+      }
+    });
   }
 
-  /// The variation matching the current selection, if the selection is
-  /// complete and that combination exists.
-  _Variation? get _variation {
-    final detail = _detail;
-    if (detail == null || detail.variations.isEmpty) return null;
-    if (_chosen.length != detail.attributes.length) return null;
-    for (final variation in detail.variations) {
-      if (variation.matches(_chosen)) return variation;
-    }
-    return null;
-  }
+  /// Which choices are still outstanding.
+  List<String> get _missing => _attributes
+      .where((attribute) => !_chosen.containsKey(attribute.name))
+      .map((attribute) => attribute.name)
+      .toList();
 
-  /// The first attribute the shopper has not answered.
-  ///
-  /// Named rather than counted, because "Choose a size" is an instruction and
-  /// "Please select all options" is a riddle.
-  String? get _missing {
-    final detail = _detail;
-    if (detail == null) return null;
-    for (final attribute in detail.attributes) {
-      if (!_chosen.containsKey(attribute.name)) return attribute.name;
+  Future<void> _add() async {
+    if (!_inStock || _adding) return;
+
+    // Naming what is missing rather than just disabling the button: a greyed
+    // button with no explanation is the most common way a shopper gives up on
+    // a product page.
+    if (_missing.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Choose ${_missing.join(' and ')} first'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
     }
-    return null;
+
+    setState(() => _adding = true);
+
+    final variantLabel = _attributes.isEmpty
+        ? null
+        : _attributes
+            .map((a) => '${a.name}: ${_chosen[a.name]}')
+            .join(' · ');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_basketKey);
+      final lines = <Map<String, dynamic>>[];
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final entry in decoded) {
+            if (entry is Map) lines.add(Map<String, dynamic>.from(entry));
+          }
+        }
+      }
+
+      // Keyed on id AND variant: the same shoe in two sizes is two lines, and
+      // merging on id alone silently drops a size from the order.
+      final key = '${_productId}::${variantLabel ?? ''}';
+      final index = lines.indexWhere((line) => line['key'] == key);
+      if (index >= 0) {
+        final current = lines[index]['quantity'];
+        lines[index]['quantity'] = (current is int ? current : 1) + 1;
+      } else {
+        lines.add({
+          'key': key,
+          'productId': _productId,
+          'name': _name,
+          'image': _images.isNotEmpty ? _images.first : '',
+          'price': _price,
+          'priceLabel': _priceLabel,
+          'quantity': 1,
+          'variantLabel': variantLabel,
+        });
+      }
+
+      await prefs.setString(_basketKey, jsonEncode(lines));
+    } catch (_) {
+      // Recoverable — the shopper can tap again. Throwing would take out the
+      // screen they are buying from.
+    }
+
+    if (!mounted) return;
+    setState(() => _adding = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Added to basket'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Basket',
+          textColor: Colors.white,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const KandiCartScreen()),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final detail = _detail;
-
-    return Container(
+    return SizedBox(
       width: widget.width,
       height: widget.height,
-      color: KandiColors.page,
       child: Scaffold(
-        backgroundColor: KandiColors.page,
-        appBar: kandiAppBar(
-          context,
-          '',
-          actions: [
-            if (detail != null)
-              IconButton(
-                onPressed: () =>
-                    KandiNav.shareLink(context, detail.product.url),
-                icon: const Icon(Icons.ios_share_rounded,
-                    size: 20, color: KandiColors.ink),
-              ),
-            IconButton(
-              onPressed: () => KandiNav.goTab(context, KandiNav.cartTab),
-              icon: const Icon(Icons.shopping_bag_outlined,
-                  size: 21, color: KandiColors.ink),
-            ),
-          ],
+        backgroundColor: _KColors.canvas,
+        appBar: AppBar(
+          backgroundColor: _KColors.panel,
+          surfaceTintColor: _KColors.panel,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          iconTheme: const IconThemeData(color: _KColors.ink),
+          title: const Text('Product',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _KColors.ink)),
         ),
-        body: detail == null
-            ? (_failed ? _offline() : _skeleton())
-            : _content(detail),
-        bottomNavigationBar: detail == null ? null : _buyBar(detail),
+        body: _buildBody(),
+        bottomNavigationBar: _loading || _failed ? null : _buildBuyBar(),
       ),
     );
   }
 
-  // ============================================================
-  //  THE PAGE
-  // ============================================================
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: _KColors.primary),
+      );
+    }
 
-  Widget _content(_Detail detail) {
+    if (_failed) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(_KSpace.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  size: 44, color: _KColors.muted),
+              const SizedBox(height: _KSpace.md),
+              Text(
+                _productId == null
+                    ? 'No product was opened'
+                    : 'Could not load this product',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _KColors.ink),
+              ),
+              const SizedBox(height: _KSpace.sm),
+              Text(
+                _productId == null
+                    // The honest message for FlutterFlow's own preview, which
+                    // opens widgets with no route arguments at all.
+                    ? 'Open this screen from a product on the home page.'
+                    : 'Check your connection and try again.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13.5, color: _KColors.body),
+              ),
+              if (_productId != null) ...[
+                const SizedBox(height: _KSpace.lg),
+                FilledButton(
+                  onPressed: _load,
+                  style: FilledButton.styleFrom(
+                      backgroundColor: _KColors.primary),
+                  child: const Text('Try again'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        _galleryBlock(detail),
-        const SizedBox(height: KandiSpace.sm),
-        _headline(detail),
-        if (detail.attributes.isNotEmpty) _choices(detail),
-        _quantityRow(),
-        _terms(detail),
-        if (detail.sellerName != null) _seller(detail),
-        if (detail.description.isNotEmpty) _description(detail),
-        _reviews(detail),
-        // Clears the pinned buy bar. Without it the last card sits under the
-        // bar and looks clipped — the classic "the page ends too early" bug.
-        const SizedBox(height: KandiSpace.xxl),
-      ],
-    );
-  }
-
-  Widget _galleryBlock(_Detail detail) {
-    final width = MediaQuery.of(context).size.width;
-    final images = detail.images.isEmpty ? [''] : detail.images;
-
-    return Container(
-      color: KandiColors.surface,
-      child: Column(
-        children: [
-          SizedBox(
-            height: width,
-            child: Stack(
-              children: [
-                PageView.builder(
-                  controller: _gallery,
-                  itemCount: images.length,
-                  onPageChanged: (index) => setState(() => _photo = index),
-                  itemBuilder: (context, index) => KandiImage(
-                    url: images[index],
-                    width: width,
-                    height: width,
-                    // Contain, not cover. A product shot is the thing being
-                    // sold: cropping a shoe to fill a square is how a listing
-                    // loses the toe of the shoe.
-                    fit: BoxFit.contain,
-                    radius: BorderRadius.zero,
-                  ),
-                ),
-                if (detail.product.discountPercent > 0)
-                  Positioned(
-                    top: KandiSpace.md,
-                    left: KandiSpace.md,
-                    child:
-                        KandiChip.deal('-${detail.product.discountPercent}%'),
-                  ),
-              ],
-            ),
-          ),
-          if (images.length > 1) _dots(images.length),
-        ],
-      ),
-    );
-  }
-
-  /// Dots rather than a thumbnail strip.
-  ///
-  /// A strip costs 70px of the first screen to show photographs the shopper
-  /// can already reach by swiping. Dots cost 20px and say the same thing: how
-  /// many there are and which one this is.
-  Widget _dots(int count) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: KandiSpace.md),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (var i = 0; i < count; i++)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: i == _photo ? 18 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: i == _photo ? KandiColors.primary : KandiColors.line,
-                borderRadius: KandiRadius.pill,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Name and price, in that order, directly under the photograph.
-  ///
-  /// They are one thought — what it is, what it costs — and everything below
-  /// is evidence for a decision these two lines have already framed.
-  Widget _headline(_Detail detail) {
-    final product = detail.product;
-    final variation = _variation;
-
-    // A variation can carry its own price. Showing the parent's while a
-    // shopper has a large size selected is how an order total surprises
-    // somebody at checkout.
-    final priceLabel = variation != null && variation.price > 0
-        ? kandiPrice(variation.price)
-        : product.priceLabel;
-
-    return KandiCard(
-      margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(product.name, style: KandiType.title().copyWith(height: 1.35)),
-          const SizedBox(height: KandiSpace.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(priceLabel, style: KandiType.price(size: 24)),
-              if (product.wasPriceLabel != null) ...[
-                const SizedBox(width: KandiSpace.sm),
-                Text(product.wasPriceLabel!, style: KandiType.wasPrice(size: 14)),
-              ],
-            ],
-          ),
-          if (product.savingLabel != null) ...[
-            const SizedBox(height: KandiSpace.xs),
-            Text(
-              'You save ${product.savingLabel!}',
-              style: KandiType.caption(color: KandiColors.primaryInk)
-                  .copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-          if (detail.ratingCount > 0) ...[
-            const SizedBox(height: KandiSpace.md),
-            _stars(detail),
-          ],
-          const SizedBox(height: KandiSpace.sm),
-          _stockLine(detail),
-        ],
-      ),
-    );
-  }
-
-  Widget _stars(_Detail detail) {
-    final filled = detail.ratingAverage.round();
-    return Row(
-      children: [
-        for (var i = 0; i < 5; i++)
-          Icon(
-            i < filled ? Icons.star_rounded : Icons.star_outline_rounded,
-            size: 16,
-            color: i < filled ? KandiColors.deal : KandiColors.line,
-          ),
-        const SizedBox(width: KandiSpace.sm),
-        Text(
-          '${detail.ratingAverage.toStringAsFixed(1)} '
-          '(${detail.ratingCount} ${detail.ratingCount == 1 ? "review" : "reviews"})',
-          style: KandiType.caption(),
-        ),
-      ],
-    );
-  }
-
-  Widget _stockLine(_Detail detail) {
-    final variation = _variation;
-    final inStock = variation?.inStock ?? detail.product.inStock;
-    final left = detail.product.stockQuantity;
-
-    if (!inStock) {
-      return Row(
-        children: [
-          const Icon(Icons.remove_circle_outline,
-              size: 15, color: KandiColors.muted),
-          const SizedBox(width: KandiSpace.xs),
-          Text('Out of stock', style: KandiType.caption()),
-        ],
-      );
-    }
-
-    // "Only 3 left" only when it is TRUE and low. A scarcity line on a product
-    // with two hundred in the warehouse is the oldest trick on the internet
-    // and shoppers read it as one.
-    if (left != null && left > 0 && left <= 5) {
-      return Row(
-        children: [
-          const Icon(Icons.bolt_rounded, size: 15, color: KandiColors.sale),
-          const SizedBox(width: KandiSpace.xs),
-          Text(
-            'Only $left left',
-            style: KandiType.caption(color: KandiColors.sale)
-                .copyWith(fontWeight: FontWeight.w600),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        const Icon(Icons.check_circle_outline,
-            size: 15, color: KandiColors.success),
-        const SizedBox(width: KandiSpace.xs),
-        Text('In stock',
-            style: KandiType.caption(color: KandiColors.success)),
-      ],
-    );
-  }
-
-  Widget _choices(_Detail detail) {
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final attribute in detail.attributes) ...[
-              Row(
-                children: [
-                  Text(attribute.name, style: KandiType.title()),
-                  const SizedBox(width: KandiSpace.sm),
-                  if (_chosen[attribute.name] != null)
-                    Text(_chosen[attribute.name]!, style: KandiType.caption()),
-                ],
-              ),
-              const SizedBox(height: KandiSpace.md),
-              Wrap(
-                spacing: KandiSpace.sm,
-                runSpacing: KandiSpace.sm,
-                children: attribute.options
-                    .map((option) => _optionChip(attribute, option))
-                    .toList(),
-              ),
-              if (attribute != detail.attributes.last)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: KandiSpace.md),
-                  child: Divider(height: 1, color: KandiColors.hairline),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _optionChip(_Attribute attribute, _Option option) {
-    final selected = _chosen[attribute.name] == option.name;
-
-    return GestureDetector(
-      onTap: () => setState(() {
-        // Tapping the selected value clears it. Without this a shopper who
-        // picks the wrong size has no way back to "nothing chosen", which
-        // matters on an attribute they did not mean to answer at all.
-        if (selected) {
-          _chosen.remove(attribute.name);
-        } else {
-          _chosen[attribute.name] = option.name;
-        }
-      }),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: attribute.isColour ? KandiSpace.sm : KandiSpace.md,
-          vertical: KandiSpace.sm,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? KandiColors.primarySoft : KandiColors.surface,
-          borderRadius: KandiRadius.sm,
-          border: Border.all(
-            color: selected ? KandiColors.primary : KandiColors.line,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (attribute.isColour && option.swatch != null) ...[
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: _colour(option.swatch!),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: KandiColors.line),
-                ),
-              ),
-              const SizedBox(width: KandiSpace.sm),
-            ],
-            Text(
-              option.name,
-              style: KandiType.label(
-                color: selected ? KandiColors.primaryInk : KandiColors.body,
-              ).copyWith(fontWeight: selected ? FontWeight.w600 : null),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// A swatch value to a colour.
-  ///
-  /// Sellers type either a hex or a colour word, so both are handled — and a
-  /// value that is neither falls back to the page grey rather than throwing.
-  /// A malformed swatch should cost one dot, not the screen.
-  static Color _colour(String value) {
-    final v = value.trim().toLowerCase();
-    if (v.startsWith('#')) {
-      final hex = v.substring(1);
-      final parsed = int.tryParse(hex, radix: 16);
-      if (parsed != null && hex.length == 6) return Color(0xFF000000 | parsed);
-      if (parsed != null && hex.length == 8) return Color(parsed);
-    }
-    const words = <String, Color>{
-      'black': Color(0xFF111827),
-      'white': Color(0xFFFFFFFF),
-      'red': Color(0xFFDC2626),
-      'blue': Color(0xFF2563EB),
-      'green': Color(0xFF16A34A),
-      'yellow': Color(0xFFFACC15),
-      'orange': Color(0xFFFF6A00),
-      'pink': Color(0xFFDB2777),
-      'purple': Color(0xFF7C3AED),
-      'grey': Color(0xFF9CA3AF),
-      'gray': Color(0xFF9CA3AF),
-      'brown': Color(0xFF92400E),
-      'beige': Color(0xFFE7D8C0),
-      'navy': Color(0xFF1E3A8A),
-      'silver': Color(0xFFD1D5DB),
-      'gold': Color(0xFFD4AF37),
-    };
-    return words[v] ?? KandiColors.hairline;
-  }
-
-  Widget _quantityRow() {
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        padding: const EdgeInsets.symmetric(
-          horizontal: KandiSpace.lg,
-          vertical: KandiSpace.md,
-        ),
-        child: Row(
-          children: [
-            Text('Quantity', style: KandiType.title()),
-            const Spacer(),
-            _stepper(Icons.remove_rounded, _quantity > 1,
-                () => setState(() => _quantity--)),
-            SizedBox(
-              width: 44,
-              child: Text(
-                '$_quantity',
-                textAlign: TextAlign.center,
-                style: KandiType.title(),
-              ),
-            ),
-            // Capped at twenty, matching the ceiling the checkout API enforces
-            // per line. A control that lets somebody pick a number the server
-            // will refuse is a control that fails at the worst moment.
-            _stepper(Icons.add_rounded, _quantity < 20,
-                () => setState(() => _quantity++)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stepper(IconData icon, bool enabled, VoidCallback onTap) {
-    return Material(
-      color: enabled ? KandiColors.hairline : KandiColors.surface,
-      borderRadius: KandiRadius.sm,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: KandiRadius.sm,
-        child: SizedBox(
-          width: 34,
-          height: 34,
-          child: Icon(
-            icon,
-            size: 18,
-            color: enabled ? KandiColors.ink : KandiColors.faint,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Delivery, payment and returns — every figure from the shop's settings.
-  ///
-  /// None of these is typed here. A returns window hardcoded in an app is a
-  /// promise that keeps being made after wp-admin has changed it, and it is
-  /// the kind of drift a shopper discovers by being refused.
-  Widget _terms(_Detail detail) {
-    final rows = <(IconData, String, String?)>[
-      (
-        Icons.local_shipping_outlined,
-        'Delivery',
-        detail.freeDeliveryFrom > 0
-            ? 'Free over ${kandiPrice(detail.freeDeliveryFrom)} · 1–3 days'
-            : 'Countrywide, 1–3 days',
-      ),
-      (Icons.payments_outlined, 'Payment', 'Cash, MTN MoMo, Airtel or card'),
-      if (detail.returnsDays > 0)
-        (
-          Icons.assignment_return_outlined,
-          'Returns',
-          '${detail.returnsDays} days, in original condition',
-        ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        child: Column(
-          children: [
-            for (final row in rows) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(row.$1, size: 18, color: KandiColors.primary),
-                  const SizedBox(width: KandiSpace.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(row.$2, style: KandiType.label()),
-                        if (row.$3 != null)
-                          Text(row.$3!, style: KandiType.caption()),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (row != rows.last)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: KandiSpace.md),
-                  child: Divider(height: 1, color: KandiColors.hairline),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _seller(_Detail detail) {
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        padding: const EdgeInsets.symmetric(
-          horizontal: KandiSpace.lg,
-          vertical: KandiSpace.md,
-        ),
-        onTap: detail.sellerSlug == null
-            ? null
-            : () => KandiNav.openUrl(
-                  context,
-                  '$kandiApiBase/sellers/${detail.sellerSlug}',
-                ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: KandiColors.primarySoft,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.storefront_outlined,
-                  size: 18, color: KandiColors.primary),
-            ),
-            const SizedBox(width: KandiSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Sold by', style: KandiType.caption()),
-                  Text(
-                    detail.sellerName!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: KandiType.title(),
-                  ),
-                ],
-              ),
-            ),
-            if (detail.sellerSlug != null)
-              const Icon(Icons.chevron_right_rounded,
-                  color: KandiColors.faint),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _description(_Detail detail) {
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('About this item', style: KandiType.heading()),
-            const SizedBox(height: KandiSpace.md),
-            // Collapsed to eight lines with no "read more" control, because
-            // the alternative on this catalogue is worse: imported supplier
-            // descriptions run to spec tables and boilerplate, and a full one
-            // pushes the reviews off the screen entirely.
-            Text(
-              detail.description,
-              maxLines: 8,
-              overflow: TextOverflow.ellipsis,
-              style: KandiType.bodyText(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _reviews(_Detail detail) {
-    return Padding(
-      padding: const EdgeInsets.only(top: KandiSpace.md),
-      child: KandiCard(
-        margin: const EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('Reviews', style: KandiType.heading()),
-                const SizedBox(width: KandiSpace.sm),
-                Text('(${detail.ratingCount})', style: KandiType.caption()),
-                const Spacer(),
-                // The only way into the review form now that no page wires
-                // one up. `/api/products/[id]/reviews` has accepted a POST all
-                // along; before this it was reachable only from a callback
-                // somebody had to remember to fill in.
-                TextButton(
-                  onPressed: () => _writeReview(detail),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Write one',
-                    style: KandiType.label(color: KandiColors.primary),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: KandiSpace.md),
-            if (detail.reviews.isEmpty)
-              Text(
-                'No written reviews yet.',
-                style: KandiType.bodyText(),
-              )
-            else
-              for (final review in detail.reviews) ...[
-                Row(
-                  children: [
-                    for (var i = 0; i < 5; i++)
-                      Icon(
-                        i < review.rating
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 13,
-                        color: i < review.rating
-                            ? KandiColors.deal
-                            : KandiColors.line,
-                      ),
-                    const SizedBox(width: KandiSpace.sm),
-                    Flexible(
-                      child: Text(
-                        review.author,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: KandiType.caption(color: KandiColors.body)
-                            .copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    if (review.verified) ...[
-                      const SizedBox(width: KandiSpace.sm),
-                      // The one badge on a review worth drawing: it is the
-                      // difference between an opinion and an opinion from
-                      // somebody who paid.
-                      const KandiChip(
-                        label: 'Verified',
-                        background: KandiColors.successSoft,
-                        foreground: KandiColors.success,
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: KandiSpace.xs),
-                Text(
-                  review.body,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: KandiType.bodyText(),
-                ),
-                if (review != detail.reviews.last)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: KandiSpace.md),
-                    child: Divider(height: 1, color: KandiColors.hairline),
-                  ),
-              ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  //  THE BUY BAR
-  // ============================================================
-
-  Widget _buyBar(_Detail detail) {
-    final variation = _variation;
-    final needsChoice = detail.attributes.isNotEmpty && variation == null;
-    final soldOut = !(variation?.inStock ?? detail.product.inStock);
-
-    // The combination exists in the catalogue but is not stocked. Distinct
-    // from "choose a size" and from "out of stock", and the shopper needs to
-    // know which of the three they are looking at — the fix for each is
-    // different.
-    final combinationGone = detail.attributes.isNotEmpty &&
-        _missing == null &&
-        variation == null;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        KandiSpace.gutter,
-        KandiSpace.md,
-        KandiSpace.gutter,
-        KandiSpace.md + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: const BoxDecoration(
-        color: KandiColors.surface,
-        boxShadow: KandiShadow.raised,
-      ),
-      child: soldOut
-          ? KandiButton(
-              label: 'Out of stock',
-              onPressed: null,
-              icon: Icons.remove_shopping_cart_outlined,
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (combinationGone) ...[
-                  Text(
-                    'That combination is not available. Try another.',
-                    style: KandiType.caption(color: KandiColors.sale),
-                  ),
-                  const SizedBox(height: KandiSpace.sm),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: KandiButton(
-                        label: needsChoice && _missing != null
-                            // Names the missing attribute. "Choose a size" is
-                            // an instruction; a greyed-out button is a riddle.
-                            ? 'Choose ${_missing!.toLowerCase()}'
-                            : 'Add to cart',
-                        icon: needsChoice
-                            ? Icons.tune_rounded
-                            : Icons.add_shopping_cart_rounded,
-                        tone: KandiButtonTone.outline,
-                        onPressed: needsChoice ? null : () => _add(detail),
-                      ),
-                    ),
-                    const SizedBox(width: KandiSpace.sm),
-                    Expanded(
-                      child: KandiButton(
-                        label: 'Buy now',
-                        onPressed:
-                            needsChoice ? null : () => _buyNow(detail),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-    );
-  }
-
-  /// Puts the chosen variation in the basket.
-  ///
-  /// The basket used to be owned elsewhere and handed a callback, on the
-  /// reasoning that this screen should only decide WHAT is being added. But
-  /// `KandiCart` is a store, not a screen — every caller of that callback did
-  /// exactly this, so the indirection bought nothing and cost a parameter that
-  /// a page could forget to wire, leaving an Add to cart button that did
-  /// nothing at all.
-  Future<void> _add(_Detail detail) async {
-    await KandiCart.add(
-      productId: detail.product.id,
-      name: detail.product.name,
-      price: (_variation?.price ?? detail.product.price).toDouble(),
-      image: detail.product.image,
-      slug: detail.product.slug,
-      variationId: _variation?.id,
-      options: Map<String, String>.from(_chosen),
-      quantity: _quantity,
-    );
-
-    // The cart changed, so anything holding a cart total is now wrong.
-    // A screen that mutates data is responsible for saying so.
-    KandiCache.invalidate('cart');
-    if (mounted) kandiToast(context, 'Added to your cart');
-  }
-
-  /// Opens the review form, and refetches if a review actually landed.
-  Future<void> _writeReview(_Detail detail) async {
-    final posted = await KandiNav.open<bool>(
-      context,
-      const KandiReviewScreen(),
-      args: KandiReviewArgs(
-        productId: _productId,
-        productName: detail.product.name,
-        productImage: detail.product.image,
-      ),
-    );
-    if (!mounted || posted != true) return;
-    // The form has already invalidated this key; reloading is what puts the
-    // new review on the screen the shopper is looking at.
-    setState(() {});
-    await _load();
-  }
-
-  /// Add, then go straight to the basket.
-  ///
-  /// ---- Why this stops at the basket rather than the checkout ----
-  ///
-  /// The checkout screen reaches the payment screen, the payment screen
-  /// reaches the order list, and the order list reaches this screen — so a
-  /// product screen that imported the checkout would close a ring, and a ring
-  /// of imports has no order to paste the files in. Ending on the basket costs
-  /// one tap and keeps the fifteen files in a line.
-  Future<void> _buyNow(_Detail detail) async {
-    await _add(detail);
-    if (mounted) KandiNav.goTab(context, KandiNav.cartTab);
-  }
-
-  // ============================================================
-  //  THE OTHER TWO STATES
-  // ============================================================
-
-  Widget _skeleton() {
-    final width = MediaQuery.of(context).size.width;
-    return ListView(
-      children: [
-        KandiSkeleton(width: width, height: width, radius: BorderRadius.zero),
-        const SizedBox(height: KandiSpace.lg),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: KandiSpace.gutter),
+        _buildGallery(),
+        Container(
+          color: _KColors.panel,
+          padding: const EdgeInsets.all(_KSpace.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              KandiSkeleton(width: double.infinity, height: 16),
-              SizedBox(height: KandiSpace.sm),
-              KandiSkeleton(width: 200, height: 16),
-              SizedBox(height: KandiSpace.lg),
-              KandiSkeleton(width: 140, height: 26),
-              SizedBox(height: KandiSpace.lg),
-              KandiSkeleton(width: double.infinity, height: 90),
+              Text(_name,
+                  style: const TextStyle(
+                      fontSize: 17,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                      color: _KColors.ink)),
+              const SizedBox(height: _KSpace.md),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(_priceLabel,
+                      style: const TextStyle(
+                          fontSize: 24,
+                          height: 1.1,
+                          fontWeight: FontWeight.w800,
+                          color: _KColors.ink)),
+                  if (_wasPriceLabel != null) ...[
+                    const SizedBox(width: _KSpace.sm),
+                    Text(_wasPriceLabel!,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            color: _KColors.faint,
+                            decoration: TextDecoration.lineThrough)),
+                  ],
+                  if (_discountPercent > 0) ...[
+                    const SizedBox(width: _KSpace.sm),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _KColors.dealFlag,
+                        borderRadius: BorderRadius.circular(_radiusChip),
+                      ),
+                      child: Text('-$_discountPercent%',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              height: 1,
+                              fontWeight: FontWeight.w800,
+                              color: _KColors.ink)),
+                    ),
+                  ],
+                ],
+              ),
+              if (_savingLabel != null) ...[
+                const SizedBox(height: _KSpace.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _KColors.saveSoft,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('You save $_savingLabel',
+                      style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: _KColors.save)),
+                ),
+              ],
+              if (_ratingCount > 0) ...[
+                const SizedBox(height: _KSpace.md),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded,
+                        size: 17, color: _KColors.star),
+                    const SizedBox(width: 3),
+                    Text(_rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: _KColors.ink)),
+                    const SizedBox(width: 5),
+                    Text('($_ratingCount reviews)',
+                        style: const TextStyle(
+                            fontSize: 12.5, color: _KColors.muted)),
+                  ],
+                ),
+              ],
+              if (!_inStock) ...[
+                const SizedBox(height: _KSpace.md),
+                const Text('Out of stock',
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: _KColors.ink)),
+              ] else if (_stockQuantity != null && _stockQuantity! <= 5) ...[
+                const SizedBox(height: _KSpace.md),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                          color: _KColors.primary, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Only $_stockQuantity left',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _KColors.ink)),
+                  ],
+                ),
+              ],
+              if (_sellerName != null) ...[
+                const SizedBox(height: _KSpace.md),
+                Text('Sold by $_sellerName',
+                    style: const TextStyle(
+                        fontSize: 12.5, color: _KColors.muted)),
+              ],
             ],
           ),
         ),
+        if (_attributes.isNotEmpty) _buildOptions(),
+        if (_returnsDays > 0 || _freeDeliveryFrom > 0) _buildTerms(),
+        if (_shortDescription.isNotEmpty) _buildDescription(),
+        const SizedBox(height: _KSpace.xl),
       ],
     );
   }
 
-  Widget _offline() {
-    return KandiEmpty(
-      icon: Icons.wifi_off_rounded,
-      title: 'Could not load this product',
-      message: 'Check your connection and try again.',
-      actionLabel: 'Try again',
-      onAction: () {
-        KandiCache.invalidate(_key);
-        setState(() => _failed = false);
-        _load();
-      },
+  Widget _buildGallery() {
+    if (_images.isEmpty) {
+      return Container(
+        height: 320,
+        color: _KColors.hairline,
+        child: const Center(
+          child: Icon(Icons.image_not_supported_outlined,
+              size: 40, color: _KColors.faint),
+        ),
+      );
+    }
+
+    return Container(
+      color: _KColors.panel,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 340,
+            child: PageView.builder(
+              itemCount: _images.length,
+              onPageChanged: (index) => setState(() => _gallery = index),
+              itemBuilder: (context, index) => CachedNetworkImage(
+                imageUrl: _images[index],
+                fit: BoxFit.contain,
+                placeholder: (_, __) =>
+                    const ColoredBox(color: _KColors.hairline),
+                errorWidget: (_, __, ___) =>
+                    const ColoredBox(color: _KColors.hairline),
+              ),
+            ),
+          ),
+          if (_images.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: _KSpace.md),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (int i = 0; i < _images.length; i++)
+                    Container(
+                      width: i == _gallery ? 18 : 6,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color:
+                            i == _gallery ? _KColors.primary : _KColors.line,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptions() {
+    return Container(
+      margin: const EdgeInsets.only(top: _KSpace.md),
+      color: _KColors.panel,
+      padding: const EdgeInsets.all(_KSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final attribute in _attributes) ...[
+            Row(
+              children: [
+                Text(attribute.name,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _KColors.ink)),
+                const SizedBox(width: 6),
+                // The chosen value beside the label, so a scrolled-past choice
+                // is still readable without scrolling back.
+                if (_chosen[attribute.name] != null)
+                  Text(_chosen[attribute.name]!,
+                      style: const TextStyle(
+                          fontSize: 13, color: _KColors.muted)),
+              ],
+            ),
+            const SizedBox(height: _KSpace.sm),
+            Wrap(
+              spacing: _KSpace.sm,
+              runSpacing: _KSpace.sm,
+              children: [
+                for (final value in attribute.values)
+                  _OptionChip(
+                    label: value,
+                    selected: _chosen[attribute.name] == value,
+                    onTap: () =>
+                        setState(() => _chosen[attribute.name] = value),
+                  ),
+              ],
+            ),
+            const SizedBox(height: _KSpace.lg),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTerms() {
+    return Container(
+      margin: const EdgeInsets.only(top: _KSpace.md),
+      color: _KColors.panel,
+      padding: const EdgeInsets.all(_KSpace.lg),
+      child: Column(
+        children: [
+          if (_freeDeliveryFrom > 0)
+            _TermRow(
+              icon: Icons.local_shipping_outlined,
+              title: 'Free delivery over ${_money(_freeDeliveryFrom)}',
+              detail: 'Countrywide, pay on delivery available',
+            ),
+          if (_returnsDays > 0) ...[
+            const SizedBox(height: _KSpace.md),
+            _TermRow(
+              icon: Icons.assignment_return_outlined,
+              title: '$_returnsDays-day returns',
+              detail: 'Faulty or wrong, we cover the courier both ways',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Container(
+      margin: const EdgeInsets.only(top: _KSpace.md),
+      color: _KColors.panel,
+      padding: const EdgeInsets.all(_KSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('About this item',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: _KColors.ink)),
+          const SizedBox(height: _KSpace.sm),
+          Text(_shortDescription,
+              style: const TextStyle(
+                  fontSize: 13.5, height: 1.5, color: _KColors.body)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBuyBar() {
+    final blocked = !_inStock;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        _KSpace.lg,
+        _KSpace.md,
+        _KSpace.lg,
+        // Clears the home indicator on a gesture-navigation phone, where a
+        // fixed bar otherwise sits under the system handle.
+        _KSpace.md + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: _KColors.panel,
+        border: Border(top: BorderSide(color: _KColors.line)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_priceLabel,
+                    style: const TextStyle(
+                        fontSize: 18,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: _KColors.ink)),
+                if (_missing.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('Choose ${_missing.join(' and ')}',
+                        style: const TextStyle(
+                            fontSize: 11.5, color: _KColors.muted)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: _KSpace.md),
+          SizedBox(
+            height: 48,
+            width: 170,
+            child: FilledButton(
+              onPressed: blocked || _adding ? null : _add,
+              style: FilledButton.styleFrom(
+                backgroundColor: _KColors.primary,
+                disabledBackgroundColor: _KColors.line,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(_radiusChip)),
+              ),
+              child: Text(
+                blocked ? 'Out of stock' : 'Add to basket',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionChip extends StatelessWidget {
+  const _OptionChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(_radiusChip),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          // Selected is a filled tint with a brand border, not a colour swap on
+          // the text alone: at a glance a shopper has to see WHICH size is
+          // chosen, and a one-shade text difference does not carry that.
+          color: selected ? _KColors.primarySoft : _KColors.panel,
+          borderRadius: BorderRadius.circular(_radiusChip),
+          border: Border.all(
+            color: selected ? _KColors.primary : _KColors.line,
+            width: selected ? 1.6 : 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: _KColors.ink,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TermRow extends StatelessWidget {
+  const _TermRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+              color: _KColors.primarySoft, shape: BoxShape.circle),
+          child: Icon(icon, size: 18, color: _KColors.primary),
+        ),
+        const SizedBox(width: _KSpace.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: _KColors.ink)),
+              const SizedBox(height: 2),
+              Text(detail,
+                  style: const TextStyle(
+                      fontSize: 12, height: 1.35, color: _KColors.muted)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

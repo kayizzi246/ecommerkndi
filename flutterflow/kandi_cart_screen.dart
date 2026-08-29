@@ -1,14 +1,4 @@
 // Automatic FlutterFlow imports
-// ---- Two boilerplate imports are deliberately absent ----
-//
-// FlutterFlow's generated header normally opens with
-//
-//     import '/backend/backend.dart';
-//     import '/backend/supabase/supabase.dart';
-//
-// and this project has neither file. See the note at the head of
-// kandi_design.dart — adding them back breaks the web build in every custom
-// widget at once. Do not add them back.
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/custom_code/widgets/index.dart'; // Imports other custom widgets
@@ -17,58 +7,166 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// ---- Direct imports, rather than leaning on index.dart ----
-//
-// FlutterFlow's generated `/custom_code/widgets/index.dart` re-exports each
-// custom widget with a `show <WidgetName>` clause — so it carries the WIDGET
-// across files and nothing else. That is enough for the old screens, which
-// only ever referenced each other's widget classes; it is not enough here,
-// where every screen needs `KandiColors`, `KandiType`, `KandiCache` and the
-// rest, none of which is a widget.
-//
-// Importing the sibling file directly takes the whole of it. Harmless if
-// index.dart turns out to re-export everything, and essential if it does
-// not — which is why it is done this way rather than assumed either way.
-//
-// The paths follow FlutterFlow's own naming: a custom widget called
-// `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
-// Name the widgets exactly as SETUP.md says or these paths will not resolve.
-import '/custom_code/widgets/kandi_design.dart';
-import '/custom_code/widgets/kandi_cart_store.dart';
-import '/custom_code/widgets/kandi_product_screen.dart';
-import '/custom_code/widgets/kandi_checkout_screen.dart';
+// Imports go BELOW the header — FlutterFlow rewrites it on save and drops
+// anything added there. Do not add the `/backend/` imports it offers.
+import 'dart:convert';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
-//  KANDI — CART
+//  KANDI — CART PAGE
 //
-//  The basket, rebuilt on the design system and on the shared
-//  store in `kandi_cart_store.dart`.
+//  What is in the basket, what it comes to, and the way out.
 //
-//  WHAT THIS SCREEN IS RESPONSIBLE FOR
-//  -----------------------------------------------------------
-//  Showing the lines, editing them, and getting out of the way.
-//  It owns no state of its own: `KandiCart` holds the basket and
-//  this listens to it, which is why the badge in the masthead
-//  and the total down here can never disagree.
+//  Self-contained like every page in this app — its own
+//  palette, HTTP and model, all file-private so two pages
+//  cannot collide in FlutterFlow's flat widget folder. The full
+//  reasoning is at the head of kandi_home_screen.dart.
 //
-//  THE TOTAL IS A SUBTOTAL, AND IT SAYS SO
-//  -----------------------------------------------------------
-//  Delivery is priced at checkout, from the shopper's own
-//  address, so this screen cannot know it. It prints "Subtotal"
-//  and a line saying delivery comes next rather than a "Total"
-//  that is about to change — a number that moves between the
-//  cart and the checkout is the single fastest way to lose
-//  somebody's trust at the last step.
+//  ---- How the basket gets here ----
+//
+//  Through the disk, not through code. There is no shared cart
+//  object for three pages to hold, so what they share is the
+//  STORAGE: one SharedPreferences key, one JSON shape. The home
+//  page and the product page write it; this page reads it. None
+//  of the three imports the others for it.
+//
+//  The cost of that is real and worth naming: this page has to
+//  re-read on every open, because it has no way to be told the
+//  basket changed while it was closed. That is why the load
+//  happens in `initState` and again whenever the page is
+//  returned to.
+//
+//  ---- Prices are re-checked, not trusted ----
+//
+//  A line stores the unit price AS IT WAS when it was added.
+//  Prices move, and a basket picked up a week later must not
+//  bill last week's figure — so this page asks the API what
+//  each product costs NOW and shows the difference where there
+//  is one. That check belongs here rather than at checkout,
+//  where a surprise is a lost order.
 // ============================================================
 
-/// The basket.
-///
-/// The free-delivery threshold used to be a parameter, on the reasoning that
-/// the home feed already carries it and a second request to learn one number
-/// is a request the shopper waits for. Both halves of that are still true —
-/// which is why it comes from [KandiShop], the holder the home feed fills in
-/// as a side effect of the fetch it was making anyway. Nothing extra goes over
-/// the wire, and nobody has to type the number into the builder.
+class _KColors {
+  const _KColors._();
+  static const Color canvas = Color(0xFFF8F7F4);
+  static const Color panel = Color(0xFFFFFFFF);
+  static const Color ink = Color(0xFF111827);
+  static const Color body = Color(0xFF4B5563);
+  static const Color muted = Color(0xFF6B7280);
+  static const Color faint = Color(0xFF9CA3AF);
+  static const Color line = Color(0xFFE5E7EB);
+  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color primary = Color(0xFFFF6A00);
+  static const Color primarySoft = Color(0xFFFFF3E8);
+  static const Color save = Color(0xFF15803D);
+  static const Color saveSoft = Color(0xFFF0FDF4);
+  static const Color warn = Color(0xFFB45309);
+  static const Color warnSoft = Color(0xFFFDF3E6);
+}
+
+class _KSpace {
+  const _KSpace._();
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+}
+
+const double _radiusPanel = 16;
+const double _radiusPhoto = 12;
+const double _radiusChip = 8;
+const String _apiBase = 'https://kandiug.com';
+
+/// The one string every page in this app agrees on. Change it here and it must
+/// change in every page file at the same time.
+const String _basketKey = 'kandi-cart-v1';
+
+String _money(num amount) {
+  final whole = amount.round().toString();
+  final out = StringBuffer();
+  for (int i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) out.write(',');
+    out.write(whole[i]);
+  }
+  return 'UGX $out';
+}
+
+/// One line in the basket.
+class _KLine {
+  _KLine({
+    required this.key,
+    required this.productId,
+    required this.name,
+    required this.image,
+    required this.price,
+    required this.priceLabel,
+    required this.quantity,
+    this.variantLabel,
+  });
+
+  final String key;
+  final int productId;
+  final String name;
+  final String image;
+
+  /// The unit price when the line was added.
+  final num price;
+  final String priceLabel;
+  int quantity;
+  final String? variantLabel;
+
+  /// What the shop charges now, once re-checked. Null until the check runs.
+  ///
+  /// Set by `_recheck` after construction rather than passed in: a line is
+  /// built from what was SAVED, and the live figure is a fact about the shop
+  /// that arrives later. Making it a constructor argument would invite a caller
+  /// to supply both at once, which is the state this page exists to compare.
+  num? livePrice;
+
+  /// False when the product has gone out of stock since it was added. Set by
+  /// `_recheck`, for the same reason as `livePrice`.
+  bool available = true;
+
+  /// Billed at the live price where one is known — the basket must total what
+  /// the checkout will actually charge.
+  num get unit => livePrice ?? price;
+  num get lineTotal => unit * quantity;
+
+  /// Whether the price moved since it was added, in either direction.
+  bool get priceChanged => livePrice != null && livePrice != price;
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'productId': productId,
+        'name': name,
+        'image': image,
+        'price': price,
+        'priceLabel': priceLabel,
+        'quantity': quantity,
+        'variantLabel': variantLabel,
+      };
+
+  static _KLine? from(dynamic json) {
+    if (json is! Map) return null;
+    final id = json['productId'];
+    final quantity = json['quantity'];
+    if (id is! int || quantity is! int || quantity < 1) return null;
+    return _KLine(
+      key: (json['key'] ?? '$id::').toString(),
+      productId: id,
+      name: (json['name'] ?? '').toString(),
+      image: (json['image'] ?? '').toString(),
+      price: json['price'] is num ? json['price'] as num : 0,
+      priceLabel: (json['priceLabel'] ?? '').toString(),
+      quantity: quantity,
+      variantLabel: json['variantLabel']?.toString(),
+    );
+  }
+}
+
 class KandiCartScreen extends StatefulWidget {
   const KandiCartScreen({super.key, this.width, this.height});
 
@@ -80,7 +178,11 @@ class KandiCartScreen extends StatefulWidget {
 }
 
 class _KandiCartScreenState extends State<KandiCartScreen> {
-  bool _ready = false;
+  List<_KLine> _lines = [];
+  bool _loading = true;
+  bool _checking = false;
+  num _freeDeliveryFrom = 0;
+  int _returnsDays = 0;
 
   @override
   void initState() {
@@ -89,351 +191,553 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
   }
 
   Future<void> _load() async {
-    await KandiCart.load();
-    if (mounted) setState(() => _ready = true);
+    setState(() => _loading = true);
 
-    // The threshold the summary quotes. Usually already in hand from the home
-    // feed, in which case this returns without a request.
-    await KandiShop.ensure();
-    if (mounted) setState(() {});
+    final lines = <_KLine>[];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_basketKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final entry in decoded) {
+            final line = _KLine.from(entry);
+            if (line != null) lines.add(line);
+          }
+        }
+      }
+    } catch (_) {
+      // A basket that will not parse is one from an older build. Starting
+      // empty is recoverable; throwing takes out the screen.
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _lines = lines;
+      _loading = false;
+    });
+
+    if (lines.isNotEmpty) _recheck();
   }
+
+  /// Asks the shop what each line costs now.
+  ///
+  /// One request per distinct product. That is fine for a basket — a basket is
+  /// a handful of lines, not a catalogue — and it uses the same product
+  /// endpoint the product page does rather than needing a new bulk route.
+  Future<void> _recheck() async {
+    setState(() => _checking = true);
+
+    final ids = _lines.map((line) => line.productId).toSet();
+    final prices = <int, num>{};
+    final stock = <int, bool>{};
+    num? freeFrom;
+    int? returns;
+
+    for (final id in ids) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_apiBase/api/app/product/$id'))
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode != 200) continue;
+        final data = jsonDecode(response.body);
+        if (data is! Map) continue;
+        final product = data['product'];
+        if (product is! Map) continue;
+        if (product['price'] is num) prices[id] = product['price'] as num;
+        stock[id] = product['inStock'] != false;
+        final commerce = data['commerce'];
+        if (commerce is Map) {
+          if (commerce['freeDeliveryFrom'] is num) {
+            freeFrom = commerce['freeDeliveryFrom'] as num;
+          }
+          if (commerce['returnsDays'] is int) {
+            returns = commerce['returnsDays'] as int;
+          }
+        }
+      } catch (_) {
+        // A line whose check fails keeps its stored price. Better a slightly
+        // stale figure than a basket that refuses to open on a bad connection.
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      if (freeFrom != null) _freeDeliveryFrom = freeFrom;
+      if (returns != null) _returnsDays = returns;
+      for (final line in _lines) {
+        final live = prices[line.productId];
+        if (live != null) line.livePrice = live;
+        final inStock = stock[line.productId];
+        if (inStock != null) line.available = inStock;
+      }
+    });
+  }
+
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _basketKey,
+        jsonEncode(_lines.map((line) => line.toJson()).toList()),
+      );
+    } catch (_) {
+      // The basket is still correct for this session; a failed write costs
+      // persistence across a restart, which is not worth an error the shopper
+      // cannot act on.
+    }
+  }
+
+  Future<void> _setQuantity(_KLine line, int quantity) async {
+    setState(() {
+      if (quantity < 1) {
+        _lines.removeWhere((entry) => entry.key == line.key);
+      } else {
+        line.quantity = quantity;
+      }
+    });
+    await _persist();
+  }
+
+  Future<void> _remove(_KLine line) async {
+    // Removing is undoable rather than confirmed. A confirmation dialogue on
+    // every removal is four taps to tidy a basket; an undo is one tap only if
+    // it was a mistake, and costs nothing when it was not.
+    final index = _lines.indexWhere((entry) => entry.key == line.key);
+    setState(() => _lines.removeWhere((entry) => entry.key == line.key));
+    await _persist();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${line.name} removed'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Undo',
+          textColor: Colors.white,
+          onPressed: () async {
+            setState(() =>
+                _lines.insert(index.clamp(0, _lines.length), line));
+            await _persist();
+          },
+        ),
+      ),
+    );
+  }
+
+  num get _subtotal =>
+      _lines.fold<num>(0, (total, line) => total + line.lineTotal);
+
+  int get _count => _lines.fold<int>(0, (total, line) => total + line.quantity);
+
+  bool get _hasUnavailable => _lines.any((line) => !line.available);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: widget.width,
       height: widget.height,
-      color: KandiColors.page,
       child: Scaffold(
-        backgroundColor: KandiColors.page,
-        appBar: kandiAppBar(context, 'Your cart'),
-        // Listening to the store rather than holding a copy. Every edit below
-        // writes to `KandiCart` and this rebuilds from it, so there is exactly
-        // one version of the basket in the app at any moment.
-        body: ValueListenableBuilder<int>(
-          valueListenable: KandiCart.revision,
-          builder: (context, _, __) {
-            if (!_ready) return _skeleton();
-            if (KandiCart.isEmpty) return _empty();
-            return _lines();
-          },
+        backgroundColor: _KColors.canvas,
+        appBar: AppBar(
+          backgroundColor: _KColors.panel,
+          surfaceTintColor: _KColors.panel,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          iconTheme: const IconThemeData(color: _KColors.ink),
+          title: Text(
+            _lines.isEmpty ? 'Basket' : 'Basket ($_count)',
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: _KColors.ink),
+          ),
         ),
-        bottomNavigationBar: ValueListenableBuilder<int>(
-          valueListenable: KandiCart.revision,
-          builder: (context, _, __) {
-            if (!_ready || KandiCart.isEmpty) return const SizedBox.shrink();
-            return _summary();
-          },
-        ),
+        body: _buildBody(),
+        bottomNavigationBar: _lines.isEmpty ? null : _buildSummary(),
       ),
     );
   }
 
-  Widget _lines() {
-    final lines = KandiCart.lines;
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(
+          child: CircularProgressIndicator(color: _KColors.primary));
+    }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(KandiSpace.gutter),
-      itemCount: lines.length,
-      separatorBuilder: (_, __) => const SizedBox(height: KandiSpace.sm),
-      itemBuilder: (context, index) => _line(lines[index]),
-    );
-  }
-
-  Widget _line(KandiCartLine line) {
-    return Dismissible(
-      key: ValueKey(line.key),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: KandiSpace.xl),
-        decoration: BoxDecoration(
-          color: KandiColors.saleSoft,
-          borderRadius: KandiRadius.md,
-        ),
-        child: const Icon(Icons.delete_outline_rounded,
-            color: KandiColors.sale, size: 22),
-      ),
-      onDismissed: (_) => _remove(line),
-      child: KandiCard(
-        padding: const EdgeInsets.all(KandiSpace.md),
-        onTap: () => KandiNav.open(
-          context,
-          const KandiProductScreen(),
-          args: line.productId,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            KandiImage(url: line.image, width: 76, height: 76),
-            const SizedBox(width: KandiSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    line.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: KandiType.label(),
-                  ),
-                  if (line.options.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      // "Colour: Blue · Size: 42" — the choices, printed back.
-                      // A basket line that hides them is a line a shopper has
-                      // to open the product page to verify.
-                      line.options.entries
-                          .map((e) => '${e.key}: ${e.value}')
-                          .join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: KandiType.caption(),
-                    ),
-                  ],
-                  const SizedBox(height: KandiSpace.sm),
-                  Row(
-                    children: [
-                      Text(
-                        kandiPrice(line.price),
-                        style: KandiType.price(size: 15),
-                      ),
-                      const Spacer(),
-                      _stepper(line),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stepper(KandiCartLine line) {
-    return Container(
-      decoration: BoxDecoration(
-        color: KandiColors.hairline,
-        borderRadius: KandiRadius.sm,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _step(
-            // At one, the minus becomes a bin. Decrementing to zero and having
-            // the line vanish is a surprise; a bin icon says what the next tap
-            // does before it happens.
-            line.quantity > 1 ? Icons.remove_rounded : Icons.delete_outline_rounded,
-            () => line.quantity > 1
-                ? KandiCart.setQuantity(line.key, line.quantity - 1)
-                : _remove(line),
-          ),
-          SizedBox(
-            width: 32,
-            child: Text(
-              '${line.quantity}',
-              textAlign: TextAlign.center,
-              style: KandiType.title(),
-            ),
-          ),
-          _step(
-            Icons.add_rounded,
-            line.quantity >= 20
-                ? null
-                : () => KandiCart.setQuantity(line.key, line.quantity + 1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _step(IconData icon, VoidCallback? onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: KandiRadius.sm,
-      child: SizedBox(
-        width: 32,
-        height: 32,
-        child: Icon(
-          icon,
-          size: 16,
-          color: onTap == null ? KandiColors.faint : KandiColors.ink,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _remove(KandiCartLine line) async {
-    await KandiCart.remove(line.key);
-    if (!mounted) return;
-
-    // Undo rather than a confirmation dialog. A dialog interrupts the ninety
-    // per cent of removals that were intended in order to protect the ten that
-    // were not; undo costs the intended ones nothing and rescues the rest.
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            'Removed ${line.name}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: KandiType.label(color: Colors.white),
-          ),
-          backgroundColor: KandiColors.band,
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(borderRadius: KandiRadius.md),
-          margin: const EdgeInsets.all(KandiSpace.lg),
-          action: SnackBarAction(
-            label: 'Undo',
-            textColor: KandiColors.deal,
-            onPressed: () => KandiCart.add(
-              productId: line.productId,
-              name: line.name,
-              price: line.price,
-              image: line.image,
-              slug: line.slug,
-              variationId: line.variationId,
-              options: line.options,
-              quantity: line.quantity,
-            ),
-          ),
-        ),
-      );
-  }
-
-  Widget _summary() {
-    final subtotal = KandiCart.subtotal;
-    final threshold = KandiShop.freeDeliveryFrom;
-    final away = threshold - subtotal;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        KandiSpace.gutter,
-        KandiSpace.md,
-        KandiSpace.gutter,
-        KandiSpace.md + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: const BoxDecoration(
-        color: KandiColors.surface,
-        boxShadow: KandiShadow.raised,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // The free-delivery nudge, and only when it is both true and
-          // reachable. Telling somebody with UGX 12,000 in the basket that
-          // they are UGX 138,000 from free delivery is not a nudge, it is a
-          // reminder of how far they are from anything.
-          if (threshold > 0 && away > 0 && away <= threshold * 0.4) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: KandiSpace.md,
-                vertical: KandiSpace.sm,
-              ),
-              decoration: BoxDecoration(
-                color: KandiColors.primarySoft,
-                borderRadius: KandiRadius.sm,
-              ),
-              child: Text(
-                'Add ${kandiPrice(away)} more for free delivery',
-                textAlign: TextAlign.center,
-                style: KandiType.caption(color: KandiColors.primaryInk)
-                    .copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(height: KandiSpace.md),
-          ] else if (threshold > 0 && away <= 0) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle_rounded,
-                    size: 15, color: KandiColors.success),
-                const SizedBox(width: KandiSpace.xs),
-                Text(
-                  'Your order qualifies for free delivery',
-                  style: KandiType.caption(color: KandiColors.success)
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            const SizedBox(height: KandiSpace.md),
-          ],
-
-          Row(
+    if (_lines.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(_KSpace.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // "Subtotal", not "Total". Delivery is priced at checkout
-                  // from the shopper's address, and a number that changes
-                  // after this screen is the fastest way to lose trust at the
-                  // last step.
-                  Text('Subtotal', style: KandiType.caption()),
-                  Text(kandiPrice(subtotal), style: KandiType.price(size: 20)),
-                  Text(
-                    'Delivery calculated at checkout',
-                    style: KandiType.micro(weight: FontWeight.w400),
-                  ),
-                ],
+              Container(
+                width: 76,
+                height: 76,
+                decoration: const BoxDecoration(
+                    color: _KColors.primarySoft, shape: BoxShape.circle),
+                child: const Icon(Icons.shopping_bag_outlined,
+                    size: 34, color: _KColors.primary),
               ),
-              const Spacer(),
+              const SizedBox(height: _KSpace.lg),
+              const Text('Your basket is empty',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: _KColors.ink)),
+              const SizedBox(height: _KSpace.sm),
+              const Text(
+                'Anything you add will be waiting here, even if you close the app.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 13.5, height: 1.5, color: _KColors.body),
+              ),
+              const SizedBox(height: _KSpace.xl),
               SizedBox(
-                width: 168,
-                child: KandiButton(
-                  label: 'Checkout',
-                  icon: Icons.lock_outline_rounded,
-                  onPressed: () => KandiNav.open(
-                    context,
-                    const KandiCheckoutScreen(),
+                width: 220,
+                height: 48,
+                child: FilledButton(
+                  // Back rather than a push to Home: this screen was opened
+                  // FROM somewhere, and pushing a second copy of that would
+                  // leave two on the stack.
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _KColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_radiusChip)),
                   ),
+                  child: const Text('Continue shopping',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
           ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          _KSpace.lg, _KSpace.lg, _KSpace.lg, _KSpace.xl),
+      children: [
+        if (_checking)
+          const Padding(
+            padding: EdgeInsets.only(bottom: _KSpace.md),
+            child: Row(
+              children: [
+                SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: _KColors.muted)),
+                SizedBox(width: _KSpace.sm),
+                Text('Checking prices and stock…',
+                    style: TextStyle(fontSize: 12.5, color: _KColors.muted)),
+              ],
+            ),
+          ),
+        if (_hasUnavailable)
+          Container(
+            margin: const EdgeInsets.only(bottom: _KSpace.md),
+            padding: const EdgeInsets.all(_KSpace.md),
+            decoration: BoxDecoration(
+              color: _KColors.warnSoft,
+              borderRadius: BorderRadius.circular(_radiusChip),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 17, color: _KColors.warn),
+                SizedBox(width: _KSpace.sm),
+                Expanded(
+                  child: Text(
+                    'Some items went out of stock. Remove them to check out.',
+                    style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: _KColors.warn),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_freeDeliveryFrom > 0) _buildDeliveryMeter(),
+        for (final line in _lines) _buildLine(line),
+      ],
+    );
+  }
+
+  /// How close the basket is to free delivery.
+  ///
+  /// The single most effective thing a basket screen can show: a shopper
+  /// UGX 12,000 short of free delivery is a shopper who will add something,
+  /// and a bar that says so converts better than the same fact in a sentence.
+  Widget _buildDeliveryMeter() {
+    final remaining = _freeDeliveryFrom - _subtotal;
+    final qualifies = remaining <= 0;
+    final progress =
+        _freeDeliveryFrom <= 0 ? 1.0 : (_subtotal / _freeDeliveryFrom).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: _KSpace.lg),
+      padding: const EdgeInsets.all(_KSpace.md),
+      decoration: BoxDecoration(
+        color: qualifies ? _KColors.saveSoft : _KColors.panel,
+        borderRadius: BorderRadius.circular(_radiusPanel),
+        border: Border.all(
+            color: qualifies ? _KColors.saveSoft : _KColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            qualifies
+                ? 'Your order ships free'
+                : 'Add ${_money(remaining)} more for free delivery',
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: qualifies ? _KColors.save : _KColors.ink,
+            ),
+          ),
+          const SizedBox(height: _KSpace.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress.toDouble(),
+              minHeight: 6,
+              backgroundColor: _KColors.hairline,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  qualifies ? _KColors.save : _KColors.primary),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _empty() {
-    return KandiEmpty(
-      icon: Icons.shopping_bag_outlined,
-      title: 'Your cart is empty',
-      message: 'Everything you add will be waiting here.',
-      actionLabel: 'Start shopping',
-      onAction: () => KandiNav.goTab(context, KandiNav.homeTab),
+  Widget _buildLine(_KLine line) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: _KSpace.md),
+      padding: const EdgeInsets.all(_KSpace.md),
+      decoration: BoxDecoration(
+        color: _KColors.panel,
+        borderRadius: BorderRadius.circular(_radiusPanel),
+        border: Border.all(color: _KColors.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(_radiusPhoto),
+            child: SizedBox(
+              width: 84,
+              height: 84,
+              child: line.image.isEmpty
+                  ? const ColoredBox(color: _KColors.hairline)
+                  : CachedNetworkImage(
+                      imageUrl: line.image,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) =>
+                          const ColoredBox(color: _KColors.hairline),
+                      errorWidget: (_, __, ___) =>
+                          const ColoredBox(color: _KColors.hairline),
+                    ),
+            ),
+          ),
+          const SizedBox(width: _KSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(line.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13.5, height: 1.35, color: _KColors.ink)),
+                if (line.variantLabel != null &&
+                    line.variantLabel!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(line.variantLabel!,
+                      style: const TextStyle(
+                          fontSize: 12, color: _KColors.muted)),
+                ],
+                const SizedBox(height: _KSpace.sm),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(_money(line.unit),
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: _KColors.ink)),
+                    // The old figure struck through, so a price rise is
+                    // visible rather than silent. A shopper who finds out at
+                    // checkout does not check out.
+                    if (line.priceChanged) ...[
+                      const SizedBox(width: 6),
+                      Text(_money(line.price),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: _KColors.faint,
+                              decoration: TextDecoration.lineThrough)),
+                    ],
+                  ],
+                ),
+                if (!line.available)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text('Out of stock',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _KColors.warn)),
+                  ),
+                const SizedBox(height: _KSpace.sm),
+                Row(
+                  children: [
+                    _StepButton(
+                      icon: Icons.remove_rounded,
+                      onTap: () => _setQuantity(line, line.quantity - 1),
+                    ),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: _KSpace.md),
+                      child: Text('${line.quantity}',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                    ),
+                    _StepButton(
+                      icon: Icons.add_rounded,
+                      onTap: () => _setQuantity(line, line.quantity + 1),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => _remove(line),
+                      tooltip: 'Remove',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          size: 20, color: _KColors.muted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _skeleton() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(KandiSpace.gutter),
-      itemCount: 3,
-      separatorBuilder: (_, __) => const SizedBox(height: KandiSpace.sm),
-      itemBuilder: (context, _) => const KandiCard(
-        padding: EdgeInsets.all(KandiSpace.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            KandiSkeleton(width: 76, height: 76),
-            SizedBox(width: KandiSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  KandiSkeleton(width: double.infinity, height: 13),
-                  SizedBox(height: KandiSpace.sm),
-                  KandiSkeleton(width: 120, height: 13),
-                  SizedBox(height: KandiSpace.md),
-                  KandiSkeleton(width: 90, height: 16),
-                ],
+  Widget _buildSummary() {
+    final blocked = _hasUnavailable;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        _KSpace.lg,
+        _KSpace.md,
+        _KSpace.lg,
+        // Clears the home indicator on a gesture-navigation phone.
+        _KSpace.md + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: _KColors.panel,
+        border: Border(top: BorderSide(color: _KColors.line)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Text('Subtotal',
+                  style: TextStyle(fontSize: 13.5, color: _KColors.muted)),
+              const Spacer(),
+              Text(_money(_subtotal),
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: _KColors.ink)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                _returnsDays > 0
+                    ? 'Delivery at checkout · $_returnsDays-day returns'
+                    : 'Delivery calculated at checkout',
+                style: const TextStyle(fontSize: 11.5, color: _KColors.muted),
+              ),
+            ],
+          ),
+          const SizedBox(height: _KSpace.md),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: FilledButton(
+              onPressed: blocked ? null : _checkout,
+              style: FilledButton.styleFrom(
+                backgroundColor: _KColors.primary,
+                disabledBackgroundColor: _KColors.line,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(_radiusChip)),
+              ),
+              child: Text(
+                blocked
+                    ? 'Remove out-of-stock items'
+                    : 'Checkout · ${_money(_subtotal)}',
+                style: const TextStyle(
+                    fontSize: 15.5, fontWeight: FontWeight.w700),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _checkout() {
+    // ---- Checkout is not built yet ----
+    //
+    // Deliberately a message rather than a dead button or a half-working
+    // screen. Payment is the one flow where a shopper must never be left
+    // guessing whether something happened, and the pages after this one —
+    // checkout, payment, order confirmation — are the next build.
+    //
+    // Saying so is the honest state; the basket is safe on the device either
+    // way, which is the part that matters until then.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Checkout is coming next — your basket is saved.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(_radiusChip),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radiusChip),
+          border: Border.all(color: _KColors.line),
         ),
+        child: Icon(icon, size: 17, color: _KColors.ink),
       ),
     );
   }
