@@ -374,8 +374,39 @@
    * marks nothing, and the moment a third asks for it the right answer is to
    * work out which of the three has stopped earning it.
    */
-  --color-shop-panel-trending: #e9f6f2;
-  --color-shop-panel-deals: #fdeeea;
+  /* Trending: a light violet shelf.
+     Mint held this slot for one pass. Violet is what the shop asked for and it
+     is the better half of the pair below — it puts the two lead shelves on one
+     colour STORY, cool violet for the browse and hot crimson for the hurry,
+     rather than two unrelated pastels. */
+  --color-shop-panel-trending: #7642d6;
+
+  /* ---- Super Deals: a real crimson, not a tint ----
+   *
+   * Every other ground on this page is a 96-97% pastel, and this one
+   * deliberately breaks that rule. A flash-sale shelf is the one block on a
+   * marketplace homepage that is allowed to shout, and the reference the shop
+   * gave draws it as a saturated red slab with white type and white product
+   * cards standing on it.
+   *
+   * Which means the rule the ink shelf was retired over applies again, and it
+   * is the single most important thing to know about this token: `ProductCard`
+   * sets all of its text in near-black, so dropping a tile straight onto
+   * #b8123a deletes every name, price and saving inside the band. The shelf
+   * MUST give its tiles a white card — `SuperDeals` does exactly that, and the
+   * header must run `tone="dark"`. A shelf's ground and the readability of what
+   * stands on it are one decision.
+   *
+   * #b8123a rather than a brighter red: white on it is 7.4:1, comfortably past
+   * AA for the heading and the "View All" link, where a lighter crimson drops
+   * under 4.5 and takes the section title with it.
+   */
+  --color-shop-panel-deals: #b8123a;
+
+  /* The category shelf: the palest violet on the page, so the strip reads as a
+     lighter member of the same family as Trending directly below it rather than
+     as a third unrelated colour. */
+  --color-shop-panel-categories: #f7f2fe;
 
   /* The panel edge: the canvas taken four steps darker, same hue. A neutral
      grey hairline on a warm ground is the one place a cool line is unmissable,
@@ -1477,8 +1508,21 @@ h6,
   background: var(--color-shop-panel-trending);
 }
 
+/**
+ * The crimson deals shelf.
+ *
+ * The ring is dropped rather than recoloured: a hairline exists to stop a light
+ * panel dissolving into a light page, and a saturated red against a 3%
+ * off-white has no such problem — a pale ring around it would read as a halo.
+ * Same reasoning the retired ink variant used.
+ */
 .shop-panel-deals {
   background: var(--color-shop-panel-deals);
+  box-shadow: none;
+}
+
+.shop-panel-categories {
+  background: var(--color-shop-panel-categories);
 }
 
 /**
@@ -1523,24 +1567,92 @@ h6,
  * decision stays where every other per-department decision is made and this
  * file only has to define what the colours ARE.
  */
+/**
+ * ---- Everything a saturated shelf has to do to stay readable ----
+ *
+ * Applied alongside any strong ground: Trending, Super Deals and all five
+ * department rails.
+ *
+ * This is the rule the shop's own history keeps rediscovering the hard way. The
+ * ink Super Deals shelf shipped once with a dark ground and nothing else, and
+ * was reverted within the hour because it DELETED the information inside it:
+ * `ProductCard` is a transparent block whose name, price and saving are all set
+ * in near-black, so a tile dropped onto a saturated colour has no text a shopper
+ * can read. The same is true of `DepartmentRail`, whose heading and subtitle are
+ * ink, and of `SectionHeader`'s subtitle.
+ *
+ * Writing it once as a class means the next shelf that takes a strong colour
+ * cannot forget any of it. A shelf's ground and the readability of what stands
+ * on it are ONE decision, and this is that decision expressed in one place.
+ *
+ * The tiles get a real white card rather than inverted text, deliberately:
+ * inverting `ProductCard` would mean a second colour mode inside a component
+ * used in thirty places, where a card is a surface the tile already knows how to
+ * stand on. It is also what the reference does — every saturated shelf on the
+ * marketplaces this shop is measured against puts white cards on the colour.
+ *
+ * Grounds are chosen so white type clears AA on all of them: the purple, blue,
+ * magenta, green, amber and teal below sit between 5.3:1 and 6.4:1 against
+ * white. A brighter green or amber would look better and fail the heading, which
+ * is why they are the darker steps.
+ */
+/* ---- `h2` only, and NOT `h3` ----
+ *
+ * This read `:is(h2, h3)` for one build and the screenshot caught it: every
+ * product name in a strong shelf vanished. `ProductCard` marks the name up as
+ * an `<h3>`, and the tiles stand on WHITE cards inside these shelves — so the
+ * rule was painting white text on a white card and deleting the one line that
+ * says what the product is.
+ *
+ * The section heading is the only thing on a strong shelf that sits directly on
+ * the colour, and it is always an `<h2>` — `SectionHeader` and
+ * `DepartmentRail`'s hand-rolled header both emit one. Anything deeper is
+ * inside a card and must keep its own ink.
+ *
+ * The lesson generalises past this selector: a descendant rule on a shelf reaches
+ * into the tiles, and the tiles are on a different surface from the shelf. Style
+ * the ground's own children, never everything under it.
+ */
+.shop-panel-strong h2 {
+  color: #ffffff;
+}
+
+.shop-panel-strong .section-sub {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.shop-panel-strong article {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+/* The photograph inside a carded tile already sits on white, so its own ring
+   and hairline ground would draw a second edge a few pixels inside the card's.
+   One surface, one edge. */
+.shop-panel-strong article > div > a > div {
+  --tw-ring-shadow: 0 0 #0000;
+  background: #ffffff;
+}
+
 .shop-panel-men {
-  background: #eaf1fb;
+  background: #1e56bd;
 }
 
 .shop-panel-women {
-  background: #fdeef5;
+  background: #b3175a;
 }
 
 .shop-panel-kids {
-  background: #fdf6e3;
+  background: #0b7a43;
 }
 
 .shop-panel-shoes {
-  background: #f2effd;
+  background: #b45309;
 }
 
 .shop-panel-sports {
-  background: #eaf6ec;
+  background: #0f6e6a;
 }
 
 /* ---- `.shop-panel-ink` is gone ----

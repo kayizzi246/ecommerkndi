@@ -283,8 +283,30 @@ export default async function CategoryPage({
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-4">
             <div>
-              <h1 className="section-title text-[20px] capitalize text-shop-ink md:text-[24px]">
-                {title}
+              {/* ---- The `<h1>` says what the title tag says ----
+
+                  This rendered the bare category name — "Shoes" — while
+                  `generateMetadata` above set the title to "Shoes in Uganda"
+                  and `CategoryIntro` at the foot of the page headed its prose
+                  "Buying shoes in Uganda". So the one element Google weighs
+                  most heavily on the page was the only place the target query
+                  was not stated, and it disagreed with both of its neighbours.
+
+                  "Shoes in Uganda" is what people type — the category pages are
+                  the ones that rank for a commercial query, and "<thing> in
+                  uganda" is the shape of that query. Saying it in the `<h1>`,
+                  the `<title>` and the closing prose is three consistent
+                  signals rather than two and a shrug.
+
+                  The locality is a `<span>` at a lighter weight rather than
+                  more of the same heading, because the page's SUBJECT is still
+                  shoes: a shopper who has just tapped "Shoes" does not need the
+                  country shouted at them, and Google reads the text either way.
+                  `capitalize` stays on the name only, so "shoes" title-cases
+                  and " in Uganda" is not turned into " In Uganda". */}
+              <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
+                <span className="capitalize">{title}</span>
+                <span className="font-normal text-shop-muted"> in Uganda</span>
               </h1>
               <p className="section-sub mt-1 text-[14px]">
                 {filtered

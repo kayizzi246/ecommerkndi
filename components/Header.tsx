@@ -493,7 +493,15 @@ export default function Header({
                 height={60}
                 unoptimized
                 priority
-                className="h-7 w-auto max-w-[124px] object-contain md:h-9 md:max-w-[156px]"
+                /* Up from 28/36px. The masthead lost two of its four bands on a
+                   phone and gained an always-open search field, so the row the
+                   logo sits in is doing more work and can afford to state the
+                   brand properly — a 28px wordmark was the smallest thing in a
+                   header that also carries a cart badge. `w-auto` with a
+                   `max-w` cap at both steps: the file is an arbitrary upload,
+                   so the height is what is being set and the width is only
+                   being stopped from running away. */
+                className="h-9 w-auto max-w-[150px] object-contain md:h-12 md:max-w-[200px]"
               />
             </span>
           ) : (
@@ -506,7 +514,7 @@ export default function Header({
                 <svg
                   // Scaled with the uploaded-logo branch above, so a shop that
                   // has not uploaded one gets the same masthead proportions.
-                  className="h-8 w-8 md:h-10 md:w-10"
+                  className="h-10 w-10 md:h-12 md:w-12"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -571,7 +579,7 @@ export default function Header({
                   23/27px display type — the same allowance the palette note in
                   `globals.css` makes for the logo. The suffix keeps the ink it
                   has always had, at 16:1. */}
-              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px]">
+              <span className="font-heading text-[22px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[26px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>

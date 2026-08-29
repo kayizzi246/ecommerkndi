@@ -13,6 +13,7 @@ import RecentlyViewed from "@/components/RecentlyViewed";
 import TrustBar from "@/components/home/TrustBar";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
+import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -141,6 +142,50 @@ export default async function Home() {
        ground and not the shop's. See the token's own note for why the other
        twelve page types must not inherit it. */
     <main className="pb-20">
+      {/* ---- What is actually on this page, told to Google ----
+
+           `itemListJsonLd` has existed in lib/seo.ts and been used by the
+           category and search pages since it was written. The homepage — the
+           page that ranks for the shop's own name and gets the most impressions
+           of anything here — emitted only `OnlineStore` and `WebSite`, which
+           describe the BUSINESS and say nothing about the merchandise. A
+           crawler reading it learned that KandiUg is a shop in Uganda and had
+           to infer the rest from forty product links.
+
+           This names the products the page is actually showing. It is a
+           faithful description rather than an optimisation: every entry is a
+           product rendered on this page, in the order the page renders it, with
+           the URL a shopper would land on.
+
+           Trending first, then the deals shelf, then the general catalogue,
+           deduplicated — the same order a reader meets them. Capped at 50 by
+           `itemListJsonLd` itself, which is the point at which a list stops
+           being a summary of the page and starts being a dump of the
+           catalogue; the sitemap is where the whole catalogue belongs.
+
+           It renders inside `<main>` rather than in `generateMetadata`, because
+           the list depends on `buildHomeFeed` and duplicating that call in the
+           metadata export would double the work for one script tag. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            itemListJsonLd(
+              `${brand} — shop online in Uganda`,
+              "/",
+              [...trending, ...deals, ...latest]
+                .filter(
+                  (product, index, all) =>
+                    all.findIndex((other) => other.id === product.id) === index
+                )
+                .map((product) => ({
+                  name: product.name,
+                  path: productPath(product),
+                }))
+            )
+          ),
+        }}
+      />
       {/* ---- The hero is gone, and this is the third time ----
 
            A hero banner has now been removed from this slot twice and added
@@ -474,8 +519,8 @@ export default async function Home() {
              the accent-shelf note in globals.css for why it is two sections,
              why they take different colours, and why it must stay
              two. */
-          <section id="trending" className="shop-panel shop-panel-trending scroll-mt-32">
-            <SectionHeader title="Trending now" href="/search?sort=popular" />
+          <section id="trending" className="shop-panel shop-panel-strong shop-panel-trending scroll-mt-32">
+            <SectionHeader title="Trending now" href="/search?sort=popular" tone="dark" />
             {/* The first rail on the page, and so the one carrying the largest
                 paint. Its leading tiles load eagerly; every rail below stays
                 lazy. */}

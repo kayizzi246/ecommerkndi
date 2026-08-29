@@ -122,10 +122,24 @@ export default function SectionHeader({
           >
             {title}
           </h2>
+          {/* ---- `!text-white/75`, and the `!` is load-bearing ----
+
+              This was `text-white/60` with no `!`, and on the crimson deals
+              shelf it did nothing at all: `.section-sub` in globals.css sets
+              `color: var(--color-shop-body)`, both are single-class selectors,
+              and the stylesheet wins on order. So the subtitle rendered in the
+              light-ground grey on a saturated red — about 1.6:1, effectively
+              invisible — while the class list claimed otherwise.
+
+              Raised to 75% at the same time. 60% white on #b8123a is 4.0:1 and
+              fails AA for body-sized text; 75% clears it. The old value was
+              chosen against #111827, where 60% is comfortable — a reminder that
+              a tone called "dark" is not one colour and its contrast has to be
+              rechecked whenever the ground it names changes. */}
           {subtitle && (
             <p
               className={`section-sub mt-0.5 text-[13.5px] ${
-                tone === "dark" ? "text-white/60" : ""
+                tone === "dark" ? "!text-white/75" : ""
               }`}
             >
               {subtitle}
@@ -138,7 +152,25 @@ export default function SectionHeader({
       {href && (
         <Link
           href={href}
-          className="flex shrink-0 items-center gap-1 text-[13.5px] font-semibold text-shop-primary transition-colors hover:text-shop-primary-dark"
+          /* ---- The link is white on a dark ground, not orange ----
+
+             The note at the top of this file says the brand orange needs no
+             adjustment when the ground flips, because #ff6a00 is 5.9:1 on
+             #111827. That was true and it was true about ONE dark ground. The
+             deals shelf is crimson now, and orange on #b8123a is about 2:1 —
+             two saturated warm hues a few degrees apart, which is both
+             unreadable and the exact colour clash the palette note warns
+             against.
+
+             White is the only safe answer on a ground the shelf is free to
+             change: it is 7.4:1 here and it cannot fail on any dark ground the
+             shop might pick next. The hover drops to 80% rather than shifting
+             hue, since there is no darker white to move to. */
+          className={`flex shrink-0 items-center gap-1 text-[13.5px] font-semibold transition-colors ${
+            tone === "dark"
+              ? "text-white hover:text-white/80"
+              : "text-shop-primary hover:text-shop-primary-dark"
+          }`}
         >
           {linkLabel}
           <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">

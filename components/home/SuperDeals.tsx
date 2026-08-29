@@ -80,13 +80,31 @@ export default function SuperDeals({ products }: { products: Product[] }) {
          The emphasis it gives up is real. What carries the section now is the
          countdown, the subtitle and the depth of the cuts themselves — content
          rather than colour. */
-      className="shop-panel shop-panel-deals"
+      /* ---- The tiles get white cards, and this is not optional ----
+
+         The ground is a saturated crimson now. `ProductCard` is a TRANSPARENT
+         block whose text sits directly on whatever is behind it, and all of
+         that text is near-black — so without this rule every name, price and
+         saving in the band disappears into the red. That exact failure shipped
+         once on the old ink version of this shelf and was reverted within the
+         hour; the note is kept because the trap is invisible until you look at
+         a screenshot.
+
+         A shelf's ground and the readability of what stands on it are ONE
+         decision. If this ground ever goes back to a pale tint, these overrides
+         and the `tone="dark"` on the header below come off together.
+
+         The descendant selector beats the card's own classes without
+         `!important`, and it lives with the shelf that needs it rather than as
+         a mode inside a component used in thirty other places. */
+      className="shop-panel shop-panel-strong shop-panel-deals"
     >
       <SectionHeader
         id="super-deals-heading"
         title="Super Deals"
         subtitle="Today's deepest cuts"
         href="/sale"
+        tone="dark"
       >
         {/* The countdown chip. It kept a pale ground back when the shelf was
             ink and everything else on it had to be inverted; the ground is the

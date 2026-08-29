@@ -619,7 +619,7 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="w-full object-cover object-center md:h-[500px]"
+                className="w-full object-cover object-center md:h-[530px]"
               />
             </picture>
           </div>

@@ -132,7 +132,7 @@ export default function DepartmentRail({
     // exists to break up. A department is the section a shopper navigates BY,
     // so a colour per aisle is what makes the page scannable at a flick. See
     // the `.shop-panel-*` block in globals.css.
-    <section aria-labelledby={id} className={`shop-panel ${band ?? ""}`}>
+    <section aria-labelledby={id} className={`shop-panel shop-panel-strong ${band ?? ""}`}>
       {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
           than using that component, so the homepage's spacing ratio has to be
           repeated here by hand or the tinted sections drift looser than the

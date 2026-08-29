@@ -799,7 +799,10 @@ export default function ProductCard({
             focus, so it stays reachable from the keyboard. Wishlisting is real
             functionality here; hiding it entirely would remove a feature to
             match a screenshot. */}
-        <div className="absolute left-2 top-2 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
+        {/* `z-20` to sit above the whole-card link added at the foot of this
+            component. Without it the overlay swallows the click and wishlisting
+            a product navigates to it instead. */}
+        <div className="absolute left-2 top-2 z-20 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
           <WishlistButton
             productId={product.id}
             name={product.name}
@@ -857,7 +860,9 @@ export default function ProductCard({
             where a thumb already is after tapping the picture. */}
         {/* Ringed rather than shadowed, for the reason on the wishlist button
             above: a white disc on a white product shot needs a drawn edge. */}
-        <div className="absolute bottom-2 right-2 rounded-full bg-white/95 ring-1 ring-black/5 backdrop-blur-sm">
+        {/* `z-20`, above the whole-card link — see the wishlist note. Adding to
+            the basket from a tile must not be a navigation. */}
+        <div className="absolute bottom-2 right-2 z-20 rounded-full bg-white/95 ring-1 ring-black/5 backdrop-blur-sm">
           <TileCartButton product={product} />
         </div>
       </div>
@@ -1334,6 +1339,35 @@ export default function ProductCard({
             freely, which is where a conditional row belongs. */}
         {!soldOut && <TileFreeDelivery price={product.price} />}
       </div>
+
+      {/* ---- The whole tile is the link ----
+
+          Only the photograph and the name were clickable. Everything else — the
+          price, the saving, the stock line, the swatches and all the whitespace
+          between them — did nothing, and a shopper who taps a tile aims at the
+          tile rather than at one of its two live regions. On a phone, where the
+          name is a single 12px line and the gaps between rows are thumb-sized,
+          most of the card was dead.
+
+          A stretched overlay rather than wrapping the article in an anchor:
+          wrapping would put the wishlist button and the add-to-cart button
+          INSIDE a link, which is invalid HTML and makes both controls navigate
+          on some browsers. The overlay covers the card and those two controls
+          are lifted above it with `z-20`.
+
+          `aria-hidden` and `tabIndex={-1}` because it is not a third route for
+          anyone reading the page with assistive technology — the name is
+          already a real link with the product name as its text, which is the
+          one a screen reader should find. This adds a pointer target, not a
+          destination.
+
+          `z-10` puts it over the tile body and under those two controls. */}
+      <Link
+        href={href}
+        aria-hidden
+        tabIndex={-1}
+        className="absolute inset-0 z-10"
+      />
     </article>
   );
 }

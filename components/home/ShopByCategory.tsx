@@ -67,6 +67,31 @@ import SectionHeader from "@/components/home/SectionHeader";
  */
 const SHOWN = 12;
 
+/**
+ * The card tints, cycled across the grid.
+ *
+ * Six rather than twelve: past six the eye stops reading them as a set and
+ * starts reading them as noise, and with twelve cards each colour lands twice,
+ * which is enough separation to scan by without turning the row into a
+ * paintbox.
+ *
+ * Every one is the palest step of a hue the shop already owns, at the same
+ * 96-97% luminance the rest of this page's tints use — see the accent-shelf
+ * note in globals.css. Pale enough that a white product disc sits on them
+ * without a visible edge, distinct enough to tell apart at a glance.
+ *
+ * `text` is only ever used by the lettered fallback, which sits on the tint
+ * rather than on the white disc and so needs the darker step of the same hue.
+ */
+const TINTS = [
+  { card: "bg-[#eef2fd]", text: "text-pop-blue" },
+  { card: "bg-[#fdeef5]", text: "text-pop-pink" },
+  { card: "bg-[#ecf8f0]", text: "text-shop-save" },
+  { card: "bg-[#fdf3e6]", text: "text-shop-primary-ink" },
+  { card: "bg-[#f2efFd]", text: "text-pop-violet" },
+  { card: "bg-[#e9f5f7]", text: "text-pop-blue" },
+] as const;
+
 /** A tile's worth of category, flattened out of the tree. */
 type Tile = {
   id: number;
@@ -156,11 +181,25 @@ export default function ShopByCategory({
   if (tiles.length < 4) return null;
 
   return (
-    <section aria-labelledby="departments-heading" className="shop-panel">
+    <section aria-labelledby="departments-heading" className="shop-panel shop-panel-categories">
+      {/* "Shop by category", not "Shop by department", and the rename is not
+          cosmetic: the footer already ships an `<h2>Shop by department</h2>` on
+          every page of the shop, so this section was giving the homepage two
+          identical second-level headings. Duplicate headings make a page
+          outline ambiguous to a crawler and to anyone moving through it by
+          heading — and the two lists are genuinely different, since the footer
+          holds departments while this holds departments AND their widest child
+          categories.
+
+          The subtitle names what the shop actually sells. It read "Every aisle
+          in the shop, one tap away", which is true and says nothing a search
+          engine or a first-time visitor can use; the categories themselves are
+          images and link text, so this line is the one place above the fold
+          that states the range in a sentence. */}
       <SectionHeader
         id="departments-heading"
-        title="Shop by department"
-        subtitle="Every aisle in the shop, one tap away"
+        title="Shop by category"
+        subtitle="Shoes, fashion, electronics and home — delivered countrywide"
         href="/categories"
         linkLabel="All categories"
       />
@@ -179,86 +218,81 @@ export default function ShopByCategory({
           shop asked for the arrangement the large marketplaces use here and
           that is the reason they use it — the category row is the one block on
           a marketplace homepage that must not grow with the catalogue.
+      {/* ---- Coloured cards, where this was a strip of white circles ----
 
-          `overflow-x-auto` with `no-scrollbar`, the same track the product
-          rails use, so the whole page scrolls one way and the shelves scroll
-          the other. A tile cut by the right edge is what says there is more.
+          The circles were the reference's shape and they had two problems the
+          shop asked to be rid of. They were monochrome — one violet repeated
+          twelve times, so the row read as a texture rather than as twelve
+          destinations — and a circle inscribed in its tile throws away the four
+          corners, which is most of the space a category thumbnail has.
 
-          It is markup-only: no arrows, no state, no `"use client"`. The rails
-          need a client component because they have scroll buttons and a
-          disabled state to track; a category strip is short enough to swipe or
-          flick, and adding a client bundle to the top of the homepage for two
-          chevrons would cost more than it buys. */}
-      <ul className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar sm:gap-3">
-        {tiles.map((category) => {
+          A card uses all of it, and giving each one its own colour turns the
+          row into the most scannable block on the page: a returning shopper
+          finds their aisle by colour before they have read a word. That is what
+          a category grid is for, and it is what the coloured department shelves
+          further down already do at full strength — this is the same idea at
+          tint strength, which is why the two do not fight.
+
+          The colours cycle through a fixed six rather than being keyed to a
+          category name. Names come from wp-admin and change; a modulo over the
+          rendered order cannot break, cannot collide, and gives an even spread
+          whatever the shop calls its aisles. It does mean a category can change
+          colour when another is added before it — acceptable for decoration,
+          which is all this is.
+
+          A grid rather than the scrolling strip it replaced: with twelve
+          coloured cards the row is the page's map, and a map that has to be
+          swiped is a map half of which is never seen. Three tidy phone rows is
+          the right cost for that.  */}
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        {tiles.map((category, index) => {
           /* The shop's own category artwork wins where it exists; otherwise a
-             real product photograph from that category, picked by the feed.
-             See `collectCategoryImages` in lib/home-feed.ts for why that pick
-             is stable rather than random. */
+             real product photograph from that category, picked by the feed. See
+             `collectCategoryImages` in lib/home-feed.ts for why that pick is
+             stable rather than random. */
           const image = category.image || categoryImages[category.id] || null;
+          const tint = TINTS[index % TINTS.length];
 
           return (
-            /* Fixed widths rather than a fraction of the container: a strip
-               sized in percentages shows a different number of tiles at every
-               breakpoint and never quite cuts one at the edge, which is what
-               tells a shopper to swipe. 96px on a phone puts three and a half
-               tiles on a 390px screen; 128 from `sm` is the size the labels
-               below need before two-word names start wrapping to three lines. */
-            <li key={category.id} className="w-[96px] shrink-0 sm:w-[128px]">
-              <Link href={`/category/${category.slug}`} className="group block">
-                {/* ---- The picture sits in a tinted well ----
-
-                    A square tile with a soft ground and the photograph inside
-                    it, which is the arrangement every large marketplace uses
-                    for this row. The tint matters: these are product cut-outs
-                    shot on white, so on a white panel they would float with no
-                    edge at all, and the well is what turns a photograph into a
-                    tile.
-
-                    `object-contain` with padding, NOT `object-cover`. A
-                    category tile is showing one representative object and a
-                    cover crop would slice it — this is the opposite case from
-                    the product grid, where the photograph IS the tile and
-                    filling the box is right.
-
-                    The ground lifts to the brand's soft tint on hover rather
-                    than the tile moving, so a strip of twelve never shifts
-                    under the pointer. */}
-                <span className="relative block aspect-square w-full overflow-hidden rounded-2xl bg-shop-hairline ring-1 ring-shop-line-warm transition-colors group-hover:bg-shop-primary-soft group-hover:ring-shop-primary">
+            <li key={category.id}>
+              <Link
+                href={`/category/${category.slug}`}
+                className={`group flex h-full flex-col items-center gap-2 rounded-2xl p-3 text-center transition-transform duration-200 hover:-translate-y-0.5 ${tint.card}`}
+              >
+                {/* The photograph sits on a white disc INSIDE the coloured
+                    card. Almost every image in this catalogue is a JPEG shot on
+                    white, so putting one straight onto a tint paints an opaque
+                    white rectangle over it — the exact seam that took the
+                    violet out of the circles a version ago. A white disc is
+                    honest about that: the photograph's own background and the
+                    disc are the same colour, so there is no edge to see, and
+                    the tint stays visible around it where nothing can paint
+                    over it. */}
+                <span className="relative block aspect-square w-full max-w-[76px] overflow-hidden rounded-full bg-white shadow-sm">
                   {image ? (
                     <Image
                       src={image}
                       alt=""
                       fill
-                      /* The tile is 96px on a phone and 128 above it, so the
-                         browser is told the real box rather than being left to
-                         fetch a full-viewport file for a thumbnail. */
-                      sizes="(max-width: 640px) 96px, 128px"
+                      sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 96px"
                       quality={90}
-                      className="object-contain p-2.5 transition-transform duration-300 group-hover:scale-105"
+                      className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    /* The last resort, and it now really is one: the feed
-                       supplies a photograph for any category the catalogue has
-                       stock in, so a lettered tile means an empty aisle. */
                     <span
                       aria-hidden
-                      className="flex h-full w-full items-center justify-center text-[26px] font-bold text-shop-primary-ink"
+                      className={`flex h-full w-full items-center justify-center text-[24px] font-bold ${tint.text}`}
                     >
                       {category.name.trim().charAt(0).toUpperCase()}
                     </span>
                   )}
                 </span>
 
-                {/* Under the tile rather than on it. A label burned into the
-                    corner of a photograph is unreadable against whatever the
-                    photograph happens to be there; underneath, on the panel, it
-                    is ink on white every time.
-
-                    Two lines then clamped: names run from "Men" to "Home &
-                    Living", and truncating to "Home &…" would be least legible
-                    exactly where it is least obvious what was cut. */}
-                <span className="mt-2 block text-center text-[11.5px] font-semibold leading-tight text-shop-ink transition-colors line-clamp-2 group-hover:text-shop-primary md:text-[12.5px]">
+                {/* Ink, not the card's own hue. The tints are pale enough that
+                    coloured type on them drops under AA at 12px, and the colour
+                    is already doing its job as the ground — a name is for
+                    reading. */}
+                <span className="line-clamp-2 text-[11.5px] font-semibold leading-tight text-shop-ink md:text-[12.5px]">
                   {category.name}
                 </span>
               </Link>
