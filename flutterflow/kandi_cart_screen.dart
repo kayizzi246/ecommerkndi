@@ -35,6 +35,8 @@ import 'package:flutter/material.dart';
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
 import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_product_screen.dart';
+import '/custom_code/widgets/kandi_checkout_screen.dart';
 
 // ============================================================
 //  KANDI — CART
@@ -59,30 +61,19 @@ import '/custom_code/widgets/kandi_cart_store.dart';
 //  somebody's trust at the last step.
 // ============================================================
 
+/// The basket.
+///
+/// The free-delivery threshold used to be a parameter, on the reasoning that
+/// the home feed already carries it and a second request to learn one number
+/// is a request the shopper waits for. Both halves of that are still true —
+/// which is why it comes from [KandiShop], the holder the home feed fills in
+/// as a side effect of the fetch it was making anyway. Nothing extra goes over
+/// the wire, and nobody has to type the number into the builder.
 class KandiCartScreen extends StatefulWidget {
-  const KandiCartScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onCheckout,
-    this.onOpenProduct,
-    this.onKeepShopping,
-    this.freeDeliveryFrom = 0,
-  });
+  const KandiCartScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  final VoidCallback? onCheckout;
-  final void Function(int productId)? onOpenProduct;
-  final VoidCallback? onKeepShopping;
-
-  /// The threshold, so the screen can say how far off free delivery is.
-  ///
-  /// Passed in rather than fetched: the home feed already carries it, and a
-  /// second request from the cart to learn one number is a request the shopper
-  /// waits for.
-  final num freeDeliveryFrom;
 
   @override
   State<KandiCartScreen> createState() => _KandiCartScreenState();
@@ -100,6 +91,11 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
   Future<void> _load() async {
     await KandiCart.load();
     if (mounted) setState(() => _ready = true);
+
+    // The threshold the summary quotes. Usually already in hand from the home
+    // feed, in which case this returns without a request.
+    await KandiShop.ensure();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -161,7 +157,11 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       onDismissed: (_) => _remove(line),
       child: KandiCard(
         padding: const EdgeInsets.all(KandiSpace.md),
-        onTap: () => widget.onOpenProduct?.call(line.productId),
+        onTap: () => KandiNav.open(
+          context,
+          const KandiProductScreen(),
+          args: line.productId,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -305,7 +305,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
 
   Widget _summary() {
     final subtotal = KandiCart.subtotal;
-    final threshold = widget.freeDeliveryFrom;
+    final threshold = KandiShop.freeDeliveryFrom;
     final away = threshold - subtotal;
 
     return Container(
@@ -385,7 +385,10 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
                 child: KandiButton(
                   label: 'Checkout',
                   icon: Icons.lock_outline_rounded,
-                  onPressed: widget.onCheckout,
+                  onPressed: () => KandiNav.open(
+                    context,
+                    const KandiCheckoutScreen(),
+                  ),
                 ),
               ),
             ],
@@ -401,7 +404,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       title: 'Your cart is empty',
       message: 'Everything you add will be waiting here.',
       actionLabel: 'Start shopping',
-      onAction: widget.onKeepShopping,
+      onAction: () => KandiNav.goTab(context, KandiNav.homeTab),
     );
   }
 

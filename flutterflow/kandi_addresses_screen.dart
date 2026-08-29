@@ -232,33 +232,38 @@ class KandiAddresses {
   }
 }
 
+/// The address book.
+///
+/// Opened as `KandiNav.open(context, const KandiAddressesScreen(), args: true)`
+/// by the checkout — the only screen that opens this to CHOOSE rather than to
+/// manage. The difference is what a tap does: pick and pop, or edit. In pick
+/// mode the screen pops itself with the chosen [KandiAddress], so the checkout
+/// awaits the push rather than being handed a callback it could forget.
 class KandiAddressesScreen extends StatefulWidget {
-  const KandiAddressesScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.pickMode = false,
-    this.onPicked,
-  });
+  const KandiAddressesScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// Opened from the checkout to CHOOSE one, rather than from the account to
-  /// manage them. The difference is what a tap does: pick and pop, or edit.
-  final bool pickMode;
-
-  final void Function(KandiAddress address)? onPicked;
 
   @override
   State<KandiAddressesScreen> createState() => _KandiAddressesScreenState();
 }
 
 class _KandiAddressesScreenState extends State<KandiAddressesScreen> {
+  /// True when the checkout opened this to pick one. Off the route rather than
+  /// the constructor — see [KandiNav.open].
+  bool _pickMode = false;
+
   @override
   void initState() {
     super.initState();
     KandiAddresses.load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _pickMode = KandiNav.argsOf<bool>(context) ?? false;
   }
 
   Future<void> _edit([KandiAddress? existing]) async {
@@ -281,7 +286,7 @@ class _KandiAddressesScreenState extends State<KandiAddressesScreen> {
         backgroundColor: KandiColors.page,
         appBar: kandiAppBar(
           context,
-          widget.pickMode ? 'Choose an address' : 'Delivery addresses',
+          _pickMode ? 'Choose an address' : 'Delivery addresses',
         ),
         body: ValueListenableBuilder<int>(
           valueListenable: KandiAddresses.revision,
@@ -332,11 +337,10 @@ class _KandiAddressesScreenState extends State<KandiAddressesScreen> {
     return KandiCard(
       padding: const EdgeInsets.all(KandiSpace.md),
       onTap: () async {
-        if (widget.pickMode) {
+        if (_pickMode) {
           await KandiAddresses.select(address.id);
           if (!mounted) return;
-          widget.onPicked?.call(address);
-          Navigator.of(context).maybePop();
+          Navigator.of(context).pop(address);
         } else {
           await KandiAddresses.select(address.id);
         }
@@ -381,7 +385,7 @@ class _KandiAddressesScreenState extends State<KandiAddressesScreen> {
               ],
             ),
           ),
-          if (!widget.pickMode)
+          if (!_pickMode)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded,
                   size: 20, color: KandiColors.muted),

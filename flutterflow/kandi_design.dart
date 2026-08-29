@@ -20,9 +20,24 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 
+// ---- Every import this file adds goes BELOW the line above ----
+//
+// FlutterFlow regenerates the header block on save. An import added up there
+// is silently dropped, and the failure is a long way from the cause: the file
+// stops compiling, so FlutterFlow's parser cannot find the widget class in it
+// and reports "No widget "KandiDesign" found" — which reads like a naming
+// problem and is not one.
+//
+// `services.dart` is here rather than beside `material.dart` for exactly that
+// reason. It is not optional: `Clipboard` lives in it, and `material.dart`
+// does not re-export it.
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ============================================================
 //  KANDI — THE DESIGN SYSTEM
@@ -636,7 +651,14 @@ class KandiCard extends StatelessWidget {
     // nothing feels broken long before anybody can say why.
     return Material(
       color: Colors.transparent,
-      child: InkWell(onTap: onTap, borderRadius: radius, child: card),
+      child: InkWell(
+        onTap: () {
+          KandiFeel.tap();
+          onTap!();
+        },
+        borderRadius: radius,
+        child: card,
+      ),
     );
   }
 }
@@ -834,7 +856,12 @@ class KandiButton extends StatelessWidget {
             : Colors.transparent,
         borderRadius: KandiRadius.md,
         child: InkWell(
-          onTap: disabled ? null : onPressed,
+          onTap: disabled
+              ? null
+              : () {
+                  KandiFeel.press();
+                  onPressed!();
+                },
           borderRadius: KandiRadius.md,
           child: Container(
             decoration: BoxDecoration(
@@ -1023,6 +1050,15 @@ PreferredSizeWidget kandiAppBar(
 /// Wrapped so every screen reports success and failure the same way, and so
 /// the colour decision is made once rather than at forty call sites.
 void kandiToast(BuildContext context, String message, {bool error = false}) {
+  // The toast is where every screen already reports an outcome, so it is the
+  // one place that can say how the app should feel about it without forty
+  // call sites each remembering to.
+  if (error) {
+    KandiFeel.warn();
+  } else {
+    KandiFeel.success();
+  }
+
   ScaffoldMessenger.of(context)
     ..clearSnackBars()
     ..showSnackBar(
@@ -1035,6 +1071,428 @@ void kandiToast(BuildContext context, String message, {bool error = false}) {
         duration: const Duration(seconds: 3),
       ),
     );
+}
+
+// ============================================================
+//  THE SHOPPER'S TOKEN
+// ============================================================
+
+/// Reads the signed-in shopper's token.
+///
+/// ---- Why it lives here rather than with the orders screen ----
+///
+/// It used to sit in `kandi_orders_screen.dart`, on the reasoning that orders
+/// are what a token is for. Three files then needed it — orders, help, and the
+/// sign-in screen, which clears it on the way out — and the sign-in screen
+/// importing the orders screen to reach it is what made the import graph a
+/// ring rather than a line. A ring has no paste order.
+///
+/// It belongs here on its own merits anyway: it is the credential the network
+/// layer two hundred lines up is going to carry, not a detail of one screen.
+///
+/// The seller centre deliberately keeps a SEPARATE session under its own key —
+/// the two are different WordPress accounts and one person routinely has both.
+/// Merging them would sign a seller out of shopping.
+class KandiSession {
+  KandiSession._();
+
+  static const String _tokenKey = 'kandi_auth_token';
+
+  static String? _token;
+  static bool _loaded = false;
+
+  static Future<String?> token() async {
+    if (_loaded) return _token;
+    _loaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _token = prefs.getString(_tokenKey);
+    } catch (_) {
+      _token = null;
+    }
+    return _token;
+  }
+
+  static Future<Map<String, String>> headers() async {
+    final t = await token();
+    return {
+      'Content-Type': 'application/json',
+      if (t != null && t.isNotEmpty) 'Authorization': 'Bearer $t',
+    };
+  }
+
+  /// Forgets the session in memory as well as on disk.
+  ///
+  /// The in-memory half matters: without it a shopper who signs out and
+  /// straight back in as somebody else keeps the first token for the rest of
+  /// the process, and sees the wrong person's orders.
+  static Future<void> clear() async {
+    _token = null;
+    _loaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+    } catch (_) {}
+  }
+}
+
+// ============================================================
+//  HOW IT FEELS IN THE HAND
+// ============================================================
+
+/// Haptics, in four strengths.
+///
+/// ---- Why a wrapper and not `HapticFeedback` at each call site ----
+///
+/// A shopping app that buzzes at everything is a shopping app people turn the
+/// vibration off for, and then it buzzes at nothing. The point of routing it
+/// all through here is that the strength is decided ONCE per KIND of event
+/// rather than forty times by whoever was writing that screen:
+///
+///   [tap]      a selection changed — a tab, a chip, a variation, a push
+///   [press]    a real button went down
+///   [success]  something landed — added to the basket, order placed
+///   [warn]     something did not — a failed payment, a rejected form
+///
+/// It is also the one switch: [enabled] turns the whole thing off, which
+/// matters because these fire on a phone in somebody's hand all day.
+///
+/// Every method is fire-and-forget and swallows its own errors. Haptics are
+/// unavailable on the web and on a good many Android handsets, and an app that
+/// throws because a phone has no vibration motor would be an absurd way to
+/// lose a checkout.
+class KandiFeel {
+  KandiFeel._();
+
+  /// Turn everything off in one place.
+  static bool enabled = true;
+
+  /// A selection changed — a tab, a chip, a size, opening a screen.
+  ///
+  /// `selectionClick` on purpose: it is the lightest of the four, and this is
+  /// the one that fires most often by a wide margin.
+  static void tap() => _fire(HapticFeedback.selectionClick);
+
+  /// A button went down.
+  static void press() => _fire(HapticFeedback.lightImpact);
+
+  /// It worked. Added to the basket, order placed, review posted.
+  static void success() => _fire(HapticFeedback.mediumImpact);
+
+  /// It did not. A failed payment, a form that will not submit.
+  static void warn() => _fire(HapticFeedback.heavyImpact);
+
+  static void _fire(Future<void> Function() effect) {
+    if (!enabled) return;
+    try {
+      // Unawaited. A haptic is a side effect of a tap that has already been
+      // handled; nothing should ever wait on the motor.
+      unawaited(effect());
+    } catch (_) {
+      // No motor, or a platform that does not implement the channel.
+    }
+  }
+}
+
+// ============================================================
+//  WHERE A TAP GOES
+// ============================================================
+
+/// Navigation, decided here rather than handed in.
+///
+/// ---- Why this replaced the callbacks ----
+///
+/// Every screen used to take its navigation as parameters — `onOpenProduct`,
+/// `onOpenCart`, `onSignIn` — on the reasoning that FlutterFlow owns the route
+/// table and a custom widget calling `Navigator` is guessing at names the
+/// designer can rename.
+///
+/// That reasoning holds only while the destinations are FlutterFlow pages.
+/// They are not: every screen a tap leads to is a class in these fifteen
+/// files. A callback that a page has to fill in so that it can construct a
+/// widget from this same set is a hole punched in the app and then patched
+/// from outside — forty parameters to declare by hand in the builder, each one
+/// a chance to typo a name and get a screen that renders and does nothing.
+///
+/// So the destinations are named directly. `Navigator.push` with the widget,
+/// not `pushNamed` with a string — there is no route table to be wrong about,
+/// and the analyser catches a mistake that a typed parameter name never could.
+///
+/// The one thing this file cannot name is the SHELL, because the shell imports
+/// the screens and nothing imports it back. Tab switching therefore goes
+/// through [tabSelector], which the shell installs on itself.
+class KandiNav {
+  KandiNav._();
+
+  static const int homeTab = 0;
+  static const int browseTab = 1;
+  static const int cartTab = 2;
+  static const int accountTab = 3;
+
+  /// Installed by `KandiShell` in `initState`, and the only piece of
+  /// navigation still handed in rather than named.
+  ///
+  /// It has to be: `kandi_shell.dart` imports the four tab screens, so a
+  /// screen that imported the shell back would close the loop and there would
+  /// be no order in which to paste these files. A function pointer crosses
+  /// that boundary where an import cannot.
+  ///
+  /// Null when the screens are used without the shell — on a FlutterFlow page
+  /// of their own. Everything still works; a "go to the cart" tap pops back to
+  /// whatever the page is instead of selecting a tab.
+  static void Function(int tab)? tabSelector;
+
+  /// Pushes a screen on top of the current one, optionally handing it a value.
+  ///
+  /// ---- Why [args] and not a constructor parameter ----
+  ///
+  /// FlutterFlow parses the constructor of every widget class it is bound to
+  /// and turns each named parameter into something to declare by hand in the
+  /// builder. `int productId` was the last of those. So the id does not travel
+  /// on the constructor any more — it travels on the ROUTE, which FlutterFlow
+  /// never looks at, and the screen reads it back with [argsOf].
+  ///
+  /// The screens are therefore constructed as `const KandiProductScreen()`
+  /// everywhere, and every one of the fifteen has an empty parameter list.
+  static Future<T?> open<T>(
+    BuildContext context,
+    Widget screen, {
+    Object? args,
+  }) {
+    KandiFeel.tap();
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute<T>(
+        builder: (_) => screen,
+        settings: RouteSettings(arguments: args),
+      ),
+    );
+  }
+
+  /// What [open] was given, or null.
+  ///
+  /// Must be read from `didChangeDependencies` or `build`, never `initState`:
+  /// `ModalRoute.of` is an inherited-widget lookup and there is nothing to look
+  /// up yet when `initState` runs.
+  ///
+  /// Null is always a legitimate answer — a tab inside `KandiShell` is not a
+  /// route of its own, so the four tab screens read nothing here and fall back
+  /// to their defaults. That is exactly right: the cart tab IS the cart with
+  /// no argument.
+  static T? argsOf<T>(BuildContext context) {
+    final value = ModalRoute.of(context)?.settings.arguments;
+    return value is T ? value : null;
+  }
+
+  /// Unwinds to the shell and selects a tab.
+  ///
+  /// The `popUntil` is the half that is easy to forget: selecting the cart tab
+  /// underneath four pushed product pages leaves the shopper looking at the
+  /// product page they were already on.
+  static void goTab(BuildContext context, int tab) {
+    KandiFeel.tap();
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    tabSelector?.call(tab);
+  }
+
+  /// Hands a URL to the OS — the storefront, a document, a payment page.
+  ///
+  /// `externalApplication` rather than an in-app view on purpose: these links
+  /// go to pages a shopper may have to sign in on, and an in-app browser has
+  /// its own cookie jar that the phone's browser has already been through.
+  static Future<void> openUrl(BuildContext context, String url) async {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+
+    final uri = Uri.tryParse(trimmed);
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        opened = false;
+      }
+    }
+
+    if (!opened && context.mounted) {
+      // Copying is the honest fallback. A toast saying "could not open" leaves
+      // the shopper with a link they can see and cannot use.
+      await Clipboard.setData(ClipboardData(text: trimmed));
+      if (context.mounted) kandiToast(context, 'Link copied');
+    }
+  }
+
+  /// Opens the dialler with the number in it, rather than placing the call.
+  static Future<void> dial(BuildContext context, String phone) async {
+    final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digits.isEmpty) return;
+    await openUrl(context, 'tel:$digits');
+  }
+
+  /// WhatsApp, through `wa.me` so it works whether or not the app is installed
+  /// — the browser hands off to the app when it is there.
+  static Future<void> whatsApp(
+    BuildContext context,
+    String number, {
+    String message = '',
+  }) async {
+    final digits = number.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return;
+    final query = message.trim().isEmpty
+        ? ''
+        : '?text=${Uri.encodeComponent(message.trim())}';
+    await openUrl(context, 'https://wa.me/$digits$query');
+  }
+
+  /// Sharing, without `share_plus`.
+  ///
+  /// The share sheet needs `share_plus`, which is not in the pubspec, and a
+  /// pasted custom widget cannot add one — a missing package fails the whole
+  /// web build, in every widget at once. The clipboard is in Flutter itself and
+  /// gets the link into the shopper's WhatsApp either way.
+  ///
+  /// To upgrade it: add `share_plus: ^7.2.2` under Settings → App Settings →
+  /// Pubspec Dependencies FIRST, then swap the body of this method.
+  static Future<void> shareLink(BuildContext context, String url) async {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: trimmed));
+    if (context.mounted) kandiToast(context, 'Link copied');
+  }
+}
+
+// ============================================================
+//  WHAT THE SHOP SAYS ABOUT ITSELF
+// ============================================================
+
+/// The shop's settings, fetched once and readable from anywhere.
+///
+/// ---- Why this is not passed in either ----
+///
+/// The delivery threshold, the returns window and the contact details used to
+/// arrive as parameters on the cart and help screens, from a page that had
+/// them in app state. That meant declaring them by hand in the builder, and a
+/// value that went stale the moment the shop changed it in WordPress.
+///
+/// `/api/app/home` already carries all five in its `commerce` and `support`
+/// blocks. The home screen [adopt]s them as a side effect of the fetch it was
+/// making anyway, so in the ordinary run of the app nothing extra is
+/// requested; [ensure] is for the screens a shopper can reach before ever
+/// seeing the home feed.
+///
+/// The last-known values are kept on disk, so a cart opened cold shows the
+/// right threshold on its first frame rather than after a round trip.
+class KandiShop {
+  KandiShop._();
+
+  static const String _prefsKey = 'kandi-shop-v1';
+
+  /// Free delivery above this, or 0 when the shop offers none.
+  static num freeDeliveryFrom = 0;
+
+  /// The returns window in days, or 0 when the shop does not publish one.
+  static int returnsDays = 0;
+
+  static String phone = '';
+  static String email = '';
+  static String whatsapp = '';
+
+  static bool _loaded = false;
+  static Future<void>? _loading;
+
+  /// Whether anything has been read yet — from disk or from the server.
+  static bool get isLoaded => _loaded;
+
+  /// Takes the settings out of a `/api/app/home` body.
+  ///
+  /// Called by the home screen with the payload it already has. Silent about
+  /// anything it does not recognise: a field the server stops sending should
+  /// leave the last known value alone rather than zeroing it.
+  static void adopt(dynamic raw) {
+    if (raw is! Map) return;
+
+    final commerce = raw['commerce'];
+    if (commerce is Map) {
+      if (commerce['freeDeliveryFrom'] is num) {
+        freeDeliveryFrom = commerce['freeDeliveryFrom'] as num;
+      }
+      if (commerce['returnsDays'] is num) {
+        returnsDays = (commerce['returnsDays'] as num).round();
+      }
+    }
+
+    final support = raw['support'];
+    if (support is Map) {
+      phone = (support['phone'] ?? '').toString();
+      email = (support['email'] ?? '').toString();
+      whatsapp = (support['whatsapp'] ?? '').toString();
+    }
+
+    _loaded = true;
+    unawaited(_save());
+  }
+
+  /// Makes sure the settings are in hand, at most once per launch.
+  ///
+  /// Restores from disk first so a screen that awaits this still paints
+  /// quickly on a slow connection, then corrects from the server.
+  static Future<void> ensure() {
+    if (_loaded) return Future<void>.value();
+    return _loading ??= _load();
+  }
+
+  static Future<void> _load() async {
+    await _restore();
+
+    final result = await KandiApi.get('/api/app/home');
+    if (result.status == 200) {
+      adopt(result.data);
+    } else {
+      // A failed fetch still counts as an attempt: retrying it on every
+      // rebuild of a screen that is offline is how a spinner becomes a battery
+      // complaint.
+      _loaded = true;
+    }
+  }
+
+  static Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getString(_prefsKey);
+      if (stored == null) return;
+      final decoded = jsonDecode(stored);
+      if (decoded is! Map) return;
+
+      if (decoded['freeDeliveryFrom'] is num) {
+        freeDeliveryFrom = decoded['freeDeliveryFrom'] as num;
+      }
+      if (decoded['returnsDays'] is num) {
+        returnsDays = (decoded['returnsDays'] as num).round();
+      }
+      phone = (decoded['phone'] ?? phone).toString();
+      email = (decoded['email'] ?? email).toString();
+      whatsapp = (decoded['whatsapp'] ?? whatsapp).toString();
+    } catch (_) {
+      // Corrupt or unreadable storage is not worth failing a screen over.
+    }
+  }
+
+  static Future<void> _save() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _prefsKey,
+        jsonEncode(<String, dynamic>{
+          'freeDeliveryFrom': freeDeliveryFrom,
+          'returnsDays': returnsDays,
+          'phone': phone,
+          'email': email,
+          'whatsapp': whatsapp,
+        }),
+      );
+    } catch (_) {
+      // Same.
+    }
+  }
 }
 
 // ============================================================
@@ -1342,7 +1800,12 @@ class KandiProductTile extends StatelessWidget {
       borderRadius: KandiRadius.md,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: onTap == null
+            ? null
+            : () {
+                KandiFeel.tap();
+                onTap!();
+              },
         child: SizedBox(
           width: width,
           child: Column(
@@ -1454,7 +1917,13 @@ class KandiProductTile extends StatelessWidget {
       elevation: 1.5,
       shadowColor: const Color(0x33111827),
       child: InkWell(
-        onTap: () => onAdd!(product),
+        onTap: () {
+          // Success rather than a tap: on a product that goes straight in, this
+          // is the moment the basket changed, and it is the one confirmation
+          // a shopper gets without looking away from the grid.
+          KandiFeel.success();
+          onAdd!(product);
+        },
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: 34,

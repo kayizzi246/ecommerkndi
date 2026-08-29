@@ -34,6 +34,8 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
+import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_support_screen.dart';
 
 // ============================================================
 //  KANDI — PRODUCT
@@ -323,52 +325,26 @@ class _Detail {
   }
 }
 
+/// One product, in full.
+///
+/// Opened as `KandiNav.open(context, const KandiProductScreen(), args: id)`.
+/// The id rides on the route rather than the constructor so that this class
+/// has no parameters at all — see [KandiNav.open].
 class KandiProductScreen extends StatefulWidget {
-  const KandiProductScreen({
-    super.key,
-    this.width,
-    this.height,
-    required this.productId,
-    this.onAddToCart,
-    this.onBuyNow,
-    this.onOpenCart,
-    this.onOpenSeller,
-    this.onShare,
-  });
+  const KandiProductScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-  final int productId;
-
-  /// Called with the product and, for a variable product, the chosen
-  /// variation id and attribute map. The cart is owned elsewhere; this screen
-  /// only decides WHAT is being added.
-  final void Function(
-    KandiProduct product,
-    int? variationId,
-    Map<String, String> options,
-    int quantity,
-  )? onAddToCart;
-
-  final void Function(
-    KandiProduct product,
-    int? variationId,
-    Map<String, String> options,
-    int quantity,
-  )? onBuyNow;
-
-  final VoidCallback? onOpenCart;
-  final void Function(String slug)? onOpenSeller;
-  final void Function(String url)? onShare;
 
   @override
   State<KandiProductScreen> createState() => _KandiProductScreenState();
 }
 
 class _KandiProductScreenState extends State<KandiProductScreen> {
-  late final String _key = 'product:${widget.productId}';
+  int _productId = 0;
+  String _key = '';
 
-  late _Detail? _detail = KandiCache.peek<_Detail>(_key);
+  _Detail? _detail;
   bool _failed = false;
 
   final PageController _gallery = PageController();
@@ -378,9 +354,29 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   /// Attribute name to chosen value.
   final Map<String, String> _chosen = <String, String>{};
 
+  /// Guards the one-time setup below.
+  bool _started = false;
+
+  /// Reads the product id off the route, once.
+  ///
+  /// Here rather than in `initState` because `ModalRoute.of` is an
+  /// inherited-widget lookup and `initState` runs before there is anything to
+  /// look up. `didChangeDependencies` can fire again — a theme change, a
+  /// rotation — so the flag is what keeps this from refetching.
+  ///
+  /// The synchronous `peek` matters as much as it did when the id came from a
+  /// constructor: `build` runs with the detail already in hand on a second
+  /// visit, so the screen paints the product rather than a skeleton.
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+
+    _productId = KandiNav.argsOf<int>(context) ?? 0;
+    _key = 'product:$_productId';
+    _detail = KandiCache.peek<_Detail>(_key);
+
     _load();
   }
 
@@ -400,7 +396,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
         ttl: const Duration(minutes: 3),
         fetch: () async {
           final result =
-              await KandiApi.get('/api/app/product/${widget.productId}');
+              await KandiApi.get('/api/app/product/$_productId');
           if (result.status != 200) throw StateError('product');
           return _Detail.fromJson(result.data);
         },
@@ -477,18 +473,18 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
           context,
           '',
           actions: [
-            if (widget.onShare != null && detail != null)
+            if (detail != null)
               IconButton(
-                onPressed: () => widget.onShare!(detail.product.url),
+                onPressed: () =>
+                    KandiNav.shareLink(context, detail.product.url),
                 icon: const Icon(Icons.ios_share_rounded,
                     size: 20, color: KandiColors.ink),
               ),
-            if (widget.onOpenCart != null)
-              IconButton(
-                onPressed: widget.onOpenCart,
-                icon: const Icon(Icons.shopping_bag_outlined,
-                    size: 21, color: KandiColors.ink),
-              ),
+            IconButton(
+              onPressed: () => KandiNav.goTab(context, KandiNav.cartTab),
+              icon: const Icon(Icons.shopping_bag_outlined,
+                  size: 21, color: KandiColors.ink),
+            ),
           ],
         ),
         body: detail == null
@@ -515,7 +511,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
         _terms(detail),
         if (detail.sellerName != null) _seller(detail),
         if (detail.description.isNotEmpty) _description(detail),
-        if (detail.ratingCount > 0) _reviews(detail),
+        _reviews(detail),
         // Clears the pinned buy bar. Without it the last card sits under the
         // bar and looks clipped — the classic "the page ends too early" bug.
         const SizedBox(height: KandiSpace.xxl),
@@ -956,9 +952,12 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
           horizontal: KandiSpace.lg,
           vertical: KandiSpace.md,
         ),
-        onTap: detail.sellerSlug == null || widget.onOpenSeller == null
+        onTap: detail.sellerSlug == null
             ? null
-            : () => widget.onOpenSeller!(detail.sellerSlug!),
+            : () => KandiNav.openUrl(
+                  context,
+                  '$kandiApiBase/sellers/${detail.sellerSlug}',
+                ),
         child: Row(
           children: [
             Container(
@@ -987,7 +986,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                 ],
               ),
             ),
-            if (detail.sellerSlug != null && widget.onOpenSeller != null)
+            if (detail.sellerSlug != null)
               const Icon(Icons.chevron_right_rounded,
                   color: KandiColors.faint),
           ],
@@ -1035,6 +1034,23 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                 Text('Reviews', style: KandiType.heading()),
                 const SizedBox(width: KandiSpace.sm),
                 Text('(${detail.ratingCount})', style: KandiType.caption()),
+                const Spacer(),
+                // The only way into the review form now that no page wires
+                // one up. `/api/products/[id]/reviews` has accepted a POST all
+                // along; before this it was reachable only from a callback
+                // somebody had to remember to fill in.
+                TextButton(
+                  onPressed: () => _writeReview(detail),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'Write one',
+                    style: KandiType.label(color: KandiColors.primary),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: KandiSpace.md),
@@ -1163,14 +1179,8 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                     Expanded(
                       child: KandiButton(
                         label: 'Buy now',
-                        onPressed: needsChoice || widget.onBuyNow == null
-                            ? null
-                            : () => widget.onBuyNow!(
-                                  detail.product,
-                                  variation?.id,
-                                  Map<String, String>.from(_chosen),
-                                  _quantity,
-                                ),
+                        onPressed:
+                            needsChoice ? null : () => _buyNow(detail),
                       ),
                     ),
                   ],
@@ -1180,17 +1190,62 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
     );
   }
 
-  void _add(_Detail detail) {
-    widget.onAddToCart?.call(
-      detail.product,
-      _variation?.id,
-      Map<String, String>.from(_chosen),
-      _quantity,
+  /// Puts the chosen variation in the basket.
+  ///
+  /// The basket used to be owned elsewhere and handed a callback, on the
+  /// reasoning that this screen should only decide WHAT is being added. But
+  /// `KandiCart` is a store, not a screen — every caller of that callback did
+  /// exactly this, so the indirection bought nothing and cost a parameter that
+  /// a page could forget to wire, leaving an Add to cart button that did
+  /// nothing at all.
+  Future<void> _add(_Detail detail) async {
+    await KandiCart.add(
+      productId: detail.product.id,
+      name: detail.product.name,
+      price: (_variation?.price ?? detail.product.price).toDouble(),
+      image: detail.product.image,
+      slug: detail.product.slug,
+      variationId: _variation?.id,
+      options: Map<String, String>.from(_chosen),
+      quantity: _quantity,
     );
+
     // The cart changed, so anything holding a cart total is now wrong.
     // A screen that mutates data is responsible for saying so.
     KandiCache.invalidate('cart');
-    kandiToast(context, 'Added to your cart');
+    if (mounted) kandiToast(context, 'Added to your cart');
+  }
+
+  /// Opens the review form, and refetches if a review actually landed.
+  Future<void> _writeReview(_Detail detail) async {
+    final posted = await KandiNav.open<bool>(
+      context,
+      const KandiReviewScreen(),
+      args: KandiReviewArgs(
+        productId: _productId,
+        productName: detail.product.name,
+        productImage: detail.product.image,
+      ),
+    );
+    if (!mounted || posted != true) return;
+    // The form has already invalidated this key; reloading is what puts the
+    // new review on the screen the shopper is looking at.
+    setState(() {});
+    await _load();
+  }
+
+  /// Add, then go straight to the basket.
+  ///
+  /// ---- Why this stops at the basket rather than the checkout ----
+  ///
+  /// The checkout screen reaches the payment screen, the payment screen
+  /// reaches the order list, and the order list reaches this screen — so a
+  /// product screen that imported the checkout would close a ring, and a ring
+  /// of imports has no order to paste the files in. Ending on the basket costs
+  /// one tap and keeps the fifteen files in a line.
+  Future<void> _buyNow(_Detail detail) async {
+    await _add(detail);
+    if (mounted) KandiNav.goTab(context, KandiNav.cartTab);
   }
 
   // ============================================================

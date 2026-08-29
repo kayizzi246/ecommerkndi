@@ -35,7 +35,6 @@ import 'package:flutter/material.dart';
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
 import '/custom_code/widgets/kandi_auth_screen.dart';
-import '/custom_code/widgets/kandi_orders_screen.dart';
 
 // ============================================================
 //  KANDI — HELP, ADDRESSES AND REVIEWS
@@ -74,35 +73,24 @@ import '/custom_code/widgets/kandi_orders_screen.dart';
 //  HELP
 // ============================================================
 
+/// Help, contact, and the shop's answers to the five things it gets asked.
+///
+/// ---- The numbers on this screen are not typed anywhere ----
+///
+/// The phone number, the WhatsApp number, the delivery threshold and the
+/// returns window used to be parameters, filled in by hand in the builder from
+/// app state. Two problems with that: a shop that changed its returns policy
+/// in WordPress had an app that went on quoting the old one until somebody
+/// remembered to edit a widget, and the same five values had to be typed again
+/// on every screen that quoted them.
+///
+/// They come from [KandiShop] now, which reads them from the same
+/// `/api/app/home` payload the home feed arrives in.
 class KandiSupportScreen extends StatefulWidget {
-  const KandiSupportScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.phone = '',
-    this.whatsapp = '',
-    this.email = '',
-    this.freeDeliveryFrom = 0,
-    this.returnsDays = 0,
-    this.onCall,
-    this.onWhatsApp,
-  });
+  const KandiSupportScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// Contact details, from the shop's settings rather than typed here.
-  final String phone;
-  final String whatsapp;
-  final String email;
-
-  final num freeDeliveryFrom;
-  final int returnsDays;
-
-  /// Dialling and opening WhatsApp are handoffs to the OS, which FlutterFlow
-  /// owns. This screen decides WHAT to offer, not how to launch it.
-  final void Function(String phone)? onCall;
-  final void Function(String number)? onWhatsApp;
 
   @override
   State<KandiSupportScreen> createState() => _KandiSupportScreenState();
@@ -121,6 +109,14 @@ class _KandiSupportScreenState extends State<KandiSupportScreen> {
   @override
   void initState() {
     super.initState();
+
+    // The delivery threshold and the returns window are quoted in the answers
+    // below. A shopper can reach this screen from the account tab without ever
+    // having loaded the home feed, so it cannot be assumed they are in hand.
+    KandiShop.ensure().then((_) {
+      if (mounted) setState(() {});
+    });
+
     // Prefills from the signed-in account, because asking somebody for their
     // email when the app already knows it is asking them to prove they are
     // paying attention.
@@ -147,7 +143,7 @@ class _KandiSupportScreenState extends State<KandiSupportScreen> {
         (
           'How long does delivery take?',
           'Around Kampala, one to two working days. Upcountry, up to five. '
-              '${widget.freeDeliveryFrom > 0 ? "Delivery is free on orders over ${kandiPrice(widget.freeDeliveryFrom)}." : ""}',
+              '${KandiShop.freeDeliveryFrom > 0 ? "Delivery is free on orders over ${kandiPrice(KandiShop.freeDeliveryFrom)}." : ""}',
         ),
         (
           'How do I pay?',
@@ -156,8 +152,8 @@ class _KandiSupportScreenState extends State<KandiSupportScreen> {
         ),
         (
           'Can I return something?',
-          widget.returnsDays > 0
-              ? 'Yes — within ${widget.returnsDays} days of delivery, in its '
+          KandiShop.returnsDays > 0
+              ? 'Yes — within ${KandiShop.returnsDays} days of delivery, in its '
                   'original condition with tags attached. If it arrived faulty '
                   'or wrong, we cover the courier both ways.'
               : 'Yes. If it arrived faulty or wrong, we cover the courier both '
@@ -248,19 +244,19 @@ class _KandiSupportScreenState extends State<KandiSupportScreen> {
 
   Widget _contactRow() {
     final options = <(IconData, String, String, VoidCallback?)>[
-      if (widget.whatsapp.isNotEmpty)
+      if (KandiShop.whatsapp.isNotEmpty)
         (
           Icons.chat_bubble_outline_rounded,
           'WhatsApp',
           'Usually fastest',
-          () => widget.onWhatsApp?.call(widget.whatsapp),
+          () => KandiNav.whatsApp(context, KandiShop.whatsapp),
         ),
-      if (widget.phone.isNotEmpty)
+      if (KandiShop.phone.isNotEmpty)
         (
           Icons.phone_outlined,
           'Call us',
-          widget.phone,
-          () => widget.onCall?.call(widget.phone),
+          KandiShop.phone,
+          () => KandiNav.dial(context, KandiShop.phone),
         ),
     ];
 
@@ -478,25 +474,31 @@ class _KandiSupportScreenState extends State<KandiSupportScreen> {
 ///
 /// `/api/products/[id]/reviews` has accepted a POST all along and nothing in
 /// the app ever called it — a shopper could read reviews and not write one.
-class KandiReviewScreen extends StatefulWidget {
-  const KandiReviewScreen({
-    super.key,
-    this.width,
-    this.height,
+/// The product a review is being written about.
+///
+/// Rides on the route rather than the constructor — see [KandiNav.open].
+class KandiReviewArgs {
+  const KandiReviewArgs({
     required this.productId,
     this.productName = '',
     this.productImage = '',
-    this.onDone,
   });
-
-  final double? width;
-  final double? height;
 
   final int productId;
   final String productName;
   final String productImage;
+}
 
-  final VoidCallback? onDone;
+/// Write a review of something you bought.
+///
+/// Pushed from the product screen, which is the only place that knows which
+/// product is being reviewed. It pops itself with `true` when the review
+/// lands, so the product screen knows to refetch.
+class KandiReviewScreen extends StatefulWidget {
+  const KandiReviewScreen({super.key, this.width, this.height});
+
+  final double? width;
+  final double? height;
 
   @override
   State<KandiReviewScreen> createState() => _KandiReviewScreenState();
@@ -506,6 +508,20 @@ class _KandiReviewScreenState extends State<KandiReviewScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _body = TextEditingController();
+
+  int _productId = 0;
+  String _productName = '';
+  String _productImage = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = KandiNav.argsOf<KandiReviewArgs>(context);
+    if (args == null) return;
+    _productId = args.productId;
+    _productName = args.productName;
+    _productImage = args.productImage;
+  }
 
   int _rating = 0;
   bool _sending = false;
@@ -550,7 +566,7 @@ class _KandiReviewScreenState extends State<KandiReviewScreen> {
     });
 
     final result = await KandiApi.post(
-      '/api/products/${widget.productId}/reviews',
+      '/api/products/$_productId/reviews',
       headers: await KandiSession.headers(),
       body: {
         'rating': _rating,
@@ -565,10 +581,10 @@ class _KandiReviewScreenState extends State<KandiReviewScreen> {
     if (result.status == 200 || result.status == 201) {
       // The product's cached detail carries the review list and the average,
       // both of which this has just changed.
-      KandiCache.invalidate('product:${widget.productId}');
+      KandiCache.invalidate('product:$_productId');
       setState(() => _sending = false);
       kandiToast(context, 'Thank you — your review is in');
-      widget.onDone?.call();
+      Navigator.of(context).pop(true);
       return;
     }
 
@@ -595,17 +611,17 @@ class _KandiReviewScreenState extends State<KandiReviewScreen> {
         body: ListView(
           padding: const EdgeInsets.all(KandiSpace.gutter),
           children: [
-            if (widget.productName.isNotEmpty)
+            if (_productName.isNotEmpty)
               KandiCard(
                 padding: const EdgeInsets.all(KandiSpace.md),
                 child: Row(
                   children: [
                     KandiImage(
-                        url: widget.productImage, width: 52, height: 52),
+                        url: _productImage, width: 52, height: 52),
                     const SizedBox(width: KandiSpace.md),
                     Expanded(
                       child: Text(
-                        widget.productName,
+                        _productName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: KandiType.label(),

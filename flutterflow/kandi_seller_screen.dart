@@ -194,20 +194,18 @@ Future<({int status, dynamic data})> _sellerCall(String path) async {
 ///
 /// The caller does not have to know which — and would get it wrong the first
 /// time a token expired.
+/// Seller Centre — sign in, and the numbers a seller checks daily.
+///
+/// The things this deliberately does NOT do — adding products, uploading
+/// documents, paying the joining fee — open kandiug.com in the phone's
+/// browser. That used to be an `onOpenWeb` callback for a page to fill in;
+/// [KandiNav.openUrl] does it here, so an unwired parameter can no longer
+/// leave a seller looking at a button that does nothing.
 class KandiSellerScreen extends StatefulWidget {
-  const KandiSellerScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onOpenWeb,
-  });
+  const KandiSellerScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// Opening kandiug.com for the things the app deliberately does not do —
-  /// adding products, uploading documents, paying the joining fee.
-  final void Function(String url)? onOpenWeb;
 
   @override
   State<KandiSellerScreen> createState() => _KandiSellerScreenState();
@@ -242,16 +240,8 @@ class _KandiSellerScreenState extends State<KandiSellerScreen> {
       valueListenable: KandiSellerSession.signedIn,
       builder: (context, signedIn, _) {
         return signedIn
-            ? _SellerDashboard(
-                width: widget.width,
-                height: widget.height,
-                onOpenWeb: widget.onOpenWeb,
-              )
-            : _SellerSignIn(
-                width: widget.width,
-                height: widget.height,
-                onOpenWeb: widget.onOpenWeb,
-              );
+            ? _SellerDashboard(width: widget.width, height: widget.height)
+            : _SellerSignIn(width: widget.width, height: widget.height);
       },
     );
   }
@@ -262,11 +252,10 @@ class _KandiSellerScreenState extends State<KandiSellerScreen> {
 // ============================================================
 
 class _SellerSignIn extends StatefulWidget {
-  const _SellerSignIn({this.width, this.height, this.onOpenWeb});
+  const _SellerSignIn({this.width, this.height});
 
   final double? width;
   final double? height;
-  final void Function(String url)? onOpenWeb;
 
   @override
   State<_SellerSignIn> createState() => _SellerSignInState();
@@ -433,8 +422,10 @@ class _SellerSignInState extends State<_SellerSignIn> {
             KandiButton(
               label: 'Open a store',
               tone: KandiButtonTone.outline,
-              onPressed: () =>
-                  widget.onOpenWeb?.call('$kandiApiBase/seller/register'),
+              onPressed: () => KandiNav.openUrl(
+                context,
+                '$kandiApiBase/seller/register',
+              ),
             ),
             const SizedBox(height: KandiSpace.xxl),
           ],
@@ -485,11 +476,10 @@ class _SellerSignInState extends State<_SellerSignIn> {
 // ============================================================
 
 class _SellerDashboard extends StatefulWidget {
-  const _SellerDashboard({this.width, this.height, this.onOpenWeb});
+  const _SellerDashboard({this.width, this.height});
 
   final double? width;
   final double? height;
-  final void Function(String url)? onOpenWeb;
 
   @override
   State<_SellerDashboard> createState() => _SellerDashboardState();
@@ -860,8 +850,10 @@ class _SellerDashboardState extends State<_SellerDashboard> {
           // is rather than showing a dead button. A tap that does nothing is a
           // bug report; a sentence naming the place is an instruction.
           InkWell(
-            onTap: () =>
-                widget.onOpenWeb?.call('$kandiApiBase/seller/products'),
+            onTap: () => KandiNav.openUrl(
+              context,
+              '$kandiApiBase/seller/products',
+            ),
             borderRadius: KandiRadius.sm,
             child: Row(
               children: [

@@ -35,6 +35,8 @@ import 'package:flutter/material.dart';
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
 import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_addresses_screen.dart';
+import '/custom_code/widgets/kandi_payment_screen.dart';
 
 import 'dart:math';
 
@@ -93,26 +95,20 @@ class _Quote {
   }
 }
 
+/// Name, address, payment method, and the button that makes an order.
+///
+/// Where it goes afterwards is decided here now. Cash on delivery is finished
+/// the moment the order exists, so it lands on the confirmation; a card or
+/// mobile-money order is real and unpaid until Pesapal says otherwise, so it
+/// lands on the payment screen with the token that lets it open Pesapal again.
+/// Both used to be an `onOrderPlaced` callback, which meant the one moment in
+/// the app where money changes hands depended on a parameter somebody had to
+/// remember to wire.
 class KandiCheckoutScreen extends StatefulWidget {
-  const KandiCheckoutScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onOrderPlaced,
-    this.onBackToCart,
-  });
+  const KandiCheckoutScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// Handed the order id and whether it still needs paying for.
-  ///
-  /// The screen does not navigate. Cash on delivery is finished when the order
-  /// exists; a card or mobile-money order has to go on to the payment page,
-  /// and which route that is belongs to FlutterFlow rather than here.
-  final void Function(int orderId, bool awaitingPayment)? onOrderPlaced;
-
-  final VoidCallback? onBackToCart;
 
   @override
   State<KandiCheckoutScreen> createState() => _KandiCheckoutScreenState();
@@ -292,7 +288,69 @@ class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
 
     if (!mounted) return;
     setState(() => _placing = false);
-    widget.onOrderPlaced?.call(orderId, _payment != 'cod');
+
+    final orderNumber = (data is Map ? data['number'] ?? '' : '').toString();
+    final paymentToken =
+        (data is Map ? data['payment_token'] ?? '' : '').toString();
+
+    // `pushReplacement`, not `push`. Going back to a checkout for a basket
+    // that has just been emptied is a screen that can only say "your cart is
+    // empty", and on a card order it is a second chance to place the same
+    // order twice.
+    final placed = _payment == 'cod';
+
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => placed
+            ? const KandiOrderPlacedScreen()
+            : const KandiPaymentScreen(),
+        // The arguments go on the ROUTE, which is where both screens read
+        // them from — see `KandiNav.open`. This is a `pushReplacement` rather
+        // than a `KandiNav.open`, so the settings are spelled out here.
+        settings: RouteSettings(
+          arguments: placed
+              ? orderNumber
+              : KandiPaymentArgs(
+                  orderId: orderId,
+                  orderNumber: orderNumber,
+                  paymentToken: paymentToken,
+                ),
+        ),
+      ),
+    );
+  }
+
+  /// Fills the delivery fields from the address book.
+  ///
+  /// The book existed and nothing opened it: `pickMode` was a parameter for a
+  /// page to wire up, and no page did. One button is the whole feature.
+  Future<void> _pickAddress() async {
+    final address = await KandiNav.open<KandiAddress>(
+      context,
+      const KandiAddressesScreen(),
+      args: true,
+    );
+    if (!mounted || address == null) return;
+
+    setState(() {
+      _address.text = address.street;
+      _city.text = address.city;
+      if (address.phone.isNotEmpty) _phone.text = address.phone;
+      if (address.notes.isNotEmpty) _notes.text = address.notes;
+
+      // "Jane Nakato" arrives as one field and leaves as two, because that is
+      // the shape WooCommerce wants.
+      final parts = address.name.trim().split(RegExp(r'\s+'));
+      if (parts.length > 1) {
+        _firstName.text = parts.first;
+        _lastName.text = parts.sublist(1).join(' ');
+      } else if (parts.first.isNotEmpty) {
+        _firstName.text = parts.first;
+      }
+    });
+
+    // The town may have changed, and with it what delivery costs.
+    await _fetchQuote();
   }
 
   // ============================================================
@@ -314,7 +372,7 @@ class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
                 title: 'Your cart is empty',
                 message: 'Add something to it before checking out.',
                 actionLabel: 'Back to cart',
-                onAction: widget.onBackToCart,
+                onAction: () => Navigator.of(context).maybePop(),
               )
             : Form(
                 key: _formKey,
@@ -411,7 +469,26 @@ class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Where it goes', style: KandiType.heading()),
+          Row(
+            children: [
+              Text('Where it goes', style: KandiType.heading()),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _pickAddress,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.bookmark_border_rounded,
+                    size: 17, color: KandiColors.primary),
+                label: Text(
+                  'Saved',
+                  style: KandiType.label(color: KandiColors.primary),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: KandiSpace.lg),
           _field(
             _address,

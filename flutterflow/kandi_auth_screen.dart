@@ -34,7 +34,6 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
-import '/custom_code/widgets/kandi_orders_screen.dart';
 
 import 'dart:convert';
 
@@ -186,26 +185,39 @@ class KandiAuth {
   }
 }
 
+/// Sign in, join, or reset a password.
+///
+/// ---- How it reports success, now that nothing is handed in ----
+///
+/// It pops itself with `true`. Every screen that sends a shopper here is
+/// pushing a route and can await the result, which is one less thing to
+/// declare and — unlike a callback — cannot be forgotten: a caller that
+/// ignores the result still gets a screen that closes itself.
+///
+/// ---- Width and height, and nothing else, on purpose ----
+///
+/// FlutterFlow parses THIS class's constructor when the file is saved and maps
+/// every named parameter onto one of its own types. `int`, `String`, `bool` and
+/// `double` map; a Dart enum does not, and the save fails with
+/// `Unable to process parameter "…"` — a complaint about the type, not about
+/// anything being missing.
+///
+/// So the screen opens on sign-in and switches itself. It always did: nothing
+/// ever constructed it with a mode, and the three states are one tap apart on
+/// the screen itself — "Create one" and "Forgotten your password?" are right
+/// there under the button.
 class KandiAuthScreen extends StatefulWidget {
-  const KandiAuthScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.mode = KandiAuthMode.signIn,
-    this.onSignedIn,
-  });
+  const KandiAuthScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-  final KandiAuthMode mode;
-  final VoidCallback? onSignedIn;
 
   @override
   State<KandiAuthScreen> createState() => _KandiAuthScreenState();
 }
 
 class _KandiAuthScreenState extends State<KandiAuthScreen> {
-  late KandiAuthMode _mode = widget.mode;
+  KandiAuthMode _mode = KandiAuthMode.signIn;
 
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -335,7 +347,7 @@ class _KandiAuthScreenState extends State<KandiAuthScreen> {
 
     if (!mounted) return;
     setState(() => _busy = false);
-    widget.onSignedIn?.call();
+    Navigator.of(context).pop(true);
   }
 
   @override

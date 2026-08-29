@@ -34,6 +34,8 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
+import '/custom_code/widgets/kandi_support_screen.dart';
+import '/custom_code/widgets/kandi_orders_screen.dart';
 
 import 'dart:async';
 
@@ -74,35 +76,57 @@ import 'dart:async';
 /// Where a payment has got to.
 enum KandiPaymentState { waiting, paid, failed, cancelled, unknown }
 
-class KandiPaymentScreen extends StatefulWidget {
-  const KandiPaymentScreen({
-    super.key,
-    this.width,
-    this.height,
+/// Unwinds to the shell and opens the order list.
+///
+/// The LIST rather than the order itself: both screens here hold an order id,
+/// and the detail screen needs a whole [KandiOrder] that only the list has
+/// fetched. The order just placed is the first row on it.
+///
+/// The navigator is taken before the pop on purpose. `popUntil` disposes the
+/// screen that called this, so a `Navigator.of(context)` afterwards would be
+/// looking up an element that is no longer in the tree.
+void _openOrders(BuildContext context) {
+  final navigator = Navigator.of(context);
+  KandiNav.tabSelector?.call(KandiNav.accountTab);
+  navigator.popUntil((route) => route.isFirst);
+  navigator.push(
+    MaterialPageRoute<void>(builder: (_) => const KandiOrdersScreen()),
+  );
+}
+
+/// The order a payment screen is waiting on.
+///
+/// Rides on the route rather than the constructor — see [KandiNav.open].
+class KandiPaymentArgs {
+  const KandiPaymentArgs({
     required this.orderId,
     this.orderNumber = '',
-    this.onDone,
-    this.onOpenOrder,
-    this.onRetry,
-    this.onContactSupport,
+    this.paymentToken = '',
   });
-
-  final double? width;
-  final double? height;
 
   final int orderId;
   final String orderNumber;
 
-  /// Paid, and the shopper is finished.
-  final void Function(int orderId)? onDone;
+  /// Proof that this app placed this order, minted by `/api/checkout` and
+  /// returned in its response.
+  ///
+  /// Required to start the payment again: WooCommerce order ids are
+  /// sequential, so `/api/payments/pesapal/start` will not open a payment
+  /// against a bare id — without the token a loop could open a payment against
+  /// any order in the shop and read that buyer's name, email and address out
+  /// of the quote that comes back.
+  final String paymentToken;
+}
 
-  final void Function(int orderId)? onOpenOrder;
+/// The wait between leaving for Pesapal and the money arriving.
+///
+/// Opened by the checkout as
+/// `KandiNav.open(context, const KandiPaymentScreen(), args: KandiPaymentArgs(...))`.
+class KandiPaymentScreen extends StatefulWidget {
+  const KandiPaymentScreen({super.key, this.width, this.height});
 
-  /// Start the payment again. Handed out rather than performed here, because
-  /// opening Pesapal is a browser handoff FlutterFlow owns.
-  final void Function(int orderId)? onRetry;
-
-  final VoidCallback? onContactSupport;
+  final double? width;
+  final double? height;
 
   @override
   State<KandiPaymentScreen> createState() => _KandiPaymentScreenState();
@@ -113,6 +137,12 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
   Timer? _timer;
   int _attempt = 0;
 
+  int _orderId = 0;
+  String _orderNumber = '';
+  String _paymentToken = '';
+
+  bool _started = false;
+
   /// How long to wait before the next check, by attempt number.
   ///
   /// Quick at first because a mobile-money confirmation usually lands in
@@ -121,9 +151,23 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
   /// forever is a screen that has stopped telling the truth.
   static const List<int> _backoff = [2, 2, 3, 4, 5, 8, 10, 15, 20, 30, 30];
 
+  /// Reads the order off the route and starts asking, once.
+  ///
+  /// `didChangeDependencies` rather than `initState` because `ModalRoute.of`
+  /// needs the element in the tree — see [KandiNav.argsOf].
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+
+    final args = KandiNav.argsOf<KandiPaymentArgs>(context);
+    if (args != null) {
+      _orderId = args.orderId;
+      _orderNumber = args.orderNumber;
+      _paymentToken = args.paymentToken;
+    }
+
     _check();
   }
 
@@ -133,10 +177,60 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
     super.dispose();
   }
 
+  /// Opens Pesapal again for an order that failed or was cancelled.
+  ///
+  /// This used to be handed out as `onRetry`, on the reasoning that opening a
+  /// browser is FlutterFlow's job. In practice it left the one button on the
+  /// screen that matters — the shopper WANTS to pay — wired to nothing unless
+  /// somebody remembered to build the call by hand in the builder.
+  Future<void> _retry() async {
+    if (_paymentToken.isEmpty) {
+      kandiToast(
+        context,
+        'Open this order from Orders to pay for it',
+        error: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _state = KandiPaymentState.waiting;
+      _attempt = 0;
+    });
+
+    final result = await KandiApi.post(
+      '/api/payments/pesapal/start',
+      body: {
+        'purpose': {'kind': 'order', 'orderId': _orderId},
+        'token': _paymentToken,
+      },
+    );
+
+    if (!mounted) return;
+
+    final data = result.data;
+    final url = data is Map ? (data['redirect_url'] ?? '').toString() : '';
+
+    if (url.isEmpty) {
+      setState(() => _state = KandiPaymentState.failed);
+      kandiToast(
+        context,
+        KandiApi.message(data, 'The payment window would not open.'),
+        error: true,
+      );
+      return;
+    }
+
+    await KandiNav.openUrl(context, url);
+    // The shopper is now in the browser. Start asking again, so the screen has
+    // the answer by the time they come back.
+    if (mounted) await _check();
+  }
+
   Future<void> _check() async {
     final result = await KandiApi.post(
       '/api/app/payment/status',
-      body: {'orderId': widget.orderId},
+      body: {'orderId': _orderId},
     );
 
     if (!mounted) return;
@@ -260,9 +354,9 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
         Text('Payment received', style: KandiType.display()),
         const SizedBox(height: KandiSpace.sm),
         Text(
-          widget.orderNumber.isEmpty
+          _orderNumber.isEmpty
               ? 'Your order is confirmed and being packed.'
-              : 'Order #${widget.orderNumber} is confirmed and being packed.',
+              : 'Order #$_orderNumber is confirmed and being packed.',
           textAlign: TextAlign.center,
           style: KandiType.bodyText(),
         ),
@@ -270,13 +364,13 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
         KandiButton(
           label: 'Track this order',
           icon: Icons.local_shipping_outlined,
-          onPressed: () => widget.onOpenOrder?.call(widget.orderId),
+          onPressed: () => _openOrders(context),
         ),
         const SizedBox(height: KandiSpace.sm),
         KandiButton(
           label: 'Keep shopping',
           tone: KandiButtonTone.outline,
-          onPressed: () => widget.onDone?.call(widget.orderId),
+          onPressed: () => KandiNav.goTab(context, KandiNav.homeTab),
         ),
         const SizedBox(height: KandiSpace.lg),
       ],
@@ -293,7 +387,7 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
         message: 'Nothing has been charged. This is usually a declined card '
             'or not enough balance on the mobile money account.',
         primaryLabel: 'Try paying again',
-        onPrimary: () => widget.onRetry?.call(widget.orderId),
+        onPrimary: _retry,
       );
 
   Widget _cancelled() => _outcome(
@@ -304,7 +398,7 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
         message: 'Your order is saved and unpaid. You can pay for it whenever '
             'you are ready.',
         primaryLabel: 'Pay now',
-        onPrimary: () => widget.onRetry?.call(widget.orderId),
+        onPrimary: _retry,
       );
 
   /// The honest answer when we genuinely do not know.
@@ -351,19 +445,17 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
         KandiButton(
           label: 'See the order',
           tone: KandiButtonTone.outline,
-          onPressed: () => widget.onOpenOrder?.call(widget.orderId),
+          onPressed: () => _openOrders(context),
         ),
-        if (widget.onContactSupport != null) ...[
-          const SizedBox(height: KandiSpace.md),
-          GestureDetector(
-            onTap: widget.onContactSupport,
-            child: Text(
-              'Talk to someone',
-              style: KandiType.label(color: KandiColors.primaryInk)
-                  .copyWith(fontWeight: FontWeight.w600),
-            ),
+        const SizedBox(height: KandiSpace.md),
+        GestureDetector(
+          onTap: () => KandiNav.open(context, const KandiSupportScreen()),
+          child: Text(
+            'Talk to someone',
+            style: KandiType.label(color: KandiColors.primaryInk)
+                .copyWith(fontWeight: FontWeight.w600),
           ),
-        ],
+        ),
         const SizedBox(height: KandiSpace.lg),
       ],
     );
@@ -376,26 +468,17 @@ class _KandiPaymentScreenState extends State<KandiPaymentScreen> {
 
 /// Shown after a cash-on-delivery order, where there is nothing to wait for.
 class KandiOrderPlacedScreen extends StatelessWidget {
-  const KandiOrderPlacedScreen({
-    super.key,
-    this.width,
-    this.height,
-    required this.orderId,
-    this.orderNumber = '',
-    this.onOpenOrder,
-    this.onKeepShopping,
-  });
+  const KandiOrderPlacedScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-  final int orderId;
-  final String orderNumber;
-
-  final void Function(int orderId)? onOpenOrder;
-  final VoidCallback? onKeepShopping;
 
   @override
   Widget build(BuildContext context) {
+    // A StatelessWidget, so the route is read here rather than into a state
+    // field. Cheap — one inherited-widget lookup per build.
+    final orderNumber = KandiNav.argsOf<String>(context) ?? '';
+
     return Container(
       width: width,
       height: height,
@@ -464,13 +547,13 @@ class KandiOrderPlacedScreen extends StatelessWidget {
               KandiButton(
                 label: 'Track this order',
                 icon: Icons.local_shipping_outlined,
-                onPressed: () => onOpenOrder?.call(orderId),
+                onPressed: () => _openOrders(context),
               ),
               const SizedBox(height: KandiSpace.sm),
               KandiButton(
                 label: 'Keep shopping',
                 tone: KandiButtonTone.outline,
-                onPressed: onKeepShopping,
+                onPressed: () => KandiNav.goTab(context, KandiNav.homeTab),
               ),
               const SizedBox(height: KandiSpace.lg),
             ],

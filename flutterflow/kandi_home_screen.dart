@@ -34,6 +34,9 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
+import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_product_screen.dart';
+import '/custom_code/widgets/kandi_browse_screen.dart';
 
 // ============================================================
 //  KANDI — HOME
@@ -198,32 +201,19 @@ class _Feed {
   }
 }
 
+/// The shop front — departments, rails, and an endless grid.
+///
+/// Navigation is performed here rather than handed in. It used to be five
+/// callbacks, on the reasoning that FlutterFlow owns the route table and a
+/// custom widget calling `Navigator` is guessing at names the designer can
+/// rename. But every destination a tap on this screen leads to is a class in
+/// these same fifteen files, so there is no route name to be wrong about —
+/// see [KandiNav].
 class KandiHomeScreen extends StatefulWidget {
-  const KandiHomeScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onOpenProduct,
-    this.onOpenCategory,
-    this.onOpenSearch,
-    this.onOpenCart,
-    this.onAddToCart,
-  });
+  const KandiHomeScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// Navigation is handed in rather than performed here.
-  ///
-  /// FlutterFlow owns the route table — a custom widget that calls
-  /// `Navigator.pushNamed` is guessing at names the designer can rename in the
-  /// builder at any time. Passing callbacks keeps this screen a description of
-  /// what is on it and leaves where-things-go to the place that knows.
-  final void Function(int productId)? onOpenProduct;
-  final void Function(String slug)? onOpenCategory;
-  final VoidCallback? onOpenSearch;
-  final VoidCallback? onOpenCart;
-  final void Function(KandiProduct product)? onAddToCart;
 
   @override
   State<KandiHomeScreen> createState() => _KandiHomeScreenState();
@@ -261,6 +251,11 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
           if (result.status != 200) {
             throw StateError('home ${result.status}');
           }
+          // The same payload carries the delivery threshold, the returns
+          // window and the shop's contact details, which the cart and help
+          // screens quote. Taking them here is what stops those screens
+          // fetching this endpoint a second time for five numbers.
+          KandiShop.adopt(result.data);
           return _Feed.fromJson(result.data);
         },
         // Fired only when a STALE feed was shown and a newer one has landed
@@ -375,7 +370,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: widget.onOpenSearch,
+              onTap: () => KandiNav.goTab(context, KandiNav.browseTab),
               child: Container(
                 height: 44,
                 padding: const EdgeInsets.symmetric(horizontal: KandiSpace.md),
@@ -398,10 +393,11 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
               ),
             ),
           ),
-          if (widget.onOpenCart != null) ...[
-            const SizedBox(width: KandiSpace.sm),
-            _iconButton(Icons.shopping_bag_outlined, widget.onOpenCart!),
-          ],
+          const SizedBox(width: KandiSpace.sm),
+          _iconButton(
+            Icons.shopping_bag_outlined,
+            () => KandiNav.goTab(context, KandiNav.cartTab),
+          ),
         ],
       ),
     );
@@ -499,7 +495,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
         itemBuilder: (context, index) {
           final department = departments[index];
           return GestureDetector(
-            onTap: () => widget.onOpenCategory?.call(department.slug),
+            onTap: () => _openCategory(department.slug, department.name),
             behavior: HitTestBehavior.opaque,
             child: Column(
               children: [
@@ -573,14 +569,46 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
           actionLabel: 'See all',
           onAction: rail.href == null
               ? null
-              : () => widget.onOpenCategory?.call(_slugOf(rail.href!)),
+              : () => _openCategory(_slugOf(rail.href!), rail.title),
         ),
         KandiProductRail(
           products: rail.products,
-          onTap: (product) => widget.onOpenProduct?.call(product.id),
-          onAdd: widget.onAddToCart,
+          onTap: (product) => KandiNav.open(
+            context,
+            const KandiProductScreen(),
+            args: product.id,
+          ),
+          onAdd: _quickAdd,
         ),
       ],
+    );
+  }
+
+  /// A department, or a rail's "See all", as a search screen already filtered.
+  void _openCategory(String slug, String title) {
+    if (slug.isEmpty) return;
+    KandiNav.open(
+      context,
+      const KandiBrowseScreen(),
+      args: KandiBrowseArgs(category: slug, title: title),
+    );
+  }
+
+  /// The tile's quick-add button.
+  ///
+  /// A product with a size to choose opens instead of being added: a variable
+  /// product added without a variation is how an order arrives with no size on
+  /// it, and the tile's icon already says which kind it is.
+  Future<void> _quickAdd(KandiProduct product) async {
+    if (await KandiCart.quickAdd(product)) {
+      if (mounted) kandiToast(context, 'Added to your cart');
+      return;
+    }
+    if (!mounted) return;
+    await KandiNav.open(
+      context,
+      const KandiProductScreen(),
+      args: product.id,
     );
   }
 
@@ -621,8 +649,12 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
             return KandiProductTile(
               product: product,
               width: tileWidth,
-              onTap: () => widget.onOpenProduct?.call(product.id),
-              onAdd: widget.onAddToCart,
+              onTap: () => KandiNav.open(
+                context,
+                const KandiProductScreen(),
+                args: product.id,
+              ),
+              onAdd: _quickAdd,
             );
           },
           childCount: products.length,

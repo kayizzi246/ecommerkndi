@@ -35,6 +35,7 @@ import 'package:flutter/material.dart';
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
 import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_product_screen.dart';
 
 import 'dart:async';
 
@@ -83,35 +84,34 @@ const List<({String value, String label})> _kSorts = [
   (value: 'rating', label: 'Best rated'),
 ];
 
+/// What a browse screen was opened to look at.
+///
+/// Rides on the route rather than the constructor — see [KandiNav.open]. Null
+/// is the ordinary case: the search tab has no argument, which is precisely
+/// what "an empty search box" means.
+class KandiBrowseArgs {
+  const KandiBrowseArgs({this.query = '', this.category = '', this.title = ''});
+
+  final String query;
+
+  /// A category SLUG — `men`, not `Men`.
+  final String category;
+
+  /// What the app bar says. Falls back to the query or the slug.
+  final String title;
+}
+
+/// Search and category, which are the same screen with a different opening
+/// question.
+///
+/// Opened as
+/// `KandiNav.open(context, const KandiBrowseScreen(), args: KandiBrowseArgs(...))`,
+/// or placed bare as the shell's search tab.
 class KandiBrowseScreen extends StatefulWidget {
-  const KandiBrowseScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.query = '',
-    this.category = '',
-    this.title = '',
-    this.autofocus = false,
-    this.onOpenProduct,
-    this.onAddToCart,
-    this.onOpenCart,
-  });
+  const KandiBrowseScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  final String query;
-  final String category;
-
-  /// What the app bar says. Falls back to the query or the category.
-  final String title;
-
-  /// Opens with the keyboard up — the search tab, rather than a department.
-  final bool autofocus;
-
-  final void Function(int productId)? onOpenProduct;
-  final void Function(KandiProduct product)? onAddToCart;
-  final VoidCallback? onOpenCart;
 
   @override
   State<KandiBrowseScreen> createState() => _KandiBrowseScreenState();
@@ -143,17 +143,50 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
   bool _failed = false;
   bool _searched = false;
 
+  String _query = '';
+  String _category = '';
+  String _title = '';
+
+  /// Whether to open with the keyboard up.
+  ///
+  /// DERIVED rather than passed. It used to be an `autofocus` parameter, and
+  /// the rule it encoded is simply "this screen has nothing to show yet": a
+  /// department opens straight into results and wants the grid, an empty
+  /// search box opens wanting a word. Working that out from the arguments is
+  /// one less thing that can be set wrong.
+  bool get _autofocus => _query.isEmpty && _category.isEmpty;
+
+  bool _started = false;
+
   @override
   void initState() {
     super.initState();
-    _controller.text = widget.query;
     _scroll.addListener(_onScroll);
     _loadRecent();
+  }
+
+  /// Reads what this screen was opened to look at, once.
+  ///
+  /// `didChangeDependencies` rather than `initState` because `ModalRoute.of`
+  /// needs the element to be in the tree — see [KandiNav.argsOf].
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+
+    final args = KandiNav.argsOf<KandiBrowseArgs>(context);
+    if (args != null) {
+      _query = args.query;
+      _category = args.category;
+      _title = args.title;
+    }
+
+    _controller.text = _query;
 
     // A department opens straight into results; the search tab opens into the
-    // recent list with the keyboard up and asks for nothing until there is
-    // something to ask about.
-    if (widget.query.isNotEmpty || widget.category.isNotEmpty) {
+    // recent list and asks for nothing until there is something to ask about.
+    if (_query.isNotEmpty || _category.isNotEmpty) {
       _search(reset: true);
     }
   }
@@ -166,6 +199,24 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
     _controller.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  /// The tile's quick-add button.
+  ///
+  /// A product with a size to choose opens instead of being added, because a
+  /// variable product added without a variation is how an order arrives with
+  /// no size on it.
+  Future<void> _quickAdd(KandiProduct product) async {
+    if (await KandiCart.quickAdd(product)) {
+      if (mounted) kandiToast(context, 'Added to your cart');
+      return;
+    }
+    if (!mounted) return;
+    await KandiNav.open(
+      context,
+      const KandiProductScreen(),
+      args: product.id,
+    );
   }
 
   void _onScroll() {
@@ -232,7 +283,7 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
     final params = <String, String>{
       'page': '$page',
       if (_controller.text.trim().isNotEmpty) 'q': _controller.text.trim(),
-      if (widget.category.isNotEmpty) 'category': widget.category,
+      if (_category.isNotEmpty) 'category': _category,
       if (_sort.isNotEmpty) 'sort': _sort,
     };
     final query =
@@ -327,7 +378,7 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
   void _onTyped(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () {
-      if (value.trim().isEmpty && widget.category.isEmpty) {
+      if (value.trim().isEmpty && _category.isEmpty) {
         setState(() {
           _products = const [];
           _searched = false;
@@ -370,8 +421,9 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
           ),
           title: _searchField(),
           actions: [
-            if (widget.onOpenCart != null)
-              KandiCartBadge(onTap: widget.onOpenCart),
+            KandiCartBadge(
+              onTap: () => KandiNav.goTab(context, KandiNav.cartTab),
+            ),
             const SizedBox(width: KandiSpace.xs),
           ],
           bottom: PreferredSize(
@@ -401,7 +453,7 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
             child: TextField(
               controller: _controller,
               focusNode: _focus,
-              autofocus: widget.autofocus,
+              autofocus: _autofocus,
               textInputAction: TextInputAction.search,
               style: KandiType.label(),
               onChanged: _onTyped,
@@ -409,8 +461,8 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                hintText: widget.category.isNotEmpty
-                    ? 'Search in ${widget.title.isEmpty ? widget.category : widget.title}'
+                hintText: _category.isNotEmpty
+                    ? 'Search in ${_title.isEmpty ? _category : _title}'
                     : 'Search Kandi',
                 hintStyle: KandiType.label(color: KandiColors.faint),
               ),
@@ -486,7 +538,7 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
   }
 
   Widget _body() {
-    if (!_searched && widget.category.isEmpty) return _recentList();
+    if (!_searched && _category.isEmpty) return _recentList();
     if (_loading) return _gridSkeleton();
     if (_failed) {
       return KandiEmpty(
@@ -589,8 +641,12 @@ class _KandiBrowseScreenState extends State<KandiBrowseScreen> {
           return KandiProductTile(
             product: product,
             width: tileWidth,
-            onTap: () => widget.onOpenProduct?.call(product.id),
-            onAdd: widget.onAddToCart,
+            onTap: () => KandiNav.open(
+              context,
+              const KandiProductScreen(),
+              args: product.id,
+            ),
+            onAdd: _quickAdd,
           );
         },
       ),

@@ -34,8 +34,10 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
-
-import 'package:shared_preferences/shared_preferences.dart';
+import '/custom_code/widgets/kandi_cart_store.dart';
+import '/custom_code/widgets/kandi_auth_screen.dart';
+import '/custom_code/widgets/kandi_support_screen.dart';
+import '/custom_code/widgets/kandi_product_screen.dart';
 
 // ============================================================
 //  KANDI — ORDERS, AND ONE ORDER
@@ -230,75 +232,15 @@ class KandiOrder {
   }
 }
 
-/// Reads the signed-in shopper's token.
-///
-/// Kept here rather than in the design system because it is the SHOPPER
-/// session, and the seller centre deliberately keeps a separate one under its
-/// own key — the two are different WordPress accounts and one person routinely
-/// has both. Merging them would sign a seller out of shopping.
-class KandiSession {
-  KandiSession._();
-
-  static const String _tokenKey = 'kandi_auth_token';
-
-  static String? _token;
-  static bool _loaded = false;
-
-  static Future<String?> token() async {
-    if (_loaded) return _token;
-    _loaded = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _token = prefs.getString(_tokenKey);
-    } catch (_) {
-      _token = null;
-    }
-    return _token;
-  }
-
-  static Future<Map<String, String>> headers() async {
-    final t = await token();
-    return {
-      'Content-Type': 'application/json',
-      if (t != null && t.isNotEmpty) 'Authorization': 'Bearer $t',
-    };
-  }
-
-  /// Forgets the session in memory as well as on disk.
-  ///
-  /// The in-memory half matters: without it a shopper who signs out and
-  /// straight back in as somebody else keeps the first token for the rest of
-  /// the process, and sees the wrong person's orders.
-  static Future<void> clear() async {
-    _token = null;
-    _loaded = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_tokenKey);
-    } catch (_) {}
-  }
-}
-
 // ============================================================
 //  THE LIST
 // ============================================================
 
 class KandiOrdersScreen extends StatefulWidget {
-  const KandiOrdersScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onOpenOrder,
-    this.onSignIn,
-    this.onStartShopping,
-  });
+  const KandiOrdersScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  final void Function(KandiOrder order)? onOpenOrder;
-  final VoidCallback? onSignIn;
-  final VoidCallback? onStartShopping;
 
   @override
   State<KandiOrdersScreen> createState() => _KandiOrdersScreenState();
@@ -315,6 +257,21 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// Sends the shopper to sign in and picks the list up again afterwards.
+  ///
+  /// The screen has to reload rather than just rebuild: the 401 that produced
+  /// the signed-out state is cached under `_key` as an absence, and the new
+  /// token means a different person's orders.
+  Future<void> _signIn() async {
+    final signedIn = await KandiNav.open<bool>(
+      context,
+      const KandiAuthScreen(),
+    );
+    if (!mounted || signedIn != true) return;
+    setState(() => _signedOut = false);
+    await _load();
   }
 
   Future<void> _load() async {
@@ -391,7 +348,7 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
         title: 'Sign in to see your orders',
         message: 'Your order history lives with your account.',
         actionLabel: 'Sign in',
-        onAction: widget.onSignIn,
+        onAction: _signIn,
       );
     }
 
@@ -417,7 +374,7 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
         title: 'No orders yet',
         message: 'Everything you buy will show up here.',
         actionLabel: 'Start shopping',
-        onAction: widget.onStartShopping,
+        onAction: () => KandiNav.goTab(context, KandiNav.homeTab),
       );
     }
 
@@ -432,7 +389,11 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
   Widget _card(KandiOrder order) {
     return KandiCard(
       padding: const EdgeInsets.all(KandiSpace.md),
-      onTap: () => widget.onOpenOrder?.call(order),
+      onTap: () => KandiNav.open(
+        context,
+        const KandiOrderScreen(),
+        args: order,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -550,24 +511,102 @@ String _shortDate(String raw) {
 ///
 /// See the note at the head of this file: the list existed and led nowhere, so
 /// "where is my order" had no answer beyond a status word.
+/// One order, in full.
+///
+/// Reached by tapping a row in [KandiOrdersScreen], which is the only thing
+/// that has a whole [KandiOrder] to hand over. It travels on the route rather
+/// than the constructor, so this class — like the other fourteen — has no
+/// parameters beyond the width and height FlutterFlow supplies.
+///
+/// The work is in [_OrderDetail] below, which is private and therefore free to
+/// take whatever it likes: FlutterFlow only ever parses the class named after
+/// the file. Splitting it that way beats threading a nullable order through a
+/// dozen render methods that would each have to handle a null that cannot
+/// happen.
 class KandiOrderScreen extends StatelessWidget {
-  const KandiOrderScreen({
-    super.key,
-    this.width,
-    this.height,
-    required this.order,
-    this.onOpenProduct,
-    this.onContactSupport,
-    this.onBuyAgain,
-  });
+  const KandiOrderScreen({super.key, this.width, this.height});
+
+  final double? width;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    final order = KandiNav.argsOf<KandiOrder>(context);
+
+    if (order == null) {
+      // Only reachable if this screen is opened without an order — dropped on
+      // a page by hand, say. Saying so beats a blank screen.
+      return Container(
+        width: width,
+        height: height,
+        color: KandiColors.page,
+        child: Scaffold(
+          backgroundColor: KandiColors.page,
+          appBar: kandiAppBar(context, 'Order'),
+          body: KandiEmpty(
+            icon: Icons.receipt_long_outlined,
+            title: 'No order to show',
+            message: 'Open an order from your order list.',
+            actionLabel: 'Your orders',
+            onAction: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+      );
+    }
+
+    return _OrderDetail(order: order, width: width, height: height);
+  }
+}
+
+class _OrderDetail extends StatelessWidget {
+  const _OrderDetail({required this.order, this.width, this.height});
 
   final double? width;
   final double? height;
   final KandiOrder order;
 
-  final void Function(int productId)? onOpenProduct;
-  final VoidCallback? onContactSupport;
-  final void Function(KandiOrder order)? onBuyAgain;
+  /// Puts everything on this order back in the basket.
+  ///
+  /// ---- Where the price comes from, and why that is all right ----
+  ///
+  /// An order line records what was PAID, and the server sends it as one
+  /// formatted line total — there is no unit price on it. So the unit price is
+  /// the line total over the quantity, read back out of the string.
+  ///
+  /// A stale or slightly-off figure here costs nothing: the basket is priced
+  /// again on the product page and again at checkout, and the checkout is the
+  /// only place the number is binding. Refusing to reorder because the app
+  /// cannot restate last month's price would be the worse trade.
+  Future<void> _buyAgain(BuildContext context) async {
+    var added = 0;
+
+    for (final item in order.items) {
+      if (item.productId == 0) continue;
+
+      final digits = item.total.replaceAll(RegExp(r'[^0-9.]'), '');
+      final lineTotal = double.tryParse(digits) ?? 0;
+      final quantity = item.quantity < 1 ? 1 : item.quantity;
+
+      await KandiCart.add(
+        productId: item.productId,
+        name: item.name,
+        price: lineTotal / quantity,
+        image: item.image,
+        quantity: quantity,
+      );
+      added++;
+    }
+
+    if (!context.mounted) return;
+
+    if (added == 0) {
+      kandiToast(context, 'These are no longer in the shop', error: true);
+      return;
+    }
+
+    kandiToast(context, 'Back in your basket');
+    KandiNav.goTab(context, KandiNav.cartTab);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -583,17 +622,15 @@ class KandiOrderScreen extends StatelessWidget {
           children: [
             _status(),
             const SizedBox(height: KandiSpace.md),
-            _items(),
+            _items(context),
             const SizedBox(height: KandiSpace.md),
             _details(),
-            if (onContactSupport != null) ...[
-              const SizedBox(height: KandiSpace.md),
-              _help(),
-            ],
+            const SizedBox(height: KandiSpace.md),
+            _help(context),
             const SizedBox(height: KandiSpace.xxl),
           ],
         ),
-        bottomNavigationBar: onBuyAgain == null
+        bottomNavigationBar: order.items.isEmpty
             ? null
             : Container(
                 padding: EdgeInsets.fromLTRB(
@@ -610,7 +647,7 @@ class KandiOrderScreen extends StatelessWidget {
                   label: 'Buy these again',
                   icon: Icons.replay_rounded,
                   tone: KandiButtonTone.outline,
-                  onPressed: () => onBuyAgain!(order),
+                  onPressed: () => _buyAgain(context),
                 ),
               ),
       ),
@@ -718,7 +755,7 @@ class KandiOrderScreen extends StatelessWidget {
     );
   }
 
-  Widget _items() {
+  Widget _items(BuildContext context) {
     return KandiCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -732,7 +769,11 @@ class KandiOrderScreen extends StatelessWidget {
             InkWell(
               onTap: item.productId == 0
                   ? null
-                  : () => onOpenProduct?.call(item.productId),
+                  : () => KandiNav.open(
+                        context,
+                        const KandiProductScreen(),
+                        args: item.productId,
+                      ),
               borderRadius: KandiRadius.sm,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,13 +860,13 @@ class KandiOrderScreen extends StatelessWidget {
     );
   }
 
-  Widget _help() {
+  Widget _help(BuildContext context) {
     return KandiCard(
       padding: const EdgeInsets.symmetric(
         horizontal: KandiSpace.lg,
         vertical: KandiSpace.md,
       ),
-      onTap: onContactSupport,
+      onTap: () => KandiNav.open(context, const KandiSupportScreen()),
       child: Row(
         children: [
           Container(

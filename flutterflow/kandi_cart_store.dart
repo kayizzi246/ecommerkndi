@@ -264,6 +264,31 @@ class KandiCart {
     return lines;
   }
 
+  /// Adds a product straight from a grid tile.
+  ///
+  /// Answers `false` — and adds nothing — when the product has options, which
+  /// is the caller's cue to open the product screen instead. A variable
+  /// product added without a variation is how an order arrives with no size on
+  /// it, and the tile's own icon already promises the difference: sliders mean
+  /// "there is a step", a cart means "this goes straight in".
+  ///
+  /// Lives here rather than in each screen because home, search and the
+  /// wishlist all draw the same tile and all owe it the same answer. It cannot
+  /// do the opening itself: `kandi_product_screen.dart` imports this file, so
+  /// this file naming that screen would close the ring.
+  static Future<bool> quickAdd(KandiProduct product) async {
+    if (product.hasOptions) return false;
+
+    await add(
+      productId: product.id,
+      name: product.name,
+      price: product.price.toDouble(),
+      image: product.image,
+      slug: product.slug,
+    );
+    return true;
+  }
+
   static Future<void> add({
     required int productId,
     required String name,

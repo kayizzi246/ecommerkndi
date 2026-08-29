@@ -34,7 +34,13 @@ import 'package:flutter/material.dart';
 // `KandiDesign` is written to `lib/custom_code/widgets/kandi_design.dart`.
 // Name the widgets exactly as SETUP.md says or these paths will not resolve.
 import '/custom_code/widgets/kandi_design.dart';
+import '/custom_code/widgets/kandi_cart_store.dart';
 import '/custom_code/widgets/kandi_auth_screen.dart';
+import '/custom_code/widgets/kandi_support_screen.dart';
+import '/custom_code/widgets/kandi_product_screen.dart';
+import '/custom_code/widgets/kandi_orders_screen.dart';
+import '/custom_code/widgets/kandi_addresses_screen.dart';
+import '/custom_code/widgets/kandi_seller_screen.dart';
 
 import 'dart:convert';
 
@@ -222,30 +228,18 @@ class KandiWishlistButton extends StatelessWidget {
 //  THE HUB
 // ============================================================
 
+/// The account hub — the fourth tab, and the way in to everything that is
+/// not shopping.
+///
+/// Each row names the screen it opens, which is why this file imports six of
+/// its siblings. Those six were seven callbacks before, declared by hand in
+/// the builder: seven chances to leave a row that highlights on tap and then
+/// sits there.
 class KandiAccountScreen extends StatefulWidget {
-  const KandiAccountScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onSignIn,
-    this.onOpenOrders,
-    this.onOpenWishlist,
-    this.onOpenAddresses,
-    this.onOpenHelp,
-    this.onOpenSellerCentre,
-    this.onSignedOut,
-  });
+  const KandiAccountScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  final VoidCallback? onSignIn;
-  final VoidCallback? onOpenOrders;
-  final VoidCallback? onOpenWishlist;
-  final VoidCallback? onOpenAddresses;
-  final VoidCallback? onOpenHelp;
-  final VoidCallback? onOpenSellerCentre;
-  final VoidCallback? onSignedOut;
 
   @override
   State<KandiAccountScreen> createState() => _KandiAccountScreenState();
@@ -279,22 +273,50 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
                 signedIn ? _profile() : _signInCard(),
                 const SizedBox(height: KandiSpace.md),
                 _group('Your shopping', [
-                  _row(Icons.receipt_long_outlined, 'Orders',
-                      'Track and reorder', widget.onOpenOrders),
+                  _row(
+                    Icons.receipt_long_outlined,
+                    'Orders',
+                    'Track and reorder',
+                    () => KandiNav.open(
+                      context,
+                      const KandiOrdersScreen(),
+                    ),
+                  ),
                   _wishlistRow(),
-                  _row(Icons.location_on_outlined, 'Delivery addresses',
-                      'Where your orders go', widget.onOpenAddresses),
+                  _row(
+                    Icons.location_on_outlined,
+                    'Delivery addresses',
+                    'Where your orders go',
+                    () => KandiNav.open(
+                      context,
+                      const KandiAddressesScreen(),
+                    ),
+                  ),
                 ]),
                 const SizedBox(height: KandiSpace.md),
                 _group('Kandi', [
-                  _row(Icons.help_outline_rounded, 'Help and support',
-                      'Delivery, returns, payments', widget.onOpenHelp),
+                  _row(
+                    Icons.help_outline_rounded,
+                    'Help and support',
+                    'Delivery, returns, payments',
+                    () => KandiNav.open(
+                      context,
+                      const KandiSupportScreen(),
+                    ),
+                  ),
                   // A row rather than a tab. Sellers are a small minority of
                   // the people who install a shopping app, so this belongs in
                   // settings — the same call the website makes by putting
                   // "Sell on Kandi" at the end of a nav row.
-                  _row(Icons.storefront_outlined, 'Sell on Kandi',
-                      'Open a store', widget.onOpenSellerCentre),
+                  _row(
+                    Icons.storefront_outlined,
+                    'Sell on Kandi',
+                    'Open a store',
+                    () => KandiNav.open(
+                      context,
+                      const KandiSellerScreen(),
+                    ),
+                  ),
                 ]),
                 if (signedIn) ...[
                   const SizedBox(height: KandiSpace.md),
@@ -359,7 +381,10 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
             style: KandiType.bodyText(),
           ),
           const SizedBox(height: KandiSpace.lg),
-          KandiButton(label: 'Sign in or join', onPressed: widget.onSignIn),
+          KandiButton(
+            label: 'Sign in or join',
+            onPressed: () => KandiNav.open(context, const KandiAuthScreen()),
+          ),
         ],
       ),
     );
@@ -446,7 +471,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           Icons.favorite_border_rounded,
           'Saved items',
           count == 0 ? 'Nothing saved yet' : '$count saved',
-          widget.onOpenWishlist,
+          () => KandiNav.open(context, const KandiWishlistScreen()),
           trailing: count == 0
               ? null
               : Container(
@@ -507,7 +532,6 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           if (confirmed != true) return;
           await KandiAuth.signOut();
           if (!mounted) return;
-          widget.onSignedOut?.call();
           kandiToast(context, 'Signed out');
         },
         borderRadius: KandiRadius.md,
@@ -535,22 +559,12 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
 //  THE WISHLIST SCREEN
 // ============================================================
 
+/// Everything the shopper has hearted.
 class KandiWishlistScreen extends StatefulWidget {
-  const KandiWishlistScreen({
-    super.key,
-    this.width,
-    this.height,
-    this.onOpenProduct,
-    this.onAddToCart,
-    this.onStartShopping,
-  });
+  const KandiWishlistScreen({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  final void Function(int productId)? onOpenProduct;
-  final void Function(KandiProduct product)? onAddToCart;
-  final VoidCallback? onStartShopping;
 
   @override
   State<KandiWishlistScreen> createState() => _KandiWishlistScreenState();
@@ -558,6 +572,21 @@ class KandiWishlistScreen extends StatefulWidget {
 
 class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
   bool _ready = false;
+
+  /// The tile's quick-add button — the same rule as the home and search
+  /// grids: a product with a size to choose opens rather than being added.
+  Future<void> _quickAdd(KandiProduct product) async {
+    if (await KandiCart.quickAdd(product)) {
+      if (mounted) kandiToast(context, 'Added to your cart');
+      return;
+    }
+    if (!mounted) return;
+    await KandiNav.open(
+      context,
+      const KandiProductScreen(),
+      args: product.id,
+    );
+  }
 
   @override
   void initState() {
@@ -607,7 +636,7 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
                 message:
                     'Tap the heart on anything you want to come back to.',
                 actionLabel: 'Start shopping',
-                onAction: widget.onStartShopping,
+                onAction: () => KandiNav.goTab(context, KandiNav.homeTab),
               );
             }
             return _grid();
@@ -640,8 +669,12 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
             KandiProductTile(
               product: product,
               width: tileWidth,
-              onTap: () => widget.onOpenProduct?.call(product.id),
-              onAdd: widget.onAddToCart,
+              onTap: () => KandiNav.open(
+                context,
+                const KandiProductScreen(),
+                args: product.id,
+              ),
+              onAdd: _quickAdd,
             ),
             // The heart sits top-right here rather than on the photograph's
             // left, because on this screen it is a REMOVE control and the

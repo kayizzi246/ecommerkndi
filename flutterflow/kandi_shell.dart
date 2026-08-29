@@ -37,6 +37,9 @@ import '/custom_code/widgets/kandi_design.dart';
 import '/custom_code/widgets/kandi_cart_store.dart';
 import '/custom_code/widgets/kandi_auth_screen.dart';
 import '/custom_code/widgets/kandi_account_screen.dart';
+import '/custom_code/widgets/kandi_home_screen.dart';
+import '/custom_code/widgets/kandi_browse_screen.dart';
+import '/custom_code/widgets/kandi_cart_screen.dart';
 
 // ============================================================
 //  KANDI — THE SHELL
@@ -88,40 +91,42 @@ import '/custom_code/widgets/kandi_account_screen.dart';
 /// does repeatedly; a fifth tab is a tab that makes the other four smaller.
 enum KandiTab { home, browse, cart, account }
 
+/// The whole app, on one FlutterFlow page.
+///
+/// ---- The four tabs are built here now ----
+///
+/// They used to be handed in, so that this screen owned the CHROME and nothing
+/// about what was inside it. That was worth having while each tab needed five
+/// or six callbacks: the shell would have had to know every one of them, which
+/// is the coupling that makes a shell impossible to change.
+///
+/// The tabs need nothing now, so the argument has expired — `KandiHomeScreen()`
+/// is a complete instruction. What is left is a page with one widget on it and
+/// no parameters to declare, which is the whole point of the exercise.
+///
+/// ---- Width and height, and nothing else, on purpose ----
+///
+/// FlutterFlow parses THIS class's constructor when the file is saved and maps
+/// every named parameter onto one of its own types. `int`, `String`, `bool` and
+/// `double` map; a Dart enum does not, and the save fails with
+/// `Unable to process parameter "…"` — which is a complaint about the type, not
+/// about anything being missing.
+///
+/// This used to open on `initial: KandiTab.home` and nothing ever passed
+/// anything else, because the shell is placed on a page rather than
+/// constructed in code. Home is where a shop opens.
 class KandiShell extends StatefulWidget {
-  const KandiShell({
-    super.key,
-    this.width,
-    this.height,
-    required this.home,
-    required this.browse,
-    required this.cart,
-    required this.account,
-    this.initial = KandiTab.home,
-  });
+  const KandiShell({super.key, this.width, this.height});
 
   final double? width;
   final double? height;
-
-  /// The four tabs, handed in rather than constructed here.
-  ///
-  /// This screen owns the CHROME — which tab is showing, the bar, the badge —
-  /// and nothing about what is inside them. Constructing the screens here
-  /// would mean the shell had to know every callback each one needs, which is
-  /// exactly the coupling that makes a shell impossible to change later.
-  final Widget home;
-  final Widget browse;
-  final Widget cart;
-  final Widget account;
-
-  final KandiTab initial;
 
   @override
   State<KandiShell> createState() => _KandiShellState();
 }
 
 class _KandiShellState extends State<KandiShell> {
-  late KandiTab _tab = widget.initial;
+  KandiTab _tab = KandiTab.home;
 
   /// Which tabs have ever been shown.
   ///
@@ -130,7 +135,7 @@ class _KandiShellState extends State<KandiShell> {
   /// requests for three screens nobody has asked for. A tab enters this set
   /// the first time it is selected and never leaves — which is the point: it
   /// is lazy on the way in and sticky afterwards.
-  late final Set<KandiTab> _visited = {widget.initial};
+  final Set<KandiTab> _visited = {KandiTab.home};
 
   @override
   void initState() {
@@ -141,6 +146,30 @@ class _KandiShellState extends State<KandiShell> {
     KandiCart.load();
     KandiAuth.load();
     KandiWishlist.load();
+
+    // The one piece of navigation that cannot be a direct call.
+    //
+    // This file imports the four tab screens; a screen that imported the shell
+    // back to select a tab would close the ring and leave the fifteen files
+    // with no order to be pasted in. A function pointer crosses that boundary
+    // where an import cannot — see `KandiNav.tabSelector`.
+    KandiNav.tabSelector = _installed;
+  }
+
+  /// Held in a field so [dispose] can tell whether the pointer still ours.
+  late final void Function(int index) _installed = (index) {
+    if (!mounted) return;
+    if (index < 0 || index >= KandiTab.values.length) return;
+    _select(KandiTab.values[index]);
+  };
+
+  @override
+  void dispose() {
+    // Only if it is still ours. A second shell — the builder previewing this
+    // page while the app runs — will have overwritten it, and clearing that
+    // one would leave the live shell with a dead tab bar.
+    if (KandiNav.tabSelector == _installed) KandiNav.tabSelector = null;
+    super.dispose();
   }
 
   void _select(KandiTab tab) {
@@ -162,10 +191,12 @@ class _KandiShellState extends State<KandiShell> {
         body: IndexedStack(
           index: KandiTab.values.indexOf(_tab),
           children: [
-            _lazy(KandiTab.home, widget.home),
-            _lazy(KandiTab.browse, widget.browse),
-            _lazy(KandiTab.cart, widget.cart),
-            _lazy(KandiTab.account, widget.account),
+            _lazy(KandiTab.home, const KandiHomeScreen()),
+            // No argument, which IS the search tab: the browse screen turns
+            // "nothing to show yet" into "open with the keyboard up".
+            _lazy(KandiTab.browse, const KandiBrowseScreen()),
+            _lazy(KandiTab.cart, const KandiCartScreen()),
+            _lazy(KandiTab.account, const KandiAccountScreen()),
           ],
         ),
         bottomNavigationBar: _bar(),
