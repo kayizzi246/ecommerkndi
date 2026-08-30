@@ -796,12 +796,25 @@ export default function Header({
               Sell on Kandi
             </Link>
 
-            <Link
-              href="/sellers"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[13.5px] text-shop-body hover:text-shop-flame xl:block"
-            >
-              Shop by store →
-            </Link>
+            {/* ---- "Shop by store →" is gone from this row ----
+
+                 It was the second link in the same bar going to the same page:
+                 "Top Brands" in the curated list is `/sellers` as well. One of
+                 the two had to go, and this is the one whose label nobody was
+                 searching for.
+
+                 Removing it also fixes a real defect. The curated list is ten
+                 fixed labels about 960px wide and it does not shrink; from
+                 `lg` up this row stops scrolling, so once the labels plus the
+                 two links on the right exceeded the row, the list simply
+                 painted OVER them. Between 1280 and roughly 1400 — 1280x800
+                 and 1366x768, which is most laptops — the bar read
+                 "BeautySell on KandiUgTop Brands", three links stacked on one
+                 another. Above 1400 there was room and it looked fine, which
+                 is why it survived.
+
+                 The sellers page keeps its two other routes in: "Top Brands"
+                 here, and the footer. */}
           </div>
         </nav>
       )}

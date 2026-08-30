@@ -220,7 +220,12 @@ export default function CuratedNav({
                  what makes 400 affordable here: a bolded item in a row of
                  regular ones is a size change that shifts its neighbours, and
                  an orange one in a row of near-black ones is not. */
-              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-normal transition-colors ${
+              /* `px-2.5` until there is room for `px-3`. Ten fixed labels at
+               13.5px need about 960px of row, and at 1280 the row has 1216 to
+               share with the Categories pill and the seller link. Four pixels
+               a side across ten links is the 40px that turns a bar with 20px
+               of slack into one with 60. */
+            className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2.5 text-[13.5px] font-normal transition-colors 2xl:px-3 ${
                 entry.hot
                   ? "font-medium text-shop-primary-ink"
                   : isOpen

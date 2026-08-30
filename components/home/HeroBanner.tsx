@@ -619,7 +619,28 @@ export default function HeroBanner({
                 fetchPriority="high"
                 loading="eager"
                 decoding="async"
-                className="w-full object-cover object-center md:h-[530px]"
+                /* ---- 530 is a CEILING, not a height ----
+                   *
+                   * It was `md:h-[530px]`, a fixed height, and measuring the
+                   * shipped 3.10:1 artwork against it showed what that costs:
+                   *
+                   *   - at 1720 (the shell cap) the box is 3.22:1 and 100% of
+                   *     the picture shows — the width the number was chosen for
+                   *   - at 1366 the box is 2.55:1 and 82% shows, which is the
+                   *     nine percent off each side that cuts "FA" off
+                   *     "FASHION"
+                   *   - at 768 the box is 1.42:1 and 46% shows. On a tablet
+                   *     more than half the banner was being thrown away.
+                   *
+                   * `max-h` keeps the 530 at the only widths where 530 is
+                   * possible without destroying the picture, and everywhere
+                   * below that the banner lays out at its own ratio and is not
+                   * cropped at all: 436px tall at 1366, 243 at 768.
+                   *
+                   * To get a banner that is BOTH 530 tall and uncropped at
+                   * 1366, the artwork has to be re-cut at about 2.6:1 — that
+                   * is a wp-admin upload, not a number in this file. */
+                className="w-full object-cover object-center md:max-h-[530px]"
               />
             </picture>
           </div>

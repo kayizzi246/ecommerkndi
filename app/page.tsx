@@ -815,32 +815,6 @@ export default async function Home() {
             free-delivery threshold from settings. None of them needs a
             full-width advertisement in the middle of the merchandise. */}
 
-        {/* ---- What this visitor was last looking at, ABOVE the endless grid ----
-
-             It has been second from the top, then last on the page, and it is
-             here now — directly before "Picked for you" rather than after it.
-
-             The argument for the foot was that a shopper who reaches the bottom
-             of the catalogue without buying is exactly the one worth handing
-             their own history back to. That is true of a shopper who REACHES
-             the bottom. "Picked for you" is the whole catalogue in a grid that
-             loads more as you scroll, so on a shop of any size the bottom is a
-             long way down and on a growing one it is effectively unreachable —
-             which makes the highest-intent block on the page the one almost
-             nobody sees.
-
-             Above it, the same rail is the last thing before the shopper starts
-             browsing everything, which is the moment their own trail is worth
-             most: they came back for something they had already looked at, and
-             it is now in front of them rather than forty screens under them.
-
-             Unchanged: it renders nothing at all when the list is empty, so a
-             first-time visitor never meets an empty shelf, and it reads from
-             `kandi-recently-viewed-v1` in their own browser — the same place
-             the product page writes it — so it leaves the device no more than
-             the basket does. */}
-        <RecentlyViewed className="" />
-
         <section className="shop-panel">
           <SectionHeader title="Picked for you" />
           <InfiniteProducts
@@ -852,6 +826,29 @@ export default async function Home() {
 
 
         <TrustBar returnsDays={settings.commerce.returns_days} />
+
+        {/* ---- What this visitor was last looking at, at the foot ----
+
+             It has been second from the top, then last, then directly above
+             "Picked for you", and it is last again.
+
+             The case against the foot is worth writing down, because it is
+             real and it is the reason this moved up before: "Picked for you"
+             is the catalogue in a grid that loads more as the reader scrolls,
+             so anything under it is a long way down. What makes the foot
+             workable anyway is that the grid ENDS — it stops at the last page
+             rather than running forever — and the reader who gets there is a
+             shopper who has been through the whole catalogue without buying.
+             That is precisely the reader worth handing their own trail back
+             to, and it is the last thing the page says to them before the
+             prose about the shop.
+
+             Unchanged: it renders nothing at all when the list is empty, so a
+             first-time visitor never meets an empty shelf, and it reads from
+             `kandi-recently-viewed-v1` in their own browser — the same place
+             the product page writes it — so it leaves the device no more than
+             the basket does. */}
+        <RecentlyViewed className="" />
 
         {/* ---- The seller recruitment panel is gone from here ----
 
