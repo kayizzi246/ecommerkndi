@@ -126,7 +126,6 @@ class _KColors {
   /// the palette can draw at 10px.
   static const Color express = Color(0xFFFFE000);
 
-  static const Color star = Color(0xFFF59E0B);
 
   // ---- Shelf grounds ----
   //
@@ -1578,6 +1577,26 @@ class _Card extends StatelessWidget {
     return null;
   }
 
+
+  /// The strip across the bottom of the photograph.
+  ///
+  /// This is where the shilling saving went. It would not fit beside the old
+  /// price — "UGX 55,000  Save UGX 19,000" is about 170px of text in a 154px
+  /// card — and it is the figure a Ugandan shopper actually weighs, more than
+  /// a percentage. On the photograph it costs the card no height at all.
+  ///
+  /// Suppressed when the product is out of stock: a saving on something that
+  /// cannot be bought is noise, and the corner is needed for the sold-out
+  /// mark instead.
+  String? get _ribbon {
+    if (!product.inStock) return null;
+    final parts = <String>[
+      if (product.savingLabel != null) 'SAVE ${product.savingLabel}',
+      if (_freeDelivery) 'FREE DELIVERY',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   /// Whether this item alone clears the free-delivery threshold.
   ///
   /// Derived rather than sent: the API has no per-product delivery field, and
@@ -1610,13 +1629,16 @@ class _Card extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 1,
-                child: Stack(
+                child: ClipRRect(
+                  // The corners move OUT here, onto the Stack. The deal strip
+                  // is a sibling of the picture, and clipping only the picture
+                  // would leave the strip with square ends hanging off a
+                  // rounded photograph.
+                  borderRadius: BorderRadius.circular(_rPhoto),
+                  child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(_rPhoto),
-                      child: _Photo(url: product.image),
-                    ),
+                    _Photo(url: product.image),
                     // Top LEFT: the heart, where the badge used to be.
                     Positioned(
                       top: 4,
@@ -1685,32 +1707,36 @@ class _Card extends StatelessWidget {
                                   color: Colors.white)),
                         ),
                       ),
-                    // Bottom LEFT: the delivery badge, on the one corner of
-                    // the photograph nothing else uses.
-                    if (_freeDelivery)
+                    // ---- The deal strip ----
+                    //
+                    // Full width across the foot of the photograph, the way
+                    // the reference draws it. The right padding clears the
+                    // basket button, which floats over the strip's end rather
+                    // than being pushed off the tile by it.
+                    if (_ribbon != null)
                       Positioned(
-                        bottom: 4,
-                        left: 4,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _KColors.express,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('FREE DELIVERY',
-                              style: TextStyle(
-                                  fontSize: 8.5,
-                                  height: 1.2,
-                                  letterSpacing: 0.3,
+                          padding: const EdgeInsets.fromLTRB(7, 3.5, 44, 3.5),
+                          decoration:
+                              const BoxDecoration(gradient: _brandGradient),
+                          child: Text(_ribbon!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 9.5,
+                                  height: 1.25,
+                                  letterSpacing: 0.2,
                                   fontWeight: FontWeight.w800,
-                                  color: _KColors.ink)),
+                                  color: Colors.white)),
                         ),
                       ),
                     if (product.inStock)
                       Positioned(
-                        bottom: 0,
-                        right: 0,
+                        bottom: 4,
+                        right: 4,
                         child: _AddButton(
                           // A product with options cannot be added from a card
                           // — it opens instead, where the picker is.
@@ -1722,13 +1748,14 @@ class _Card extends StatelessWidget {
                       ),
                   ],
                 ),
+                ),
               ),
               const SizedBox(height: _KSpace.sm),
 
-              // The chip rides the name rather than sitting on the photograph,
-              // so it costs the card no height. `WidgetSpan` puts it in the
-              // same run as the text, which is what makes the name wrap around
-              // it instead of under it.
+              // The programme chip rides the name rather than sitting on the
+              // photograph, so it costs the card no height. `WidgetSpan` puts
+              // it in the same run as the text, which is what makes the name
+              // wrap around it instead of under it.
               RichText(
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1763,30 +1790,58 @@ class _Card extends StatelessWidget {
               ),
               const SizedBox(height: 5),
 
-              // Save, then price, then scarcity, then the crowd — the site's
-              // order, which runs from what the shop did about the price to
-              // what other people did about the product.
-              // The price on its own line, at full width, so nothing can
-              // squeeze it. Beside it, the old figure and the saving SHARE a
-              // line — they are one statement, and telling it across two rows
-              // in two colours was costing 25px on every card in the shop.
-              Text(product.priceLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.15,
-                      letterSpacing: -0.3,
-                      fontWeight: FontWeight.w900,
-                      color: _KColors.flame)),
-              // Just the old figure. "UGX 55,000  Save UGX 19,000" measured
-              // about 170px in a 154px card and ellipsised to
-              // "Save UGX 19,…" — a price with its last digits cut off, which
-              // is worse than not printing it. It was the third telling of one
-              // discount in any case: the yellow flag carries the percentage
-              // and the struck figure carries the arithmetic. The product page
-              // still says it in full, where there is room and where a shopper
-              // is deciding.
+              // ---- What other people did, ABOVE what it costs ----
+              //
+              // The reference's order, and it is the right one. A shopper
+              // scanning a grid decides whether a tile is worth reading at all
+              // from the sold count and the stars, and only then reads the
+              // price. This card had the price first and the crowd last, which
+              // is the order the shop cares about, not the order they read in.
+              //
+              // Drawn only when there is a number to carry. A row that renders
+              // empty on most tiles is a row of debris at forty different
+              // heights down the grid.
+              if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                Row(
+                  children: [
+                    if (product.totalSales > 0)
+                      Text('${product.totalSales} sold',
+                          style: const TextStyle(
+                              fontSize: 11, color: _KColors.muted)),
+                    if (product.totalSales > 0 && product.ratingCount > 0)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        child: Text('|',
+                            style:
+                                TextStyle(fontSize: 11, color: _KColors.line)),
+                      ),
+                    if (product.ratingCount > 0) ...[
+                      _Stars(rating: product.rating, size: 11),
+                      const SizedBox(width: 3),
+                      Text(product.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text('(${product.ratingCount})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: _KColors.muted)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
+
+              _Price(
+                label: product.priceLabel,
+                reduced: product.discountPercent > 0,
+                size: 17,
+              ),
               if (product.wasPriceLabel != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
@@ -1801,15 +1856,14 @@ class _Card extends StatelessWidget {
 
               // ---- The scarcity line, and the bar under it ----
               //
-              // The same fact drawn twice, which is the site's point: "Only 2
-              // left" is a number a shopper weighs against nothing, and a bar
-              // two-fifths full is a quantity they read without stopping.
+              // The same fact drawn twice, on purpose: "Only 2 left" is a
+              // number a shopper weighs against nothing, and a bar two-fifths
+              // full is a quantity they read without stopping.
               //
-              // Honest about its scale. The full width is the low-stock
-              // threshold, not an invented starting stock — the bar begins the
-              // moment the product becomes scarce and empties from there, so
-              // nothing here is ever drawn from a figure the shop does not
-              // have.
+              // The bar's full width is the low-stock threshold, not an
+              // invented starting stock — it begins the moment the product
+              // becomes scarce and empties from there, so it can never claim
+              // "nearly gone" about a product with plenty in the back.
               if (_lowStock) ...[
                 const SizedBox(height: 5),
                 Row(
@@ -1845,44 +1899,100 @@ class _Card extends StatelessWidget {
                   ),
                 ),
               ],
-
-              // Only drawn when there is a number to carry. A row that renders
-              // empty on most cards is a row of debris at forty different
-              // heights down the grid.
-              if (product.totalSales > 0 || product.ratingCount > 0) ...[
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    if (product.ratingCount > 0) ...[
-                      const Icon(Icons.star_rounded,
-                          size: 12, color: _KColors.star),
-                      const SizedBox(width: 2),
-                      Text(product.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _KColors.ink)),
-                      const SizedBox(width: 6),
-                    ],
-                    if (product.totalSales > 0)
-                      Flexible(
-                        child: Text('${product.totalSales} sold',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11, color: _KColors.muted)),
-                      ),
-                  ],
-                ),
-              ],
-
             ],
+
           ),
         ),
       ),
     );
   }
 }
+
+/// Five stars, drawn to the half.
+///
+/// Glyphs rather than the bare number. "4.5" is a fact a shopper has to read;
+/// four and a half stars is one they see, and on a grid of forty tiles that
+/// difference is most of what gets read at all.
+///
+/// Dark rather than gold, which is what the reference does — and it is right
+/// for a second reason here: gold stars sitting next to a yellow discount flag
+/// are two yellows competing inside a 154px tile.
+///
+/// Only ever drawn behind a real review count. An empty row of grey stars on a
+/// shop with no ratings yet is a rating of nothing dressed up as a rating.
+class _Stars extends StatelessWidget {
+  const _Stars({required this.rating, this.size = 11});
+
+  final num rating;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 1; i <= 5; i++)
+          Icon(
+            rating >= i
+                ? Icons.star_rounded
+                : (rating >= i - 0.5
+                    ? Icons.star_half_rounded
+                    : Icons.star_border_rounded),
+            size: size,
+            color: _KColors.ink,
+          ),
+      ],
+    );
+  }
+}
+
+/// A price, with the currency set smaller than the figure.
+///
+/// The API sends one string — "UGX 36,000" — and this splits it at the first
+/// space, then closes the gap. The unit is the part a Ugandan shopper already
+/// knows; the number is what they came for, and setting both at the same size
+/// makes the number harder to find.
+///
+/// ---- Red means REDUCED ----
+///
+/// Not "red means price". Every price in the money colour is the same as none
+/// of them in it — the colour stops carrying anything. A full price is set in
+/// ink and a cut one in red, which puts the colour in agreement with the
+/// yellow flag on the photograph instead of shouting over it.
+class _Price extends StatelessWidget {
+  const _Price({required this.label, required this.reduced, this.size = 17});
+
+  final String label;
+  final bool reduced;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final space = label.indexOf(' ');
+    final unit = space > 0 ? label.substring(0, space) : '';
+    final figure = space > 0 ? label.substring(space + 1) : label;
+    final colour = reduced ? _KColors.flame : _KColors.ink;
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.3,
+          height: 1.15,
+          color: colour,
+        ),
+        children: [
+          if (unit.isNotEmpty)
+            TextSpan(text: unit, style: TextStyle(fontSize: size * 0.66)),
+          TextSpan(text: figure, style: TextStyle(fontSize: size)),
+        ],
+      ),
+    );
+  }
+}
+
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.onTap, required this.icon});
 

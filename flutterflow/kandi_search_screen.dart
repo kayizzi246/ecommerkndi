@@ -61,7 +61,7 @@ class _KColors {
   static const Color hairline = Color(0xFFF3F4F6);
   static const Color primary = Color(0xFFFF6A00);
   static const Color save = Color(0xFF15803D);
-  static const Color star = Color(0xFFF59E0B);
+  static const Color express = Color(0xFFFFE000);
 
   /// ---- The money colour ----
   ///
@@ -109,8 +109,65 @@ const String _apiBase = 'https://kandiug.com';
 // The keys every page in this app agrees on. Repeated verbatim in each file;
 // if one changes it must change in all of them at once.
 const String _basketKey = 'kandi-cart-v1';
+const String _wishlistKey = 'kandi-wishlist-v1';
 const String _openProductKey = 'kandi-open-product';
 const String _openSearchKey = 'kandi-open-search';
+
+
+// ---- The saved list ----
+//
+// The same two operations Home performs on the same key. Duplicated rather
+// than imported: nothing crosses a file boundary in this app, and the key
+// below is the whole contract between the two pages.
+Future<Set<int>> _readWishlistIds() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    if (raw == null) return <int>{};
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return <int>{};
+    return decoded
+        .whereType<Map>()
+        .map((entry) => entry['id'])
+        .whereType<int>()
+        .toSet();
+  } catch (_) {
+    return <int>{};
+  }
+}
+
+Future<bool> _toggleWishlist(_KProduct product) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    final items = <Map<String, dynamic>>[];
+    if (raw != null) {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        for (final entry in decoded) {
+          if (entry is Map) items.add(Map<String, dynamic>.from(entry));
+        }
+      }
+    }
+    final index = items.indexWhere((item) => item['id'] == product.id);
+    final added = index < 0;
+    if (added) {
+      items.add({
+        'id': product.id,
+        'name': product.name,
+        'image': product.image,
+        'priceLabel': product.priceLabel,
+        'price': product.price,
+      });
+    } else {
+      items.removeAt(index);
+    }
+    await prefs.setString(_wishlistKey, jsonEncode(items));
+    return added;
+  } catch (_) {
+    return false;
+  }
+}
 
 class _KProduct {
   const _KProduct({
@@ -262,7 +319,41 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
   void initState() {
     super.initState();
     _restore();
+    _refreshWishlist();
   }
+
+  /// The free-delivery threshold, and the saved list.
+  ///
+  /// `/api/app/products` has been returning `commerce` on every response all
+  /// along; this page was throwing it away. Both are needed by the tile, which
+  /// is now the same tile Home draws.
+  num _freeDeliveryFrom = 0;
+  Set<int> _wishlist = <int>{};
+
+  Future<void> _refreshWishlist() async {
+    final wishlist = await _readWishlistIds();
+    if (mounted) setState(() => _wishlist = wishlist);
+  }
+
+  Future<void> _toggleSaved(_KProduct product) async {
+    final added = await _toggleWishlist(product);
+    if (!mounted) return;
+    setState(() {
+      if (added) {
+        _wishlist.add(product.id);
+      } else {
+        _wishlist.remove(product.id);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(added ? 'Saved' : 'Removed from saved'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
 
   Future<void> _restore() async {
     String initial = '';
@@ -335,6 +426,12 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
     setState(() {
       _loading = false;
       if (status == 200 && data is Map) {
+      final commerce = data['commerce'];
+      if (commerce is Map) {
+        _freeDeliveryFrom = commerce['freeDeliveryFrom'] is num
+            ? commerce['freeDeliveryFrom'] as num
+            : 0;
+      }
         _results = _KProduct.listFrom(data['products']);
         _total = data['total'] is int ? data['total'] as int : _results.length;
       } else {
@@ -539,8 +636,11 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
                 final product = _results[index];
                 return _Card(
                   product: product,
+                  freeDeliveryFrom: _freeDeliveryFrom,
+                  saved: _wishlist.contains(product.id),
                   onOpen: () => _open(product),
                   onAdd: () => _add(product),
+                  onSave: () => _toggleSaved(product),
                 );
               },
               childCount: _results.length,
@@ -557,13 +657,19 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
 class _Card extends StatelessWidget {
   const _Card({
     required this.product,
+    required this.freeDeliveryFrom,
+    required this.saved,
     required this.onOpen,
     required this.onAdd,
+    required this.onSave,
   });
 
   final _KProduct product;
+  final num freeDeliveryFrom;
+  final bool saved;
   final VoidCallback onOpen;
   final VoidCallback onAdd;
+  final VoidCallback onSave;
 
   /// The threshold the website uses before it calls stock low.
   static const int _lowStockAt = 5;
@@ -572,6 +678,32 @@ class _Card extends StatelessWidget {
       product.inStock &&
       product.stockQuantity != null &&
       product.stockQuantity! <= _lowStockAt;
+
+  /// Whether this item alone clears the free-delivery threshold.
+  ///
+  /// Derived rather than sent: the API has no per-product delivery field, and
+  /// the threshold here is the figure checkout actually applies.
+  bool get _freeDelivery =>
+      freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
+
+  /// The strip across the bottom of the photograph.
+  ///
+  /// This is where the shilling saving went. It would not fit beside the old
+  /// price — "UGX 55,000  Save UGX 19,000" is about 170px of text in a 154px
+  /// card — and it is the figure a Ugandan shopper actually weighs, more than
+  /// a percentage. On the photograph it costs the card no height at all.
+  ///
+  /// Suppressed when the product is out of stock: a saving on something that
+  /// cannot be bought is noise, and the corner is needed for the sold-out
+  /// mark instead.
+  String? get _ribbon {
+    if (!product.inStock) return null;
+    final parts = <String>[
+      if (product.savingLabel != null) 'SAVE ${product.savingLabel}',
+      if (_freeDelivery) 'FREE DELIVERY',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
 
   /// The chip that rides the name line.
   ///
@@ -582,7 +714,7 @@ class _Card extends StatelessWidget {
     if (product.discountPercent >= 30) {
       return (
         label: 'Super Deal',
-        background: const Color(0xFFFFE000),
+        background: _KColors.express,
         foreground: _KColors.ink
       );
     }
@@ -594,12 +726,13 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chip = _chip;
+
     return Semantics(
       button: true,
       label: '${product.name}. ${product.priceLabel}',
       child: GestureDetector(
         onTap: onOpen,
-        // Opaque so the whole card is the tap target, gaps included.
         behavior: HitTestBehavior.opaque,
         child: Container(
           decoration: BoxDecoration(
@@ -613,73 +746,154 @@ class _Card extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 1,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(_rPhoto),
-                      child: _Photo(url: product.image),
-                    ),
-                    // The website puts the cut top right, as the loudest mark on a
-                    // resting tile. These cards showed it only as a green
-                    // percentage beside the price, which is read last.
-                    if (product.inStock && product.discountPercent > 0)
+                child: ClipRRect(
+                  // The corners are on the Stack, not on the picture. The deal
+                  // strip is a sibling of the picture, and clipping only the
+                  // picture would leave the strip with square ends hanging off
+                  // a rounded photograph.
+                  borderRadius: BorderRadius.circular(_rPhoto),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _Photo(url: product.image),
+
+                      // Top LEFT: the heart, on its own white disc. Drawn
+                      // straight on the photograph the outline vanishes
+                      // against anything dark, and a control that is only
+                      // sometimes visible is not a control.
                       Positioned(
                         top: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFE000),
-                            borderRadius: BorderRadius.circular(_rChip),
-                          ),
-                          child: Text("-${product.discountPercent}%",
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  height: 1,
-                                  fontWeight: FontWeight.w800,
-                                  color: _KColors.ink)),
-                        ),
-                      ),
-                    if (product.inStock)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
+                        left: 4,
                         child: GestureDetector(
-                          // A product with options opens rather than adding —
-                          // a card cannot show a size picker.
-                          onTap: product.hasOptions ? onOpen : onAdd,
+                          onTap: onSave,
                           behavior: HitTestBehavior.opaque,
                           child: Container(
-                            width: 34,
-                            height: 34,
-                            // A circle with a drawn ring: this floats over a
-                            // photograph that can be white, so an edgeless
-                            // white disc is an invisible button.
+                            width: 30,
+                            height: 30,
                             decoration: BoxDecoration(
-                              color: _KColors.panel,
+                              color: const Color(0xF2FFFFFF),
                               shape: BoxShape.circle,
                               border: Border.all(color: _KColors.line),
                             ),
                             child: Icon(
-                                product.hasOptions
-                                    ? Icons.tune_rounded
-                                    : Icons.add_shopping_cart_rounded,
-                                size: 18,
-                                color: _KColors.ink),
+                              saved
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 17,
+                              color: saved ? _KColors.flame : _KColors.body,
+                            ),
                           ),
                         ),
                       ),
-                  ],
+
+                      // Top RIGHT: the cut, the loudest mark on a resting tile.
+                      if (product.inStock && product.discountPercent > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _KColors.express,
+                              borderRadius: BorderRadius.circular(_rChip),
+                            ),
+                            child: Text('-${product.discountPercent}%',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    height: 1,
+                                    fontWeight: FontWeight.w800,
+                                    color: _KColors.ink)),
+                          ),
+                        ),
+                      if (!product.inStock)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _KColors.ink,
+                              borderRadius: BorderRadius.circular(_rChip),
+                            ),
+                            child: const Text('Sold out',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    height: 1,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
+                          ),
+                        ),
+
+                      // ---- The deal strip ----
+                      //
+                      // Full width across the foot of the photograph, the way
+                      // the reference draws it. The right padding clears the
+                      // basket button, which floats over the strip's end
+                      // rather than being pushed off the tile by it.
+                      if (_ribbon != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding:
+                                const EdgeInsets.fromLTRB(7, 3.5, 44, 3.5),
+                            decoration:
+                                const BoxDecoration(gradient: _brandGradient),
+                            child: Text(_ribbon!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.25,
+                                    letterSpacing: 0.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
+                          ),
+                        ),
+
+                      if (product.inStock)
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            // A product with options cannot be added from a
+                            // card — it opens instead, where the picker is.
+                            onTap: product.hasOptions ? onOpen : onAdd,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              // A circle with a drawn ring. This floats over a
+                              // photograph that can be white — most of this
+                              // catalogue is shot on it — so an edgeless white
+                              // disc is an invisible button.
+                              decoration: BoxDecoration(
+                                color: _KColors.panel,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: _KColors.line),
+                              ),
+                              child: Icon(
+                                  product.hasOptions
+                                      ? Icons.tune_rounded
+                                      : Icons.add_shopping_cart_rounded,
+                                  size: 18,
+                                  color: _KColors.ink),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: _KSpace.sm),
 
               // The programme chip rides the name rather than sitting on the
-              // photograph, so it costs the card no height: `WidgetSpan` puts
-              // it in the same run as the text, and the name wraps around it
-              // instead of under it.
+              // photograph, so it costs the card no height. `WidgetSpan` puts
+              // it in the same run as the text, which is what makes the name
+              // wrap around it instead of under it.
               RichText(
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -687,7 +901,7 @@ class _Card extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 12.5, height: 1.35, color: _KColors.ink),
                   children: [
-                    if (_chip != null)
+                    if (chip != null)
                       WidgetSpan(
                         alignment: PlaceholderAlignment.middle,
                         child: Padding(
@@ -696,15 +910,15 @@ class _Card extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 4, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: _chip!.background,
+                              color: chip.background,
                               borderRadius: BorderRadius.circular(3),
                             ),
-                            child: Text(_chip!.label,
+                            child: Text(chip.label,
                                 style: TextStyle(
                                     fontSize: 9.5,
                                     height: 1.2,
                                     fontWeight: FontWeight.w800,
-                                    color: _chip!.foreground)),
+                                    color: chip.foreground)),
                           ),
                         ),
                       ),
@@ -713,26 +927,59 @@ class _Card extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              // ---- The price gets its own line ----
+
+              // ---- What other people did, ABOVE what it costs ----
               //
-              // "UGX 36,000" beside a struck-through "UGX 55,000" is about
-              // 162px of text in a 154px card, so the Row's first Flexible
-              // gave way and the shop advertised "UGX 36,0…". A truncated
-              // price is worse than no price at all.
+              // The reference's order, and it is the right one. A shopper
+              // scanning a grid decides whether a tile is worth reading at all
+              // from the sold count and the stars, and only then reads the
+              // price. This card had the price first and the crowd last, which
+              // is the order the shop cares about, not the order they read in.
               //
-              // The old figure moves underneath, where it cannot push the real
-              // one off the card. The green percentage goes entirely: the cut
-              // is already the yellow flag on the photograph, and saying it
-              // twice on a 154px tile spends the width that broke the price.
-              Text(product.priceLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.15,
-                      letterSpacing: -0.3,
-                      fontWeight: FontWeight.w900,
-                      color: _KColors.flame)),
+              // Drawn only when there is a number to carry. A row that renders
+              // empty on most tiles is a row of debris at forty different
+              // heights down the grid.
+              if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                Row(
+                  children: [
+                    if (product.totalSales > 0)
+                      Text('${product.totalSales} sold',
+                          style: const TextStyle(
+                              fontSize: 11, color: _KColors.muted)),
+                    if (product.totalSales > 0 && product.ratingCount > 0)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        child: Text('|',
+                            style:
+                                TextStyle(fontSize: 11, color: _KColors.line)),
+                      ),
+                    if (product.ratingCount > 0) ...[
+                      _Stars(rating: product.rating, size: 11),
+                      const SizedBox(width: 3),
+                      Text(product.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text('(${product.ratingCount})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: _KColors.muted)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
+
+              _Price(
+                label: product.priceLabel,
+                reduced: product.discountPercent > 0,
+                size: 17,
+              ),
               if (product.wasPriceLabel != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
@@ -790,39 +1037,95 @@ class _Card extends StatelessWidget {
                   ),
                 ),
               ],
-
-              // Only drawn when there is a number to carry. A row that renders
-              // empty on most cards is a row of debris at forty different
-              // heights down the grid.
-              if (product.totalSales > 0 || product.ratingCount > 0) ...[
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    if (product.ratingCount > 0) ...[
-                      const Icon(Icons.star_rounded,
-                          size: 12, color: _KColors.star),
-                      const SizedBox(width: 2),
-                      Text(product.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _KColors.ink)),
-                      const SizedBox(width: 6),
-                    ],
-                    if (product.totalSales > 0)
-                      Flexible(
-                        child: Text('${product.totalSales} sold',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11, color: _KColors.muted)),
-                      ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+/// Five stars, drawn to the half.
+///
+/// Glyphs rather than the bare number. "4.5" is a fact a shopper has to read;
+/// four and a half stars is one they see, and on a grid of forty tiles that
+/// difference is most of what gets read at all.
+///
+/// Dark rather than gold, which is what the reference does — and it is right
+/// for a second reason here: gold stars sitting next to a yellow discount flag
+/// are two yellows competing inside a 154px tile.
+///
+/// Only ever drawn behind a real review count. An empty row of grey stars on a
+/// shop with no ratings yet is a rating of nothing dressed up as a rating.
+class _Stars extends StatelessWidget {
+  const _Stars({required this.rating, this.size = 11});
+
+  final num rating;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 1; i <= 5; i++)
+          Icon(
+            rating >= i
+                ? Icons.star_rounded
+                : (rating >= i - 0.5
+                    ? Icons.star_half_rounded
+                    : Icons.star_border_rounded),
+            size: size,
+            color: _KColors.ink,
+          ),
+      ],
+    );
+  }
+}
+
+/// A price, with the currency set smaller than the figure.
+///
+/// The API sends one string — "UGX 36,000" — and this splits it at the first
+/// space, then closes the gap. The unit is the part a Ugandan shopper already
+/// knows; the number is what they came for, and setting both at the same size
+/// makes the number harder to find.
+///
+/// ---- Red means REDUCED ----
+///
+/// Not "red means price". Every price in the money colour is the same as none
+/// of them in it — the colour stops carrying anything. A full price is set in
+/// ink and a cut one in red, which puts the colour in agreement with the
+/// yellow flag on the photograph instead of shouting over it.
+class _Price extends StatelessWidget {
+  const _Price({required this.label, required this.reduced, this.size = 17});
+
+  final String label;
+  final bool reduced;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final space = label.indexOf(' ');
+    final unit = space > 0 ? label.substring(0, space) : '';
+    final figure = space > 0 ? label.substring(space + 1) : label;
+    final colour = reduced ? _KColors.flame : _KColors.ink;
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.3,
+          height: 1.15,
+          color: colour,
+        ),
+        children: [
+          if (unit.isNotEmpty)
+            TextSpan(text: unit, style: TextStyle(fontSize: size * 0.66)),
+          TextSpan(text: figure, style: TextStyle(fontSize: size)),
+        ],
       ),
     );
   }

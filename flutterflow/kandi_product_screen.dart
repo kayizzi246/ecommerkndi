@@ -64,8 +64,11 @@ class _KColors {
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
+
+  /// The discount flag and the delivery badge. Black on it is 11:1, the most
+  /// legible pairing the palette can manage at 9px.
+  static const Color express = Color(0xFFFFE000);
   static const Color saveSoft = Color(0xFFECFDF3);
-  static const Color star = Color(0xFFF59E0B);
 
   /// ---- The money colour ----
   ///
@@ -91,6 +94,11 @@ class _KSpace {
 }
 
 const double _rChip = 8;
+
+/// Panel and photograph corners. This page had neither until it grew a price
+/// card and a grid of tiles; both match the rest of the app.
+const double _rPanel = 12;
+const double _rPhoto = 8;
 
 /// The brand gradient: Kandi orange running into the deep red.
 ///
@@ -137,12 +145,37 @@ class _KRelated {
     required this.name,
     required this.image,
     required this.priceLabel,
+    required this.price,
+    this.wasPriceLabel,
+    this.savingLabel,
+    this.discountPercent = 0,
+    this.inStock = true,
+    this.stockQuantity,
+    this.rating = 0,
+    this.ratingCount = 0,
+    this.totalSales = 0,
+    this.isNew = false,
+    this.hasOptions = false,
   });
 
   final int id;
   final String name;
   final String image;
   final String priceLabel;
+  final num price;
+  final String? wasPriceLabel;
+  final String? savingLabel;
+  final int discountPercent;
+  final bool inStock;
+
+  /// Units left, when WooCommerce is tracking stock for this one. Null means
+  /// "not tracked", which is a different thing from zero.
+  final int? stockQuantity;
+  final num rating;
+  final int ratingCount;
+  final int totalSales;
+  final bool isNew;
+  final bool hasOptions;
 
   static List<_KRelated> listFrom(dynamic json) {
     if (json is! List) return const [];
@@ -156,10 +189,119 @@ class _KRelated {
         name: (entry['name'] ?? '').toString(),
         image: (entry['image'] ?? '').toString(),
         priceLabel: (entry['priceLabel'] ?? '').toString(),
+        price: entry['price'] is num ? entry['price'] as num : 0,
+        wasPriceLabel: entry['wasPriceLabel']?.toString(),
+        savingLabel: entry['savingLabel']?.toString(),
+        discountPercent: entry['discountPercent'] is int
+            ? entry['discountPercent'] as int
+            : 0,
+        inStock: entry['inStock'] != false,
+        stockQuantity:
+            entry['stockQuantity'] is int ? entry['stockQuantity'] as int : null,
+        rating: entry['rating'] is num ? entry['rating'] as num : 0,
+        ratingCount:
+            entry['ratingCount'] is int ? entry['ratingCount'] as int : 0,
+        totalSales:
+            entry['totalSales'] is int ? entry['totalSales'] as int : 0,
+        isNew: entry['isNew'] == true,
+        hasOptions: entry['hasOptions'] == true,
       ));
     }
     return out;
   }
+}
+
+// ---- The saved list, and adding a recommendation to the basket ----
+//
+// The same key and the same shape the other pages use. Duplicated rather than
+// imported, like everything else here.
+Future<Set<int>> _readWishlistIds() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    if (raw == null) return <int>{};
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return <int>{};
+    return decoded
+        .whereType<Map>()
+        .map((entry) => entry['id'])
+        .whereType<int>()
+        .toSet();
+  } catch (_) {
+    return <int>{};
+  }
+}
+
+Future<bool> _toggleWishlistItem(_KRelated item) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    final items = <Map<String, dynamic>>[];
+    if (raw != null) {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        for (final entry in decoded) {
+          if (entry is Map) items.add(Map<String, dynamic>.from(entry));
+        }
+      }
+    }
+    final index = items.indexWhere((entry) => entry['id'] == item.id);
+    final added = index < 0;
+    if (added) {
+      items.add({
+        'id': item.id,
+        'name': item.name,
+        'image': item.image,
+        'priceLabel': item.priceLabel,
+        'price': item.price,
+      });
+    } else {
+      items.removeAt(index);
+    }
+    await prefs.setString(_wishlistKey, jsonEncode(items));
+    return added;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Puts a recommendation straight in the basket.
+///
+/// Keyed with an empty variant, exactly as the grids do it — a product with
+/// options never reaches here, because its card opens the product instead of
+/// adding it.
+Future<void> _addRelatedToBasket(_KRelated item) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_basketKey);
+    final lines = <Map<String, dynamic>>[];
+    if (raw != null) {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        for (final entry in decoded) {
+          if (entry is Map) lines.add(Map<String, dynamic>.from(entry));
+        }
+      }
+    }
+    final key = '${item.id}::';
+    final index = lines.indexWhere((line) => line['key'] == key);
+    if (index >= 0) {
+      final current = lines[index]['quantity'];
+      lines[index]['quantity'] = (current is int ? current : 1) + 1;
+    } else {
+      lines.add({
+        'key': key,
+        'productId': item.id,
+        'name': item.name,
+        'image': item.image,
+        'price': item.price,
+        'priceLabel': item.priceLabel,
+        'quantity': 1,
+        'variantLabel': null,
+      });
+    }
+    await prefs.setString(_basketKey, jsonEncode(lines));
+  } catch (_) {}
 }
 
 /// One selectable attribute — "Size", with its values.
@@ -205,6 +347,14 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   String? _wasPriceLabel;
   String? _savingLabel;
   int _discountPercent = 0;
+
+  /// How many have sold. The one figure on this page that is about other
+  /// shoppers rather than about the shop, and the API has been sending it.
+  int _totalSales = 0;
+
+  /// Which of the recommendations below are already in the saved list, so
+  /// their hearts are filled on arrival rather than after the first tap.
+  Set<int> _relatedSaved = <int>{};
   bool _inStock = true;
   int? _stockQuantity;
   num _rating = 0;
@@ -280,6 +430,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       _productId = id;
       _saved = saved;
     });
+    _refreshRelatedSaved();
     _load();
   }
 
@@ -397,6 +548,8 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
         if (single.isNotEmpty) _images = [single];
       }
 
+      _totalSales =
+          product['totalSales'] is int ? product['totalSales'] as int : 0;
       _attributes = _KAttribute.listFrom(product['attributes']);
       _related = _KRelated.listFrom(data['related']);
       // A one-value attribute is a fact about the product ("Material: Cotton"),
@@ -533,43 +686,47 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       height: widget.height,
       child: Scaffold(
         backgroundColor: _KColors.canvas,
+        // ---- The bar floats ON the photograph ----
+        //
+        // `extendBodyBehindAppBar` puts the gallery under it, so the picture
+        // runs to the very top of the screen and the two controls sit on it as
+        // discs. That is what the reference does, and it buys back the 56px a
+        // solid bar was spending to say "Product" — a heading that told a
+        // shopper looking at a photograph of the product nothing.
+        //
+        // The status-bar icons go DARK here, unlike everywhere else in the
+        // app: this bar has no gradient behind it any more, and this
+        // catalogue is photographed on white.
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
-          // The gradient goes behind the bar rather than in `backgroundColor`,
-          // which only takes a flat colour. `flexibleSpace` fills the whole
-          // bar including the status-bar strip above it, so the ramp starts at
-          // the top of the screen and not under the clock.
-          // SizedBox.expand is load-bearing. A childless DecoratedBox has
-          // no size, and AppBar puts flexibleSpace in a Stack under loose
-          // constraints — so the gradient painted nothing at all and every
-          // sub-page had a white title on a white bar.
-          flexibleSpace: const DecoratedBox(
-            decoration: BoxDecoration(gradient: _brandGradient),
-            child: SizedBox.expand(),
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          leadingWidth: 52,
+          leading: Center(
+            child: _GlassButton(
+              icon: Icons.arrow_back_rounded,
+              tooltip: 'Back',
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
           ),
-          systemOverlayStyle: SystemUiOverlayStyle.light,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text('Product',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white)),
           actions: [
             // Hidden until the product has loaded: a heart over a blank screen
             // saves a product with no name and no price into the list.
             if (!_loading && !_failed)
-              IconButton(
-                onPressed: _toggleSaved,
-                tooltip: _saved ? 'Remove from saved' : 'Save',
-                // White either way, filled or outlined. The orange it used to
-                // turn when saved was picked against a white bar; on the
-                // gradient it is orange on orange and the state disappears.
-                icon: Icon(
-                  _saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: Colors.white,
+              Padding(
+                padding: const EdgeInsets.only(right: _KSpace.sm),
+                child: Center(
+                  child: _GlassButton(
+                    icon: _saved
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    tint: _saved ? _KColors.flame : _KColors.ink,
+                    tooltip: _saved ? 'Remove from saved' : 'Save',
+                    onTap: _toggleSaved,
+                  ),
                 ),
               ),
           ],
@@ -636,87 +793,106 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       padding: EdgeInsets.zero,
       children: [
         _buildGallery(),
-        // ---- The price band ----
+        // ---- The price banner ----
         //
-        // The price now leads the page and the name follows it, which is the
-        // reverse of what was here. A shopper who has scrolled to a product
-        // already knows roughly what it is — the picture told them — and the
-        // one fact they came for is what it costs. Reading the name first and
-        // hunting for the figure underneath is a step this page was charging
-        // for nothing.
+        // The price leads the page and the name follows it, which is the
+        // reverse of what this used to be. A shopper who has scrolled to a
+        // product already knows roughly what it is — the picture told them —
+        // and the one fact they came for is what it costs.
         //
-        // Set on a tinted ground so the band is legible as a block before any
-        // of it is read, and printed in the money colour at 30px, which is the
-        // largest type anywhere in the app.
-        Container(
-          width: double.infinity,
-          color: _KColors.flameSoft,
+        // The banner around it only appears when there IS a reduction. A
+        // permanent "SALE" strip on every product is a sale on nothing, and a
+        // shop that always says it is having one is a shop nobody hurries in.
+        Padding(
           padding: const EdgeInsets.fromLTRB(
-              _KSpace.lg, _KSpace.lg, _KSpace.lg, _KSpace.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(_priceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 30,
-                            height: 1.05,
-                            letterSpacing: -0.6,
-                            fontWeight: FontWeight.w900,
-                            color: _KColors.flame)),
-                  ),
-                  if (_wasPriceLabel != null) ...[
-                    const SizedBox(width: _KSpace.sm),
-                    Text(_wasPriceLabel!,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: _KColors.muted,
-                            decoration: TextDecoration.lineThrough)),
-                  ],
-                  if (_discountPercent > 0) ...[
-                    const SizedBox(width: _KSpace.sm),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _KColors.flame,
-                        borderRadius: BorderRadius.circular(_rChip),
-                      ),
-                      child: Text('-$_discountPercent%',
-                          style: const TextStyle(
-                              fontSize: 12,
-                              height: 1,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+              _KSpace.md, _KSpace.md, _KSpace.md, 0),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: _discountPercent > 0 ? _brandGradient : null,
+              color: _discountPercent > 0 ? null : _KColors.panel,
+              borderRadius: BorderRadius.circular(_rPanel),
+            ),
+            padding: EdgeInsets.all(_discountPercent > 0 ? 3 : 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_discountPercent > 0)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(11, 5, 11, 7),
+                    child: Row(
+                      children: [
+                        const Text('PRICE DROP',
+                            style: TextStyle(
+                                fontSize: 12,
+                                height: 1.1,
+                                letterSpacing: 0.4,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white)),
+                        const Spacer(),
+                        Text('-$_discountPercent%',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                height: 1.1,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white)),
+                      ],
                     ),
-                  ],
-                ],
-              ),
-              if (_savingLabel != null) ...[
-                const SizedBox(height: _KSpace.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _KColors.saveSoft,
-                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text('You save $_savingLabel',
-                      style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: _KColors.save)),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: _KColors.panel,
+                    borderRadius: BorderRadius.circular(_rPanel - 2),
+                  ),
+                  padding: const EdgeInsets.all(_KSpace.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Flexible(
+                            child: _Price(
+                              label: _priceLabel,
+                              reduced: _discountPercent > 0,
+                              size: 30,
+                            ),
+                          ),
+                          if (_wasPriceLabel != null) ...[
+                            const SizedBox(width: _KSpace.sm),
+                            Text(_wasPriceLabel!,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    color: _KColors.muted,
+                                    decoration: TextDecoration.lineThrough)),
+                          ],
+                        ],
+                      ),
+                      if (_savingLabel != null) ...[
+                        const SizedBox(height: _KSpace.sm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _KColors.saveSoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text('You save $_savingLabel',
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _KColors.save)),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
+        const SizedBox(height: _KSpace.md),
         Container(
           color: _KColors.panel,
           padding: const EdgeInsets.all(_KSpace.lg),
@@ -729,22 +905,34 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                       height: 1.35,
                       fontWeight: FontWeight.w600,
                       color: _KColors.ink)),
-              if (_ratingCount > 0) ...[
+              if (_ratingCount > 0 || _totalSales > 0) ...[
                 const SizedBox(height: _KSpace.md),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded,
-                        size: 17, color: _KColors.star),
-                    const SizedBox(width: 3),
-                    Text(_rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: _KColors.ink)),
-                    const SizedBox(width: 5),
-                    Text('($_ratingCount reviews)',
-                        style: const TextStyle(
-                            fontSize: 12.5, color: _KColors.muted)),
+                    if (_ratingCount > 0) ...[
+                      _Stars(rating: _rating, size: 15),
+                      const SizedBox(width: 5),
+                      Text(_rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 4),
+                      Text('($_ratingCount)',
+                          style: const TextStyle(
+                              fontSize: 12.5, color: _KColors.muted)),
+                    ],
+                    if (_ratingCount > 0 && _totalSales > 0)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 7),
+                        child: Text('|',
+                            style: TextStyle(
+                                fontSize: 12.5, color: _KColors.line)),
+                      ),
+                    if (_totalSales > 0)
+                      Text('$_totalSales sold',
+                          style: const TextStyle(
+                              fontSize: 12.5, color: _KColors.muted)),
                   ],
                 ),
               ],
@@ -795,7 +983,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   Widget _buildGallery() {
     if (_images.isEmpty) {
       return Container(
-        height: 320,
+        height: 420,
         color: _KColors.hairline,
         child: const Center(
           child: Icon(Icons.image_not_supported_outlined,
@@ -804,12 +992,23 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       );
     }
 
+    // ---- Full bleed, and taller ----
+    //
+    // The bar floats on top of this now, so the picture runs to the top of the
+    // screen. 420 rather than 340 because roughly 90px of it is under the
+    // status bar and the toolbar, and the product should not be crowded into
+    // what is left.
+    //
+    // The page counter moved ONTO the picture as a pill. As a row of its own
+    // it cost 22px on every product to say something two thirds of them —
+    // the single-image ones — never needed to say at all.
     return Container(
       color: _KColors.panel,
-      child: Column(
+      child: Stack(
         children: [
           SizedBox(
-            height: 340,
+            height: 420,
+            width: double.infinity,
             child: PageView.builder(
               itemCount: _images.length,
               onPageChanged: (index) => setState(() => _gallery = index),
@@ -824,23 +1023,22 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
             ),
           ),
           if (_images.length > 1)
-            Padding(
-              padding: const EdgeInsets.only(bottom: _KSpace.md),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (int i = 0; i < _images.length; i++)
-                    Container(
-                      width: i == _gallery ? 18 : 6,
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color:
-                            i == _gallery ? _KColors.primary : _KColors.line,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                ],
+            Positioned(
+              bottom: _KSpace.md,
+              right: _KSpace.md,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0x8A000000),
+                  borderRadius: BorderRadius.circular(_rPill),
+                ),
+                child: Text("${_gallery + 1}/${_images.length}",
+                    style: const TextStyle(
+                        fontSize: 11.5,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
               ),
             ),
         ],
@@ -943,84 +1141,125 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   }
 
   /// Other products in the same category, at the foot of the page.
+  /// ---- The recommendation grid ----
+  ///
+  /// This was a horizontal strip of six thumbnails with a name and a price.
+  /// It is now the shop's own tile, two across, running to the foot of the
+  /// page — which is what the reference does and what the strip could never
+  /// do: a sideways row shows three products and asks the shopper to work for
+  /// the rest, and the foot of a product page is exactly where somebody who
+  /// has decided against THIS one is looking for another.
+  ///
+  /// The tiles are the real thing, not a cut-down copy: the discount flag, the
+  /// deal strip, the sold count, the heart and the basket button all work
+  /// here. The API has always sent the whole product shape for these; the old
+  /// model was reading four fields of it.
   Widget _buildRelated() {
     return Container(
       margin: const EdgeInsets.only(top: _KSpace.md),
-      color: _KColors.panel,
-      padding: const EdgeInsets.symmetric(vertical: _KSpace.lg),
+      // The page ground, not white — these are white tiles, and white tiles on
+      // a white panel have no edges.
+      color: _KColors.canvas,
+      padding: const EdgeInsets.fromLTRB(
+          _KSpace.md, _KSpace.lg, _KSpace.md, _KSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: _KSpace.lg),
-            child: Text('You might also like',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: _KColors.ink)),
+          Row(
+            children: [
+              Container(
+                width: 3.5,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _KColors.flame,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 7),
+              const Text('You may also like',
+                  style: TextStyle(
+                      fontSize: 17,
+                      letterSpacing: -0.2,
+                      fontWeight: FontWeight.w900,
+                      color: _KColors.ink)),
+            ],
           ),
           const SizedBox(height: _KSpace.md),
-          SizedBox(
-            height: 196,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
-              itemCount: _related.length,
-              separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
-              itemBuilder: (context, index) {
-                final item = _related[index];
-                return SizedBox(
-                  width: 124,
-                  child: GestureDetector(
-                    // Replaces this screen rather than stacking another on top.
-                    // Browsing sideways through six related products should not
-                    // leave six product pages on the back stack, so that one
-                    // back tap returns to where the shopper actually came from.
-                    onTap: () => _openRelated(item),
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(_rChip),
-                          child: SizedBox(
-                            width: 124,
-                            height: 124,
-                            child: item.image.isEmpty
-                                ? const ColoredBox(color: _KColors.hairline)
-                                : CachedNetworkImage(
-                                    imageUrl: item.image,
-                                    fit: BoxFit.contain,
-                                    placeholder: (_, __) => const ColoredBox(
-                                        color: _KColors.hairline),
-                                    errorWidget: (_, __, ___) =>
-                                        const ColoredBox(
-                                            color: _KColors.hairline),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(item.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12, height: 1.3, color: _KColors.ink)),
-                        const SizedBox(height: 3),
-                        Text(item.priceLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w800,
-                                color: _KColors.ink)),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          GridView.builder(
+            // Inside the page's own ListView, so it must not scroll and must
+            // take exactly the height of its rows.
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: _KSpace.md,
+              crossAxisSpacing: _KSpace.md,
+              // The same 300px tile the rest of the app draws, added up row by
+              // row. See the note in SETUP.md before changing it.
+              childAspectRatio: 0.57,
             ),
+            itemCount: _related.length,
+            itemBuilder: (context, index) {
+              final item = _related[index];
+              return _Card(
+                product: item,
+                freeDeliveryFrom: _freeDeliveryFrom,
+                saved: _relatedSaved.contains(item.id),
+                onOpen: () => _openRelated(item),
+                onAdd: () => _addRelated(item),
+                onSave: () => _toggleRelatedSaved(item),
+              );
+            },
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _refreshRelatedSaved() async {
+    final ids = await _readWishlistIds();
+    if (mounted) setState(() => _relatedSaved = ids);
+  }
+
+  Future<void> _toggleRelatedSaved(_KRelated item) async {
+    final added = await _toggleWishlistItem(item);
+    if (!mounted) return;
+    setState(() {
+      if (added) {
+        _relatedSaved.add(item.id);
+      } else {
+        _relatedSaved.remove(item.id);
+      }
+      // A recommendation can be the product this page is showing, on a page
+      // reached from another recommendation — so the bar's heart has to agree
+      // with the tile's.
+      if (item.id == _productId) _saved = added;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(added ? 'Saved' : 'Removed from saved'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _addRelated(_KRelated item) async {
+    await _addRelatedToBasket(item);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.name} added'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Basket',
+          textColor: Colors.white,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const KandiCartScreen()),
+          ),
+        ),
       ),
     );
   }
@@ -1162,6 +1401,528 @@ class _BasketOrBuy extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+/// The shop's product tile.
+///
+/// A copy of the one the grids draw. Nothing crosses a file boundary in this
+/// app — see the note at the head of kandi_home_screen.dart — so this page
+/// carries its own, and the two have to be kept in step by hand.
+class _Card extends StatelessWidget {
+  const _Card({
+    required this.product,
+    required this.freeDeliveryFrom,
+    required this.saved,
+    required this.onOpen,
+    required this.onAdd,
+    required this.onSave,
+  });
+
+  final _KRelated product;
+  final num freeDeliveryFrom;
+  final bool saved;
+  final VoidCallback onOpen;
+  final VoidCallback onAdd;
+  final VoidCallback onSave;
+
+  /// The threshold the website uses before it calls stock low.
+  static const int _lowStockAt = 5;
+
+  bool get _lowStock =>
+      product.inStock &&
+      product.stockQuantity != null &&
+      product.stockQuantity! <= _lowStockAt;
+
+  bool get _freeDelivery =>
+      freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
+
+  /// The strip across the bottom of the photograph.
+  ///
+  /// This is where the shilling saving went. It would not fit beside the old
+  /// price — "UGX 55,000  Save UGX 19,000" is about 170px of text in a 154px
+  /// card — and it is the figure a Ugandan shopper actually weighs, more than
+  /// a percentage. On the photograph it costs the card no height at all.
+  ///
+  /// Suppressed when the product is out of stock: a saving on something that
+  /// cannot be bought is noise, and the corner is needed for the sold-out
+  /// mark instead.
+  String? get _ribbon {
+    if (!product.inStock) return null;
+    final parts = <String>[
+      if (product.savingLabel != null) 'SAVE ${product.savingLabel}',
+      if (_freeDelivery) 'FREE DELIVERY',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  ({String label, Color background, Color foreground})? get _chip {
+    if (product.discountPercent >= 30) {
+      return (
+        label: 'Super Deal',
+        background: _KColors.express,
+        foreground: _KColors.ink
+      );
+    }
+    if (product.isNew) {
+      return (label: 'New', background: _KColors.save, foreground: Colors.white);
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = _chip;
+
+    return Semantics(
+      button: true,
+      label: '${product.name}. ${product.priceLabel}',
+      child: GestureDetector(
+        onTap: onOpen,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            color: _KColors.panel,
+            borderRadius: BorderRadius.circular(_rPanel),
+          ),
+          padding: const EdgeInsets.all(_KSpace.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(_rPhoto),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _TilePhoto(url: product.image),
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: GestureDetector(
+                          onTap: onSave,
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: const Color(0xF2FFFFFF),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: _KColors.line),
+                            ),
+                            child: Icon(
+                              saved
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 17,
+                              color: saved ? _KColors.flame : _KColors.body,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (product.inStock && product.discountPercent > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _KColors.express,
+                              borderRadius: BorderRadius.circular(_rChip),
+                            ),
+                            child: Text('-${product.discountPercent}%',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    height: 1,
+                                    fontWeight: FontWeight.w800,
+                                    color: _KColors.ink)),
+                          ),
+                        ),
+                      if (!product.inStock)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _KColors.ink,
+                              borderRadius: BorderRadius.circular(_rChip),
+                            ),
+                            child: const Text('Sold out',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    height: 1,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
+                          ),
+                        ),
+                      if (_ribbon != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding:
+                                const EdgeInsets.fromLTRB(7, 3.5, 44, 3.5),
+                            decoration:
+                                const BoxDecoration(gradient: _brandGradient),
+                            child: Text(_ribbon!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.25,
+                                    letterSpacing: 0.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
+                          ),
+                        ),
+                      if (product.inStock)
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: product.hasOptions ? onOpen : onAdd,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: _KColors.panel,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: _KColors.line),
+                              ),
+                              child: Icon(
+                                  product.hasOptions
+                                      ? Icons.tune_rounded
+                                      : Icons.add_shopping_cart_rounded,
+                                  size: 18,
+                                  color: _KColors.ink),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: _KSpace.sm),
+
+              // The programme chip rides the name rather than sitting on the
+              // photograph, so it costs the card no height. `WidgetSpan` puts
+              // it in the same run as the text, which is what makes the name
+              // wrap around it instead of under it.
+              RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: const TextStyle(
+                      fontSize: 12.5, height: 1.35, color: _KColors.ink),
+                  children: [
+                    if (chip != null)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: chip.background,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(chip.label,
+                                style: TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: chip.foreground)),
+                          ),
+                        ),
+                      ),
+                    TextSpan(text: product.name),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+
+              // ---- What other people did, ABOVE what it costs ----
+              //
+              // The reference's order, and it is the right one. A shopper
+              // scanning a grid decides whether a tile is worth reading at all
+              // from the sold count and the stars, and only then reads the
+              // price. This card had the price first and the crowd last, which
+              // is the order the shop cares about, not the order they read in.
+              //
+              // Drawn only when there is a number to carry. A row that renders
+              // empty on most tiles is a row of debris at forty different
+              // heights down the grid.
+              if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                Row(
+                  children: [
+                    if (product.totalSales > 0)
+                      Text('${product.totalSales} sold',
+                          style: const TextStyle(
+                              fontSize: 11, color: _KColors.muted)),
+                    if (product.totalSales > 0 && product.ratingCount > 0)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        child: Text('|',
+                            style:
+                                TextStyle(fontSize: 11, color: _KColors.line)),
+                      ),
+                    if (product.ratingCount > 0) ...[
+                      _Stars(rating: product.rating, size: 11),
+                      const SizedBox(width: 3),
+                      Text(product.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 2),
+                      Flexible(
+                        child: Text('(${product.ratingCount})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: _KColors.muted)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
+
+              _Price(
+                label: product.priceLabel,
+                reduced: product.discountPercent > 0,
+                size: 17,
+              ),
+              if (product.wasPriceLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(product.wasPriceLabel!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: _KColors.faint,
+                          decoration: TextDecoration.lineThrough)),
+                ),
+
+              // ---- The scarcity line, and the bar under it ----
+              //
+              // The same fact drawn twice, on purpose: "Only 2 left" is a
+              // number a shopper weighs against nothing, and a bar two-fifths
+              // full is a quantity they read without stopping.
+              //
+              // The bar's full width is the low-stock threshold, not an
+              // invented starting stock — it begins the moment the product
+              // becomes scarce and empties from there, so it can never claim
+              // "nearly gone" about a product with plenty in the back.
+              if (_lowStock) ...[
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                          color: _KColors.primary, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 5),
+                    Text('Only ${product.stockQuantity} left',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _KColors.body)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: SizedBox(
+                    width: 78,
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      value: (product.stockQuantity! / _lowStockAt)
+                          .clamp(0.12, 1.0)
+                          .toDouble(),
+                      backgroundColor: _KColors.hairline,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_KColors.primary),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The picture inside a tile.
+///
+/// Named apart from the gallery's image so the two cannot be confused: this
+/// one is a 155px square that must never crop, the gallery's is 400px tall.
+class _TilePhoto extends StatelessWidget {
+  const _TilePhoto({required this.url});
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url.isEmpty) {
+      return const ColoredBox(
+        color: _KColors.hairline,
+        child: Center(
+            child: Icon(Icons.image_not_supported_outlined,
+                size: 22, color: _KColors.faint)),
+      );
+    }
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.contain,
+      fadeInDuration: const Duration(milliseconds: 160),
+      placeholder: (_, __) => const ColoredBox(color: _KColors.hairline),
+      errorWidget: (_, __, ___) => const ColoredBox(color: _KColors.hairline),
+    );
+  }
+}
+
+/// A round white button that floats on the product photograph.
+///
+/// Slightly translucent with a soft shadow, so it stays findable over a dark
+/// picture and over a white one. The 36px disc is the whole hit area.
+class _GlassButton extends StatelessWidget {
+  const _GlassButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.tint = _KColors.ink,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 36,
+          height: 36,
+          // A drawn ring as well as a shadow. The bar stays transparent all
+          // the way down the page, so once a shopper has scrolled past the
+          // photograph these discs are white on white — the same problem the
+          // basket button on a tile has, and the same answer.
+          decoration: BoxDecoration(
+            color: const Color(0xF2FFFFFF),
+            shape: BoxShape.circle,
+            border: Border.all(color: _KColors.line),
+            boxShadow: const [
+              BoxShadow(color: Color(0x1F000000), blurRadius: 8),
+            ],
+          ),
+          child: Icon(icon, size: 20, color: tint),
+        ),
+      ),
+    );
+  }
+}
+
+/// Five stars, drawn to the half.
+///
+/// Glyphs rather than the bare number. "4.5" is a fact a shopper has to read;
+/// four and a half stars is one they see, and on a grid of forty tiles that
+/// difference is most of what gets read at all.
+///
+/// Dark rather than gold, which is what the reference does — and it is right
+/// for a second reason here: gold stars sitting next to a yellow discount flag
+/// are two yellows competing inside a 154px tile.
+///
+/// Only ever drawn behind a real review count. An empty row of grey stars on a
+/// shop with no ratings yet is a rating of nothing dressed up as a rating.
+class _Stars extends StatelessWidget {
+  const _Stars({required this.rating, this.size = 11});
+
+  final num rating;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 1; i <= 5; i++)
+          Icon(
+            rating >= i
+                ? Icons.star_rounded
+                : (rating >= i - 0.5
+                    ? Icons.star_half_rounded
+                    : Icons.star_border_rounded),
+            size: size,
+            color: _KColors.ink,
+          ),
+      ],
+    );
+  }
+}
+
+/// A price, with the currency set smaller than the figure.
+///
+/// The API sends one string — "UGX 36,000" — and this splits it at the first
+/// space, then closes the gap. The unit is the part a Ugandan shopper already
+/// knows; the number is what they came for, and setting both at the same size
+/// makes the number harder to find.
+///
+/// ---- Red means REDUCED ----
+///
+/// Not "red means price". Every price in the money colour is the same as none
+/// of them in it — the colour stops carrying anything. A full price is set in
+/// ink and a cut one in red, which puts the colour in agreement with the
+/// yellow flag on the photograph instead of shouting over it.
+class _Price extends StatelessWidget {
+  const _Price({required this.label, required this.reduced, this.size = 17});
+
+  final String label;
+  final bool reduced;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final space = label.indexOf(' ');
+    final unit = space > 0 ? label.substring(0, space) : '';
+    final figure = space > 0 ? label.substring(space + 1) : label;
+    final colour = reduced ? _KColors.flame : _KColors.ink;
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.3,
+          height: 1.15,
+          color: colour,
+        ),
+        children: [
+          if (unit.isNotEmpty)
+            TextSpan(text: unit, style: TextStyle(fontSize: size * 0.66)),
+          TextSpan(text: figure, style: TextStyle(fontSize: size)),
+        ],
       ),
     );
   }

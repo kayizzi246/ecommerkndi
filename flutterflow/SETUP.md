@@ -250,6 +250,28 @@ hand. If you change one, change all thirteen.
 | `_rPanel` / `_rPhoto` | `12` / `8` | Card and photograph corners. |
 | `_rPill` | `999` | Every button and every filter chip. The pill is what separates a control from the panels it sits on. |
 
+### The product tile
+
+The same tile is drawn in **four** places — Home's rails, Home's grid, Shop,
+Search — and a fifth copy sits at the foot of the product page. Each file has
+its own source for it, so a change has to be made five times or the shop starts
+showing the same product two different ways.
+
+Top to bottom:
+
+| Row | Rule |
+| --- | --- |
+| Photograph | 1:1, never cropped (`BoxFit.contain`). The corners are on the **Stack**, not the picture — the deal strip is a sibling, and clipping only the picture leaves the strip with square ends. |
+| Heart, top left | On a white disc with a drawn ring. Straight on the photograph it vanishes against anything dark. |
+| Discount flag, top right | Black on `express` yellow. Doubles as the sold-out mark. |
+| Deal strip, across the foot | `SAVE <amount>`, plus `FREE DELIVERY` when the item clears the threshold. This is where the shilling saving lives — it does not fit beside the old price, and it is the figure a Ugandan shopper actually weighs. |
+| Basket button, bottom right | A white disc with a ring, floating over the strip's end. Opens the product instead when it `hasOptions`. |
+| Name | Two lines, with the programme chip riding the same text run via `WidgetSpan` so it costs no height. One chip at most: Super Deal at −30%, else New. |
+| `N sold │ ★★★★½ 4.5 (16)` | **Above** the price. A shopper decides whether a tile is worth reading from the crowd, then reads the price. Stars are drawn to the half and never appear without a real review count. |
+| Price | Currency set at 0.66× the figure and run together. **Red only when reduced** — every price in red is the same as none of them in it. |
+| Old price | Struck through, on its own line. It is what substantiates the flag. |
+| `Only N left` + bar | Only when stock is tracked and ≤ 5. The bar's full width is that threshold, so it can never claim "nearly gone" about a full shelf. |
+
 Two rules that are easy to break:
 
 - **An app bar's gradient goes in `flexibleSpace`,** not `backgroundColor`,
@@ -274,10 +296,10 @@ flutter analyze  →  No issues found!
 
 The layout was checked too, which `analyze` cannot do: the same thirteen files
 were built for the web against the live `kandiug.com` feed and photographed at
-390x844. That pass is what found the app-bar gradient painting nothing, the
+390x844. That pass has already found an app-bar gradient painting nothing, a
 price ellipsising to "UGX 36,0…" on every tile, a hundred pixels of empty white
 under every card, and a department row running at about 2.3:1 on the gradient.
-None of those were visible in the source.
+None of those were visible in the source, and none of them failed `analyze`.
 
 Two things about the web harness that are **not** true on a phone: product
 photographs need a CORS header the image endpoint does not send, and the status
