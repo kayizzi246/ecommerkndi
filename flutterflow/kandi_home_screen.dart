@@ -128,6 +128,21 @@ class _KColors {
   static const Color express = Color(0xFFFFE000);
 
   static const Color star = Color(0xFFF59E0B);
+
+  // ---- Shelf grounds ----
+  //
+  // The website's exact values, so the two clients cannot disagree about what
+  // colour "Trending" is. Every one is a saturated step clearing 5:1 against
+  // white, because the heading and the "View all" on a coloured shelf are
+  // white — a brighter green or amber would look better and fail the heading,
+  // which is why these are the darker steps.
+  static const Color trending = Color(0xFF7642D6);
+  static const Color deals = Color(0xFFB8123A);
+  static const Color railBlue = Color(0xFF1E56BD);
+  static const Color railMagenta = Color(0xFFB3175A);
+  static const Color railGreen = Color(0xFF0B7A43);
+  static const Color railAmber = Color(0xFFB45309);
+  static const Color railTeal = Color(0xFF0F6E6A);
 }
 
 class _KSpace {
@@ -199,6 +214,7 @@ class _KProduct {
     this.savingLabel,
     this.discountPercent = 0,
     this.inStock = true,
+    this.stockQuantity,
     this.rating = 0,
     this.ratingCount = 0,
     this.totalSales = 0,
@@ -215,6 +231,13 @@ class _KProduct {
   final String? savingLabel;
   final int discountPercent;
   final bool inStock;
+
+  /// Units left, when WooCommerce is tracking stock for this product.
+  ///
+  /// Null means "not tracked", which is different from zero — the website's
+  /// tile draws the scarcity line only for a real count, and a product with
+  /// untracked stock is not nearly gone, it is simply uncounted.
+  final int? stockQuantity;
   final num rating;
   final int ratingCount;
   final int totalSales;
@@ -243,6 +266,8 @@ class _KProduct {
       discountPercent:
           json['discountPercent'] is int ? json['discountPercent'] as int : 0,
       inStock: json['inStock'] != false,
+      stockQuantity:
+          json['stockQuantity'] is int ? json['stockQuantity'] as int : null,
       rating: json['rating'] is num ? json['rating'] as num : 0,
       ratingCount: json['ratingCount'] is int ? json['ratingCount'] as int : 0,
       totalSales: json['totalSales'] is int ? json['totalSales'] as int : 0,
@@ -306,6 +331,46 @@ class _KRail {
   /// web path — `/search?sort=popular` — and would make the app depend on the
   /// website's URL shape. An unrecognised rail falls back to `newest`, which is
   /// the shop page's own default and never wrong, only unhelpful.
+  /// The shelf's ground, decided by id.
+  ///
+  /// A presentation choice, so it lives here rather than in the shared API —
+  /// the website makes the same choice in CSS with the same values.
+  ///
+  /// Every rail was a plain white shelf, so the page had no landmarks below the
+  /// second screen: a shopper scrolling back up to "the green one" had nothing
+  /// to scroll back to. Seven grounds give the column a rhythm and let a
+  /// department be recognised by colour before its heading is read.
+  ///
+  /// Anything unnamed stays white, deliberately — a page where every shelf is
+  /// coloured has no emphasis at all.
+  Color? get accent {
+    // ---- Which rails get colour, and which deliberately do not ----
+    //
+    // The first pass named every id the feed can send, which would have painted
+    // all twelve rails. That is the same mistake as painting none: a page where
+    // every shelf is coloured has no emphasis, just a paintbox.
+    //
+    // So this matches the website exactly. Trending and Super Deals are the two
+    // shelves that sell — what is moving and what is cheapest — and the five
+    // department rails are the ones a shopper navigates BY, which is what makes
+    // a colour per aisle worth having. New in, Promotions, Daily Deals, New
+    // arrivals and Best sellers stay white on both clients: they are the same
+    // catalogue in another order, and the white runs between the coloured
+    // shelves are what give the column its rhythm.
+    if (id.contains('trending')) return _KColors.trending;
+    if (id.contains('super-deals')) return _KColors.deals;
+
+    // The department rails the feed appends. "women" is tested before "men"
+    // because "men" is a SUBSTRING of "women" — `dept-women` matches a naive
+    // `contains('men')` and would come out blue.
+    if (id.contains('women')) return _KColors.railMagenta;
+    if (id.contains('men')) return _KColors.railBlue;
+    if (id.contains('kids')) return _KColors.railGreen;
+    if (id.contains('shoes')) return _KColors.railAmber;
+    if (id.contains('sports')) return _KColors.railTeal;
+    return null;
+  }
+
   String get sort {
     if (id.contains('trending') || id.contains('best-sellers')) return 'popular';
     if (id.contains('deals') || id.contains('promotions')) return 'price_asc';
@@ -784,7 +849,9 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                     crossAxisSpacing: _KSpace.md,
                     // A square photograph plus the card's text rows. A ratio
                     // that fits only the picture clips the price off.
-                    childAspectRatio: 0.50,
+                    // Narrower ratio for the same reason the rail grew: the card is
+                  // two rows taller than it was.
+                  childAspectRatio: 0.46,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -1110,22 +1177,31 @@ class _TermsStrip extends StatelessWidget {
 }
 
 class _ViewAll extends StatelessWidget {
-  const _ViewAll({required this.onTap});
+  const _ViewAll({required this.onTap, this.onAccent = false});
+
   final VoidCallback onTap;
+
+  /// Whether this sits on a coloured shelf.
+  ///
+  /// The default blue is a link colour for a white page and is close to
+  /// unreadable on the blue and violet grounds. White works on all seven,
+  /// which is the point of choosing grounds that clear 5:1 against it.
+  final bool onAccent;
 
   @override
   Widget build(BuildContext context) {
+    final colour = onAccent ? Colors.white : const Color(0xFF1A73E8);
     return GestureDetector(
       onTap: onTap,
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('View all',
               style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A73E8))),
-          Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF1A73E8)),
+                  color: colour)),
+          Icon(Icons.chevron_right_rounded, size: 18, color: colour),
         ],
       ),
     );
@@ -1153,44 +1229,76 @@ class _RailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              _KSpace.md, _KSpace.xl, _KSpace.md, _KSpace.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(rail.title,
-                        style: const TextStyle(
-                            fontSize: 17,
-                            height: 1.25,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.ink)),
-                    if (rail.subtitle != null && rail.subtitle!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(rail.subtitle!,
-                            style: const TextStyle(
-                                fontSize: 12.5, color: _KColors.muted)),
+    final accent = rail.accent;
+    final onAccent = accent != null;
+
+    // ---- The shelf is a coloured slab, or nothing at all ----
+    //
+    // A coloured rail gets a rounded panel with a margin; a plain one stays
+    // flush with the page. That difference is the whole point: if every shelf
+    // had a box, the boxes would stop meaning anything.
+    return Container(
+      margin: onAccent
+          ? const EdgeInsets.fromLTRB(
+              _KSpace.md, _KSpace.xl, _KSpace.md, 0)
+          : EdgeInsets.zero,
+      padding: onAccent
+          ? const EdgeInsets.symmetric(vertical: _KSpace.lg)
+          : EdgeInsets.zero,
+      decoration: onAccent
+          ? BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(_rPanel),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                _KSpace.md, onAccent ? 0 : _KSpace.xl, _KSpace.md, _KSpace.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(rail.title,
+                          style: TextStyle(
+                              fontSize: 17,
+                              height: 1.25,
+                              fontWeight: FontWeight.w800,
+                              // White on the coloured grounds, which is why
+                              // every one of them clears 5:1 against white.
+                              color: onAccent ? Colors.white : _KColors.ink)),
+                      if (rail.subtitle != null && rail.subtitle!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(rail.subtitle!,
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  // 78% white, not 60: 60% fails AA on the
+                                  // lighter of these grounds.
+                                  color: onAccent
+                                      ? const Color(0xC7FFFFFF)
+                                      : _KColors.muted)),
                       ),
                   ],
                 ),
               ),
               const SizedBox(width: _KSpace.sm),
-              _ViewAll(onTap: onViewAll),
+                _ViewAll(onTap: onViewAll, onAccent: onAccent),
             ],
           ),
         ),
         SizedBox(
           // Tall enough for the card's photograph plus every text row it can
           // draw. Fixed, because a horizontal list has no height to measure.
-          height: 340,
+          // Taller than it was: the card gained the scarcity line and its bar,
+          // and a horizontal list has no height of its own to measure — an
+          // under-sized box clips the bottom row rather than scrolling it.
+          height: 384,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
@@ -1211,22 +1319,44 @@ class _RailSection extends StatelessWidget {
               );
             },
           ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// The product card, drawn to the reference.
+/// The product card, drawn to match the website's tile.
 ///
-/// A white card with the photograph in it, a badge top-left, a heart top-right,
-/// a `+` bottom-right, then the name, the price row with a green discount, the
-/// saving as a green pill and the delivery badge.
+/// ---- What changed, and why each piece moved ----
 ///
-/// The WHOLE card is the tap target. A shopper aims at a card, and on a phone
-/// the gaps between its rows are thumb-sized — a card with two small live
-/// regions and dead space between them feels broken without anybody being able
-/// to say why. The heart and the `+` sit above that gesture and take their own
+/// The app and the site were showing the same catalogue in two different
+/// layouts, which is the one thing a shop with both must not do: somebody who
+/// browses on the phone and buys on the laptop should recognise the product,
+/// not re-learn the card.
+///
+/// So the anatomy is the site's, piece for piece:
+///
+///   • The yellow discount flag is top RIGHT of the photograph, the loudest
+///     thing on a resting tile.
+///   • The heart moves to the top LEFT, where the badge used to be.
+///   • The programme chip — "Super Deal", "New" — moves OFF the photograph and
+///     INTO the name line. It rides the name's own clamp, so it costs the card
+///     no height at all; as a corner badge it was competing with the discount
+///     flag for the same glance.
+///   • The basket button is a white circle with a drawn ring, not a rounded
+///     square. It floats over a photograph that can be any colour including
+///     white — most of this catalogue is shot on it — so a white disc with no
+///     edge is an invisible button on half the grid.
+///   • "Only N left" arrives with its bar. That is the site's one honest
+///     urgency device: the bar is `stockQuantity` out of the threshold that put
+///     the warning there, so it can never say "nearly gone" about a product
+///     with plenty in the back.
+///
+/// The WHOLE card is still the tap target. A shopper aims at a card, and on a
+/// phone the gaps between its rows are thumb-sized — two small live regions
+/// with dead space between them feels broken without anybody being able to say
+/// why. The heart and the basket sit above that gesture and take their own
 /// taps.
 class _Card extends StatelessWidget {
   const _Card({
@@ -1245,27 +1375,49 @@ class _Card extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onSave;
 
-  /// The badge in the top-left corner.
+  /// The threshold the website uses before it calls stock low.
+  static const int _lowStockAt = 5;
+
+  bool get _lowStock =>
+      product.inStock &&
+      product.stockQuantity != null &&
+      product.stockQuantity! <= _lowStockAt;
+
+  /// The chip that rides the name line.
   ///
-  /// One label at most, in order of usefulness to a shopper who has not
-  /// decided: a deep cut, then a new listing. A badge on every card is a badge
+  /// One at most, in the site's order of usefulness to a shopper who has not
+  /// decided: a deep cut, then a new listing. A chip on every card is a chip
   /// that means nothing, which is why there is no fallback.
-  String? get _badge {
-    if (product.discountPercent >= 30) return 'SUPER DEAL';
-    if (product.isNew) return 'NEW';
+  ({String label, Color background, Color foreground})? get _chip {
+    if (product.discountPercent >= 30) {
+      return (
+        label: 'Super Deal',
+        background: _KColors.express,
+        foreground: _KColors.ink
+      );
+    }
+    if (product.isNew) {
+      return (
+        label: 'New',
+        background: _KColors.save,
+        foreground: Colors.white
+      );
+    }
     return null;
   }
 
   /// Whether this item alone clears the free-delivery threshold.
   ///
   /// Derived rather than sent: the API has no per-product delivery field, and
-  /// this is the same arithmetic the website's tile does. It is honest because
-  /// the threshold is the figure checkout actually applies.
+  /// this is the same arithmetic the website's tile does. Honest because the
+  /// threshold is the figure checkout actually applies.
   bool get _freeDelivery =>
       freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
 
   @override
   Widget build(BuildContext context) {
+    final chip = _chip;
+
     return Semantics(
       button: true,
       label: '${product.name}. ${product.priceLabel}',
@@ -1293,33 +1445,14 @@ class _Card extends StatelessWidget {
                       borderRadius: BorderRadius.circular(_rPhoto),
                       child: _Photo(url: product.image),
                     ),
-                    if (_badge != null)
-                      Positioned(
-                        top: 4,
-                        left: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _KColors.ink,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(_badge!,
-                              style: const TextStyle(
-                                  fontSize: 8.5,
-                                  height: 1,
-                                  letterSpacing: 0.4,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
-                        ),
-                      ),
+                    // Top LEFT: the heart, where the badge used to be.
                     Positioned(
                       top: 0,
-                      right: 0,
+                      left: 0,
                       child: GestureDetector(
                         onTap: onSave,
                         // A generous invisible hit area: the heart itself is
-                        // 18px, which is under the 44px a thumb needs.
+                        // 19px, well under the 44px a thumb needs.
                         behavior: HitTestBehavior.opaque,
                         child: Padding(
                           padding: const EdgeInsets.all(6),
@@ -1333,70 +1466,120 @@ class _Card extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Top RIGHT: the discount, exactly as the site draws it.
+                    if (product.inStock && product.discountPercent > 0)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _KColors.express,
+                            borderRadius: BorderRadius.circular(_rChip),
+                          ),
+                          child: Text('-${product.discountPercent}%',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  height: 1,
+                                  fontWeight: FontWeight.w800,
+                                  color: _KColors.ink)),
+                        ),
+                      ),
+                    if (!product.inStock)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _KColors.ink,
+                            borderRadius: BorderRadius.circular(_rChip),
+                          ),
+                          child: const Text('Sold out',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  height: 1,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
+                      ),
                     if (product.inStock)
                       Positioned(
                         bottom: 0,
                         right: 0,
                         child: _AddButton(
-                          // A product with options cannot be added from a card —
-                          // it opens instead, where the picker is.
+                          // A product with options cannot be added from a card
+                          // — it opens instead, where the picker is.
                           onTap: product.hasOptions ? onOpen : onAdd,
                           icon: product.hasOptions
                               ? Icons.tune_rounded
-                              : Icons.add_rounded,
-                        ),
-                      ),
-                    if (!product.inStock)
-                      Positioned(
-                        bottom: 4,
-                        left: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _KColors.ink,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('Sold out',
-                              style: TextStyle(
-                                  fontSize: 9,
-                                  height: 1,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
+                              : Icons.add_shopping_cart_rounded,
                         ),
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: _KSpace.sm),
-              Text(product.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+
+              // The chip rides the name rather than sitting on the photograph,
+              // so it costs the card no height. `WidgetSpan` puts it in the
+              // same run as the text, which is what makes the name wrap around
+              // it instead of under it.
+              RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
                   style: const TextStyle(
-                      fontSize: 12.5, height: 1.35, color: _KColors.ink)),
-              const SizedBox(height: 5),
-              if (product.ratingCount > 0) ...[
-                Row(
+                      fontSize: 12.5, height: 1.35, color: _KColors.ink),
                   children: [
-                    const Icon(Icons.star_rounded, size: 13, color: _KColors.star),
-                    const SizedBox(width: 2),
-                    Text(product.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: _KColors.ink)),
-                    const SizedBox(width: 3),
-                    Text('(${product.ratingCount})',
-                        style: const TextStyle(
-                            fontSize: 11, color: _KColors.muted)),
+                    if (chip != null)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: chip.background,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(chip.label,
+                                style: TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: chip.foreground)),
+                          ),
+                        ),
+                      ),
+                    TextSpan(text: product.name),
                   ],
                 ),
-                const SizedBox(height: 3),
+              ),
+              const SizedBox(height: 5),
+
+              // Save, then price, then scarcity, then the crowd — the site's
+              // order, which runs from what the shop did about the price to
+              // what other people did about the product.
+              if (product.savingLabel != null) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _KColors.saveSoft,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text('Save ${product.savingLabel}',
+                      style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: _KColors.save)),
+                ),
+                const SizedBox(height: 4),
               ],
-              // Price, old price and the cut, on one line — the reference's
-              // arrangement. The percentage is green because it is money back,
-              // which is also what keeps red out of a catalogue that would
-              // otherwise be covered in it.
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
@@ -1412,7 +1595,7 @@ class _Card extends StatelessWidget {
                             color: _KColors.ink)),
                   ),
                   if (product.wasPriceLabel != null) ...[
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 5),
                     Flexible(
                       child: Text(product.wasPriceLabel!,
                           maxLines: 1,
@@ -1423,45 +1606,99 @@ class _Card extends StatelessWidget {
                               decoration: TextDecoration.lineThrough)),
                     ),
                   ],
-                  if (product.discountPercent > 0) ...[
-                    const SizedBox(width: 4),
-                    Text('${product.discountPercent}%',
-                        style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.save)),
-                  ],
                 ],
               ),
-              if (product.savingLabel != null) ...[
+
+              // ---- The scarcity line, and the bar under it ----
+              //
+              // The same fact drawn twice, which is the site's point: "Only 2
+              // left" is a number a shopper weighs against nothing, and a bar
+              // two-fifths full is a quantity they read without stopping.
+              //
+              // Honest about its scale. The full width is the low-stock
+              // threshold, not an invented starting stock — the bar begins the
+              // moment the product becomes scarce and empties from there, so
+              // nothing here is ever drawn from a figure the shop does not
+              // have.
+              if (_lowStock) ...[
                 const SizedBox(height: 5),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _KColors.saveSoft,
-                    borderRadius: BorderRadius.circular(5),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                          color: _KColors.primary, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 5),
+                    Text('Only ${product.stockQuantity} left',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _KColors.body)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: SizedBox(
+                    width: 78,
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      value: (product.stockQuantity! / _lowStockAt)
+                          .clamp(0.12, 1.0)
+                          .toDouble(),
+                      backgroundColor: _KColors.hairline,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_KColors.primary),
+                    ),
                   ),
-                  child: Text('Save ${product.savingLabel}',
-                      style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.save)),
                 ),
               ],
+
+              // Only drawn when there is a number to carry. A row that renders
+              // empty on most cards is a row of debris at forty different
+              // heights down the grid.
+              if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    if (product.ratingCount > 0) ...[
+                      const Icon(Icons.star_rounded,
+                          size: 12, color: _KColors.star),
+                      const SizedBox(width: 2),
+                      Text(product.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 6),
+                    ],
+                    if (product.totalSales > 0)
+                      Flexible(
+                        child: Text('${product.totalSales} sold',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: _KColors.muted)),
+                      ),
+                  ],
+                ),
+              ],
+
               if (_freeDelivery) ...[
                 const SizedBox(height: 5),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: _KColors.express,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text('FREE DELIVERY',
                       style: TextStyle(
-                          fontSize: 9,
-                          height: 1,
+                          fontSize: 8.5,
+                          height: 1.2,
                           letterSpacing: 0.3,
                           fontWeight: FontWeight.w800,
                           color: _KColors.ink)),
@@ -1474,7 +1711,6 @@ class _Card extends StatelessWidget {
     );
   }
 }
-
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.onTap, required this.icon});
 
@@ -1486,15 +1722,20 @@ class _AddButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
+      // A circle with a drawn ring rather than a rounded square with a border.
+      // This floats over a product photograph, which can be any colour
+      // including white — most of this catalogue is shot on it — so the ring is
+      // what keeps the control findable on a good half of the grid. It is the
+      // same device the website's tile uses, for the same reason.
       child: Container(
         width: 34,
         height: 34,
         decoration: BoxDecoration(
           color: _KColors.panel,
-          borderRadius: BorderRadius.circular(_rChip),
+          shape: BoxShape.circle,
           border: Border.all(color: _KColors.line),
         ),
-        child: Icon(icon, size: 20, color: _KColors.ink),
+        child: Icon(icon, size: 18, color: _KColors.ink),
       ),
     );
   }

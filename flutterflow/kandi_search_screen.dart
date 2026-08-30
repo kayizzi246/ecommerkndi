@@ -92,6 +92,7 @@ class _KProduct {
     this.savingLabel,
     this.discountPercent = 0,
     this.inStock = true,
+    this.stockQuantity,
     this.rating = 0,
     this.ratingCount = 0,
     this.hasOptions = false,
@@ -106,6 +107,13 @@ class _KProduct {
   final String? savingLabel;
   final int discountPercent;
   final bool inStock;
+
+  /// Units left, when WooCommerce is tracking stock for this product.
+  ///
+  /// Null means "not tracked", which is different from zero — the website's
+  /// tile draws the scarcity line only for a real count, and a product with
+  /// untracked stock is not nearly gone, it is simply uncounted.
+  final int? stockQuantity;
   final num rating;
   final int ratingCount;
   final bool hasOptions;
@@ -125,6 +133,8 @@ class _KProduct {
       discountPercent:
           json['discountPercent'] is int ? json['discountPercent'] as int : 0,
       inStock: json['inStock'] != false,
+      stockQuantity:
+          json['stockQuantity'] is int ? json['stockQuantity'] as int : null,
       rating: json['rating'] is num ? json['rating'] as num : 0,
       ratingCount: json['ratingCount'] is int ? json['ratingCount'] as int : 0,
       hasOptions: json['hasOptions'] == true,
@@ -461,7 +471,7 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: _KSpace.md,
               crossAxisSpacing: _KSpace.md,
-              childAspectRatio: 0.52,
+              childAspectRatio: 0.50,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -522,6 +532,28 @@ class _Card extends StatelessWidget {
                       borderRadius: BorderRadius.circular(_rPhoto),
                       child: _Photo(url: product.image),
                     ),
+                    // The website puts the cut top right, as the loudest mark on a
+                    // resting tile. These cards showed it only as a green
+                    // percentage beside the price, which is read last.
+                    if (product.inStock && product.discountPercent > 0)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE000),
+                            borderRadius: BorderRadius.circular(_rChip),
+                          ),
+                          child: Text("-${product.discountPercent}%",
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  height: 1,
+                                  fontWeight: FontWeight.w800,
+                                  color: _KColors.ink)),
+                        ),
+                      ),
                     if (product.inStock)
                       Positioned(
                         bottom: 0,
@@ -534,16 +566,19 @@ class _Card extends StatelessWidget {
                           child: Container(
                             width: 34,
                             height: 34,
+                            // A circle with a drawn ring: this floats over a
+                            // photograph that can be white, so an edgeless
+                            // white disc is an invisible button.
                             decoration: BoxDecoration(
                               color: _KColors.panel,
-                              borderRadius: BorderRadius.circular(_rChip),
+                              shape: BoxShape.circle,
                               border: Border.all(color: _KColors.line),
                             ),
                             child: Icon(
                                 product.hasOptions
                                     ? Icons.tune_rounded
-                                    : Icons.add_rounded,
-                                size: 20,
+                                    : Icons.add_shopping_cart_rounded,
+                                size: 18,
                                 color: _KColors.ink),
                           ),
                         ),
@@ -586,6 +621,21 @@ class _Card extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             color: _KColors.ink)),
                   ),
+                  // The struck-through original, which the website shows beside
+                  // the price and these cards were dropping. Without it the
+                  // percentage is a claim with nothing to check it against.
+                  if (product.wasPriceLabel != null) ...[
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(product.wasPriceLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: _KColors.faint,
+                              decoration: TextDecoration.lineThrough)),
+                    ),
+                  ],
                   if (product.discountPercent > 0) ...[
                     const SizedBox(width: 4),
                     Text('${product.discountPercent}%',
