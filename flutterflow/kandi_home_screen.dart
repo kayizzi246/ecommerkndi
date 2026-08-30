@@ -13,78 +13,81 @@ import 'package:flutter/material.dart';
 // added to it. The failure lands far from the cause: the file stops compiling,
 // so FlutterFlow cannot find the widget class and reports
 // `No widget "KandiHomeScreen" found` — which reads like a naming mistake and
-// never is.
-//
-// Do NOT add `/backend/backend.dart` or `/backend/supabase/supabase.dart`.
-// This project has neither and FlutterFlow offers to add them.
+// never is. Do NOT add the `/backend/` imports it offers; this project has
+// neither file.
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-// The only cross-file imports in this screen, and they are for NAVIGATION
-// alone — the two destinations a shopper can reach from here. No design, no
-// model and no helper is shared; see "Self-contained" below.
+// Navigation only — the destinations reachable from this page. No design, no
+// model and no helper crosses a file boundary in this app.
 import '/custom_code/widgets/kandi_product_screen.dart';
 import '/custom_code/widgets/kandi_cart_screen.dart';
+import '/custom_code/widgets/kandi_search_screen.dart';
+import '/custom_code/widgets/kandi_shop_screen.dart';
+import '/custom_code/widgets/kandi_wishlist_screen.dart';
+import '/custom_code/widgets/kandi_account_screen.dart';
 
 // ============================================================
 //  KANDI — HOME PAGE
 //
-//  The shopfront: the shop's terms, the departments, the
-//  merchandising rails and an endless grid.
+//  The shopfront. This file is also the TEMPLATE every other
+//  page in the app copies, so the architecture is written out
+//  here once and referred to from the others.
 //
-//  ---- Self-contained, deliberately ----
+//  ---- One file per page, nothing shared ----
 //
-//  This file carries its own palette, type scale, HTTP client,
-//  product model and product tile. Nothing is imported from a
-//  shared design library, because there is no shared design
-//  library any more.
+//  Every page carries its own palette, type scale, HTTP client,
+//  product model and product tile. There is no shared design
+//  library.
 //
-//  That is a real trade and it is worth naming both halves.
-//  What it costs is duplication: the palette below also appears
-//  in the cart page and the product page, and changing an
-//  accent colour means changing it in each. What it buys is
-//  that any page can be pasted into FlutterFlow ON ITS OWN, in
-//  any order, with nothing else present. The version this
-//  replaces could not — its fifteen widgets imported each other
-//  for colours and models, so they had one legal paste order
-//  and a single file pasted out of turn failed to compile with
-//  an error that pointed at the wrong thing.
+//  The trade, in both directions: it costs duplication — the
+//  palette appears in nine files and an accent colour changes
+//  in nine places. It buys a paste order of "any". The version
+//  this replaces had fifteen widgets and exactly ONE legal
+//  order, because each imported the others for colours and
+//  models; a file pasted early failed to compile with an error
+//  naming the wrong file.
 //
-//  ---- Which is why everything here is private ----
+//  ---- Which is why every helper is private ----
 //
-//  FlutterFlow writes every custom widget into one flat folder,
-//  `lib/custom_code/widgets/`, and re-exports them all through
-//  a shared `index.dart`. Two files that both declared a
-//  top-level `KColors` would collide the moment both were
-//  pasted.
+//  FlutterFlow writes all custom widgets into one flat folder
+//  and re-exports them through a shared index.dart. Two files
+//  declaring a top-level `KColors` would collide the moment
+//  both were pasted. Dart's underscore makes `_KColors`
+//  file-scoped, so nine pages can each have one and never meet.
+//  Only the widget class is public, because only it needs to
+//  be.
 //
-//  Dart's underscore prefix makes a declaration file-private,
-//  so `_KColors` in this file and `_KColors` in the cart page
-//  are different classes that cannot see or clash with each
-//  other. Only `KandiHomeScreen` is public, because only the
-//  widget needs to be.
+//  ---- NOTHING is passed between pages ----
 //
-//  ---- One request builds the screen ----
+//  Not a constructor parameter, not a route argument. Every
+//  page is opened with a const constructor and no arguments at
+//  all.
+//
+//  What a page needs to know it reads from the device. Before
+//  opening the product page this screen writes the product id
+//  to `kandi-open-product`; the product page reads that key in
+//  `initState`. Categories and search terms travel the same
+//  way.
+//
+//  That is deliberately not the obvious design, and the reason
+//  is FlutterFlow. Route arguments only survive if navigation
+//  happens through this code — the moment the builder wires a
+//  page with its own "Navigate To" action, a route argument is
+//  gone and the destination opens blank. A handoff on disk
+//  works however the shopper got there.
+//
+//  ---- One request builds this screen ----
 //
 //  `/api/app/home` returns the brand, the commerce terms, the
 //  departments, every rail already composed and ordered, and
 //  the picked-for-you grid. It is the SAME feed the website's
-//  homepage renders from, which is the point: what is trending,
-//  which department is big enough to show, how deep a discount
-//  has to be — decided once on the server, read by both
-//  clients. An app that re-decides any of it locally will drift
-//  from the site and nobody will notice until a shopper does.
-//
-//  ---- Where it goes ----
-//
-//  A tile opens KandiProductScreen with the product id on the
-//  route; the basket icon opens KandiCartScreen. FlutterFlow
-//  custom widgets take no parameters, so an id cannot be a
-//  constructor argument — it travels as a route argument, which
-//  is the one channel FlutterFlow does not rewrite.
+//  homepage renders from: what is trending, which department is
+//  big enough to show, how deep a discount has to be — decided
+//  once on the server and read by both clients.
 // ============================================================
 
 // ------------------------------------------------------------
@@ -94,10 +97,13 @@ import '/custom_code/widgets/kandi_cart_screen.dart';
 class _KColors {
   const _KColors._();
 
-  /// The page ground: a 3% warm neutral. Enough to stop reading as a screen,
-  /// not enough to tint a product photographed on white.
-  static const Color canvas = Color(0xFFF8F7F4);
+  /// The page ground.
+  static const Color canvas = Color(0xFFF2F4F7);
   static const Color panel = Color(0xFFFFFFFF);
+
+  /// The patterned band behind the search bar and the shortcut pills.
+  static const Color headerTop = Color(0xFFD9EEFB);
+  static const Color headerBottom = Color(0xFFEAF6FD);
 
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -107,50 +113,21 @@ class _KColors {
   static const Color line = Color(0xFFE5E7EB);
   static const Color hairline = Color(0xFFF3F4F6);
 
-  /// Brand orange is spent on marks that sit ON things — the basket badge, the
-  /// primary button — and never as a large ground. White on #ff6a00 is 2.9:1
-  /// and fails AA, which is why nothing here puts small white type on it.
+  /// Brand orange is spent on marks that sit ON things and never as a large
+  /// ground: white on #ff6a00 is 2.9:1 and fails AA at label sizes.
   static const Color primary = Color(0xFFFF6A00);
-  static const Color primarySoft = Color(0xFFFFF3E8);
 
-  /// The two accent shelves, matching the website's own tokens.
-  /// Both clear 6:1 against white, which is why they are these darker steps
-  /// and not brighter ones — the headings on them are white.
-  static const Color trending = Color(0xFF7642D6);
-  static const Color deals = Color(0xFFB8123A);
-
+  /// A discount and a saving are GREEN here, matching the reference. Green
+  /// reads as "money back" without the alarm red carries, and it leaves the
+  /// brand orange free for the controls.
   static const Color save = Color(0xFF15803D);
-  static const Color saveSoft = Color(0xFFF0FDF4);
-  static const Color dealFlag = Color(0xFFFACC15);
+  static const Color saveSoft = Color(0xFFECFDF3);
+
+  /// The delivery badge — black on yellow is 11:1, the most legible pairing
+  /// the palette can draw at 10px.
+  static const Color express = Color(0xFFFFE000);
+
   static const Color star = Color(0xFFF59E0B);
-}
-
-class _KType {
-  const _KType._();
-
-  static const TextStyle display = TextStyle(
-      fontSize: 22, height: 1.2, fontWeight: FontWeight.w800, color: _KColors.ink);
-  static const TextStyle section = TextStyle(
-      fontSize: 18, height: 1.25, fontWeight: FontWeight.w800, color: _KColors.ink);
-
-  /// A product name is regular weight on purpose: forty semibold names on a
-  /// screen is forty things competing with the prices under them.
-  static const TextStyle name = TextStyle(
-      fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w400, color: _KColors.ink);
-
-  /// The loudest line in a tile, and never the loudest on the page.
-  static const TextStyle price = TextStyle(
-      fontSize: 14.5, height: 1.1, fontWeight: FontWeight.w700, color: _KColors.ink);
-  static const TextStyle wasPrice = TextStyle(
-      fontSize: 11.5,
-      height: 1.1,
-      color: _KColors.faint,
-      decoration: TextDecoration.lineThrough);
-
-  static const TextStyle bodyText =
-      TextStyle(fontSize: 13.5, height: 1.5, color: _KColors.body);
-  static const TextStyle meta =
-      TextStyle(fontSize: 11.5, height: 1.3, color: _KColors.muted);
 }
 
 class _KSpace {
@@ -162,29 +139,35 @@ class _KSpace {
   static const double xl = 24;
 }
 
-class _KRadius {
-  const _KRadius._();
-  static const double panel = 16;
-  static const double photo = 12;
-  static const double chip = 8;
-}
+const double _rPanel = 14;
+const double _rPhoto = 10;
+const double _rChip = 8;
 
-/// Where the app talks to the shop.
-///
-/// The public app API lives on the storefront rather than on WordPress: those
-/// endpoints are already composed, formatted and cached, so the app gets the
-/// website's merchandising decisions instead of a second, drifting copy.
 const String _apiBase = 'https://kandiug.com';
 
 // ------------------------------------------------------------
-//  Money
+//  Keys every page in this app agrees on
+//
+//  These five strings are the entire contract between pages.
+//  They are repeated verbatim in each file, and if one changes
+//  it must change in all of them at the same time — nothing
+//  enforces the agreement, which is the price of pages that do
+//  not import each other.
 // ------------------------------------------------------------
 
-/// `UGX 145,000`.
-///
-/// Only used for figures the app computes itself. Every product price is
-/// printed from the API's own `priceLabel`, formatted by the shop's formatter,
-/// so the app cannot show a different figure from the website for one item.
+const String _basketKey = 'kandi-cart-v1';
+const String _wishlistKey = 'kandi-wishlist-v1';
+
+/// The product id the product page should open.
+const String _openProductKey = 'kandi-open-product';
+
+/// The category the shop page should list: `slug|Name`.
+const String _openCategoryKey = 'kandi-open-category';
+
+/// The term the search page should run on open. Empty means "just focus the
+/// field" — which is what tapping the search bar here does.
+const String _openSearchKey = 'kandi-open-search';
+
 String _money(num amount) {
   final whole = amount.round().toString();
   final out = StringBuffer();
@@ -199,7 +182,6 @@ String _money(num amount) {
 //  Data
 // ------------------------------------------------------------
 
-/// One product, as `/api/app/` sends it.
 class _KProduct {
   const _KProduct({
     required this.id,
@@ -215,6 +197,7 @@ class _KProduct {
     this.ratingCount = 0,
     this.totalSales = 0,
     this.hasOptions = false,
+    this.isNew = false,
   });
 
   final int id;
@@ -232,12 +215,12 @@ class _KProduct {
 
   /// Whether buying needs a choice first — a size, a colour.
   ///
-  /// A tile cannot show a size picker, so this decides what its basket button
-  /// does: add a simple product in one tap, or open the product page where the
-  /// picker is. Without it that button has two options and both are wrong —
-  /// not existing for the whole catalogue, or sending an order for a shoe to
-  /// wp-admin with no size on it.
+  /// A tile cannot show a size picker, so this decides what the `+` does: add a
+  /// simple product in one tap, or open the product page where the picker is.
+  /// Without it that button either cannot exist for the whole catalogue, or
+  /// sends an order for a shoe to wp-admin with no size on it.
   final bool hasOptions;
+  final bool isNew;
 
   static _KProduct? from(dynamic json) {
     if (json is! Map) return null;
@@ -258,59 +241,44 @@ class _KProduct {
       ratingCount: json['ratingCount'] is int ? json['ratingCount'] as int : 0,
       totalSales: json['totalSales'] is int ? json['totalSales'] as int : 0,
       hasOptions: json['hasOptions'] == true,
+      isNew: json['isNew'] == true,
     );
   }
 
-  /// Parses a list, dropping malformed rows rather than failing the screen.
-  /// One bad product should cost its own tile, not the whole homepage.
+  /// Drops malformed rows rather than failing the screen. One bad product
+  /// should cost its own tile, not the whole homepage.
   static List<_KProduct> listFrom(dynamic json) {
     if (json is! List) return const [];
     return json.map(_KProduct.from).whereType<_KProduct>().toList();
   }
 }
 
-class _KDepartment {
-  const _KDepartment({required this.name, required this.image});
+class _KDept {
+  const _KDept({required this.name, required this.slug, required this.image});
   final String name;
+  final String slug;
   final String image;
 
-  static List<_KDepartment> listFrom(dynamic json) {
+  static List<_KDept> listFrom(dynamic json) {
     if (json is! List) return const [];
-    final out = <_KDepartment>[];
+    final out = <_KDept>[];
     for (final entry in json) {
       if (entry is! Map) continue;
       final name = (entry['name'] ?? '').toString();
-      if (name.isEmpty) continue;
-      out.add(_KDepartment(name: name, image: (entry['image'] ?? '').toString()));
+      final slug = (entry['slug'] ?? '').toString();
+      if (name.isEmpty || slug.isEmpty) continue;
+      out.add(_KDept(
+          name: name, slug: slug, image: (entry['image'] ?? '').toString()));
     }
     return out;
   }
 }
 
 class _KRail {
-  const _KRail({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.products,
-  });
-
-  final String id;
+  const _KRail({required this.title, required this.subtitle, required this.products});
   final String title;
   final String? subtitle;
   final List<_KProduct> products;
-
-  /// The shelf's ground, decided by id.
-  ///
-  /// A presentation choice, so it lives here rather than in the shared API —
-  /// the website makes the same choice in CSS for the same two ids. Any rail
-  /// not named is a white shelf, which is the right default: a page where every
-  /// shelf is coloured has no emphasis at all.
-  Color? get accent {
-    if (id == 'trending') return _KColors.trending;
-    if (id == 'super-deals') return _KColors.deals;
-    return null;
-  }
 
   static List<_KRail> listFrom(dynamic json) {
     if (json is! List) return const [];
@@ -322,7 +290,6 @@ class _KRail {
       // over nothing.
       if (products.isEmpty) continue;
       out.add(_KRail(
-        id: (entry['id'] ?? '').toString(),
         title: (entry['title'] ?? '').toString(),
         subtitle: entry['subtitle']?.toString(),
         products: products,
@@ -333,47 +300,21 @@ class _KRail {
 }
 
 // ------------------------------------------------------------
-//  The basket, shared through the disk rather than through code
+//  Basket and wishlist, shared through the device
 // ------------------------------------------------------------
 
-/// Adds a line to the saved basket.
-///
-/// ---- Why this is not a shared cart class ----
-///
-/// Every page in this app is self-contained, so there is no common object for
-/// three screens to hold the basket in. What they share instead is the STORAGE:
-/// one SharedPreferences key, one JSON shape, read and written by whichever
-/// page is open. The cart page reads what this wrote without either file
-/// knowing the other exists.
-///
-/// The shape is deliberately thin — id, name, image, quantity, and the unit
-/// price AS IT WAS when the line was added. Prices move, and a basket restored
-/// next week must not show today's figure against last week's decision; the
-/// cart page re-checks against the API before checkout, which is where a
-/// change belongs.
-///
-/// Keyed on id AND variant: a shopper buying the same shoe in two sizes has two
-/// lines, and merging them on id alone silently drops a size from the order.
-Future<int> _addToBasket(_KProduct product, {int quantity = 1}) async {
+Future<int> _addToBasket(_KProduct product) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_basketKey);
-    final lines = <Map<String, dynamic>>[];
-
-    if (raw != null) {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        for (final entry in decoded) {
-          if (entry is Map) lines.add(Map<String, dynamic>.from(entry));
-        }
-      }
-    }
-
+    final lines = _readLines(prefs.getString(_basketKey));
+    // Keyed on id AND variant: the same shoe in two sizes is two lines, and
+    // merging on id alone silently drops a size from the order. A tile can only
+    // ever add the no-variant form, hence the trailing separator.
     final key = '${product.id}::';
     final index = lines.indexWhere((line) => line['key'] == key);
     if (index >= 0) {
       final current = lines[index]['quantity'];
-      lines[index]['quantity'] = (current is int ? current : 1) + quantity;
+      lines[index]['quantity'] = (current is int ? current : 1) + 1;
     } else {
       lines.add({
         'key': key,
@@ -382,34 +323,43 @@ Future<int> _addToBasket(_KProduct product, {int quantity = 1}) async {
         'image': product.image,
         'price': product.price,
         'priceLabel': product.priceLabel,
-        'quantity': quantity,
+        'quantity': 1,
         'variantLabel': null,
       });
     }
-
     await prefs.setString(_basketKey, jsonEncode(lines));
     return lines.fold<int>(0, (total, line) {
       final q = line['quantity'];
       return total + (q is int ? q : 0);
     });
   } catch (_) {
-    // A basket that will not read or write is recoverable — the shopper can
-    // add again. Throwing here would take out the tile they just tapped.
+    // Recoverable — the shopper can tap again. Throwing would take out the
+    // tile they just used.
     return 0;
   }
 }
 
-/// How many items are in the saved basket, for the badge.
+List<Map<String, dynamic>> _readLines(String? raw) {
+  final out = <Map<String, dynamic>>[];
+  if (raw == null) return out;
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      for (final entry in decoded) {
+        if (entry is Map) out.add(Map<String, dynamic>.from(entry));
+      }
+    }
+  } catch (_) {
+    // A basket that will not parse is one from an older build.
+  }
+  return out;
+}
+
 Future<int> _basketCount() async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_basketKey);
-    if (raw == null) return 0;
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return 0;
-    return decoded.fold<int>(0, (total, entry) {
-      if (entry is! Map) return total;
-      final q = entry['quantity'];
+    return _readLines(prefs.getString(_basketKey)).fold<int>(0, (total, line) {
+      final q = line['quantity'];
       return total + (q is int ? q : 0);
     });
   } catch (_) {
@@ -417,9 +367,70 @@ Future<int> _basketCount() async {
   }
 }
 
-/// The one string every page in this app agrees on.
-/// Change it here and it must change in every page file at the same time.
-const String _basketKey = 'kandi-cart-v1';
+/// The wishlist is a plain list of product ids plus enough to draw a tile
+/// without a second fetch — the wishlist page has no other source for a name or
+/// a price, and a saved item that has to be looked up one request at a time is
+/// a page that takes a second to open.
+Future<Set<int>> _readWishlistIds() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    if (raw == null) return <int>{};
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return <int>{};
+    return decoded
+        .whereType<Map>()
+        .map((entry) => entry['id'])
+        .whereType<int>()
+        .toSet();
+  } catch (_) {
+    return <int>{};
+  }
+}
+
+Future<bool> _toggleWishlist(_KProduct product) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_wishlistKey);
+    final items = <Map<String, dynamic>>[];
+    if (raw != null) {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        for (final entry in decoded) {
+          if (entry is Map) items.add(Map<String, dynamic>.from(entry));
+        }
+      }
+    }
+    final index = items.indexWhere((item) => item['id'] == product.id);
+    final added = index < 0;
+    if (added) {
+      items.add({
+        'id': product.id,
+        'name': product.name,
+        'image': product.image,
+        'priceLabel': product.priceLabel,
+        'price': product.price,
+      });
+    } else {
+      items.removeAt(index);
+    }
+    await prefs.setString(_wishlistKey, jsonEncode(items));
+    return added;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Writes what the next page needs, then the caller opens it with no arguments.
+Future<void> _handoff(String key, String value) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value);
+  } catch (_) {
+    // The destination falls back to its own empty state — see each page's
+    // `initState`. A failed handoff shows an empty search rather than a crash.
+  }
+}
 
 // ------------------------------------------------------------
 //  The screen
@@ -442,21 +453,28 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
   String _brand = 'KandiUg';
   num _freeDeliveryFrom = 0;
   int _returnsDays = 0;
-  List<_KDepartment> _departments = const [];
+  List<_KDept> _departments = const [];
   List<_KRail> _rails = const [];
   List<_KProduct> _picked = const [];
+
   int _cartCount = 0;
+  Set<int> _wishlist = <int>{};
 
   @override
   void initState() {
     super.initState();
     _load();
-    _refreshBadge();
+    _refreshLocal();
   }
 
-  Future<void> _refreshBadge() async {
+  Future<void> _refreshLocal() async {
     final count = await _basketCount();
-    if (mounted) setState(() => _cartCount = count);
+    final wishlist = await _readWishlistIds();
+    if (!mounted) return;
+    setState(() {
+      _cartCount = count;
+      _wishlist = wishlist;
+    });
   }
 
   Future<void> _load() async {
@@ -481,7 +499,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
     if (status != 200 || data is! Map) {
       setState(() {
         _loading = false;
-        // Only a true failure when there is nothing on screen already. A failed
+        // Only a true failure when nothing is on screen already. A failed
         // pull-to-refresh over a good render should leave the good render
         // alone rather than replacing a working shop with an error.
         _failed = _rails.isEmpty && _picked.isEmpty;
@@ -495,9 +513,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
     setState(() {
       _loading = false;
       _failed = false;
-      if (brand is Map && brand['name'] != null) {
-        _brand = brand['name'].toString();
-      }
+      if (brand is Map && brand['name'] != null) _brand = brand['name'].toString();
       if (commerce is Map) {
         _freeDeliveryFrom = commerce['freeDeliveryFrom'] is num
             ? commerce['freeDeliveryFrom'] as num
@@ -505,30 +521,41 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
         _returnsDays =
             commerce['returnsDays'] is int ? commerce['returnsDays'] as int : 0;
       }
-      _departments = _KDepartment.listFrom(data['departments']);
+      _departments = _KDept.listFrom(data['departments']);
       _rails = _KRail.listFrom(data['rails']);
       _picked = _KProduct.listFrom(data['pickedForYou']);
     });
   }
 
+  // ---- Navigation. Nothing is passed; the destination reads the device. ----
+
   Future<void> _openProduct(_KProduct product) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const KandiProductScreen(),
-        // The id travels on the route: FlutterFlow custom widgets take no
-        // parameters, and this is the one channel it does not rewrite.
-        settings: RouteSettings(arguments: product.id),
-      ),
-    );
-    // The product page can add to the basket, so the badge is re-read on the
-    // way back rather than assumed unchanged.
-    await _refreshBadge();
+    await _handoff(_openProductKey, '${product.id}');
+    if (!mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const KandiProductScreen()));
+    await _refreshLocal();
   }
 
-  Future<void> _openCart() async {
+  Future<void> _openCategory(_KDept department) async {
+    await _handoff(_openCategoryKey, '${department.slug}|${department.name}');
+    if (!mounted) return;
     await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const KandiCartScreen()));
-    await _refreshBadge();
+        .push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+    await _refreshLocal();
+  }
+
+  Future<void> _openSearch() async {
+    await _handoff(_openSearchKey, '');
+    if (!mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const KandiSearchScreen()));
+    await _refreshLocal();
+  }
+
+  Future<void> _push(Widget screen) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    await _refreshLocal();
   }
 
   Future<void> _add(_KProduct product) async {
@@ -543,8 +570,27 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
         action: SnackBarAction(
           label: 'Basket',
           textColor: Colors.white,
-          onPressed: _openCart,
+          onPressed: () => _push(const KandiCartScreen()),
         ),
+      ),
+    );
+  }
+
+  Future<void> _toggleSaved(_KProduct product) async {
+    final added = await _toggleWishlist(product);
+    if (!mounted) return;
+    setState(() {
+      if (added) {
+        _wishlist.add(product.id);
+      } else {
+        _wishlist.remove(product.id);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(added ? 'Saved' : 'Removed from saved'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -556,137 +602,226 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
       height: widget.height,
       child: Scaffold(
         backgroundColor: _KColors.canvas,
-        appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
-          elevation: 0,
-          scrolledUnderElevation: 0.5,
-          titleSpacing: _KSpace.lg,
-          title: Text(_brand, style: _KType.display),
-          actions: [_buildBasketButton()],
-        ),
-        body: _buildBody(),
+        body: _failed ? _buildFailed() : _buildBody(),
+        bottomNavigationBar: _buildBottomBar(),
       ),
     );
   }
 
-  Widget _buildBasketButton() {
-    return Padding(
-      padding: const EdgeInsets.only(right: _KSpace.sm),
-      child: IconButton(
-        onPressed: _openCart,
-        tooltip: 'Basket',
-        icon: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Icon(Icons.shopping_bag_outlined, color: _KColors.ink),
-            if (_cartCount > 0)
-              Positioned(
-                right: -6,
-                top: -6,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  constraints: const BoxConstraints(minWidth: 18),
-                  decoration: BoxDecoration(
-                    color: _KColors.primary,
-                    borderRadius: BorderRadius.circular(9),
-                    // A white ring keeps the badge legible over the dark icon
-                    // beneath it.
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                  child: Text(
-                    _cartCount > 99 ? '99+' : '$_cartCount',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      height: 1.3,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+  Widget _buildFailed() {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(_KSpace.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, size: 44, color: _KColors.muted),
+              const SizedBox(height: _KSpace.md),
+              const Text('Could not reach the shop',
+                  style: TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w800, color: _KColors.ink)),
+              const SizedBox(height: _KSpace.sm),
+              const Text(
+                'Check your connection and try again. Nothing in your basket has been lost.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13.5, height: 1.5, color: _KColors.body),
               ),
-          ],
+              const SizedBox(height: _KSpace.lg),
+              FilledButton(
+                onPressed: _load,
+                style: FilledButton.styleFrom(backgroundColor: _KColors.primary),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBody() {
-    if (_loading && _rails.isEmpty && _picked.isEmpty) {
-      return const _HomeSkeleton();
-    }
-
-    if (_failed) {
-      return _Empty(
-        icon: Icons.wifi_off_rounded,
-        title: 'Could not reach the shop',
-        message:
-            'Check your connection and try again. Nothing in your basket has been lost.',
-        actionLabel: 'Try again',
-        onAction: _load,
-      );
-    }
-
     return RefreshIndicator(
       color: _KColors.primary,
       onRefresh: _load,
       child: CustomScrollView(
         slivers: [
-          if (_freeDeliveryFrom > 0 || _returnsDays > 0)
-            SliverToBoxAdapter(
-              child: _TermsStrip(
-                freeDeliveryFrom: _freeDeliveryFrom,
-                returnsDays: _returnsDays,
+          SliverToBoxAdapter(child: _buildHeader()),
+          if (_loading && _rails.isEmpty && _picked.isEmpty)
+            const SliverToBoxAdapter(child: _Skeleton())
+          else ...[
+            if (_freeDeliveryFrom > 0 || _returnsDays > 0)
+              SliverToBoxAdapter(
+                child: _TermsStrip(
+                    freeDeliveryFrom: _freeDeliveryFrom, returnsDays: _returnsDays),
               ),
-            ),
-          if (_departments.isNotEmpty)
-            SliverToBoxAdapter(
-                child: _DepartmentStrip(departments: _departments)),
-          for (final rail in _rails)
-            SliverToBoxAdapter(
-              child: _RailSection(
-                rail: rail,
-                onOpen: _openProduct,
-                onAdd: _add,
-              ),
-            ),
-          if (_picked.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                    _KSpace.lg, _KSpace.xl, _KSpace.lg, _KSpace.md),
-                child: Text('Picked for you', style: _KType.section),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: _KSpace.lg,
-                  crossAxisSpacing: _KSpace.md,
-                  // A square photograph plus four short text rows. A ratio that
-                  // fits only the picture clips the price off the bottom.
-                  childAspectRatio: 0.56,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final product = _picked[index];
-                    return _Tile(
-                      product: product,
-                      onOpen: () => _openProduct(product),
-                      onAdd: _add,
-                    );
-                  },
-                  childCount: _picked.length,
+            for (final rail in _rails)
+              SliverToBoxAdapter(
+                child: _RailSection(
+                  rail: rail,
+                  freeDeliveryFrom: _freeDeliveryFrom,
+                  savedIds: _wishlist,
+                  onOpen: _openProduct,
+                  onAdd: _add,
+                  onSave: _toggleSaved,
+                  onViewAll: _openSearch,
                 ),
               ),
-            ),
+            if (_picked.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      _KSpace.md, _KSpace.xl, _KSpace.md, _KSpace.md),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Picked for you',
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: _KColors.ink)),
+                      ),
+                      _ViewAll(onTap: _openSearch),
+                    ],
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: _KSpace.md,
+                    crossAxisSpacing: _KSpace.md,
+                    // A square photograph plus the card's text rows. A ratio
+                    // that fits only the picture clips the price off.
+                    childAspectRatio: 0.50,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final product = _picked[index];
+                      return _Card(
+                        product: product,
+                        freeDeliveryFrom: _freeDeliveryFrom,
+                        saved: _wishlist.contains(product.id),
+                        onOpen: () => _openProduct(product),
+                        onAdd: () => _add(product),
+                        onSave: () => _toggleSaved(product),
+                      );
+                    },
+                    childCount: _picked.length,
+                  ),
+                ),
+              ),
+            ],
           ],
           const SliverToBoxAdapter(child: SizedBox(height: _KSpace.xl)),
         ],
+      ),
+    );
+  }
+
+  /// The patterned band: shortcut pills, then the search bar.
+  ///
+  /// Modelled on the reference the shop gave. The band is a soft gradient
+  /// rather than an illustration — artwork behind a search field costs a
+  /// download on the one screen that must paint fastest, and the colour alone
+  /// does the same job of separating the chrome from the merchandise.
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_KColors.headerTop, _KColors.headerBottom],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, _KSpace.sm, 0, _KSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The brand, then the departments as pills. The reference runs
+              // its own sub-brands here; this shop has departments, which is
+              // the equivalent thing — the fastest route for a shopper who
+              // arrived knowing what they want.
+              SizedBox(
+                height: 42,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+                  children: [
+                    _BrandPill(label: _brand, filled: true, onTap: _load),
+                    for (final department in _departments)
+                      Padding(
+                        padding: const EdgeInsets.only(left: _KSpace.sm),
+                        child: _BrandPill(
+                          label: department.name,
+                          onTap: () => _openCategory(department),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: _KSpace.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+                child: _SearchBar(onTap: _openSearch),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Five destinations, always reachable.
+  ///
+  /// A bottom bar rather than a drawer: every page in this app is a full-screen
+  /// push, and without a persistent bar the only way back to Home from four
+  /// levels deep is four back taps. The basket carries its count here as well
+  /// as on the cards, because that is the number a shopper checks before
+  /// deciding they are finished.
+  Widget _buildBottomBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _KColors.panel,
+        border: Border(top: BorderSide(color: _KColors.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            children: [
+              _NavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Home',
+                  active: true,
+                  onTap: () {}),
+              _NavItem(
+                  icon: Icons.grid_view_rounded,
+                  label: 'Shop',
+                  onTap: () => _push(const KandiShopScreen())),
+              _NavItem(
+                  icon: Icons.favorite_border_rounded,
+                  label: 'Saved',
+                  onTap: () => _push(const KandiWishlistScreen())),
+              _NavItem(
+                icon: Icons.shopping_cart_outlined,
+                label: 'Basket',
+                badge: _cartCount,
+                onTap: () => _push(const KandiCartScreen()),
+              ),
+              _NavItem(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Account',
+                  onTap: () => _push(const KandiAccountScreen())),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -696,13 +831,145 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
 //  Pieces
 // ------------------------------------------------------------
 
-/// The shop's terms, once, under the masthead.
+class _BrandPill extends StatelessWidget {
+  const _BrandPill({required this.label, required this.onTap, this.filled = false});
+
+  final String label;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
+        decoration: BoxDecoration(
+          // The shop's own pill is filled, the rest are white — the reference's
+          // arrangement, and it says which of the row you are currently in.
+          color: filled ? _KColors.express : _KColors.panel,
+          borderRadius: BorderRadius.circular(_rChip),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w800, color: _KColors.ink),
+        ),
+      ),
+    );
+  }
+}
+
+/// Looks like a field and is a button.
+///
+/// Tapping opens the search page, which has the real `TextField` and the
+/// keyboard focus. A live field here would need this screen to own search state
+/// it does not otherwise have, and the reference does the same thing.
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+        decoration: BoxDecoration(
+          color: _KColors.panel,
+          borderRadius: BorderRadius.circular(_rChip),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.search_rounded, size: 22, color: _KColors.ink),
+            SizedBox(width: _KSpace.sm),
+            Expanded(
+              child: Text('Search for shoes, phones, home…',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14.5, color: _KColors.muted)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool active;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final colour = active ? _KColors.primary : _KColors.muted;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, size: 22, color: colour),
+                if (badge > 0)
+                  Positioned(
+                    right: -7,
+                    top: -5,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      constraints: const BoxConstraints(minWidth: 16),
+                      decoration: BoxDecoration(
+                        color: _KColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                        // A white ring keeps the badge legible over the icon.
+                        border: Border.all(color: Colors.white, width: 1.4),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 9,
+                            height: 1.3,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10.5, fontWeight: FontWeight.w600, color: colour)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The shop's terms, once, under the search band.
 ///
 /// The three things a first-time Ugandan shopper asks about a shop they have
-/// not bought from: what delivery costs, whether they can pay on arrival, and
-/// whether they can send it back. Every figure comes from the API rather than
-/// being typed here, so the app cannot promise a window the checkout will not
-/// honour.
+/// not bought from. Every figure comes from the API, so the app cannot promise
+/// a window the checkout will not honour.
 class _TermsStrip extends StatelessWidget {
   const _TermsStrip({required this.freeDeliveryFrom, required this.returnsDays});
 
@@ -718,11 +985,11 @@ class _TermsStrip extends StatelessWidget {
     ];
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(_KSpace.lg, _KSpace.md, _KSpace.lg, 0),
+      margin: const EdgeInsets.fromLTRB(_KSpace.md, _KSpace.md, _KSpace.md, 0),
       padding: const EdgeInsets.all(_KSpace.md),
       decoration: BoxDecoration(
         color: _KColors.saveSoft,
-        borderRadius: BorderRadius.circular(_KRadius.panel),
+        borderRadius: BorderRadius.circular(_rPanel),
       ),
       child: Wrap(
         spacing: _KSpace.md,
@@ -735,13 +1002,11 @@ class _TermsStrip extends StatelessWidget {
                 const Icon(Icons.check_circle_rounded,
                     size: 14, color: _KColors.save),
                 const SizedBox(width: 4),
-                Text(
-                  term,
-                  style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: _KColors.ink),
-                ),
+                Text(term,
+                    style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: _KColors.ink)),
               ],
             ),
         ],
@@ -750,212 +1015,160 @@ class _TermsStrip extends StatelessWidget {
   }
 }
 
-/// The departments, as a scrolling row of discs.
-///
-/// It says what the shop sells before any single product does, which is what a
-/// shopper arriving with an intent — shoes, something for the kids — needs from
-/// the first screen.
-///
-/// The discs are WHITE with a coloured ring rather than a coloured fill. Almost
-/// every image in this catalogue is a JPEG shot on white, so a tinted disc
-/// paints an opaque white rectangle into the middle of itself and the tint
-/// survives only in the corners. The ring puts the colour where no photograph
-/// can cover it.
-class _DepartmentStrip extends StatelessWidget {
-  const _DepartmentStrip({required this.departments});
-
-  final List<_KDepartment> departments;
+class _ViewAll extends StatelessWidget {
+  const _ViewAll({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: _KSpace.lg),
-      child: SizedBox(
-        height: 108,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
-          itemCount: departments.length,
-          separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
-          itemBuilder: (context, index) {
-            final department = departments[index];
-            return SizedBox(
-              width: 76,
-              child: Column(
-                children: [
-                  Container(
-                    width: 66,
-                    height: 66,
-                    decoration: BoxDecoration(
-                      color: _KColors.panel,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        // A literal ARGB rather than `withValues(alpha:)`,
-                        // which only exists from Flutter 3.27. FlutterFlow
-                        // decides the SDK version this compiles against, not
-                        // this file, so the version-proof form is the right
-                        // one: 0x40 is 25% of 255.
-                        color: const Color(0x407642D6),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: ClipOval(
-                      child: department.image.isEmpty
-                          ? Center(
-                              child: Text(
-                                department.name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: _KColors.trending,
-                                ),
-                              ),
-                            )
-                          : _Photo(
-                              url: department.image,
-                              fit: BoxFit.contain,
-                              padding: const EdgeInsets.all(8),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    department.name,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      height: 1.2,
-                      fontWeight: FontWeight.w600,
-                      color: _KColors.ink,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+    return GestureDetector(
+      onTap: onTap,
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('View all',
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A73E8))),
+          Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF1A73E8)),
+        ],
       ),
     );
   }
 }
 
-/// One shelf: a heading and a horizontal row of tiles.
 class _RailSection extends StatelessWidget {
   const _RailSection({
     required this.rail,
+    required this.freeDeliveryFrom,
+    required this.savedIds,
     required this.onOpen,
     required this.onAdd,
+    required this.onSave,
+    required this.onViewAll,
   });
 
   final _KRail rail;
+  final num freeDeliveryFrom;
+  final Set<int> savedIds;
   final ValueChanged<_KProduct> onOpen;
   final ValueChanged<_KProduct> onAdd;
+  final ValueChanged<_KProduct> onSave;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
-    final accent = rail.accent;
-    final onAccent = accent != null;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(_KSpace.lg, _KSpace.xl, _KSpace.lg, 0),
-      padding: const EdgeInsets.symmetric(vertical: _KSpace.lg),
-      decoration: BoxDecoration(
-        color: accent ?? _KColors.panel,
-        borderRadius: BorderRadius.circular(_KRadius.panel),
-        border: onAccent ? null : Border.all(color: _KColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  rail.title,
-                  style: _KType.section.copyWith(
-                    color: onAccent ? Colors.white : _KColors.ink,
-                  ),
-                ),
-                if (rail.subtitle != null && rail.subtitle!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      rail.subtitle!,
-                      style: _KType.meta.copyWith(
-                        color: onAccent
-                            // 0xC7 is 78% of 255 — see the ARGB note above.
-                            ? const Color(0xC7FFFFFF)
-                            : _KColors.muted,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              _KSpace.md, _KSpace.xl, _KSpace.md, _KSpace.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(rail.title,
+                        style: const TextStyle(
+                            fontSize: 17,
+                            height: 1.25,
+                            fontWeight: FontWeight.w800,
+                            color: _KColors.ink)),
+                    if (rail.subtitle != null && rail.subtitle!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(rail.subtitle!,
+                            style: const TextStyle(
+                                fontSize: 12.5, color: _KColors.muted)),
                       ),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: _KSpace.sm),
+              _ViewAll(onTap: onViewAll),
+            ],
           ),
-          const SizedBox(height: _KSpace.md),
-          SizedBox(
-            // Tall enough for a 150px square photograph plus the text rows.
-            // Fixed rather than intrinsic: a horizontal list has no height of
-            // its own to measure.
-            height: 286,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
-              itemCount: rail.products.length,
-              separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
-              itemBuilder: (context, index) {
-                final product = rail.products[index];
-                final tile = _Tile(
+        ),
+        SizedBox(
+          // Tall enough for the card's photograph plus every text row it can
+          // draw. Fixed, because a horizontal list has no height to measure.
+          height: 340,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+            itemCount: rail.products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
+            itemBuilder: (context, index) {
+              final product = rail.products[index];
+              return SizedBox(
+                width: 168,
+                child: _Card(
                   product: product,
+                  freeDeliveryFrom: freeDeliveryFrom,
+                  saved: savedIds.contains(product.id),
                   onOpen: () => onOpen(product),
-                  onAdd: onAdd,
-                );
-                return SizedBox(
-                  width: 150,
-                  // On an accent shelf the tile takes a white card: the tile
-                  // sets its text in ink, and ink on violet or crimson is
-                  // unreadable. A shelf's ground and the readability of what
-                  // stands on it are ONE decision — the website learned this
-                  // by shipping the dark version without the cards and
-                  // reverting it within the hour.
-                  child: onAccent
-                      ? Container(
-                          padding: const EdgeInsets.all(_KSpace.sm),
-                          decoration: BoxDecoration(
-                            color: _KColors.panel,
-                            borderRadius:
-                                BorderRadius.circular(_KRadius.photo),
-                          ),
-                          child: tile,
-                        )
-                      : tile,
-                );
-              },
-            ),
+                  onAdd: () => onAdd(product),
+                  onSave: () => onSave(product),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// The product tile.
+/// The product card, drawn to the reference.
 ///
-/// The WHOLE tile is the tap target — not just the photograph and the name. A
-/// shopper aims at a tile, and on a phone the gaps between its rows are
-/// thumb-sized; a tile with two small live regions and dead space between them
-/// feels broken without anybody being able to say why. The basket button sits
-/// above that gesture and takes its own tap.
-class _Tile extends StatelessWidget {
-  const _Tile({required this.product, required this.onOpen, this.onAdd});
+/// A white card with the photograph in it, a badge top-left, a heart top-right,
+/// a `+` bottom-right, then the name, the price row with a green discount, the
+/// saving as a green pill and the delivery badge.
+///
+/// The WHOLE card is the tap target. A shopper aims at a card, and on a phone
+/// the gaps between its rows are thumb-sized — a card with two small live
+/// regions and dead space between them feels broken without anybody being able
+/// to say why. The heart and the `+` sit above that gesture and take their own
+/// taps.
+class _Card extends StatelessWidget {
+  const _Card({
+    required this.product,
+    required this.freeDeliveryFrom,
+    required this.saved,
+    required this.onOpen,
+    required this.onAdd,
+    required this.onSave,
+  });
 
   final _KProduct product;
+  final num freeDeliveryFrom;
+  final bool saved;
   final VoidCallback onOpen;
-  final ValueChanged<_KProduct>? onAdd;
+  final VoidCallback onAdd;
+  final VoidCallback onSave;
+
+  /// The badge in the top-left corner.
+  ///
+  /// One label at most, in order of usefulness to a shopper who has not
+  /// decided: a deep cut, then a new listing. A badge on every card is a badge
+  /// that means nothing, which is why there is no fallback.
+  String? get _badge {
+    if (product.discountPercent >= 30) return 'SUPER DEAL';
+    if (product.isNew) return 'NEW';
+    return null;
+  }
+
+  /// Whether this item alone clears the free-delivery threshold.
+  ///
+  /// Derived rather than sent: the API has no per-product delivery field, and
+  /// this is the same arithmetic the website's tile does. It is honest because
+  /// the threshold is the figure checkout actually applies.
+  bool get _freeDelivery =>
+      freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -967,206 +1180,202 @@ class _Tile extends StatelessWidget {
         // Opaque, so the gesture covers the gaps between rows and not only the
         // pixels the children happen to paint.
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(_KRadius.photo),
-                    child: _Photo(url: product.image),
-                  ),
-                  if (product.discountPercent > 0)
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: _Flag(label: '-${product.discountPercent}%'),
-                    ),
-                  if (!product.inStock)
-                    const Positioned(
-                      top: 6,
-                      left: 6,
-                      child: _Flag(
-                        label: 'Sold out',
-                        background: _KColors.ink,
-                        foreground: Colors.white,
-                      ),
-                    ),
-                  if (onAdd != null && product.inStock)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: _AddButton(
-                        // A product with options cannot be added from a tile —
-                        // it opens instead, where the picker is.
-                        onTap: () =>
-                            product.hasOptions ? onOpen() : onAdd!(product),
-                        icon: product.hasOptions
-                            ? Icons.tune_rounded
-                            : Icons.add_shopping_cart_rounded,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: _KSpace.sm),
-            Text(product.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: _KType.name),
-            const SizedBox(height: 3),
-            // The saving is a chip rather than coloured text: it competes with
-            // a bolder price directly under it, and green on white at 11px is
-            // easy to miss where a tinted chip is not.
-            if (product.savingLabel != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 3),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: _KColors.saveSoft,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Text(
-                  'Save ${product.savingLabel}',
-                  style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: _KColors.save),
-                ),
-              ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Flexible(
-                  child: Text(product.priceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _KType.price),
-                ),
-                if (product.wasPriceLabel != null) ...[
-                  const SizedBox(width: 5),
-                  Flexible(
-                    child: Text(product.wasPriceLabel!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: _KType.wasPrice),
-                  ),
-                ],
-              ],
-            ),
-            // Only drawn when there is a number to carry. A row that renders
-            // empty on most tiles is a row of debris at forty different
-            // heights down the grid.
-            if (product.totalSales > 0 || product.ratingCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
+        child: Container(
+          decoration: BoxDecoration(
+            color: _KColors.panel,
+            borderRadius: BorderRadius.circular(_rPanel),
+          ),
+          padding: const EdgeInsets.all(_KSpace.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    if (product.ratingCount > 0) ...[
-                      const Icon(Icons.star_rounded,
-                          size: 12, color: _KColors.star),
-                      const SizedBox(width: 2),
-                      Text(product.rating.toStringAsFixed(1),
-                          style: _KType.meta),
-                      const SizedBox(width: 6),
-                    ],
-                    if (product.totalSales > 0)
-                      Flexible(
-                        child: Text('${product.totalSales} sold',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _KType.meta),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(_rPhoto),
+                      child: _Photo(url: product.image),
+                    ),
+                    if (_badge != null)
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _KColors.ink,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(_badge!,
+                              style: const TextStyle(
+                                  fontSize: 8.5,
+                                  height: 1,
+                                  letterSpacing: 0.4,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
+                      ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: onSave,
+                        // A generous invisible hit area: the heart itself is
+                        // 18px, which is under the 44px a thumb needs.
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            saved
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            size: 19,
+                            color: saved ? _KColors.primary : _KColors.muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (product.inStock)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: _AddButton(
+                          // A product with options cannot be added from a card —
+                          // it opens instead, where the picker is.
+                          onTap: product.hasOptions ? onOpen : onAdd,
+                          icon: product.hasOptions
+                              ? Icons.tune_rounded
+                              : Icons.add_rounded,
+                        ),
+                      ),
+                    if (!product.inStock)
+                      Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _KColors.ink,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Sold out',
+                              style: TextStyle(
+                                  fontSize: 9,
+                                  height: 1,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
                       ),
                   ],
                 ),
               ),
-          ],
+              const SizedBox(height: _KSpace.sm),
+              Text(product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 12.5, height: 1.35, color: _KColors.ink)),
+              const SizedBox(height: 5),
+              if (product.ratingCount > 0) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, size: 13, color: _KColors.star),
+                    const SizedBox(width: 2),
+                    Text(product.rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: _KColors.ink)),
+                    const SizedBox(width: 3),
+                    Text('(${product.ratingCount})',
+                        style: const TextStyle(
+                            fontSize: 11, color: _KColors.muted)),
+                  ],
+                ),
+                const SizedBox(height: 3),
+              ],
+              // Price, old price and the cut, on one line — the reference's
+              // arrangement. The percentage is green because it is money back,
+              // which is also what keeps red out of a catalogue that would
+              // otherwise be covered in it.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(product.priceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            color: _KColors.ink)),
+                  ),
+                  if (product.wasPriceLabel != null) ...[
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(product.wasPriceLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: _KColors.faint,
+                              decoration: TextDecoration.lineThrough)),
+                    ),
+                  ],
+                  if (product.discountPercent > 0) ...[
+                    const SizedBox(width: 4),
+                    Text('${product.discountPercent}%',
+                        style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: _KColors.save)),
+                  ],
+                ],
+              ),
+              if (product.savingLabel != null) ...[
+                const SizedBox(height: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _KColors.saveSoft,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text('Save ${product.savingLabel}',
+                      style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: _KColors.save)),
+                ),
+              ],
+              if (_freeDelivery) ...[
+                const SizedBox(height: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _KColors.express,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text('FREE DELIVERY',
+                      style: TextStyle(
+                          fontSize: 9,
+                          height: 1,
+                          letterSpacing: 0.3,
+                          fontWeight: FontWeight.w800,
+                          color: _KColors.ink)),
+                ),
+              ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-/// A network image with the three states a photograph actually has.
-///
-/// `cached_network_image` rather than `Image.network`: a catalogue is the same
-/// few hundred pictures seen over and over as the shopper moves between Home, a
-/// product and back, and refetching them on every build is most of what makes a
-/// shopping app feel slow on a Ugandan mobile connection.
-class _Photo extends StatelessWidget {
-  const _Photo({
-    required this.url,
-    this.fit = BoxFit.cover,
-    this.padding = EdgeInsets.zero,
-  });
-
-  final String url;
-  final BoxFit fit;
-  final EdgeInsets padding;
-
-  @override
-  Widget build(BuildContext context) {
-    if (url.isEmpty) return const _NoPhoto();
-    return Padding(
-      padding: padding,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: fit,
-        fadeInDuration: const Duration(milliseconds: 160),
-        placeholder: (_, __) => const ColoredBox(color: _KColors.hairline),
-        errorWidget: (_, __, ___) => const _NoPhoto(),
-      ),
-    );
-  }
-}
-
-class _NoPhoto extends StatelessWidget {
-  const _NoPhoto();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: _KColors.hairline,
-      child: Center(
-        child: Icon(Icons.image_not_supported_outlined,
-            size: 22, color: _KColors.faint),
-      ),
-    );
-  }
-}
-
-class _Flag extends StatelessWidget {
-  const _Flag({
-    required this.label,
-    this.background = _KColors.dealFlag,
-    this.foreground = _KColors.ink,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(_KRadius.chip),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            fontSize: 11,
-            height: 1,
-            fontWeight: FontWeight.w800,
-            color: foreground),
       ),
     );
   }
@@ -1180,77 +1389,56 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      elevation: 1.5,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-            width: 34, height: 34, child: Icon(icon, size: 17, color: _KColors.ink)),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: _KColors.panel,
+          borderRadius: BorderRadius.circular(_rChip),
+          border: Border.all(color: _KColors.line),
+        ),
+        child: Icon(icon, size: 20, color: _KColors.ink),
       ),
     );
   }
 }
 
-/// Nothing here, and what to do about it. Always carries an action — an empty
-/// state that only apologises leaves the shopper on a dead screen.
-class _Empty extends StatelessWidget {
-  const _Empty({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
+/// A network image with the three states a photograph actually has.
+///
+/// `cached_network_image` rather than `Image.network`: a catalogue is the same
+/// few hundred pictures seen over and over as a shopper moves between pages,
+/// and refetching them on every build is most of what makes a shopping app feel
+/// slow on a Ugandan mobile connection.
+class _Photo extends StatelessWidget {
+  const _Photo({required this.url});
 
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
+  final String url;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(_KSpace.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                  color: _KColors.primarySoft, shape: BoxShape.circle),
-              child: Icon(icon, size: 32, color: _KColors.primary),
-            ),
-            const SizedBox(height: _KSpace.lg),
-            Text(title, style: _KType.section, textAlign: TextAlign.center),
-            const SizedBox(height: _KSpace.sm),
-            Text(message, style: _KType.bodyText, textAlign: TextAlign.center),
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: _KSpace.xl),
-              SizedBox(
-                width: 220,
-                height: 48,
-                child: FilledButton(
-                  onPressed: onAction,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _KColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(_KRadius.chip)),
-                  ),
-                  child: Text(actionLabel!,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-          ],
-        ),
+    if (url.isEmpty) {
+      return const ColoredBox(
+        color: _KColors.hairline,
+        child: Center(
+            child: Icon(Icons.image_not_supported_outlined,
+                size: 22, color: _KColors.faint)),
+      );
+    }
+    return CachedNetworkImage(
+      imageUrl: url,
+      // Contain, not cover: a category photograph is one object and a
+      // cover crop slices it. The card gives it a square well to sit in.
+      fit: BoxFit.contain,
+      fadeInDuration: const Duration(milliseconds: 160),
+      placeholder: (_, __) => const ColoredBox(color: _KColors.hairline),
+      errorWidget: (_, __, ___) => const ColoredBox(
+        color: _KColors.hairline,
+        child: Center(
+            child: Icon(Icons.image_not_supported_outlined,
+                size: 22, color: _KColors.faint)),
       ),
     );
   }
@@ -1261,14 +1449,14 @@ class _Empty extends StatelessWidget {
 /// A shimmering block of roughly the right shape rather than a spinner: a
 /// spinner says "something is happening", a skeleton says "a grid of products
 /// is arriving", and the second stops the layout jumping when it does.
-class _HomeSkeleton extends StatefulWidget {
-  const _HomeSkeleton();
+class _Skeleton extends StatefulWidget {
+  const _Skeleton();
 
   @override
-  State<_HomeSkeleton> createState() => _HomeSkeletonState();
+  State<_Skeleton> createState() => _SkeletonState();
 }
 
-class _HomeSkeletonState extends State<_HomeSkeleton>
+class _SkeletonState extends State<_Skeleton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
@@ -1281,15 +1469,14 @@ class _HomeSkeletonState extends State<_HomeSkeleton>
     super.dispose();
   }
 
-  Widget _block(double width, double height, [double radius = 12]) {
+  Widget _block(double width, double height, [double radius = 10]) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) => Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Color.lerp(
-              _KColors.hairline, _KColors.line, _controller.value),
+          color: Color.lerp(_KColors.hairline, _KColors.line, _controller.value),
           borderRadius: BorderRadius.circular(radius),
         ),
       ),
@@ -1298,48 +1485,33 @@ class _HomeSkeletonState extends State<_HomeSkeleton>
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(_KSpace.lg),
-      children: [
-        _block(double.infinity, 48),
-        const SizedBox(height: _KSpace.lg),
-        SizedBox(
-          height: 92,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
-            itemBuilder: (_, __) => Column(
-              children: [
-                _block(66, 66, 33),
-                const SizedBox(height: 6),
-                _block(48, 10, 4),
-              ],
+    return Padding(
+      padding: const EdgeInsets.all(_KSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _block(160, 20, 6),
+          const SizedBox(height: _KSpace.md),
+          SizedBox(
+            height: 300,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: 3,
+              separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
+              itemBuilder: (_, __) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _block(168, 168, _rPanel),
+                  const SizedBox(height: _KSpace.sm),
+                  _block(140, 12, 4),
+                  const SizedBox(height: 6),
+                  _block(90, 16, 4),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: _KSpace.xl),
-        _block(160, 20, 6),
-        const SizedBox(height: _KSpace.md),
-        SizedBox(
-          height: 240,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
-            itemBuilder: (_, __) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _block(150, 150),
-                const SizedBox(height: _KSpace.sm),
-                _block(130, 12, 4),
-                const SizedBox(height: 6),
-                _block(80, 14, 4),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

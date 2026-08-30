@@ -15,6 +15,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Navigation only.
+import '/custom_code/widgets/kandi_checkout_screen.dart';
+
 // ============================================================
 //  KANDI — CART PAGE
 //
@@ -699,23 +702,16 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
     );
   }
 
-  void _checkout() {
-    // ---- Checkout is not built yet ----
-    //
-    // Deliberately a message rather than a dead button or a half-working
-    // screen. Payment is the one flow where a shopper must never be left
-    // guessing whether something happened, and the pages after this one —
-    // checkout, payment, order confirmation — are the next build.
-    //
-    // Saying so is the honest state; the basket is safe on the device either
-    // way, which is the part that matters until then.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Checkout is coming next — your basket is saved.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-      ),
-    );
+  Future<void> _checkout() async {
+    // Checkout collects the delivery details and hands the shopper to the
+    // shop's own payment page. Nothing is passed: it reads the basket from the
+    // same key this page wrote.
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const KandiCheckoutScreen()));
+    // The basket can come back changed — a shopper who paid on the website
+    // clears it there, and one who backed out may have edited it. Re-reading is
+    // cheaper than assuming either way.
+    if (mounted) await _load();
   }
 }
 

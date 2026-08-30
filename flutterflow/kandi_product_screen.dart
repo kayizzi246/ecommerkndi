@@ -30,17 +30,22 @@ import '/custom_code/widgets/kandi_cart_screen.dart';
 //  reasoning is written out in full at the head of
 //  kandi_home_screen.dart.
 //
-//  ---- How it knows which product ----
+//  ---- How it knows which product, with NOTHING passed in ----
 //
-//  From the route. FlutterFlow custom widgets take no
-//  parameters, so the id cannot be a constructor argument; Home
-//  pushes this screen with `RouteSettings(arguments: id)` and
-//  it is read in `didChangeDependencies`, which is the first
-//  callback where `ModalRoute.of(context)` is available.
+//  From the device. Whichever page opened this one wrote the id
+//  to `kandi-open-product` first, and `initState` reads it.
 //
-//  With no argument — which is what FlutterFlow's own preview
-//  does — the screen says so rather than showing a spinner
-//  forever.
+//  This was a route argument for one build, and route arguments
+//  are the wrong channel here. They only survive if navigation
+//  happens through this code — the moment the builder wires a
+//  page with FlutterFlow's own "Navigate To" action, the
+//  argument is gone and this screen opens blank. A handoff on
+//  disk works however the shopper got here, including from a
+//  push notification or a deep link the app has not been taught
+//  about yet.
+//
+//  With no id stored — which is what FlutterFlow's own preview
+//  does — the screen says so rather than spinning forever.
 // ============================================================
 
 class _KColors {
@@ -72,9 +77,11 @@ class _KSpace {
 const double _radiusChip = 8;
 const String _apiBase = 'https://kandiug.com';
 
-/// The one string every page in this app agrees on. Change it here and it must
-/// change in every page file at the same time.
+// The keys every page in this app agrees on. Repeated verbatim in each file;
+// if one changes it must change in all of them at once.
 const String _basketKey = 'kandi-cart-v1';
+const String _wishlistKey = 'kandi-wishlist-v1';
+const String _openProductKey = 'kandi-open-product';
 
 String _money(num amount) {
   final whole = amount.round().toString();
@@ -146,21 +153,106 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   int _gallery = 0;
   bool _adding = false;
 
+  /// True when this product is in the saved list.
+  bool _saved = false;
+
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // The first callback where the route — and so the argument — is readable.
-    if (_productId != null) return;
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is int) {
-      _productId = args;
-      _load();
-    } else {
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  /// Reads the id the opening page left on the device.
+  ///
+  /// NOT consumed. The basket page and the saved page can both push this screen
+  /// again on the way back, and a shopper who taps back and forward twice must
+  /// land on the same product each time — clearing the key would make the
+  /// second visit fail. It is overwritten by whoever opens the page next, which
+  /// is the only moment its value should change.
+  Future<void> _restore() async {
+    int? id;
+    bool saved = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      id = int.tryParse(prefs.getString(_openProductKey) ?? '');
+      if (id != null) {
+        final raw = prefs.getString(_wishlistKey);
+        if (raw != null) {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) {
+            saved = decoded
+                .whereType<Map>()
+                .any((entry) => entry['id'] == id);
+          }
+        }
+      }
+    } catch (_) {
+      id = null;
+    }
+
+    if (!mounted) return;
+    if (id == null) {
       setState(() {
         _loading = false;
         _failed = true;
       });
+      return;
     }
+    setState(() {
+      _productId = id;
+      _saved = saved;
+    });
+    _load();
+  }
+
+  /// Adds or removes this product from the saved list.
+  ///
+  /// Stores enough to draw a tile — name, image, price — so the saved page
+  /// opens with no network at all. See the note at the head of
+  /// kandi_wishlist_screen.dart for why that trade is the right one there.
+  Future<void> _toggleSaved() async {
+    final id = _productId;
+    if (id == null) return;
+    bool added = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_wishlistKey);
+      final items = <Map<String, dynamic>>[];
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final entry in decoded) {
+            if (entry is Map) items.add(Map<String, dynamic>.from(entry));
+          }
+        }
+      }
+      final index = items.indexWhere((item) => item['id'] == id);
+      added = index < 0;
+      if (added) {
+        items.add({
+          'id': id,
+          'name': _name,
+          'image': _images.isNotEmpty ? _images.first : '',
+          'priceLabel': _priceLabel,
+          'price': _price,
+        });
+      } else {
+        items.removeAt(index);
+      }
+      await prefs.setString(_wishlistKey, jsonEncode(items));
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _saved = added);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(added ? 'Saved' : 'Removed from saved'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -356,6 +448,19 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: _KColors.ink)),
+          actions: [
+            // Hidden until the product has loaded: a heart over a blank screen
+            // saves a product with no name and no price into the list.
+            if (!_loading && !_failed)
+              IconButton(
+                onPressed: _toggleSaved,
+                tooltip: _saved ? 'Remove from saved' : 'Save',
+                icon: Icon(
+                  _saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: _saved ? _KColors.primary : _KColors.ink,
+                ),
+              ),
+          ],
         ),
         body: _buildBody(),
         bottomNavigationBar: _loading || _failed ? null : _buildBuyBar(),
