@@ -10,7 +10,6 @@ import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
-import TrustBar from "@/components/home/TrustBar";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
@@ -810,8 +809,9 @@ export default async function Home() {
         {/* The wide orange offer slab used to sit here, between Super Deals and
             the endless grid. It carried the shop's terms — free delivery over a
             threshold, pay on delivery, the returns window — and those are worth
-            saying, so they have not been lost: TrustBar below states pay on
-            delivery and returns, and the masthead and footer both carry the
+            saying, so they have not been lost: every product page states the
+            returns window and pay-on-delivery beside the price, and the
+            masthead, the trust ribbon and the footer all carry the
             free-delivery threshold from settings. None of them needs a
             full-width advertisement in the middle of the merchandise. */}
 
@@ -825,7 +825,23 @@ export default async function Home() {
 
 
 
-        <TrustBar returnsDays={settings.commerce.returns_days} />
+        {/* ---- "Buy with confidence" is gone from here ----
+
+             Four promise cells — pay on delivery, easy returns, vetted sellers,
+             countrywide delivery — under a heading, with "How buying here
+             works" beside it.
+
+             Every one of those promises is still made, and made earlier, where
+             a shopper is actually deciding: the announcement strip carries the
+             free-delivery threshold, the trust ribbon carries the vetted-store
+             count and the threshold again, every product page states the
+             returns window and pay-on-delivery in its terms block, and the
+             footer repeats the lot. This was the fifth telling, at the foot of
+             the page, to a reader who has scrolled the whole catalogue — and
+             it sat between the merchandise and their own recently-viewed trail.
+
+             `/help` is still linked from the trust ribbon and the footer, so
+             the page it pointed at has not lost its way in. */}
 
         {/* ---- What this visitor was last looking at, at the foot ----
 

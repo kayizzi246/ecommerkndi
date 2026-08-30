@@ -143,10 +143,12 @@ export default function TrustRibbon({
          opening screen — and the masthead has since taken a permanently open
          search field, which is a better use of that height than either.
 
-         What the phone keeps: `TrustBar` at the foot of the page states all
-         four promises at length with the payment marks, the footer carries the
-         delivery threshold and the returns window, and every product page
-         carries the returns window beside the price. What the phone loses is
+         What the phone keeps: the footer carries the delivery threshold and
+         the returns window, and every product page carries the returns window
+         and pay-on-delivery beside the price. (`TrustBar` at the foot of the
+         homepage was the fullest telling of the four promises; it has been
+         removed, as the fifth statement of facts already made above it.) What
+         the phone loses is
          those facts ABOVE the fold, which was the point of the band — so if
          phone conversion moves, this is the first thing to put back.
 

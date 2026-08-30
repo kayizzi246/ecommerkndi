@@ -162,7 +162,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
         /* Matched to the department links beside it — 13.5px at 400, colour
            rather than weight for the open state. The two are one row and a
            half-pixel of disagreement between them reads as a mistake. */
-        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-normal transition-colors ${
+        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[12.5px] font-normal transition-colors ${
           open ? "text-shop-flame" : "text-shop-ink hover:text-shop-flame"
         }`}
       >

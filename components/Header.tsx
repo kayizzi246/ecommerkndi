@@ -274,7 +274,7 @@ export default function Header({
             of chrome read as three headlines. A promise bar is read once on
             arrival; it does not need to be heavy to be seen, it needs to be
             small and out of the way, which it is. */}
-        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[11.5px] md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[11px] md:px-8">
           {count > 0 && awayFromFreeDelivery > 0 ? (
             <button
               type="button"
@@ -501,7 +501,7 @@ export default function Header({
                    `max-w` cap at both steps: the file is an arbitrary upload,
                    so the height is what is being set and the width is only
                    being stopped from running away. */
-                className="h-9 w-auto max-w-[150px] object-contain md:h-12 md:max-w-[200px]"
+                className="h-8 w-auto max-w-[130px] object-contain md:h-10 md:max-w-[170px]"
               />
             </span>
           ) : (
@@ -514,7 +514,7 @@ export default function Header({
                 <svg
                   // Scaled with the uploaded-logo branch above, so a shop that
                   // has not uploaded one gets the same masthead proportions.
-                  className="h-10 w-10 md:h-12 md:w-12"
+                  className="h-9 w-9 md:h-10 md:w-10"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -579,7 +579,7 @@ export default function Header({
                   23/27px display type — the same allowance the palette note in
                   `globals.css` makes for the logo. The suffix keeps the ink it
                   has always had, at 16:1. */}
-              <span className="font-heading text-[22px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[26px]">
+              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px]">
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
@@ -684,7 +684,7 @@ export default function Header({
             className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
           >
             <span className="relative">
-              <svg className="h-[23px] w-[23px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <svg className="h-[21px] w-[21px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
                 <circle cx="9" cy="20" r="1.2" />
                 <circle cx="17.5" cy="20" r="1.2" />
@@ -701,12 +701,12 @@ export default function Header({
             {/* The running total only once there is one. An empty basket
                 reading "UGX 0" is a figure that tells the shopper nothing and
                 puts a zero in the masthead of every first visit. */}
-            <span className="hidden whitespace-nowrap text-left text-[12.5px] leading-tight lg:block">
+            <span className="hidden whitespace-nowrap text-left text-[12px] leading-tight lg:block">
               Cart
               {count > 0 && (
                 <>
                   <br />
-                  <span className="price text-[13px] text-shop-ink">
+                  <span className="price text-[12.5px] text-shop-ink">
                     {formatPrice(subtotal)}
                   </span>
                 </>
@@ -775,7 +775,7 @@ export default function Header({
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-1.5 hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[13px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame md:flex lg:hidden"
+              className="my-1.5 hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[12.5px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame md:flex lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -791,7 +791,7 @@ export default function Header({
                 costs one link at the end of a row that has room for it. */}
             <Link
               href="/sell"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[13.5px] font-medium text-shop-primary hover:text-shop-primary-dark lg:block"
+              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[12.5px] font-medium text-shop-primary hover:text-shop-primary-dark lg:block"
             >
               Sell on Kandi
             </Link>
