@@ -647,20 +647,22 @@ export default function ProductCard({
               `Skeletons.tsx` carries this ratio and radius and has to change
               with it — a placeholder at the wrong shape makes the grid visibly
               re-draw itself when the products land. */}
-          {/* ---- The box is WHITE, not #f3f4f6 ----
+          {/* ---- The page and this box are never the same colour ----
 
-              This was a cool grey, and it is the reason the last change did not
-              do what it claimed. The page was taken to pure white to stop a
-              tinted ground putting a grey rectangle behind every product — but
-              the rectangle was never the page. It was this box. On a white page
-              a #f3f4f6 square behind a photograph shot on white is MORE
-              visible, not less.
+              That is the whole rule, and it has now been got wrong in both
+              directions, so it is worth stating once rather than re-deriving:
 
-              White here, and the tint back on the page around it. The
-              photograph now dissolves into its own box and the box reads as the
-              tile, which is the arrangement every marketplace with
-              shot-on-white supplier photography arrives at. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white ring-1 ring-shop-ink/[0.04] transition-shadow duration-200 ease-out group-hover:shadow-[0_8px_22px_-8px_rgba(17,24,39,0.22)]">
+                page tinted + box white  →  the tile reads as a card
+                page white  + box tinted →  the tile reads as a card
+                both the same            →  the product floats with no edge,
+                                            and a grid of them is a field of
+                                            cut-out objects rather than a grid
+
+              The page is white, so the box carries the shape. `shop-hairline`
+              is a 4% neutral — enough to draw the tile, not enough to read as a
+              grey rectangle behind a photograph shot on white. It is what the
+              reference does on its own white page. */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-hairline ring-1 ring-shop-ink/[0.04] transition-shadow duration-200 ease-out group-hover:shadow-[0_8px_22px_-8px_rgba(17,24,39,0.22)]">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

@@ -353,7 +353,7 @@
    *
    * Phones are the exception and keep no panel at all — see `.shop-panel`.
    */
-  --color-shop-canvas: #f8f6f2;
+  --color-shop-canvas: #ffffff;
   --color-shop-panel: #ffffff;
 
 

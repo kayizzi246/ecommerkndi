@@ -178,11 +178,15 @@ export default function StoreChrome({
 
            `startsWith` rather than an exact match, because the route is
            `/products/[id]` and the id is a slug that can be anything. */}
-      <div
-        className={`flex-1 ${
-          pathname.startsWith("/products/") ? "bg-white" : "bg-shop-canvas"
-        }`}
-      >
+      {/* One ground for the whole storefront.
+
+           This used to branch: white on a product page, the canvas tint
+           everywhere else, because a white product page between a tinted
+           listing and a tinted basket read as a hole in the middle of the
+           flow. The canvas IS white now, so both arms of that conditional
+           resolve to the same colour and the branch was a decision the code
+           was still making about nothing. */}
+      <div className="flex-1 bg-shop-canvas">
         <div className="mx-auto w-full max-w-[var(--shell)]">{children}</div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's
