@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 // anything added there. Do not add the `/backend/` imports it offers.
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,7 +61,7 @@ import '/custom_code/widgets/kandi_account_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -73,6 +75,19 @@ class _KColors {
   static const Color saveSoft = Color(0xFFECFDF3);
   static const Color warn = Color(0xFFB45309);
   static const Color warnSoft = Color(0xFFFDF3E6);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
 }
 
 class _KSpace {
@@ -83,9 +98,26 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 14;
-const double _rPhoto = 10;
+const double _rPanel = 12;
+const double _rPhoto = 8;
 const double _rChip = 8;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 const String _apiBase = 'https://kandiug.com';
 
 /// The one string every page in this app agrees on. Change it here and it must
@@ -304,6 +336,10 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       decoration: const BoxDecoration(
         color: _KColors.panel,
         border: Border(top: BorderSide(color: _KColors.line)),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, -2)),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -415,15 +451,28 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       child: Scaffold(
         backgroundColor: _KColors.canvas,
         appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          iconTheme: const IconThemeData(color: _KColors.ink),
+          scrolledUnderElevation: 0,
+          // The gradient goes behind the bar rather than in `backgroundColor`,
+          // which only takes a flat colour. `flexibleSpace` fills the whole
+          // bar including the status-bar strip above it, so the ramp starts at
+          // the top of the screen and not under the clock.
+          // SizedBox.expand is load-bearing. A childless DecoratedBox has
+          // no size, and AppBar puts flexibleSpace in a Stack under loose
+          // constraints — so the gradient painted nothing at all and every
+          // sub-page had a white title on a white bar.
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+            child: SizedBox.expand(),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
             _lines.isEmpty ? 'Basket' : 'Basket ($_count)',
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: _KColors.ink),
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
           ),
         ),
         body: _buildBody(),
@@ -496,9 +545,9 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
                   // leave two on the stack.
                   onPressed: () => Navigator.of(context).maybePop(),
                   style: FilledButton.styleFrom(
-                    backgroundColor: _KColors.primary,
+                    backgroundColor: _KColors.flame,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_rChip)),
+                        borderRadius: BorderRadius.circular(_rPill)),
                   ),
                   child: const Text('Continue shopping',
                       style: TextStyle(
@@ -664,9 +713,10 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
                   children: [
                     Text(_money(line.unit),
                         style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.ink)),
+                            fontSize: 15.5,
+                            letterSpacing: -0.3,
+                            fontWeight: FontWeight.w900,
+                            color: _KColors.flame)),
                     // The old figure struck through, so a price rise is
                     // visible rather than silent. A shopper who finds out at
                     // checkout does not check out.
@@ -746,11 +796,15 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
               const Text('Subtotal',
                   style: TextStyle(fontSize: 13.5, color: _KColors.muted)),
               const Spacer(),
+              // The one figure a shopper came to this screen for, printed in
+              // the money colour at the largest size on the bar.
               Text(_money(_subtotal),
                   style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: _KColors.ink)),
+                      fontSize: 22,
+                      height: 1.1,
+                      letterSpacing: -0.5,
+                      fontWeight: FontWeight.w900,
+                      color: _KColors.flame)),
             ],
           ),
           const SizedBox(height: 2),
@@ -765,25 +819,15 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
             ],
           ),
           const SizedBox(height: _KSpace.md),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: FilledButton(
-              onPressed: blocked ? null : _checkout,
-              style: FilledButton.styleFrom(
-                backgroundColor: _KColors.primary,
-                disabledBackgroundColor: _KColors.line,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(_rChip)),
-              ),
-              child: Text(
-                blocked
-                    ? 'Remove out-of-stock items'
-                    : 'Checkout · ${_money(_subtotal)}',
-                style: const TextStyle(
-                    fontSize: 15.5, fontWeight: FontWeight.w700),
-              ),
-            ),
+          // The gradient rather than a flat fill. This is the last button
+          // between a basket and an order, and the gradient is what separates
+          // it from the dozen flat ones behind it in the flow.
+          _GradientButton(
+            label: blocked
+                ? 'Remove out-of-stock items'
+                : 'Checkout · ${_money(_subtotal)}',
+            enabled: !blocked,
+            onTap: _checkout,
           ),
         ],
       ),
@@ -800,6 +844,55 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
     // clears it there, and one who backed out may have edited it. Re-reading is
     // cheaper than assuming either way.
     if (mounted) await _load();
+  }
+}
+
+/// The primary call to action: a gradient pill, full width.
+///
+/// Not a `FilledButton`, because `FilledButton` takes a flat colour and the
+/// gradient is the point. `Material` + `InkWell` over the gradient keeps the
+/// tap ripple a plain button would have given — a big coloured slab that does
+/// not respond to a finger reads as broken while the next screen loads.
+class _GradientButton extends StatelessWidget {
+  const _GradientButton({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: enabled ? _brandGradient : null,
+        color: enabled ? null : _KColors.line,
+        borderRadius: BorderRadius.circular(_rPill),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(_rPill),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  color: enabled ? Colors.white : _KColors.muted),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -856,7 +949,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colour = active ? _KColors.primary : _KColors.muted;
+    final colour = active ? _KColors.flame : _KColors.muted;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -876,7 +969,7 @@ class _NavItem extends StatelessWidget {
                           const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       constraints: const BoxConstraints(minWidth: 16),
                       decoration: BoxDecoration(
-                        color: _KColors.primary,
+                        color: _KColors.flame,
                         borderRadius: BorderRadius.circular(8),
                         // A white ring keeps the badge legible over the icon.
                         border: Border.all(color: Colors.white, width: 1.4),

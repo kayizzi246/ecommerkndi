@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -49,7 +51,7 @@ import '/custom_code/widgets/kandi_cart_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -59,8 +61,20 @@ class _KColors {
   static const Color hairline = Color(0xFFF3F4F6);
   static const Color primary = Color(0xFFFF6A00);
   static const Color save = Color(0xFF15803D);
-  static const Color saveSoft = Color(0xFFECFDF3);
   static const Color star = Color(0xFFF59E0B);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
 }
 
 class _KSpace {
@@ -70,9 +84,26 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 14;
-const double _rPhoto = 10;
+const double _rPanel = 12;
+const double _rPhoto = 8;
 const double _rChip = 8;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 const String _apiBase = 'https://kandiug.com';
 
 // The keys every page in this app agrees on. Repeated verbatim in each file;
@@ -95,6 +126,8 @@ class _KProduct {
     this.stockQuantity,
     this.rating = 0,
     this.ratingCount = 0,
+    this.totalSales = 0,
+    this.isNew = false,
     this.hasOptions = false,
   });
 
@@ -116,6 +149,12 @@ class _KProduct {
   final int? stockQuantity;
   final num rating;
   final int ratingCount;
+
+  /// How many have sold. The one number on a tile that is about other
+  /// shoppers rather than about the shop, and the API has been sending it all
+  /// along.
+  final int totalSales;
+  final bool isNew;
   final bool hasOptions;
 
   static _KProduct? from(dynamic json) {
@@ -137,6 +176,8 @@ class _KProduct {
           json['stockQuantity'] is int ? json['stockQuantity'] as int : null,
       rating: json['rating'] is num ? json['rating'] as num : 0,
       ratingCount: json['ratingCount'] is int ? json['ratingCount'] as int : 0,
+      totalSales: json['totalSales'] is int ? json['totalSales'] as int : 0,
+      isNew: json['isNew'] == true,
       hasOptions: json['hasOptions'] == true,
     );
   }
@@ -336,19 +377,39 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
       child: Scaffold(
         backgroundColor: _KColors.canvas,
         appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          iconTheme: const IconThemeData(color: _KColors.ink),
+          scrolledUnderElevation: 0,
+          // The gradient goes behind the bar rather than in `backgroundColor`,
+          // which only takes a flat colour. `flexibleSpace` fills the whole
+          // bar including the status-bar strip above it, so the ramp starts at
+          // the top of the screen and not under the clock.
+          // SizedBox.expand is load-bearing. A childless DecoratedBox has
+          // no size, and AppBar puts flexibleSpace in a Stack under loose
+          // constraints — so the gradient painted nothing at all and every
+          // sub-page had a white title on a white bar.
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+            child: SizedBox.expand(),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: Colors.white),
           titleSpacing: 0,
           title: Container(
             height: 42,
-            margin: const EdgeInsets.only(right: _KSpace.md),
+            // A margin on BOTH sides. With titleSpacing at 0 and no leading
+            // widget the pill ran flush off the left edge of the screen; the
+            // back arrow usually fills that gap, but "usually" is not a
+            // layout.
+            margin: const EdgeInsets.fromLTRB(_KSpace.sm, 0, _KSpace.md, 0),
             padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
             decoration: BoxDecoration(
-              color: _KColors.hairline,
-              borderRadius: BorderRadius.circular(_rChip),
+              // White and fully rounded: on the gradient a grey field reads as
+              // a disabled one, and the pill is what says 'search' before the
+              // hint text has been read.
+              color: _KColors.panel,
+              borderRadius: BorderRadius.circular(_rPill),
             ),
             child: Row(
               children: [
@@ -471,7 +532,7 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: _KSpace.md,
               crossAxisSpacing: _KSpace.md,
-              childAspectRatio: 0.50,
+              childAspectRatio: 0.57,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -503,6 +564,33 @@ class _Card extends StatelessWidget {
   final _KProduct product;
   final VoidCallback onOpen;
   final VoidCallback onAdd;
+
+  /// The threshold the website uses before it calls stock low.
+  static const int _lowStockAt = 5;
+
+  bool get _lowStock =>
+      product.inStock &&
+      product.stockQuantity != null &&
+      product.stockQuantity! <= _lowStockAt;
+
+  /// The chip that rides the name line.
+  ///
+  /// One at most, in order of usefulness to a shopper who has not decided: a
+  /// deep cut, then a new listing. A chip on every card is a chip that means
+  /// nothing, which is why there is no fallback.
+  ({String label, Color background, Color foreground})? get _chip {
+    if (product.discountPercent >= 30) {
+      return (
+        label: 'Super Deal',
+        background: const Color(0xFFFFE000),
+        foreground: _KColors.ink
+      );
+    }
+    if (product.isNew) {
+      return (label: 'New', background: _KColors.save, foreground: Colors.white);
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -587,79 +675,149 @@ class _Card extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: _KSpace.sm),
-              Text(product.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+
+              // The programme chip rides the name rather than sitting on the
+              // photograph, so it costs the card no height: `WidgetSpan` puts
+              // it in the same run as the text, and the name wraps around it
+              // instead of under it.
+              RichText(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
                   style: const TextStyle(
-                      fontSize: 12.5, height: 1.35, color: _KColors.ink)),
-              const SizedBox(height: 5),
-              if (product.ratingCount > 0) ...[
-                Row(
+                      fontSize: 12.5, height: 1.35, color: _KColors.ink),
                   children: [
-                    const Icon(Icons.star_rounded, size: 13, color: _KColors.star),
-                    const SizedBox(width: 2),
-                    Text(product.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: _KColors.ink)),
+                    if (_chip != null)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: _chip!.background,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(_chip!.label,
+                                style: TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: _chip!.foreground)),
+                          ),
+                        ),
+                      ),
+                    TextSpan(text: product.name),
                   ],
                 ),
-                const SizedBox(height: 3),
-              ],
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(product.priceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.ink)),
-                  ),
-                  // The struck-through original, which the website shows beside
-                  // the price and these cards were dropping. Without it the
-                  // percentage is a claim with nothing to check it against.
-                  if (product.wasPriceLabel != null) ...[
+              ),
+              const SizedBox(height: 5),
+              // ---- The price gets its own line ----
+              //
+              // "UGX 36,000" beside a struck-through "UGX 55,000" is about
+              // 162px of text in a 154px card, so the Row's first Flexible
+              // gave way and the shop advertised "UGX 36,0…". A truncated
+              // price is worse than no price at all.
+              //
+              // The old figure moves underneath, where it cannot push the real
+              // one off the card. The green percentage goes entirely: the cut
+              // is already the yellow flag on the photograph, and saying it
+              // twice on a 154px tile spends the width that broke the price.
+              Text(product.priceLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.15,
+                      letterSpacing: -0.3,
+                      fontWeight: FontWeight.w900,
+                      color: _KColors.flame)),
+              if (product.wasPriceLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(product.wasPriceLabel!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: _KColors.faint,
+                          decoration: TextDecoration.lineThrough)),
+                ),
+
+              // ---- The scarcity line, and the bar under it ----
+              //
+              // The same fact drawn twice, on purpose: "Only 2 left" is a
+              // number a shopper weighs against nothing, and a bar two-fifths
+              // full is a quantity they read without stopping.
+              //
+              // The bar's full width is the low-stock threshold, not an
+              // invented starting stock — it begins the moment the product
+              // becomes scarce and empties from there, so it can never claim
+              // "nearly gone" about a product with plenty in the back.
+              if (_lowStock) ...[
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                          color: _KColors.primary, shape: BoxShape.circle),
+                    ),
                     const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(product.wasPriceLabel!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                    Text('Only ${product.stockQuantity} left',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _KColors.body)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: SizedBox(
+                    width: 78,
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      value: (product.stockQuantity! / _lowStockAt)
+                          .clamp(0.12, 1.0)
+                          .toDouble(),
+                      backgroundColor: _KColors.hairline,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_KColors.primary),
+                    ),
+                  ),
+                ),
+              ],
+
+              // Only drawn when there is a number to carry. A row that renders
+              // empty on most cards is a row of debris at forty different
+              // heights down the grid.
+              if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    if (product.ratingCount > 0) ...[
+                      const Icon(Icons.star_rounded,
+                          size: 12, color: _KColors.star),
+                      const SizedBox(width: 2),
+                      Text(product.rating.toStringAsFixed(1),
                           style: const TextStyle(
                               fontSize: 11,
-                              color: _KColors.faint,
-                              decoration: TextDecoration.lineThrough)),
-                    ),
+                              fontWeight: FontWeight.w700,
+                              color: _KColors.ink)),
+                      const SizedBox(width: 6),
+                    ],
+                    if (product.totalSales > 0)
+                      Flexible(
+                        child: Text('${product.totalSales} sold',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11, color: _KColors.muted)),
+                      ),
                   ],
-                  if (product.discountPercent > 0) ...[
-                    const SizedBox(width: 4),
-                    Text('${product.discountPercent}%',
-                        style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.save)),
-                  ],
-                ],
-              ),
-              if (product.savingLabel != null) ...[
-                const SizedBox(height: 5),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _KColors.saveSoft,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text('Save ${product.savingLabel}',
-                      style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.save)),
                 ),
               ],
             ],

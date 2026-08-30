@@ -231,6 +231,38 @@ number.
 
 ---
 
+## The design language
+
+Every page carries its own copy of the palette — nothing is shared, for the
+reason at the top of this file — so these values have to be kept in step by
+hand. If you change one, change all thirteen.
+
+| Token | Value | What it is for |
+| --- | --- | --- |
+| `canvas` | `#F5F5F5` | The page ground. Neutral, not the blue-cast grey it was: the chrome is warm now and a cool ground fights it. |
+| `panel` | `#FFFFFF` | Cards, bars, sheets. |
+| `primary` | `#FF6A00` | Brand orange. The **top** of every gradient, and small graphics — the scarcity dot, a spinner, a focus ring. Never a large flat ground with white text on it: it is 2.9:1 and fails AA at every size. |
+| `flame` | `#D62200` | The money colour. Every price, every filled button, the active tab, every text link. White on it is 5.1:1 and it is 5.1:1 on white, so the one value works as a ground **and** as text. |
+| `flameSoft` | `#FFF1ED` | The tint behind a selected chip, and the product page's price band. |
+| `save` / `saveSoft` | `#15803D` / `#ECFDF3` | A saving, a guarantee — money coming back. |
+| `express` | `#FFE000` | The discount flag and the delivery badge. Black on it is 11:1, the most legible pairing in the palette at 9px. |
+| `_brandGradient` | `#FF6A00 → #D62200` | Left to right. Carries every app bar, the home band, and the primary buttons. |
+| `_rPanel` / `_rPhoto` | `12` / `8` | Card and photograph corners. |
+| `_rPill` | `999` | Every button and every filter chip. The pill is what separates a control from the panels it sits on. |
+
+Two rules that are easy to break:
+
+- **An app bar's gradient goes in `flexibleSpace`,** not `backgroundColor`,
+  which only takes a flat colour — and it needs a `SizedBox.expand` child. A
+  childless `DecoratedBox` has no size, and `AppBar` lays `flexibleSpace` out
+  under loose constraints, so it paints nothing at all.
+- **A tile is 300px tall** on a 390-wide phone (`childAspectRatio: 0.57`, rails
+  `height: 302`). That is the fullest card added up row by row, not a guess.
+  Add a row to the card and this has to move with it, or the bottom one is
+  clipped.
+
+---
+
 ## Verified
 
 All thirteen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
@@ -240,5 +272,14 @@ throwaway package with the FlutterFlow-only imports stubbed out:
 flutter analyze  →  No issues found!
 ```
 
-That catches syntax, types and dead code — not layout. How they look on a real
-device is still worth a pass in the builder.
+The layout was checked too, which `analyze` cannot do: the same thirteen files
+were built for the web against the live `kandiug.com` feed and photographed at
+390x844. That pass is what found the app-bar gradient painting nothing, the
+price ellipsising to "UGX 36,0…" on every tile, a hundred pixels of empty white
+under every card, and a department row running at about 2.3:1 on the gradient.
+None of those were visible in the source.
+
+Two things about the web harness that are **not** true on a phone: product
+photographs need a CORS header the image endpoint does not send, and the status
+bar has no height, so the app bars sit tighter there than they will on a
+device.

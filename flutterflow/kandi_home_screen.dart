@@ -17,6 +17,8 @@ import 'package:flutter/material.dart';
 // neither file.
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +31,7 @@ import '/custom_code/widgets/kandi_search_screen.dart';
 import '/custom_code/widgets/kandi_shop_screen.dart';
 import '/custom_code/widgets/kandi_wishlist_screen.dart';
 import '/custom_code/widgets/kandi_account_screen.dart';
+import '/custom_code/widgets/kandi_orders_screen.dart';
 
 // ============================================================
 //  KANDI — HOME PAGE
@@ -98,12 +101,8 @@ class _KColors {
   const _KColors._();
 
   /// The page ground.
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
-
-  /// The patterned band behind the search bar and the shortcut pills.
-  static const Color headerTop = Color(0xFFD9EEFB);
-  static const Color headerBottom = Color(0xFFEAF6FD);
 
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -143,6 +142,19 @@ class _KColors {
   static const Color railGreen = Color(0xFF0B7A43);
   static const Color railAmber = Color(0xFFB45309);
   static const Color railTeal = Color(0xFF0F6E6A);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
 }
 
 class _KSpace {
@@ -154,9 +166,26 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 14;
-const double _rPhoto = 10;
+const double _rPanel = 12;
+const double _rPhoto = 8;
 const double _rChip = 8;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 
 const String _apiBase = 'https://kandiug.com';
 
@@ -780,7 +809,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
               const SizedBox(height: _KSpace.lg),
               FilledButton(
                 onPressed: _load,
-                style: FilledButton.styleFrom(backgroundColor: _KColors.primary),
+                style: FilledButton.styleFrom(backgroundColor: _KColors.flame),
                 child: const Text('Try again'),
               ),
             ],
@@ -825,11 +854,21 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                       _KSpace.md, _KSpace.xl, _KSpace.md, _KSpace.md),
                   child: Row(
                     children: [
+                      Container(
+                        width: 3.5,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: _KColors.flame,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
                       const Expanded(
                         child: Text('Picked for you',
                             style: TextStyle(
                                 fontSize: 17,
-                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                                fontWeight: FontWeight.w900,
                                 color: _KColors.ink)),
                       ),
                       // The endless grid IS the catalogue, so this opens
@@ -847,11 +886,11 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: _KSpace.md,
                     crossAxisSpacing: _KSpace.md,
-                    // A square photograph plus the card's text rows. A ratio
-                    // that fits only the picture clips the price off.
-                    // Narrower ratio for the same reason the rail grew: the card is
-                  // two rows taller than it was.
-                  childAspectRatio: 0.46,
+                    // A square photograph plus the card's text rows, added
+                    // up rather than guessed: at 390 wide a tile is 171px, and
+                    // 171 / 0.50 is the 342 the fullest card needs. The old
+                    // 0.46 left about 90px of empty white under most of them.
+                    childAspectRatio: 0.57,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -877,57 +916,108 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
     );
   }
 
-  /// The patterned band: shortcut pills, then the search bar.
+  /// The brand band: search, then the departments.
   ///
-  /// Modelled on the reference the shop gave. The band is a soft gradient
-  /// rather than an illustration — artwork behind a search field costs a
-  /// download on the one screen that must paint fastest, and the colour alone
-  /// does the same job of separating the chrome from the merchandise.
+  /// ---- Search moved to the top ----
+  ///
+  /// It used to sit under the department pills. Search is the highest-intent
+  /// control on the page — a shopper who knows the word for what they want is
+  /// worth more than one browsing — and it now takes the first line under the
+  /// status bar, where the thumb reaches it without a scroll.
+  ///
+  /// ---- The band is the gradient, and it runs under the status bar ----
+  ///
+  /// `SafeArea` is INSIDE the container, not around it, so the colour paints
+  /// the notch strip and the content sits below it. The other way round leaves
+  /// a white bar above the gradient on every phone with a cutout.
+  ///
+  /// Still a gradient rather than artwork: an illustration behind a search
+  /// field costs a download on the one screen that has to paint fastest.
   Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildBrandBand(),
+        if (_departments.isNotEmpty) _buildDepartmentStrip(),
+      ],
+    );
+  }
+
+  Widget _buildBrandBand() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [_KColors.headerTop, _KColors.headerBottom],
-        ),
-      ),
+      decoration: const BoxDecoration(gradient: _brandGradient),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, _KSpace.sm, 0, _KSpace.lg),
+          padding: const EdgeInsets.fromLTRB(0, _KSpace.sm, 0, _KSpace.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // The brand, then the departments as pills. The reference runs
-              // its own sub-brands here; this shop has departments, which is
-              // the equivalent thing — the fastest route for a shopper who
-              // arrived knowing what they want.
-              SizedBox(
-                height: 42,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+                child: Row(
                   children: [
-                    _BrandPill(label: _brand, filled: true, onTap: _load),
-                    for (final department in _departments)
-                      Padding(
-                        padding: const EdgeInsets.only(left: _KSpace.sm),
-                        child: _BrandPill(
-                          label: department.name,
-                          onTap: () => _openCategory(department),
-                        ),
-                      ),
+                    // The shop's name, set in the header rather than on a pill
+                    // of its own. As a pill it was a button that reloaded the
+                    // page — a control nobody was looking for, in the spot
+                    // where a shop's name belongs.
+                    Text(_brand,
+                        style: const TextStyle(
+                            fontSize: 20,
+                            height: 1.1,
+                            letterSpacing: -0.4,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white)),
+                    const Spacer(),
+                    _HeaderIcon(
+                        icon: Icons.favorite_border_rounded,
+                        tooltip: 'Saved',
+                        onTap: () => _push(const KandiWishlistScreen())),
+                    const SizedBox(width: 2),
+                    _HeaderIcon(
+                        icon: Icons.receipt_long_rounded,
+                        tooltip: 'My orders',
+                        onTap: () => _push(const KandiOrdersScreen())),
                   ],
                 ),
               ),
-              const SizedBox(height: _KSpace.md),
+              const SizedBox(height: _KSpace.sm),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
                 child: _SearchBar(onTap: _openSearch),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// The departments, on white, directly under the band.
+  ///
+  /// The fastest route for a shopper who arrived knowing what they want, and —
+  /// with the website's category grid gone — the only map of the catalogue a
+  /// phone ever shows. Which is exactly why it cannot live on the gradient:
+  /// white text on a translucent pill over orange measured about 2.3:1.
+  Widget _buildDepartmentStrip() {
+    return Container(
+      color: _KColors.panel,
+      padding: const EdgeInsets.symmetric(vertical: _KSpace.sm),
+      child: SizedBox(
+        height: 32,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+          children: [
+            for (final department in _departments)
+              Padding(
+                padding: const EdgeInsets.only(right: _KSpace.sm),
+                child: _BrandPill(
+                  label: department.name,
+                  onTap: () => _openCategory(department),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -945,6 +1035,10 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
       decoration: const BoxDecoration(
         color: _KColors.panel,
         border: Border(top: BorderSide(color: _KColors.line)),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, -2)),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -993,11 +1087,10 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
 // ------------------------------------------------------------
 
 class _BrandPill extends StatelessWidget {
-  const _BrandPill({required this.label, required this.onTap, this.filled = false});
+  const _BrandPill({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
-  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -1005,17 +1098,49 @@ class _BrandPill extends StatelessWidget {
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          // The shop's own pill is filled, the rest are white — the reference's
-          // arrangement, and it says which of the row you are currently in.
-          color: filled ? _KColors.express : _KColors.panel,
-          borderRadius: BorderRadius.circular(_rChip),
+          // A grey pill with dark text. On the gradient this was a translucent
+          // white pill with white text on it, which measured about 2.3:1 —
+          // the least legible thing on the page, and the only map of the
+          // catalogue a phone has left. On white it runs at 12:1.
+          color: _KColors.hairline,
+          borderRadius: BorderRadius.circular(_rPill),
         ),
         child: Text(
           label,
           style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w800, color: _KColors.ink),
+              fontSize: 13, fontWeight: FontWeight.w700, color: _KColors.ink),
+        ),
+      ),
+    );
+  }
+}
+
+/// A white icon on the brand band.
+///
+/// Its 40px box is the hit area, not the 22px glyph — an icon sized for a
+/// header is well under what a thumb can land on, and the padding is what
+/// closes that gap without drawing anything.
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon(
+      {required this.icon, required this.tooltip, required this.onTap});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(icon, size: 22, color: Colors.white),
         ),
       ),
     );
@@ -1037,21 +1162,39 @@ class _SearchBar extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
+        height: 44,
+        padding: const EdgeInsets.fromLTRB(_KSpace.md, 0, 4, 0),
         decoration: BoxDecoration(
           color: _KColors.panel,
-          borderRadius: BorderRadius.circular(_rChip),
+          borderRadius: BorderRadius.circular(_rPill),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.search_rounded, size: 22, color: _KColors.ink),
-            SizedBox(width: _KSpace.sm),
-            Expanded(
+            const Icon(Icons.search_rounded, size: 20, color: _KColors.muted),
+            const SizedBox(width: _KSpace.sm),
+            const Expanded(
               child: Text('Search for shoes, phones, home…',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14.5, color: _KColors.muted)),
+                  style: TextStyle(fontSize: 14, color: _KColors.muted)),
+            ),
+            // A filled button inside the field. It does the same thing as
+            // tapping the field, and it is here because a white pill on a
+            // white-flecked gradient can read as decoration — the coloured
+            // button is what makes it unmistakably a control.
+            Container(
+              width: 62,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: _brandGradient,
+                borderRadius: BorderRadius.circular(_rPill),
+              ),
+              child: const Text('Search',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
             ),
           ],
         ),
@@ -1077,7 +1220,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colour = active ? _KColors.primary : _KColors.muted;
+    final colour = active ? _KColors.flame : _KColors.muted;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -1097,7 +1240,7 @@ class _NavItem extends StatelessWidget {
                           const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       constraints: const BoxConstraints(minWidth: 16),
                       decoration: BoxDecoration(
-                        color: _KColors.primary,
+                        color: _KColors.flame,
                         borderRadius: BorderRadius.circular(8),
                         // A white ring keeps the badge legible over the icon.
                         border: Border.all(color: Colors.white, width: 1.4),
@@ -1190,7 +1333,7 @@ class _ViewAll extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colour = onAccent ? Colors.white : const Color(0xFF1A73E8);
+    final colour = onAccent ? Colors.white : _KColors.flame;
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -1264,14 +1407,43 @@ class _RailSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(rail.title,
-                          style: TextStyle(
-                              fontSize: 17,
-                              height: 1.25,
-                              fontWeight: FontWeight.w800,
-                              // White on the coloured grounds, which is why
-                              // every one of them clears 5:1 against white.
-                              color: onAccent ? Colors.white : _KColors.ink)),
+                      Row(
+                        children: [
+                          // A short bar in the money colour, on the plain
+                          // shelves only. The coloured ones already announce
+                          // themselves with the whole slab; on white, twelve
+                          // headings set in the same weight run together, and
+                          // the bar is what gives a scrolling eye somewhere to
+                          // catch.
+                          if (!onAccent) ...[
+                            Container(
+                              width: 3.5,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: _KColors.flame,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                          ],
+                          Flexible(
+                            child: Text(rail.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    height: 1.25,
+                                    letterSpacing: -0.2,
+                                    fontWeight: FontWeight.w900,
+                                    // White on the coloured grounds, which is
+                                    // why every one of them clears 5:1
+                                    // against white.
+                                    color: onAccent
+                                        ? Colors.white
+                                        : _KColors.ink)),
+                          ),
+                        ],
+                      ),
                       if (rail.subtitle != null && rail.subtitle!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
@@ -1298,7 +1470,7 @@ class _RailSection extends StatelessWidget {
           // Taller than it was: the card gained the scarcity line and its bar,
           // and a horizontal list has no height of its own to measure — an
           // under-sized box clips the bottom row rather than scrolling it.
-          height: 384,
+          height: 302,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
@@ -1447,21 +1619,29 @@ class _Card extends StatelessWidget {
                     ),
                     // Top LEFT: the heart, where the badge used to be.
                     Positioned(
-                      top: 0,
-                      left: 0,
+                      top: 4,
+                      left: 4,
                       child: GestureDetector(
                         onTap: onSave,
-                        // A generous invisible hit area: the heart itself is
-                        // 19px, well under the 44px a thumb needs.
                         behavior: HitTestBehavior.opaque,
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          // The same white disc the basket button gets. Drawn
+                          // straight on the photograph the outline vanished
+                          // against anything dark, and a control that is only
+                          // sometimes visible is not a control.
+                          decoration: BoxDecoration(
+                            color: const Color(0xF2FFFFFF),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: _KColors.line),
+                          ),
                           child: Icon(
                             saved
                                 ? Icons.favorite_rounded
                                 : Icons.favorite_border_rounded,
-                            size: 19,
-                            color: saved ? _KColors.primary : _KColors.muted,
+                            size: 17,
+                            color: saved ? _KColors.flame : _KColors.body,
                           ),
                         ),
                       ),
@@ -1503,6 +1683,28 @@ class _Card extends StatelessWidget {
                                   height: 1,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white)),
+                        ),
+                      ),
+                    // Bottom LEFT: the delivery badge, on the one corner of
+                    // the photograph nothing else uses.
+                    if (_freeDelivery)
+                      Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _KColors.express,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('FREE DELIVERY',
+                              style: TextStyle(
+                                  fontSize: 8.5,
+                                  height: 1.2,
+                                  letterSpacing: 0.3,
+                                  fontWeight: FontWeight.w800,
+                                  color: _KColors.ink)),
                         ),
                       ),
                     if (product.inStock)
@@ -1564,50 +1766,38 @@ class _Card extends StatelessWidget {
               // Save, then price, then scarcity, then the crowd — the site's
               // order, which runs from what the shop did about the price to
               // what other people did about the product.
-              if (product.savingLabel != null) ...[
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _KColors.saveSoft,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text('Save ${product.savingLabel}',
+              // The price on its own line, at full width, so nothing can
+              // squeeze it. Beside it, the old figure and the saving SHARE a
+              // line — they are one statement, and telling it across two rows
+              // in two colours was costing 25px on every card in the shop.
+              Text(product.priceLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.15,
+                      letterSpacing: -0.3,
+                      fontWeight: FontWeight.w900,
+                      color: _KColors.flame)),
+              // Just the old figure. "UGX 55,000  Save UGX 19,000" measured
+              // about 170px in a 154px card and ellipsised to
+              // "Save UGX 19,…" — a price with its last digits cut off, which
+              // is worse than not printing it. It was the third telling of one
+              // discount in any case: the yellow flag carries the percentage
+              // and the struck figure carries the arithmetic. The product page
+              // still says it in full, where there is room and where a shopper
+              // is deciding.
+              if (product.wasPriceLabel != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(product.wasPriceLabel!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.save)),
+                          fontSize: 11,
+                          color: _KColors.faint,
+                          decoration: TextDecoration.lineThrough)),
                 ),
-                const SizedBox(height: 4),
-              ],
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(product.priceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.ink)),
-                  ),
-                  if (product.wasPriceLabel != null) ...[
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(product.wasPriceLabel!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: _KColors.faint,
-                              decoration: TextDecoration.lineThrough)),
-                    ),
-                  ],
-                ],
-              ),
 
               // ---- The scarcity line, and the bar under it ----
               //
@@ -1686,24 +1876,6 @@ class _Card extends StatelessWidget {
                 ),
               ],
 
-              if (_freeDelivery) ...[
-                const SizedBox(height: 5),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _KColors.express,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text('FREE DELIVERY',
-                      style: TextStyle(
-                          fontSize: 8.5,
-                          height: 1.2,
-                          letterSpacing: 0.3,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.ink)),
-                ),
-              ],
             ],
           ),
         ),

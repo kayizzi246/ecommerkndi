@@ -11,12 +11,15 @@ import 'package:flutter/material.dart';
 // anything added there. Do not add the `/backend/` imports it offers.
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Navigation only. No design, model or helper is shared between pages.
 import '/custom_code/widgets/kandi_cart_screen.dart';
+import '/custom_code/widgets/kandi_checkout_screen.dart';
 
 // ============================================================
 //  KANDI — PRODUCT PAGE
@@ -50,7 +53,7 @@ import '/custom_code/widgets/kandi_cart_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -62,8 +65,21 @@ class _KColors {
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
   static const Color saveSoft = Color(0xFFECFDF3);
-  static const Color dealFlag = Color(0xFFFACC15);
   static const Color star = Color(0xFFF59E0B);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
+  static const Color flameSoft = Color(0xFFFFF1ED);
 }
 
 class _KSpace {
@@ -75,6 +91,23 @@ class _KSpace {
 }
 
 const double _rChip = 8;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 const String _apiBase = 'https://kandiug.com';
 
 // The keys every page in this app agrees on. Repeated verbatim in each file;
@@ -396,7 +429,13 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       .map((attribute) => attribute.name)
       .toList();
 
-  Future<void> _add() async {
+  /// Puts the product in the basket.
+  ///
+  /// `thenCheckout` is the "Buy now" path. It is the SAME write — the basket
+  /// is the only thing checkout reads — followed by a push, rather than a
+  /// second express route through the shop. One code path means a shopper
+  /// cannot end up with an order that the basket does not agree with.
+  Future<void> _add({bool thenCheckout = false}) async {
     if (!_inStock || _adding) return;
 
     // Naming what is missing rather than just disabling the button: a greyed
@@ -461,6 +500,17 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
 
     if (!mounted) return;
     setState(() => _adding = false);
+
+    if (thenCheckout) {
+      // No snackbar on this path: the next screen IS the confirmation, and a
+      // toast that arrives on top of it is a message about a screen the
+      // shopper has already left.
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const KandiCheckoutScreen()),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Added to basket'),
@@ -484,16 +534,29 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       child: Scaffold(
         backgroundColor: _KColors.canvas,
         appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          iconTheme: const IconThemeData(color: _KColors.ink),
+          scrolledUnderElevation: 0,
+          // The gradient goes behind the bar rather than in `backgroundColor`,
+          // which only takes a flat colour. `flexibleSpace` fills the whole
+          // bar including the status-bar strip above it, so the ramp starts at
+          // the top of the screen and not under the clock.
+          // SizedBox.expand is load-bearing. A childless DecoratedBox has
+          // no size, and AppBar puts flexibleSpace in a Stack under loose
+          // constraints — so the gradient painted nothing at all and every
+          // sub-page had a white title on a white bar.
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+            child: SizedBox.expand(),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: const Text('Product',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: _KColors.ink)),
+                  color: Colors.white)),
           actions: [
             // Hidden until the product has loaded: a heart over a blank screen
             // saves a product with no name and no price into the list.
@@ -501,9 +564,12 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
               IconButton(
                 onPressed: _toggleSaved,
                 tooltip: _saved ? 'Remove from saved' : 'Save',
+                // White either way, filled or outlined. The orange it used to
+                // turn when saved was picked against a white bar; on the
+                // gradient it is orange on orange and the state disappears.
                 icon: Icon(
                   _saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  color: _saved ? _KColors.primary : _KColors.ink,
+                  color: Colors.white,
                 ),
               ),
           ],
@@ -556,7 +622,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                 FilledButton(
                   onPressed: _load,
                   style: FilledButton.styleFrom(
-                      backgroundColor: _KColors.primary),
+                      backgroundColor: _KColors.flame),
                   child: const Text('Try again'),
                 ),
               ],
@@ -570,35 +636,47 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       padding: EdgeInsets.zero,
       children: [
         _buildGallery(),
+        // ---- The price band ----
+        //
+        // The price now leads the page and the name follows it, which is the
+        // reverse of what was here. A shopper who has scrolled to a product
+        // already knows roughly what it is — the picture told them — and the
+        // one fact they came for is what it costs. Reading the name first and
+        // hunting for the figure underneath is a step this page was charging
+        // for nothing.
+        //
+        // Set on a tinted ground so the band is legible as a block before any
+        // of it is read, and printed in the money colour at 30px, which is the
+        // largest type anywhere in the app.
         Container(
-          color: _KColors.panel,
-          padding: const EdgeInsets.all(_KSpace.lg),
+          width: double.infinity,
+          color: _KColors.flameSoft,
+          padding: const EdgeInsets.fromLTRB(
+              _KSpace.lg, _KSpace.lg, _KSpace.lg, _KSpace.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_name,
-                  style: const TextStyle(
-                      fontSize: 17,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                      color: _KColors.ink)),
-              const SizedBox(height: _KSpace.md),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(_priceLabel,
-                      style: const TextStyle(
-                          fontSize: 24,
-                          height: 1.1,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.ink)),
+                  Flexible(
+                    child: Text(_priceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 30,
+                            height: 1.05,
+                            letterSpacing: -0.6,
+                            fontWeight: FontWeight.w900,
+                            color: _KColors.flame)),
+                  ),
                   if (_wasPriceLabel != null) ...[
                     const SizedBox(width: _KSpace.sm),
                     Text(_wasPriceLabel!,
                         style: const TextStyle(
                             fontSize: 14,
-                            color: _KColors.faint,
+                            color: _KColors.muted,
                             decoration: TextDecoration.lineThrough)),
                   ],
                   if (_discountPercent > 0) ...[
@@ -607,7 +685,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _KColors.dealFlag,
+                        color: _KColors.flame,
                         borderRadius: BorderRadius.circular(_rChip),
                       ),
                       child: Text('-$_discountPercent%',
@@ -615,7 +693,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                               fontSize: 12,
                               height: 1,
                               fontWeight: FontWeight.w800,
-                              color: _KColors.ink)),
+                              color: Colors.white)),
                     ),
                   ],
                 ],
@@ -636,6 +714,21 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                           color: _KColors.save)),
                 ),
               ],
+            ],
+          ),
+        ),
+        Container(
+          color: _KColors.panel,
+          padding: const EdgeInsets.all(_KSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_name,
+                  style: const TextStyle(
+                      fontSize: 17,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                      color: _KColors.ink)),
               if (_ratingCount > 0) ...[
                 const SizedBox(height: _KSpace.md),
                 Row(
@@ -964,49 +1057,111 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
         color: _KColors.panel,
         border: Border(top: BorderSide(color: _KColors.line)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          // Named above the buttons rather than beside them. A greyed button
+          // with no explanation is the most common way a shopper gives up on a
+          // product page, and with two buttons there is no longer a column
+          // free to put the reason in.
+          if (_missing.isNotEmpty && !blocked) ...[
+            Row(
               children: [
-                Text(_priceLabel,
-                    style: const TextStyle(
-                        fontSize: 18,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                        color: _KColors.ink)),
-                if (_missing.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text('Choose ${_missing.join(' and ')}',
-                        style: const TextStyle(
-                            fontSize: 11.5, color: _KColors.muted)),
-                  ),
+                const Icon(Icons.info_outline_rounded,
+                    size: 15, color: _KColors.flame),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text('Choose ${_missing.join(' and ')} first',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _KColors.flame)),
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: _KSpace.md),
-          SizedBox(
-            height: 48,
-            width: 170,
-            child: FilledButton(
-              onPressed: blocked || _adding ? null : _add,
-              style: FilledButton.styleFrom(
-                backgroundColor: _KColors.primary,
-                disabledBackgroundColor: _KColors.line,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(_rChip)),
+            const SizedBox(height: _KSpace.sm),
+          ],
+          Row(
+            children: [
+              // ---- Basket, then buy ----
+              //
+              // Two calls to action, in the order a shopper reads: the
+              // cautious one on the left, the committing one on the right,
+              // under the thumb. They are not the same weight — "Buy now"
+              // carries the gradient and "Add to basket" carries an outline in
+              // the same colour — because two identical buttons side by side
+              // is a choice a shopper has to stop and make, and stopping is
+              // the thing this bar exists to prevent.
+              _BasketOrBuy(
+                label: blocked ? 'Out of stock' : 'Add to basket',
+                filled: false,
+                enabled: !blocked && !_adding,
+                onTap: _add,
               ),
-              child: Text(
-                blocked ? 'Out of stock' : 'Add to basket',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
+              if (!blocked) ...[
+                const SizedBox(width: _KSpace.sm),
+                _BasketOrBuy(
+                  label: 'Buy now',
+                  filled: true,
+                  enabled: !_adding,
+                  onTap: () => _add(thenCheckout: true),
+                ),
+              ],
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One of the two buttons on the buy bar.
+///
+/// A pill, not a rounded rectangle — the pill is what separates a call to
+/// action from the panels and chips everywhere else in the app.
+class _BasketOrBuy extends StatelessWidget {
+  const _BasketOrBuy({
+    required this.label,
+    required this.filled,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool filled;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: Container(
+            height: 46,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: filled ? _brandGradient : null,
+              color: filled ? null : _KColors.panel,
+              borderRadius: BorderRadius.circular(_rPill),
+              border: filled
+                  ? null
+                  : Border.all(color: _KColors.flame, width: 1.4),
+            ),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                  color: filled ? Colors.white : _KColors.flame),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1034,10 +1189,10 @@ class _OptionChip extends StatelessWidget {
           // Selected is a filled tint with a brand border, not a colour swap on
           // the text alone: at a glance a shopper has to see WHICH size is
           // chosen, and a one-shade text difference does not carry that.
-          color: selected ? _KColors.primarySoft : _KColors.panel,
+          color: selected ? _KColors.flameSoft : _KColors.panel,
           borderRadius: BorderRadius.circular(_rChip),
           border: Border.all(
-            color: selected ? _KColors.primary : _KColors.line,
+            color: selected ? _KColors.flame : _KColors.line,
             width: selected ? 1.6 : 1.2,
           ),
         ),

@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 // anything added there. Do not add the `/backend/` imports it offers.
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,7 +47,7 @@ import '/custom_code/widgets/kandi_account_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -54,6 +56,19 @@ class _KColors {
   static const Color hairline = Color(0xFFF3F4F6);
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
 }
 
 class _KSpace {
@@ -64,9 +79,26 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 14;
-const double _rPhoto = 10;
+const double _rPanel = 12;
+const double _rPhoto = 8;
 const double _rChip = 8;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 
 // The keys every page in this app agrees on.
 const String _basketKey = 'kandi-cart-v1';
@@ -128,7 +160,36 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
   void initState() {
     super.initState();
     _load();
+    _countBasket();
   }
+
+  /// How many items are in the basket, for the badge on the tab bar.
+  ///
+  /// Read from the shared basket rather than passed in — like everything else
+  /// in this app, the page finds out by looking, not by being told.
+  int _cartCount = 0;
+
+  Future<void> _countBasket() async {
+    int count = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_basketKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final entry in decoded) {
+            if (entry is! Map) continue;
+            final quantity = entry['quantity'];
+            count += quantity is int ? quantity : 1;
+          }
+        }
+      }
+    } catch (_) {
+      count = 0;
+    }
+    if (mounted) setState(() => _cartCount = count);
+  }
+
 
   Future<void> _load() async {
     final items = <_KSaved>[];
@@ -201,6 +262,10 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
     if (target == null || !mounted) return;
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => target));
+    // The basket can come back changed — the shopper may have added to it or
+    // emptied it on the screen they just left. Re-counting is cheaper than
+    // showing a stale number on the tab bar.
+    if (mounted) await _countBasket();
   }
 
   Widget _buildBottomNav() {
@@ -208,6 +273,10 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
       decoration: const BoxDecoration(
         color: _KColors.panel,
         border: Border(top: BorderSide(color: _KColors.line)),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, -2)),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -237,7 +306,7 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
                 icon: Icons.shopping_cart_outlined,
                 label: 'Basket',
                 active: 2 == 3,
-                badge: 0,
+                badge: _cartCount,
                 onTap: 2 == 3 ? null : () => _tab(const KandiCartScreen()),
               ),
               _NavItem(
@@ -322,15 +391,28 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
       child: Scaffold(
         backgroundColor: _KColors.canvas,
         appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          iconTheme: const IconThemeData(color: _KColors.ink),
+          scrolledUnderElevation: 0,
+          // The gradient goes behind the bar rather than in `backgroundColor`,
+          // which only takes a flat colour. `flexibleSpace` fills the whole
+          // bar including the status-bar strip above it, so the ramp starts at
+          // the top of the screen and not under the clock.
+          // SizedBox.expand is load-bearing. A childless DecoratedBox has
+          // no size, and AppBar puts flexibleSpace in a Stack under loose
+          // constraints — so the gradient painted nothing at all and every
+          // sub-page had a white title on a white bar.
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+            child: SizedBox.expand(),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
             _items.isEmpty ? 'Saved' : 'Saved (${_items.length})',
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: _KColors.ink),
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
           ),
         ),
         body: _buildBody(),
@@ -383,9 +465,9 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
                   // stack.
                   onPressed: () => Navigator.of(context).maybePop(),
                   style: FilledButton.styleFrom(
-                    backgroundColor: _KColors.primary,
+                    backgroundColor: _KColors.flame,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_rChip)),
+                        borderRadius: BorderRadius.circular(_rPill)),
                   ),
                   child: const Text('Start shopping',
                       style: TextStyle(
@@ -447,9 +529,10 @@ class _KandiWishlistScreenState extends State<KandiWishlistScreen> {
                       const SizedBox(height: 5),
                       Text(item.priceLabel,
                           style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: _KColors.ink)),
+                              fontSize: 15.5,
+                              letterSpacing: -0.3,
+                              fontWeight: FontWeight.w900,
+                              color: _KColors.flame)),
                     ],
                   ),
                 ),
@@ -521,7 +604,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colour = active ? _KColors.primary : _KColors.muted;
+    final colour = active ? _KColors.flame : _KColors.muted;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -541,7 +624,7 @@ class _NavItem extends StatelessWidget {
                           const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       constraints: const BoxConstraints(minWidth: 16),
                       decoration: BoxDecoration(
-                        color: _KColors.primary,
+                        color: _KColors.flame,
                         borderRadius: BorderRadius.circular(8),
                         // A white ring keeps the badge legible over the icon.
                         border: Border.all(color: Colors.white, width: 1.4),

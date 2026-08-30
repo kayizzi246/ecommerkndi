@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 // anything added there. Do not add the `/backend/` imports it offers.
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,7 +43,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF2F4F7);
+  static const Color canvas = Color(0xFFF5F5F5);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -56,6 +58,20 @@ class _KColors {
   static const Color warnSoft = Color(0xFFFDF3E6);
   static const Color info = Color(0xFF1A56C4);
   static const Color infoSoft = Color(0xFFEAF1FD);
+
+  /// ---- The money colour ----
+  ///
+  /// Every price on the page is printed in it. A price set in the same ink as
+  /// the product name is a price a scanning eye has to hunt for, and on a grid
+  /// of forty tiles that hunt is the whole difference between browsing and
+  /// giving up.
+  ///
+  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
+  /// value works as a ground under white button text AND as text on white at
+  /// the 11px a card's price line runs at. The brighter reds do one or the
+  /// other, never both.
+  static const Color flame = Color(0xFFD62200);
+  static const Color flameSoft = Color(0xFFFFF1ED);
 }
 
 class _KSpace {
@@ -66,8 +82,24 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 14;
-const double _rChip = 8;
+const double _rPanel = 12;
+
+/// The brand gradient: Kandi orange running into the deep red.
+///
+/// It carries the chrome — app bars, the home band, the primary buttons — so
+/// that every screen is recognisably one shop. Horizontal rather than vertical
+/// because an app bar is a wide, short box: a vertical ramp across 56px reads
+/// as a flat muddy colour, where a horizontal one across the whole width
+/// actually travels.
+const LinearGradient _brandGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+);
+
+/// Fully rounded. The primary calls to action are pills, which is what tells
+/// them apart from the square panels they sit on.
+const double _rPill = 999;
 const String _apiBase = 'https://kandiug.com';
 const String _sellerAuthKey = 'kandi-seller-auth-v1';
 
@@ -245,16 +277,29 @@ class _KandiSellerPayoutsScreenState extends State<KandiSellerPayoutsScreen> {
       child: Scaffold(
         backgroundColor: _KColors.canvas,
         appBar: AppBar(
-          backgroundColor: _KColors.panel,
-          surfaceTintColor: _KColors.panel,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0.5,
-          iconTheme: const IconThemeData(color: _KColors.ink),
+          scrolledUnderElevation: 0,
+          // The gradient goes behind the bar rather than in `backgroundColor`,
+          // which only takes a flat colour. `flexibleSpace` fills the whole
+          // bar including the status-bar strip above it, so the ramp starts at
+          // the top of the screen and not under the clock.
+          // SizedBox.expand is load-bearing. A childless DecoratedBox has
+          // no size, and AppBar puts flexibleSpace in a Stack under loose
+          // constraints — so the gradient painted nothing at all and every
+          // sub-page had a white title on a white bar.
+          flexibleSpace: const DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+            child: SizedBox.expand(),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: const Text('Commissions',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: _KColors.ink)),
+                  color: Colors.white)),
         ),
         body: _buildBody(),
       ),
@@ -313,12 +358,13 @@ class _KandiSellerPayoutsScreenState extends State<KandiSellerPayoutsScreen> {
                           horizontal: _KSpace.md, vertical: _KSpace.sm),
                       decoration: BoxDecoration(
                         color: _range == option.key
-                            ? _KColors.primarySoft
+                            ? _KColors.flameSoft
                             : _KColors.panel,
-                        borderRadius: BorderRadius.circular(_rChip),
+                        // A pill, like every other filter in the app.
+                        borderRadius: BorderRadius.circular(_rPill),
                         border: Border.all(
                             color: _range == option.key
-                                ? _KColors.primary
+                                ? _KColors.flame
                                 : _KColors.line,
                             width: _range == option.key ? 1.5 : 1),
                       ),
@@ -537,9 +583,9 @@ class _KandiSellerPayoutsScreenState extends State<KandiSellerPayoutsScreen> {
               child: FilledButton(
                 onPressed: onAction,
                 style: FilledButton.styleFrom(
-                  backgroundColor: _KColors.primary,
+                  backgroundColor: _KColors.flame,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(_rChip)),
+                      borderRadius: BorderRadius.circular(_rPill)),
                 ),
                 child: Text(actionLabel,
                     style: const TextStyle(
