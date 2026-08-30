@@ -15,6 +15,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// Navigation only.
+import '/custom_code/widgets/kandi_seller_products_screen.dart';
+import '/custom_code/widgets/kandi_seller_orders_screen.dart';
+import '/custom_code/widgets/kandi_seller_payouts_screen.dart';
+
 // ============================================================
 //  KANDI — SELLER CENTRE
 //
@@ -48,12 +53,17 @@ import 'package:url_launcher/url_launcher.dart';
 //  anything out of stock. Those are read-only and they are
 //  what a phone is good for.
 //
-//  Editing a listing, uploading photographs and setting prices
-//  are NOT here. They need a real form, a media picker and a
-//  variations table, and a cramped version of that on a phone
-//  is how a seller publishes a product with the wrong price.
-//  Those link to the Seller Centre on the website, which is
-//  built for it.
+//  Orders, products and commissions are full pages in the app —
+//  see the three seller screens this one opens. They are
+//  reading, plus one write: accepting an order, which is a
+//  single boolean with no form behind it and happens when a
+//  trader is in their shop rather than at a desk.
+//
+//  Adding a product and store settings are NOT here. They are
+//  forms — a media picker, a variations table, a payout account
+//  — and a cramped version of any of them on a phone is how a
+//  seller publishes at the wrong price or types the wrong MoMo
+//  number. Those open the website, which is built for them.
 // ============================================================
 
 class _KColors {
@@ -771,43 +781,76 @@ class _KandiSellerScreenState extends State<KandiSellerScreen> {
           ],
 
           const SizedBox(height: _KSpace.md),
-          // ---- Where the editing happens ----
+          // ---- What the app does, and what it hands to the website ----
           //
-          // Listing a product needs a form, a media picker and a variations
-          // table. A cramped version of that on a phone is how a seller
-          // publishes with the wrong price, so these open the Seller Centre on
-          // the website instead of half-rebuilding it here.
+          // The split is by whether the task is READING or WRITING, not by
+          // what was easiest to build.
+          //
+          // Orders, products and commissions are reading, plus one write —
+          // accepting an order — that is a single boolean with no form behind
+          // it. Those are the things a trader checks standing in their shop,
+          // so they are native pages here.
+          //
+          // Adding a product and changing store settings are forms: a media
+          // picker, a variations table, a payout account. A cramped version of
+          // any of those on a phone is how a seller publishes at the wrong
+          // price or types the wrong MoMo number, so they open the website,
+          // which is built for them.
           _panel(
-            title: 'Manage your shop',
+            title: 'Your shop',
             child: Column(
               children: [
                 _Action(
-                  icon: Icons.add_box_outlined,
-                  label: 'Add a product',
-                  onTap: () => _openWeb('/seller/products/new'),
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Orders',
+                  detail: 'Accept and pack what has sold',
+                  external: false,
+                  // Reloads on return: accepting an order changes the figures
+                  // above, and a dashboard still showing the old ones after the
+                  // trader just acted reads as the action not having worked.
+                  onTap: () async {
+                    await Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const KandiSellerOrdersScreen()));
+                    await _loadStats();
+                  },
                 ),
                 const Divider(height: 1, color: _KColors.hairline),
                 _Action(
                   icon: Icons.inventory_2_outlined,
-                  label: 'My products',
-                  onTap: () => _openWeb('/seller/products'),
-                ),
-                const Divider(height: 1, color: _KColors.hairline),
-                _Action(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'My orders',
-                  onTap: () => _openWeb('/seller/orders'),
+                  label: 'Products',
+                  detail: 'Stock, prices and what is out',
+                  external: false,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const KandiSellerProductsScreen())),
                 ),
                 const Divider(height: 1, color: _KColors.hairline),
                 _Action(
                   icon: Icons.payments_outlined,
                   label: 'Commissions and payouts',
-                  onTap: () => _openWeb('/seller/commissions'),
+                  detail: 'What you are owed, order by order',
+                  external: false,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const KandiSellerPayoutsScreen())),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: _KSpace.md),
+          _panel(
+            title: 'On the website',
+            child: Column(
+              children: [
+                _Action(
+                  icon: Icons.add_box_outlined,
+                  label: 'Add a product',
+                  detail: 'Needs photographs and a price',
+                  onTap: () => _openWeb('/seller/products/new'),
                 ),
                 const Divider(height: 1, color: _KColors.hairline),
                 _Action(
                   icon: Icons.settings_outlined,
                   label: 'Store settings',
+                  detail: 'Payout account and store details',
                   onTap: () => _openWeb('/seller/settings'),
                 ),
               ],
@@ -941,11 +984,26 @@ class _Line extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({required this.icon, required this.label, required this.onTap});
+  const _Action({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.detail,
+    this.external = true,
+  });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final String? detail;
+
+  /// Whether tapping leaves the app.
+  ///
+  /// The trailing icon is the only warning a trader gets before the browser
+  /// opens, so it has to be accurate: a chevron promises another screen in the
+  /// app, and an out-arrow promises a browser. Getting the two the wrong way
+  /// round is a small lie the shopper notices immediately.
+  final bool external;
 
   @override
   Widget build(BuildContext context) {
@@ -958,14 +1016,27 @@ class _Action extends StatelessWidget {
             Icon(icon, size: 20, color: _KColors.ink),
             const SizedBox(width: _KSpace.md),
             Expanded(
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: _KColors.ink)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: _KColors.ink)),
+                  if (detail != null)
+                    Text(detail!,
+                        style: const TextStyle(
+                            fontSize: 12, color: _KColors.muted)),
+                ],
+              ),
             ),
-            const Icon(Icons.open_in_new_rounded,
-                size: 18, color: _KColors.muted),
+            Icon(
+                external
+                    ? Icons.open_in_new_rounded
+                    : Icons.chevron_right_rounded,
+                size: external ? 18 : 20,
+                color: _KColors.muted),
           ],
         ),
       ),

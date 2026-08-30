@@ -1,6 +1,6 @@
 # Adding the app to FlutterFlow
 
-Ten custom widgets — one per page. **No parameters to declare on any of them.**
+Thirteen custom widgets — one per page. **No parameters to declare on any of them.**
 No pubspec changes needed.
 
 | Name it exactly | Paste this file |
@@ -15,6 +15,9 @@ No pubspec changes needed.
 | `KandiAccountScreen` | `kandi_account_screen.dart` |
 | `KandiOrdersScreen` | `kandi_orders_screen.dart` |
 | `KandiSellerScreen` | `kandi_seller_screen.dart` |
+| `KandiSellerOrdersScreen` | `kandi_seller_orders_screen.dart` |
+| `KandiSellerProductsScreen` | `kandi_seller_products_screen.dart` |
+| `KandiSellerPayoutsScreen` | `kandi_seller_payouts_screen.dart` |
 
 **Custom Code → Widgets → `+` → Widget**, then paste the whole file over
 whatever is in the editor.
@@ -33,7 +36,7 @@ file-private, so nothing depends on anything else being pasted first.
 The only cross-file imports are **navigation** — Home opens Product, Cart,
 Search, Shop, Saved and Account; Cart opens Checkout; Account opens Orders and
 the Seller Centre; Product opens Cart and, sideways, another Product. Dart
-resolves those once all ten exist, so the project compiles when the set is
+resolves those once all thirteen exist, so the project compiles when the set is
 complete and not before. Paste them in any order you like and compile at the
 end.
 
@@ -51,7 +54,7 @@ end.
    custom widget at once.
 3. Compile.
 
-There is no step for parameters. Leave the parameter list empty on all ten.
+There is no step for parameters. Leave the parameter list empty on all thirteen.
 
 **Never add an import above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.**
 FlutterFlow rewrites those first lines on save and silently drops anything you
@@ -115,7 +118,9 @@ Home ─┬─ tap a card ──────────→ Product ──→ Ca
       ├─ bottom bar: Saved ───→ Saved   ──→ Product
       ├─ bottom bar: Basket ──→ Cart
       └─ bottom bar: Account ─→ Account ─┬→ Orders
-                                         ├→ Seller Centre
+                                         ├→ Seller Centre ─┬→ Seller Orders
+                                         │                 ├→ Seller Products
+                                         │                 └→ Commissions
                                          └→ Saved / Cart
 
 Product ──→ "You might also like" ──→ another Product (in place)
@@ -182,16 +187,36 @@ correct for whoever taps it.
 > and then clears it, logging the trader out of a session they never noticed
 > breaking. Most sellers here are also shoppers; both sessions coexist.
 
-Editing listings, uploading photographs and setting prices are **not** in the
-app. They need a real form, a media picker and a variations table, and a cramped
-version of that on a phone is how a seller publishes with the wrong price. Those
-rows open the Seller Centre on the website, which is built for it.
+**Seller → Orders** — every order for this trader, filtered by all / to pack /
+completed, with the line items and the payout on each. **Accepting an order is
+the one write the app does**: it flips the row optimistically, and reverts with
+a message if the shop did not hear. That matters because a row claiming
+"accepted" when nothing was sent leaves a customer waiting on a confirmation
+that never comes.
+
+**Seller → Products** — the trader's stock, sorted with out-of-stock first
+because it is the only row costing them money today, then by what sells. A
+banner at the top counts the out-of-stock lines and doubles as a filter.
+
+**Seller → Commissions** — what is payable, what is pending, and the arithmetic
+order by order: gross, rate, commission, net. Commission is the most-argued
+number in any marketplace, so the working is shown rather than just the total,
+and none of it is computed on the phone — a second implementation disagreeing by
+one shilling would be worse than no figure.
+
+### What stays on the website
+
+Adding a product and store settings. The split is by whether the task is
+**reading or writing**, not by what was easy: those two are forms — a media
+picker, a variations table, a payout account — and a cramped version of either
+on a phone is how a seller publishes at the wrong price or types the wrong MoMo
+number.
 
 ---
 
 ## Verified
 
-All ten files were type-checked against **Flutter 3.35 / Dart 3.9** in a
+All thirteen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
 throwaway package with the FlutterFlow-only imports stubbed out:
 
 ```
