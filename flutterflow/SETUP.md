@@ -126,8 +126,25 @@ Home ─┬─ tap a card ──────────→ Product ──→ Ca
 Product ──→ "You might also like" ──→ another Product (in place)
 ```
 
-Home carries a bottom bar with all five destinations, so no page is more than
-two taps from any other.
+### The bottom bar
+
+Five pages carry it — **Home, Shop, Saved, Basket, Account** — because those are
+the top-level destinations. Product, Checkout, Search, Orders and the four
+seller pages do not: they are detail screens reached from somewhere specific,
+and a tab bar on them invites a shopper to leave mid-task.
+
+**Tabs never stack.** Tapping one pops to the app's root and pushes the target,
+so the stack is never deeper than Home plus one tab and Back always means Home.
+Without that, Home → Shop → Account → Basket leaves four screens stacked and
+four back taps to escape.
+
+The tab you are already on has a **null** handler rather than an empty one, so
+InkWell draws no ripple — the honest signal for "nothing will happen". On Home
+it scrolls back to the top instead.
+
+On the Basket the tab bar sits **below** the checkout summary rather than
+replacing it. Dropping the tabs there would strand a shopper who opened the
+basket to check a total and then wanted to carry on browsing.
 
 ---
 

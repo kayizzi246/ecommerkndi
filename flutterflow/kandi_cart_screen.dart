@@ -15,8 +15,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Navigation only.
+// Navigation only — the five top-level destinations plus checkout. Circular
+// between the tab pages, which Dart allows: they reference each other's widget
+// classes and nothing at load time.
 import '/custom_code/widgets/kandi_checkout_screen.dart';
+import '/custom_code/widgets/kandi_shop_screen.dart';
+import '/custom_code/widgets/kandi_wishlist_screen.dart';
+import '/custom_code/widgets/kandi_account_screen.dart';
 
 // ============================================================
 //  KANDI — CART PAGE
@@ -54,7 +59,7 @@ import '/custom_code/widgets/kandi_checkout_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF8F7F4);
+  static const Color canvas = Color(0xFFF2F4F7);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -65,7 +70,7 @@ class _KColors {
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
-  static const Color saveSoft = Color(0xFFF0FDF4);
+  static const Color saveSoft = Color(0xFFECFDF3);
   static const Color warn = Color(0xFFB45309);
   static const Color warnSoft = Color(0xFFFDF3E6);
 }
@@ -78,9 +83,9 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _radiusPanel = 16;
-const double _radiusPhoto = 12;
-const double _radiusChip = 8;
+const double _rPanel = 14;
+const double _rPhoto = 10;
+const double _rChip = 8;
 const String _apiBase = 'https://kandiug.com';
 
 /// The one string every page in this app agrees on. Change it here and it must
@@ -278,6 +283,72 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
     });
   }
 
+
+  /// Switches to a top-level tab without growing the stack.
+  ///
+  /// `popUntil(isFirst)` returns to the app's root — Home — and the target is
+  /// pushed on top of it. Without this, Home → Shop → Account → Basket leaves
+  /// four screens stacked and four back taps to escape. With it the stack is
+  /// never deeper than Home plus one tab, and Back always means Home.
+  ///
+  /// A null target is Home itself: pop and push nothing.
+  Future<void> _tab(Widget? target) async {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (target == null || !mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => target));
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _KColors.panel,
+        border: Border(top: BorderSide(color: _KColors.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            children: [
+              _NavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                active: 3 == 0,
+                onTap: () => _tab(null),
+              ),
+              _NavItem(
+                icon: Icons.grid_view_rounded,
+                label: 'Shop',
+                active: 3 == 1,
+                onTap: 3 == 1 ? null : () => _tab(const KandiShopScreen()),
+              ),
+              _NavItem(
+                icon: Icons.favorite_border_rounded,
+                label: 'Saved',
+                active: 3 == 2,
+                onTap: 3 == 2 ? null : () => _tab(const KandiWishlistScreen()),
+              ),
+              _NavItem(
+                icon: Icons.shopping_cart_outlined,
+                label: 'Basket',
+                active: 3 == 3,
+                badge: _count,
+                onTap: 3 == 3 ? null : () => _tab(const KandiCartScreen()),
+              ),
+              _NavItem(
+                icon: Icons.person_outline_rounded,
+                label: 'Account',
+                active: 3 == 4,
+                onTap: 3 == 4 ? null : () => _tab(const KandiAccountScreen()),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -356,7 +427,27 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
           ),
         ),
         body: _buildBody(),
-        bottomNavigationBar: _lines.isEmpty ? null : _buildSummary(),
+        // ---- Two bars, stacked ----
+        //
+        // The checkout summary sits ON TOP of the tab bar rather than replacing
+        // it. Dropping the tabs here would strand a shopper who opened the
+        // basket to check a total and then wanted to carry on browsing — their
+        // only way out would be the back arrow, which on a basket reached from
+        // the tab bar goes to Home rather than to where they were shopping.
+        //
+        // `mainAxisSize.min` so the column is exactly as tall as its children;
+        // a `bottomNavigationBar` is unconstrained vertically and a Column
+        // without it would try to fill the screen.
+        //
+        // The summary keeps its own `SafeArea` padding off, because the nav bar
+        // below is now the thing touching the home indicator.
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_lines.isNotEmpty) _buildSummary(),
+            _buildBottomNav(),
+          ],
+        ),
       ),
     );
   }
@@ -407,7 +498,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: _KColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_radiusChip)),
+                        borderRadius: BorderRadius.circular(_rChip)),
                   ),
                   child: const Text('Continue shopping',
                       style: TextStyle(
@@ -446,7 +537,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
             padding: const EdgeInsets.all(_KSpace.md),
             decoration: BoxDecoration(
               color: _KColors.warnSoft,
-              borderRadius: BorderRadius.circular(_radiusChip),
+              borderRadius: BorderRadius.circular(_rChip),
             ),
             child: const Row(
               children: [
@@ -487,7 +578,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       padding: const EdgeInsets.all(_KSpace.md),
       decoration: BoxDecoration(
         color: qualifies ? _KColors.saveSoft : _KColors.panel,
-        borderRadius: BorderRadius.circular(_radiusPanel),
+        borderRadius: BorderRadius.circular(_rPanel),
         border: Border.all(
             color: qualifies ? _KColors.saveSoft : _KColors.line),
       ),
@@ -526,14 +617,14 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
       padding: const EdgeInsets.all(_KSpace.md),
       decoration: BoxDecoration(
         color: _KColors.panel,
-        borderRadius: BorderRadius.circular(_radiusPanel),
+        borderRadius: BorderRadius.circular(_rPanel),
         border: Border.all(color: _KColors.line),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(_radiusPhoto),
+            borderRadius: BorderRadius.circular(_rPhoto),
             child: SizedBox(
               width: 84,
               height: 84,
@@ -639,13 +730,10 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
   Widget _buildSummary() {
     final blocked = _hasUnavailable;
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        _KSpace.lg,
-        _KSpace.md,
-        _KSpace.lg,
-        // Clears the home indicator on a gesture-navigation phone.
-        _KSpace.md + MediaQuery.of(context).padding.bottom,
-      ),
+      // No safe-area padding any more: the nav bar below this one is what sits
+      // against the home indicator now, and it carries its own.
+      padding: const EdgeInsets.fromLTRB(
+          _KSpace.lg, _KSpace.md, _KSpace.lg, _KSpace.md),
       decoration: const BoxDecoration(
         color: _KColors.panel,
         border: Border(top: BorderSide(color: _KColors.line)),
@@ -686,7 +774,7 @@ class _KandiCartScreenState extends State<KandiCartScreen> {
                 backgroundColor: _KColors.primary,
                 disabledBackgroundColor: _KColors.line,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(_radiusChip)),
+                    borderRadius: BorderRadius.circular(_rChip)),
               ),
               child: Text(
                 blocked
@@ -725,15 +813,93 @@ class _StepButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(_radiusChip),
+      borderRadius: BorderRadius.circular(_rChip),
       child: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_radiusChip),
+          borderRadius: BorderRadius.circular(_rChip),
           border: Border.all(color: _KColors.line),
         ),
         child: Icon(icon, size: 17, color: _KColors.ink),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  The bottom bar
+// ------------------------------------------------------------
+
+/// One of the five top-level destinations.
+///
+/// Duplicated in each tab page rather than imported: every page in this app is
+/// self-contained, and a shared widget would be the one import that reintroduces
+/// the paste-order problem the whole architecture exists to avoid.
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.active = false,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String label;
+  /// Null on the tab you are already on: InkWell then draws no ripple, which
+  /// is the honest signal for "nothing will happen". An empty closure would
+  /// ripple and promise otherwise.
+  final VoidCallback? onTap;
+  final bool active;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final colour = active ? _KColors.primary : _KColors.muted;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, size: 22, color: colour),
+                if (badge > 0)
+                  Positioned(
+                    right: -7,
+                    top: -5,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      constraints: const BoxConstraints(minWidth: 16),
+                      decoration: BoxDecoration(
+                        color: _KColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                        // A white ring keeps the badge legible over the icon.
+                        border: Border.all(color: Colors.white, width: 1.4),
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : '$badge',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 9,
+                            height: 1.3,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10.5, fontWeight: FontWeight.w600, color: colour)),
+          ],
+        ),
       ),
     );
   }

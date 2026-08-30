@@ -50,7 +50,7 @@ import '/custom_code/widgets/kandi_cart_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF8F7F4);
+  static const Color canvas = Color(0xFFF2F4F7);
   static const Color panel = Color(0xFFFFFFFF);
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
@@ -61,7 +61,7 @@ class _KColors {
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
-  static const Color saveSoft = Color(0xFFF0FDF4);
+  static const Color saveSoft = Color(0xFFECFDF3);
   static const Color dealFlag = Color(0xFFFACC15);
   static const Color star = Color(0xFFF59E0B);
 }
@@ -74,7 +74,7 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _radiusChip = 8;
+const double _rChip = 8;
 const String _apiBase = 'https://kandiug.com';
 
 // The keys every page in this app agrees on. Repeated verbatim in each file;
@@ -608,7 +608,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                           horizontal: 7, vertical: 4),
                       decoration: BoxDecoration(
                         color: _KColors.dealFlag,
-                        borderRadius: BorderRadius.circular(_radiusChip),
+                        borderRadius: BorderRadius.circular(_rChip),
                       ),
                       child: Text('-$_discountPercent%',
                           style: const TextStyle(
@@ -889,7 +889,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(_radiusChip),
+                          borderRadius: BorderRadius.circular(_rChip),
                           child: SizedBox(
                             width: 124,
                             height: 124,
@@ -997,7 +997,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                 backgroundColor: _KColors.primary,
                 disabledBackgroundColor: _KColors.line,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(_radiusChip)),
+                    borderRadius: BorderRadius.circular(_rChip)),
               ),
               child: Text(
                 blocked ? 'Out of stock' : 'Add to basket',
@@ -1027,7 +1027,7 @@ class _OptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(_radiusChip),
+      borderRadius: BorderRadius.circular(_rChip),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -1035,7 +1035,7 @@ class _OptionChip extends StatelessWidget {
           // the text alone: at a glance a shopper has to see WHICH size is
           // chosen, and a one-shade text difference does not carry that.
           color: selected ? _KColors.primarySoft : _KColors.panel,
-          borderRadius: BorderRadius.circular(_radiusChip),
+          borderRadius: BorderRadius.circular(_rChip),
           border: Border.all(
             color: selected ? _KColors.primary : _KColors.line,
             width: selected ? 1.6 : 1.2,

@@ -628,7 +628,17 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
     await _refreshLocal();
   }
 
+  /// Opens a top-level tab from the bottom bar.
+  ///
+  /// `popUntil(isFirst)` before pushing, matching every other tab page. Home is
+  /// usually the root already, so the pop is a no-op here — but it is not
+  /// guaranteed to be: FlutterFlow decides which page the app opens on, and if
+  /// that is Shop then Home is a pushed screen like any other. Doing the same
+  /// thing on all five pages means the stack cannot grow whichever one the
+  /// builder made the entry point.
   Future<void> _push(Widget screen) async {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (!mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     await _refreshLocal();
   }
