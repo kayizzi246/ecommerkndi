@@ -3,7 +3,6 @@ import DepartmentRail from "@/components/home/DepartmentRail";
 import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import MaximiseSavings from "@/components/home/MaximiseSavings";
-import TrustRibbon from "@/components/home/TrustRibbon";
 
 
 import SuperDeals from "@/components/home/SuperDeals";
@@ -101,7 +100,10 @@ export default async function Home() {
     latest,
     latestTotalPages,
     departmentMinimum,
-    proof,
+    // `proof` came out of this destructure with the terms band that used it.
+    // `buildHomeFeed` still computes it: /api/app/home serves it to the phone
+    // app, which is a separate reader with its own reasons — the same
+    // arrangement `storeCount` is in.
   } = await buildHomeFeed();
 
   /** Brand plus suffix, spaced — for the closing about block. */
@@ -208,7 +210,7 @@ export default async function Home() {
            So this slot now carries a 36px band of terms instead of a banner,
            and the merchandise starts immediately under it. If a hero is ever
            proposed again, the question to answer first is what it would say
-           that {@link TrustRibbon} and the first deal panel do not.
+           that the announcement strip and the first deal panel do not.
 
            ---- Why the band is here and not inside the flex column ----
 
@@ -242,9 +244,8 @@ export default async function Home() {
 
            `PromiseBand` stood here and is deleted. It was three promises on
            pale green, hidden below `md`, and both of those turned out to be
-           wrong for the page as it now stands — the full reasoning is at the
-           head of {@link TrustRibbon}, but the short version is worth having
-           here because this slot has a history of being argued about.
+           wrong for the page as it now stands. The short version is worth
+           having here because this slot has a history of being argued about.
 
            On a phone the page had NOTHING above the merchandise: no hero
            unless the shop has uploaded artwork, no rails, no department row.
@@ -270,11 +271,23 @@ export default async function Home() {
            widths that strip shows them. On a phone it wraps to two rows and 59px,
            which is what a device that had no band at all now pays for the whole
            statement. No artwork, no offer, nothing clipped at 360px. */}
-      <TrustRibbon
-        freeDeliveryFrom={settings.commerce.free_delivery_from}
-        returnsDays={settings.commerce.returns_days}
-        proof={proof}
-      />
+      {/* ---- The terms band is gone from this slot ----
+
+           It stated the vetted-store count, the free-delivery threshold and a
+           link to /help, in a dark strip between the masthead and the
+           merchandise.
+
+           Both figures are still on the page and higher up: the announcement
+           strip at the very top carries the free-delivery threshold on every
+           page in the shop, and the footer carries it again with the returns
+           window. What the band added over those was the store count and a
+           second route to /help — a page the footer also links — and it paid
+           for them with a fourth band of chrome above the first product.
+
+           That is the whole argument the slot has been having with itself
+           since the hero came out of it: everything proposed here has been
+           navigation or reassurance dressed as content, and the page is
+           better when the merchandise starts immediately. It does now. */}
       {/* The page opens on merchandise.
 
           The hero banner and category card grid went first; the department

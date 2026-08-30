@@ -267,7 +267,20 @@ export default function Header({
            and bringing 32px of rotating marketing back with it would push the
            thing they actually reached for further down the screen. What returns
            is the working row and nothing else. */}
-      <div className={`bg-shop-nav text-white/85 ${scrolled ? "hidden" : ""}`}>
+      {/* ---- Brand orange, with near-black on it ----
+
+           The strip has been orange before and the note below records why the
+           call to action changed shape when it was. What is different this time
+           is the TEXT colour, and it is the whole reason an orange strip works
+           at all: white on #ff6a00 is 2.9:1 and fails AA at every size, which
+           is what made the last orange bar a compromise. Near-black on it is
+           6.2:1, and at 85% — which is what the rest of the row runs at —
+           still 5.1:1. So the row is legible at 11px, which is the size it is.
+
+           Measured, not assumed: #111827 on #ff6a00. */}
+      <div
+        className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}
+      >
         {/* 11.5px, and the lines inside are plain rather than semibold. This
             strip is the smallest thing on the page and it was set in the same
             weight as the navigation under it, which is what made three bands
@@ -319,7 +332,11 @@ export default function Header({
                 underline is what makes it read as clickable without a fill. */}
             <Link
               href={settings.promo.cta_url}
-              className="font-semibold text-shop-flame underline decoration-shop-flame/40 underline-offset-[3px] transition-colors hover:text-white hover:decoration-white/60"
+              /* Solid ink against the row's 85%, plus the underline. Flame
+                 was the accent while the strip was near-black — on brand
+                 orange it measures 1.8:1, which is not an accent, it is
+                 camouflage. The lift here is weight and opacity instead. */
+              className="font-bold text-shop-ink underline decoration-shop-ink/40 underline-offset-[3px] transition-colors hover:decoration-shop-ink"
             >
               {settings.promo.cta_label} ›
             </Link>
