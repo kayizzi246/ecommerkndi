@@ -74,7 +74,9 @@ export default function SectionHeader({
   // the head of the section list in `app/page.tsx`; the short version is that
   // both numbers move together or neither does.
   return (
-    <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    /* `section-head` is what the coloured shelves hang their bar on — see
+       the accent-shelf block in globals.css. It carries no styling of its own. */
+    <div className="section-head mb-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       {/* `min-w-0 flex-1`, so the "View All" link beside this keeps the first
           line to itself.
 

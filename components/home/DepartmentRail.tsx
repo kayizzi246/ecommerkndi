@@ -141,13 +141,18 @@ export default function DepartmentRail({
           to hold the heading off the edge of a tinted band that ran the width
           of the column; the panel supplies that inset now, and keeping both
           would set the title in from the rail of products it names. */}
-      <div className="mb-3.5 flex items-center gap-3">
+      {/* `section-head` is what puts the department's colour behind this row
+          — see the bar block in globals.css. This rail hand-rolls its heading
+          instead of using `SectionHeader`, so it has to opt in by name, and
+          everything inside it is now on a saturated ground rather than on
+          white. */}
+      <div className="section-head mb-3.5 flex items-center gap-3">
         {/* The glyph, in ink and with no disc under it. The white plate existed
             to lift it off the tint; against white it would be a circle drawn
             around nothing. It stays because it is the one thing that tells the
             three department rails apart at a glance while scrolling — but as a
             mark beside the title rather than a badge in its own right. */}
-        <span className="hidden h-8 w-8 shrink-0 items-center justify-center text-shop-ink sm:flex">
+        <span className="hidden h-8 w-8 shrink-0 items-center justify-center text-white sm:flex">
           <DepartmentGlyph id={id} />
         </span>
 
@@ -167,7 +172,7 @@ export default function DepartmentRail({
             {/* The chip, in the neutral the rest of the page uses. It was the
                 department's colour, and it was the last of the three things
                 repeating that hue. */}
-            <span className="rounded-full bg-shop-hairline px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-body">
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
               {chip}
             </span>
           </div>
@@ -179,7 +184,10 @@ export default function DepartmentRail({
             target with an edge is one a thumb can find without aiming. */}
         <Link
           href={href}
-          className="shrink-0 rounded-full bg-shop-ink px-3.5 py-2 text-[12.5px] font-bold text-white transition-opacity hover:opacity-90"
+          /* Inverted with the ground. A near-black pill on a saturated bar is
+             a hole in it; white with the shelf's own colour in the text makes
+             the one tappable thing in the row the brightest thing in it. */
+          className="shrink-0 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold text-shop-ink transition-opacity hover:opacity-90"
         >
           Shop all
         </Link>

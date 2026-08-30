@@ -353,8 +353,9 @@
    *
    * Phones are the exception and keep no panel at all — see `.shop-panel`.
    */
-  --color-shop-canvas: #ffffff;
+  --color-shop-canvas: #f8f6f2;
   --color-shop-panel: #ffffff;
+
 
   /* ---- The accent shelves ----
    *
@@ -1537,7 +1538,7 @@ h6,
  * the two kinds of shelf differ in fill and in nothing else.
  */
 .shop-panel-trending {
-  background: var(--color-shop-panel-trending);
+  --shelf: var(--color-shop-panel-trending);
 }
 
 /**
@@ -1549,12 +1550,11 @@ h6,
  * Same reasoning the retired ink variant used.
  */
 .shop-panel-deals {
-  background: var(--color-shop-panel-deals);
-  box-shadow: none;
+  --shelf: var(--color-shop-panel-deals);
 }
 
 .shop-panel-categories {
-  background: var(--color-shop-panel-categories);
+  --shelf: var(--color-shop-panel-categories);
 }
 
 /**
@@ -1653,38 +1653,64 @@ h6,
   color: rgba(255, 255, 255, 0.78);
 }
 
-.shop-panel-strong article {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 8px;
+/* ---- The bar, where a slab used to be ----
+ *
+ * The colour used to be the whole shelf: a saturated ground behind the heading
+ * AND behind every product on it. Seven of them run down this homepage, and on
+ * a phone they are full-bleed now — which is roughly six screens of unbroken
+ * violet, crimson, blue, magenta, green, amber and teal with photographs
+ * floating on top of it.
+ *
+ * That is more colour than a page can be read through, and it was working
+ * against the merchandise rather than for it. A product photographed on white,
+ * placed on crimson, is not legible until it is given a white card — so the
+ * slab created the very card the tile then had to carry, and the shelf ended up
+ * being a coloured box full of white boxes.
+ *
+ * The colour moves to a bar across the top of the section. Every shelf keeps
+ * its identity — Trending is still violet, Super Deals still crimson, each
+ * department still its own — but it is stated ONCE, in the strip that names the
+ * section, and the products underneath sit on the page like every other product
+ * in the shop. It costs about a sixth of the coloured area and it is the
+ * arrangement the reference uses.
+ *
+ * The negative margins pull the bar out to the section's own padding edge: full
+ * width on a phone, and a cap on the white card from md up.
+ */
+.shop-panel-strong > .section-head {
+  margin: -14px -12px 12px;
+  padding: 12px;
+  background: var(--shelf);
 }
 
-/* The photograph inside a carded tile already sits on white, so its own ring
-   and hairline ground would draw a second edge a few pixels inside the card's.
-   One surface, one edge. */
-.shop-panel-strong article > div > a > div {
-  --tw-ring-shadow: 0 0 #0000;
-  background: #ffffff;
+@media (min-width: 768px) {
+  .shop-panel-strong > .section-head {
+    margin: -20px -24px 16px;
+    padding: 14px 24px;
+    /* Caps the panel. The top corners match `.shop-panel`'s 16px; the bottom
+       two stay square so the bar meets the products squarely. */
+    border-radius: 16px 16px 0 0;
+  }
 }
 
 .shop-panel-men {
-  background: #1e56bd;
+  --shelf: #1e56bd;
 }
 
 .shop-panel-women {
-  background: #b3175a;
+  --shelf: #b3175a;
 }
 
 .shop-panel-kids {
-  background: #0b7a43;
+  --shelf: #0b7a43;
 }
 
 .shop-panel-shoes {
-  background: #b45309;
+  --shelf: #b45309;
 }
 
 .shop-panel-sports {
-  background: #0f6e6a;
+  --shelf: #0f6e6a;
 }
 
 /* ---- `.shop-panel-ink` is gone ----
