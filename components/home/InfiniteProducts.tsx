@@ -290,7 +290,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+      <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />

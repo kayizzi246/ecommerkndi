@@ -1,3 +1,4 @@
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductsSafe } from "@/lib/woocommerce";
@@ -19,6 +20,45 @@ export const metadata = {
   // ranking lands on one URL instead of being split across a dozen.
   alternates: { canonical: "/sale" },
 };
+
+/**
+ * ---- The deals are banded by how deep the cut is ----
+ *
+ * This page was one flat grid of everything on sale, in whatever order
+ * WooCommerce returned, with a "Sort by" dropdown defaulting to "Best
+ * match". That buried the one thing the page exists to answer. Somebody who
+ * has clicked "Super Price Store" is not browsing a catalogue — they are
+ * looking for the biggest reduction in the shop — and the biggest reduction
+ * could sit anywhere in twenty tiles, findable only by knowing to change a
+ * dropdown.
+ *
+ * Banding makes that answer structural rather than optional: the deepest
+ * band is first, labelled with the figure it contains, and nobody has to
+ * sort anything to see it.
+ *
+ * The titles ARE the fact, deliberately. "50% off and over" says exactly
+ * what is in the band; "Top steals" would be the shop grading its own
+ * homework.
+ *
+ * The colours are the homepage shelf colours, painted by the same
+ * `.shop-panel-strong > .section-head` rule — so a band here is the same
+ * object as a shelf there, not a second system that happens to resemble it.
+ */
+const TIERS: { id: string; min: number; title: string; shelf: string }[] = [
+  { id: "half", min: 50, title: "50% off and over", shelf: "#b8123a" },
+  { id: "big", min: 30, title: "30% to 49% off", shelf: "#7642d6" },
+  { id: "rest", min: 1, title: "Up to 29% off", shelf: "#1e56bd" },
+];
+
+/**
+ * Seven across at the widest. This page carries no filter rail, so it has a
+ * couple of hundred pixels more to spend than search or a category — and on a
+ * page of markdowns the shopper is comparing, which means seeing as many at
+ * once as stay legible. 8/16 on a phone, 12/24 from sm: the shared
+ * product-grid rhythm.
+ */
+const GRID =
+  "grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
 
 export default async function SalePage({
   searchParams,
@@ -62,6 +102,29 @@ export default async function SalePage({
     0
   );
 
+  /**
+   * Banded only while the shopper has not asked for an order of their own.
+   *
+   * A chosen sort is an explicit instruction — "cheapest first", "newest
+   * first" — and cutting that into three discount bands would quietly
+   * override it: the cheapest thing on the page would sit in the third band,
+   * under two others. So the bands are the DEFAULT arrangement, and choosing
+   * a sort replaces them with the flat grid, which is what was asked for.
+   */
+  const banded = !sort;
+  const bands = banded
+    ? TIERS.map((tier, index) => ({
+        ...tier,
+        /* Walked deepest-first, each band taking what the one above it did
+           not, so a product lands in exactly one of them. */
+        products: sorted.filter((product) => {
+          const cut = discountPercent(product.regular_price, product.price);
+          const ceiling = index === 0 ? Infinity : TIERS[index - 1].min;
+          return cut >= tier.min && cut < ceiling;
+        }),
+      })).filter((tier) => tier.products.length > 0)
+    : [];
+
   return (
     <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-12">
       {/* The highest-converting page on the shop, and it carried no structured
@@ -90,71 +153,46 @@ export default async function SalePage({
         <span className="text-shop-ink">Super Price Store</span>
       </nav>
 
-      {/* ---- Hero ----
-           Every figure here is counted from the products below: how many are
-           reduced, the deepest cut, the total the whole page saves. The old
-           version was a red block with a headline and nothing to back it up.
+      {/* ---- The header, where a 250px orange slab used to be ----
 
-           ---- And it is no longer red ----
+           The slab was a brand gradient carrying an eyebrow, a 46px
+           headline, a paragraph, three delivery ticks and two figure boxes —
+           the largest object on the page, sitting above a page whose entire
+           subject is the products underneath it.
 
-           This was `from-shop-sale via-[#c62828] to-[#8e1a1a]` — the largest
-           red object on the site, on the page whose entire subject is a
-           reduction. That made it the last thing contradicting the rule the
-           palette now states: red means something is wrong, and the deal
-           language is the brand's deep orange. See the note on
-           `--color-shop-sale` in `globals.css`.
+           Everything it said that was TRUE is still here, and still counted
+           off those products: the deepest cut in the headline, how many are
+           reduced, what the whole page saves, and the countdown. What has
+           gone is the ground it said them on. The colour moved down to the
+           band headers, where it now means something — how deep the cut is —
+           instead of being a decorative field behind a heading.
 
-           The ramp is the brand's own, dark end first, so a page of orange
-           deal flags below sits inside the same family rather than against a
-           second one. White type still clears AA on every stop of it. */}
-      <section className="relative mb-6 overflow-hidden rounded-none bg-gradient-to-br md:rounded-2xl from-shop-ember via-shop-primary-ink to-[#7a3200] px-5 py-7 text-white md:px-10 md:py-9">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/12 blur-3xl"
-        />
-
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
+           The three delivery ticks went with it. They are on every product
+           page in this shop beside the price, in the footer, and in the
+           announcement strip at the top of this very page. A fourth telling
+           was spending the best space on the page on terms nobody came here
+           to read. */}
+      <section className="mb-5 rounded-2xl bg-shop-panel px-4 py-4 shadow-[inset_0_0_0_1px_var(--color-shop-line)] md:px-6 md:py-5">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/80">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-shop-flame">
               Super Price Store
             </p>
-            <h1 className="heading-black mt-1.5 text-[30px] leading-[1.05] md:text-[46px]">
+            <h1 className="heading-black mt-1 text-[26px] leading-[1.08] text-shop-ink md:text-[34px]">
               {deepest > 0 ? `Up to ${deepest}% off` : "Every reduced price"}
             </h1>
-            <p className="mt-2 max-w-[46ch] text-[15px] leading-relaxed text-white/85">
+            <p className="mt-1.5 max-w-[54ch] text-[14px] leading-relaxed text-shop-body">
               {total > 0
                 ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day — what is here today may not be tomorrow.`
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
             </p>
-
-            <ul className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px] text-white/90">
-              {[
-                `FREE delivery over ${formatPrice(settings.commerce.free_delivery_from)}`,
-                "Pay on delivery",
-                `${settings.commerce.returns_days}-day returns`,
-              ].map((line) => (
-                <li key={line} className="flex items-center gap-1.5">
-                  <svg aria-hidden className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
-                  </svg>
-                  {line}
-                </li>
-              ))}
-            </ul>
           </div>
 
-          <div className="flex shrink-0 flex-wrap gap-3">
+          <div className="flex shrink-0 flex-wrap gap-2">
             {saved > 0 && (
-              <Figure label="Saved on this page" value={formatPrice(saved)} />
+              <Figure label="You would save" value={formatPrice(saved)} />
             )}
-            <div className="rounded-xl bg-white px-5 py-3 text-center text-shop-ink">
-              <p className="text-[11.5px] font-bold uppercase tracking-wide text-shop-muted">
-                Prices refresh in
-              </p>
-              <p className="price mt-1 text-[22px] leading-none">
-                <FlashSaleCountdown />
-              </p>
-            </div>
+            <Figure label="Prices refresh in" value={<FlashSaleCountdown />} />
           </div>
         </div>
       </section>
@@ -175,18 +213,39 @@ export default async function SalePage({
         />
       ) : (
         <>
-          {/* Seven across at the widest. This page carries no filter rail, so it
-              has a couple of hundred pixels more to spend than search or a
-              category — and on a page of markdowns the shopper is comparing,
-              which means seeing as many at once as stay legible. */}
-          {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
-              See the note in the category grid for why the old 1px gaps drew
-              nothing on a white page. */}
-          <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {sorted.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {banded ? (
+            bands.map((band) => (
+              <section
+                key={band.id}
+                className="shop-panel shop-panel-strong mb-1"
+                /* The band colour, read by the same rule the homepage shelves
+                   use. Inline because it is per-band data rather than one of
+                   the eight fixed shelves that each have a class. */
+                style={{ ["--shelf"]: band.shelf } as CSSProperties}
+              >
+                <div className="section-head flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h2 className="heading-black text-[18px] md:text-[21px]">
+                    {band.title}
+                  </h2>
+                  <p className="section-sub text-[13px]">
+                    {band.products.length}{" "}
+                    {band.products.length === 1 ? "product" : "products"}
+                  </p>
+                </div>
+                <div className={GRID}>
+                  {band.products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className={GRID}>
+              {sorted.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
           <Pagination basePath="/sale" page={page} totalPages={total_pages} params={{ sort }} />
         </>
       )}
@@ -194,12 +253,20 @@ export default async function SalePage({
   );
 }
 
-/** One figure in the hero, for numbers the page can prove. */
-function Figure({ label, value }: { label: string; value: string }) {
+/**
+ * One figure in the header, for numbers the page can prove.
+ *
+ * `ReactNode` rather than `string`: the countdown is a client component and
+ * used to need a differently-styled box of its own beside these, so the
+ * header carried two kinds of tile saying the same kind of thing.
+ */
+function Figure({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl bg-white/15 px-5 py-3 text-center backdrop-blur-sm">
-      <p className="text-[11.5px] font-bold uppercase tracking-wide text-white/75">{label}</p>
-      <p className="price mt-1 text-[22px] leading-none text-white">{value}</p>
+    <div className="rounded-xl bg-shop-hairline px-4 py-2.5 text-center">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-shop-muted">
+        {label}
+      </p>
+      <p className="price mt-0.5 text-[19px] leading-none text-shop-ink">{value}</p>
     </div>
   );
 }

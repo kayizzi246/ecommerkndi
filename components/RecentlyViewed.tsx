@@ -138,7 +138,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
             // without this the declared width is a suggestion the phone ignores.
             <div
               key={item.productId}
-              className="min-w-0 shrink-0 snap-start w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] lg:w-[19%] xl:w-[15%] 2xl:w-[calc((100%-112px)/7.5)]"
+              className="min-w-0 shrink-0 snap-start w-[calc((100vw-40px)/2.3)] sm:w-[34.5%] md:w-[23%] lg:w-[19%] xl:w-[calc((100%-80px)/6)]"
             >
               <Link href={`/products/${item.productId}`} className="group block">
                 {/* ---- The image, when there is one ----
@@ -176,7 +176,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                       // wrong before: a flat `112px` was being served to a tile
                       // that is 215px on a desktop, so every photograph in this
                       // rail arrived soft on the screens with the most room.
-                      sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1024px) 23vw, (max-width: 1280px) 19vw, (max-width: 1536px) 15vw, (max-width: 1720px) 13vw, 215px"
+                      sizes="(max-width: 640px) 41vw, (max-width: 768px) 34.5vw, (max-width: 1024px) 23vw, (max-width: 1280px) 19vw, (max-width: 1720px) 16vw, 262px"
                       className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (

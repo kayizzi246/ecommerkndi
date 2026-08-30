@@ -88,7 +88,7 @@ export function ProductRailSkeleton({
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {Array.from({ length: count }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
