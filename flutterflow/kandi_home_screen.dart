@@ -168,6 +168,12 @@ const String _openCategoryKey = 'kandi-open-category';
 /// field" — which is what tapping the search bar here does.
 const String _openSearchKey = 'kandi-open-search';
 
+/// The sort the shop page should open on — one of the API's own sort keys.
+///
+/// Added so a rail's "View all" lands on the aisle it was showing rather than
+/// an empty search box. See `_KRail.sort`.
+const String _openSortKey = 'kandi-open-sort';
+
 String _money(num amount) {
   final whole = amount.round().toString();
   final out = StringBuffer();
@@ -275,10 +281,36 @@ class _KDept {
 }
 
 class _KRail {
-  const _KRail({required this.title, required this.subtitle, required this.products});
+  const _KRail({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.products,
+  });
   final String title;
   final String? subtitle;
   final List<_KProduct> products;
+
+  /// The API's own id for this rail — `trending`, `super-deals`, and so on.
+  final String id;
+
+  /// Which sort on the shop page shows more of what this rail is showing.
+  ///
+  /// "View all" used to open an EMPTY search box on every rail, which is a dead
+  /// end: it threw away the one thing the shopper had just expressed an
+  /// interest in and asked them to type it again. The shop page can be opened
+  /// pre-sorted instead, so "View all" under Best sellers lands on the whole
+  /// catalogue ordered by what sells.
+  ///
+  /// Mapped from the id rather than parsed out of the API's `href`, which is a
+  /// web path — `/search?sort=popular` — and would make the app depend on the
+  /// website's URL shape. An unrecognised rail falls back to `newest`, which is
+  /// the shop page's own default and never wrong, only unhelpful.
+  String get sort {
+    if (id.contains('trending') || id.contains('best-sellers')) return 'popular';
+    if (id.contains('deals') || id.contains('promotions')) return 'price_asc';
+    return 'newest';
+  }
 
   static List<_KRail> listFrom(dynamic json) {
     if (json is! List) return const [];
@@ -290,6 +322,7 @@ class _KRail {
       // over nothing.
       if (products.isEmpty) continue;
       out.add(_KRail(
+        id: (entry['id'] ?? '').toString(),
         title: (entry['title'] ?? '').toString(),
         subtitle: entry['subtitle']?.toString(),
         products: products,
@@ -460,11 +493,29 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
   int _cartCount = 0;
   Set<int> _wishlist = <int>{};
 
+  /// Held so the bottom bar's Home tab can return to the top.
+  final ScrollController _scroll = ScrollController();
+
+  void _scrollToTop() {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _load();
     _refreshLocal();
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
   }
 
   Future<void> _refreshLocal() async {
@@ -537,8 +588,32 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
     await _refreshLocal();
   }
 
+  /// The whole catalogue, no department and no sort.
+  Future<void> _openShopAll() async {
+    await _handoff(_openCategoryKey, '');
+    await _handoff(_openSortKey, '');
+    if (!mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+    await _refreshLocal();
+  }
+
   Future<void> _openCategory(_KDept department) async {
     await _handoff(_openCategoryKey, '${department.slug}|${department.name}');
+    if (!mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+    await _refreshLocal();
+  }
+
+  /// Opens the shop page showing more of what a rail was showing.
+  ///
+  /// The category is cleared deliberately: a rail is a slice of the WHOLE
+  /// catalogue, not of one aisle, so leaving a stale department set would show
+  /// "Best sellers" filtered to whichever department was last opened.
+  Future<void> _openRail(_KRail rail) async {
+    await _handoff(_openCategoryKey, '');
+    await _handoff(_openSortKey, rail.sort);
     if (!mounted) return;
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
@@ -645,6 +720,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
       color: _KColors.primary,
       onRefresh: _load,
       child: CustomScrollView(
+        controller: _scroll,
         slivers: [
           SliverToBoxAdapter(child: _buildHeader()),
           if (_loading && _rails.isEmpty && _picked.isEmpty)
@@ -664,7 +740,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                   onOpen: _openProduct,
                   onAdd: _add,
                   onSave: _toggleSaved,
-                  onViewAll: _openSearch,
+                  onViewAll: () => _openRail(rail),
                 ),
               ),
             if (_picked.isNotEmpty) ...[
@@ -681,7 +757,10 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                                 fontWeight: FontWeight.w800,
                                 color: _KColors.ink)),
                       ),
-                      _ViewAll(onTap: _openSearch),
+                      // The endless grid IS the catalogue, so this opens
+                      // the shop with no sort and no department rather than a
+                      // search box.
+                      _ViewAll(onTap: () => _openShopAll()),
                     ],
                   ),
                 ),
@@ -797,10 +876,15 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
           child: Row(
             children: [
               _NavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  active: true,
-                  onTap: () {}),
+                icon: Icons.home_rounded,
+                label: 'Home',
+                active: true,
+                // Was an empty callback — a button that visibly did nothing.
+                // Tapping the tab you are already on means "take me back to the
+                // top", which is what every app with a bottom bar does and what
+                // a shopper twelve rails down actually wants.
+                onTap: _scrollToTop,
+              ),
               _NavItem(
                   icon: Icons.grid_view_rounded,
                   label: 'Shop',

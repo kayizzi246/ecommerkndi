@@ -1,6 +1,6 @@
 # Adding the app to FlutterFlow
 
-Nine custom widgets — one per page. **No parameters to declare on any of them.**
+Ten custom widgets — one per page. **No parameters to declare on any of them.**
 No pubspec changes needed.
 
 | Name it exactly | Paste this file |
@@ -14,6 +14,7 @@ No pubspec changes needed.
 | `KandiWishlistScreen` | `kandi_wishlist_screen.dart` |
 | `KandiAccountScreen` | `kandi_account_screen.dart` |
 | `KandiOrdersScreen` | `kandi_orders_screen.dart` |
+| `KandiSellerScreen` | `kandi_seller_screen.dart` |
 
 **Custom Code → Widgets → `+` → Widget**, then paste the whole file over
 whatever is in the editor.
@@ -30,8 +31,9 @@ Any. Each page carries its own palette, HTTP client and product model, all
 file-private, so nothing depends on anything else being pasted first.
 
 The only cross-file imports are **navigation** — Home opens Product, Cart,
-Search, Shop, Saved and Account; Cart opens Checkout; Account opens Orders. Dart
-resolves those once all nine exist, so the project compiles when the set is
+Search, Shop, Saved and Account; Cart opens Checkout; Account opens Orders and
+the Seller Centre; Product opens Cart and, sideways, another Product. Dart
+resolves those once all ten exist, so the project compiles when the set is
 complete and not before. Paste them in any order you like and compile at the
 end.
 
@@ -49,7 +51,7 @@ end.
    custom widget at once.
 3. Compile.
 
-There is no step for parameters. Leave the parameter list empty on all nine.
+There is no step for parameters. Leave the parameter list empty on all ten.
 
 **Never add an import above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.**
 FlutterFlow rewrites those first lines on save and silently drops anything you
@@ -89,8 +91,11 @@ at once.**
 | `kandi-cart-v1` | The basket: a JSON list of lines |
 | `kandi-wishlist-v1` | Saved items: id, name, image, price |
 | `kandi-checkout-v1` | Delivery details, refilled next visit |
-| `kandi-auth-v1` | The bearer token from sign-in |
+| `kandi-auth-v1` | The shopper's bearer token |
 | `kandi-auth-name` | The name shown in the greeting |
+| `kandi-seller-auth-v1` | The **seller's** token — a different account |
+| `kandi-seller-name` | The store name shown in the Seller Centre |
+| `kandi-open-sort` | Which sort the shop page opens on |
 | `kandi-open-product` | Which product the product page opens |
 | `kandi-open-category` | Which aisle the shop page lists, as `slug\|Name` |
 | `kandi-open-search` | The term the search page runs |
@@ -109,8 +114,11 @@ Home ─┬─ tap a card ──────────→ Product ──→ Ca
       ├─ bottom bar: Shop ────→ Shop
       ├─ bottom bar: Saved ───→ Saved   ──→ Product
       ├─ bottom bar: Basket ──→ Cart
-      └─ bottom bar: Account ─→ Account ──→ Orders
-                                        └──→ Saved / Cart
+      └─ bottom bar: Account ─→ Account ─┬→ Orders
+                                         ├→ Seller Centre
+                                         └→ Saved / Cart
+
+Product ──→ "You might also like" ──→ another Product (in place)
 ```
 
 Home carries a bottom bar with all five destinations, so no page is more than
@@ -158,15 +166,32 @@ all work signed out; the only thing an account buys is order history, and the
 page says that rather than blocking the app behind a form. Registration and
 password resets link to the website.
 
-**Orders** — the one page that needs an account. With no token it says so and
-sends you to Account. A 401 clears the stored token, because a token the shop
+**Orders** — the one page that needs a shopper account. With no token it says so
+and sends you to Account. A 401 clears the stored token, because a token the shop
 has stopped accepting is not a session.
+
+**Seller Centre** — reached from Account. Signed in it shows revenue, orders,
+units sold, payout due and the listing counts for a 7/30/90-day range; signed out
+it shows the seller sign-in with "become a seller" underneath, so one row is
+correct for whoever taps it.
+
+> **A seller session is not a shopper session.** They are different accounts on
+> different endpoints, so the seller token lives under its own key. Sharing one
+> would mean signing in as a seller silently signed you out as a shopper — and
+> would send a seller token to the customer orders endpoint, which answers 401
+> and then clears it, logging the trader out of a session they never noticed
+> breaking. Most sellers here are also shoppers; both sessions coexist.
+
+Editing listings, uploading photographs and setting prices are **not** in the
+app. They need a real form, a media picker and a variations table, and a cramped
+version of that on a phone is how a seller publishes with the wrong price. Those
+rows open the Seller Centre on the website, which is built for it.
 
 ---
 
 ## Verified
 
-All nine files were type-checked against **Flutter 3.35 / Dart 3.9** in a
+All ten files were type-checked against **Flutter 3.35 / Dart 3.9** in a
 throwaway package with the FlutterFlow-only imports stubbed out:
 
 ```

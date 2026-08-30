@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '/custom_code/widgets/kandi_orders_screen.dart';
 import '/custom_code/widgets/kandi_wishlist_screen.dart';
 import '/custom_code/widgets/kandi_cart_screen.dart';
+import '/custom_code/widgets/kandi_seller_screen.dart';
 
 // ============================================================
 //  KANDI — ACCOUNT PAGE
@@ -501,11 +502,22 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
             onTap: () => _openWeb('/help'),
           ),
           const Divider(height: 1, color: _KColors.hairline),
+          // ---- The way into the other half of the marketplace ----
+          //
+          // This used to open /sell in a browser, which is the right
+          // destination for somebody who does not sell yet and the wrong one
+          // for somebody who does — a trader wanting today's takings was sent
+          // to a recruitment page.
+          //
+          // The Seller Centre handles both: signed in it shows the figures,
+          // signed out it shows the sign-in with "become a seller" underneath.
+          // One row, and it is correct for whoever taps it.
           _Row(
             icon: Icons.storefront_outlined,
-            label: 'Sell on Kandi',
-            trailing: Icons.open_in_new_rounded,
-            onTap: () => _openWeb('/sell'),
+            label: 'Seller Centre',
+            detail: 'Your sales, stock and payouts',
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const KandiSellerScreen())),
           ),
         ],
       ),

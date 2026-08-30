@@ -93,6 +93,42 @@ String _money(num amount) {
   return 'UGX $out';
 }
 
+/// A neighbouring product, for the rail at the foot of the page.
+///
+/// Deliberately thinner than the full product model: this rail needs a picture,
+/// a name, a price and an id to open. Parsing the rest would be carrying fields
+/// nothing on this screen draws.
+class _KRelated {
+  const _KRelated({
+    required this.id,
+    required this.name,
+    required this.image,
+    required this.priceLabel,
+  });
+
+  final int id;
+  final String name;
+  final String image;
+  final String priceLabel;
+
+  static List<_KRelated> listFrom(dynamic json) {
+    if (json is! List) return const [];
+    final out = <_KRelated>[];
+    for (final entry in json) {
+      if (entry is! Map) continue;
+      final id = entry['id'];
+      if (id is! int) continue;
+      out.add(_KRelated(
+        id: id,
+        name: (entry['name'] ?? '').toString(),
+        image: (entry['image'] ?? '').toString(),
+        priceLabel: (entry['priceLabel'] ?? '').toString(),
+      ));
+    }
+    return out;
+  }
+}
+
 /// One selectable attribute — "Size", with its values.
 class _KAttribute {
   const _KAttribute({required this.name, required this.values});
@@ -146,6 +182,15 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
   String? _sellerName;
   int _returnsDays = 0;
   num _freeDeliveryFrom = 0;
+
+  /// Other products from the same category.
+  ///
+  /// The API has been sending these all along and the screen was throwing them
+  /// away — a request paid for and discarded, and a product page with no onward
+  /// path except the back button. A shopper who does not want THIS item is one
+  /// tap from leaving; a rail of alternatives is the cheapest thing that keeps
+  /// them in the shop.
+  List<_KRelated> _related = const [];
 
   /// What the shopper has picked, keyed by attribute name.
   final Map<String, String> _chosen = {};
@@ -320,6 +365,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
       }
 
       _attributes = _KAttribute.listFrom(product['attributes']);
+      _related = _KRelated.listFrom(data['related']);
       // A one-value attribute is a fact about the product ("Material: Cotton"),
       // not a question — it is pre-selected rather than asked, which is the
       // same threshold the tile's `hasOptions` uses.
@@ -647,6 +693,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
         if (_attributes.isNotEmpty) _buildOptions(),
         if (_returnsDays > 0 || _freeDeliveryFrom > 0) _buildTerms(),
         if (_shortDescription.isNotEmpty) _buildDescription(),
+        if (_related.isNotEmpty) _buildRelated(),
         const SizedBox(height: _KSpace.xl),
       ],
     );
@@ -799,6 +846,106 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
                   fontSize: 13.5, height: 1.5, color: _KColors.body)),
         ],
       ),
+    );
+  }
+
+  /// Other products in the same category, at the foot of the page.
+  Widget _buildRelated() {
+    return Container(
+      margin: const EdgeInsets.only(top: _KSpace.md),
+      color: _KColors.panel,
+      padding: const EdgeInsets.symmetric(vertical: _KSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: _KSpace.lg),
+            child: Text('You might also like',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: _KColors.ink)),
+          ),
+          const SizedBox(height: _KSpace.md),
+          SizedBox(
+            height: 196,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: _KSpace.lg),
+              itemCount: _related.length,
+              separatorBuilder: (_, __) => const SizedBox(width: _KSpace.md),
+              itemBuilder: (context, index) {
+                final item = _related[index];
+                return SizedBox(
+                  width: 124,
+                  child: GestureDetector(
+                    // Replaces this screen rather than stacking another on top.
+                    // Browsing sideways through six related products should not
+                    // leave six product pages on the back stack, so that one
+                    // back tap returns to where the shopper actually came from.
+                    onTap: () => _openRelated(item),
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(_radiusChip),
+                          child: SizedBox(
+                            width: 124,
+                            height: 124,
+                            child: item.image.isEmpty
+                                ? const ColoredBox(color: _KColors.hairline)
+                                : CachedNetworkImage(
+                                    imageUrl: item.image,
+                                    fit: BoxFit.contain,
+                                    placeholder: (_, __) => const ColoredBox(
+                                        color: _KColors.hairline),
+                                    errorWidget: (_, __, ___) =>
+                                        const ColoredBox(
+                                            color: _KColors.hairline),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(item.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12, height: 1.3, color: _KColors.ink)),
+                        const SizedBox(height: 3),
+                        Text(item.priceLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: _KColors.ink)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Opens another product IN PLACE.
+  ///
+  /// `pushReplacement` with the id written first, so the replacement screen
+  /// reads the new id in its own `initState` exactly as a fresh open would.
+  Future<void> _openRelated(_KRelated item) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_openProductKey, '${item.id}');
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const KandiProductScreen()),
     );
   }
 

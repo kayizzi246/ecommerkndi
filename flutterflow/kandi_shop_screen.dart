@@ -84,6 +84,7 @@ const String _apiBase = 'https://kandiug.com';
 const String _basketKey = 'kandi-cart-v1';
 const String _openProductKey = 'kandi-open-product';
 const String _openCategoryKey = 'kandi-open-category';
+const String _openSortKey = 'kandi-open-sort';
 
 /// The sorts the API accepts, with the words a shopper uses for them.
 const List<({String key, String label})> _sorts = [
@@ -245,6 +246,7 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
   Future<void> _restore() async {
     String slug = '';
     String name = '';
+    String sort = _sort;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_openCategoryKey) ?? '';
@@ -256,6 +258,14 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
         slug = parts.first;
         name = parts.length > 1 ? parts[1] : parts.first;
       }
+
+      // A rail's "View all" asks for a sort as well as an aisle. Consumed for
+      // the same reason: it describes one arrival, not a preference.
+      final wanted = prefs.getString(_openSortKey) ?? '';
+      await prefs.remove(_openSortKey);
+      // Checked against the list rather than trusted: an unknown key would be
+      // sent to the API and come back as an unsorted page with no explanation.
+      if (_sorts.any((option) => option.key == wanted)) sort = wanted;
     } catch (_) {
       slug = '';
     }
@@ -263,7 +273,16 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
     if (!mounted) return;
     setState(() {
       _slug = slug;
-      if (name.isNotEmpty) _title = name;
+      _sort = sort;
+      if (name.isNotEmpty) {
+        _title = name;
+      } else if (sort != 'newest') {
+        // Named after the sort when there is no department, so a shopper who
+        // tapped "View all" under Best sellers does not land on a page headed
+        // "Shop" with no clue why these products are in this order.
+        final match = _sorts.where((option) => option.key == sort);
+        if (match.isNotEmpty) _title = match.first.label;
+      }
     });
     _load();
   }
