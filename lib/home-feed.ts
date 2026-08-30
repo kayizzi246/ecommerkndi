@@ -271,52 +271,6 @@ function summariseProof(pools: Product[][], stores: number): HomeProof {
   };
 }
 
-/**
- * A picture for every category, borrowed from the catalogue.
- *
- * ---- Why this exists ----
- *
- * `ProductCategory.image` is optional in WooCommerce and this shop has set none
- * of them, so the homepage's category row was a grid of coloured discs with a
- * single letter in each. That is a correct fallback and a poor shopfront: the
- * row's whole job is to say what the shop sells, and "M" does not say it.
- *
- * Every product already carries the categories it belongs to, and the feed
- * already fetches about a hundred products for the rails. So a representative
- * photograph for each category is sitting in memory by the time the rails are
- * built — this is a regrouping of data already in hand, not a fetch.
- *
- * ---- Deterministic, not random ----
- *
- * The obvious phrasing is "a random product from the category". It is not
- * random here, and deliberately: this page is prerendered and revalidated on a
- * timer, so a random pick would change the entire row every time the cache
- * turned over, and a shopper returning to a shop whose aisles look different on
- * every visit learns that the pictures mean nothing.
- *
- * First match wins instead, scanning the pools in the order the feed fetched
- * them. The result is stable for as long as the product is in stock and changes
- * only when the catalogue does, which is the behaviour a category thumbnail
- * should have.
- *
- * A category the sample never touches simply gets no entry, and the row falls
- * back to its lettered disc for that one.
- */
-function collectCategoryImages(pools: Product[][]): Record<number, string> {
-  const images: Record<number, string> = {};
-
-  for (const pool of pools) {
-    for (const product of pool) {
-      if (!product.image) continue;
-      for (const category of product.categories ?? []) {
-        // First writer wins — see the note above on why this is not random.
-        if (!images[category.id]) images[category.id] = product.image;
-      }
-    }
-  }
-
-  return images;
-}
 
 export type HomeFeed = {
   settings: SiteSettings;
@@ -348,15 +302,7 @@ export type HomeFeed = {
   latestTotalPages: number;
   /** Minimum products a department rail needs before it renders. */
   departmentMinimum: number;
-  /**
-   * A product photograph per category id, for the shop-by-department row.
-   *
-   * Keyed rather than merged into the category tree because the tree is shared
-   * with the mega-menu and the app, and neither wants a picture it will not
-   * draw. The row looks its own categories up and falls back to a lettered
-   * disc for any that are missing.
-   */
-  categoryImages: Record<number, string>;
+
   /**
    * Live evidence for the trust ribbon at the top of the homepage.
    *
@@ -765,12 +711,6 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     /* Summed over every pool the feed already fetched — the general catalogue,
        the discount pool, the featured picks and each department's twelve. No
        extra request of any kind. */
-    categoryImages: collectCategoryImages([
-      latest.products,
-      onSale.products,
-      featured.products,
-      ...departmentPools.map((department) => department.products),
-    ]),
     proof: summariseProof(
       [
         latest.products,

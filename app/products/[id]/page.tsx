@@ -302,7 +302,24 @@ export default async function ProductPage({
        capped at the shell, so tinting it directly would have left a white
        margin down each side — exactly the seam the shop asked to have removed
        from the homepage. */
-    <main className="pb-20 pt-3 lg:pb-12">
+    /* ---- White, where every other page takes the canvas ----
+
+         `StoreChrome` puts `bg-shop-canvas` behind the whole storefront, and
+         this is the one page that overrides it.
+
+         The canvas exists to separate shelves from each other: a homepage is a
+         stack of a dozen panels, and without a ground between them it reads as
+         one continuous stream. A product page has no stack. It is ONE product,
+         and every block on it — the gallery, the buy box, the tabs, the reviews
+         — is about that product. There is nothing to separate, so the ground is
+         separating a thing from itself.
+
+         White also buys the photography. This is the only page in the shop
+         where the picture is the size of a hand rather than a thumbnail, and
+         most of this catalogue is shot on white — a tinted page puts a visible
+         grey frame around every one of them at exactly the moment the shopper
+         is looking hardest. */
+    <main className="bg-white pb-20 pt-3 lg:pb-12">
       <div className="mx-auto max-w-[var(--shell)] px-4 md:px-8">
       <script
         type="application/ld+json"

@@ -164,7 +164,25 @@ export default function StoreChrome({
 
            The Seller Centre, admin, checkout and /sell all return before this
            point, so none of them inherits it. */}
-      <div className="flex-1 bg-shop-canvas">
+      {/* ---- The product page is white, and it has to be white out here ----
+
+           `bg-white` on the product page's own `<main>` is not enough. `<main>`
+           sits inside the shell cap on the line below, so on a 1920px monitor
+           it is 1720 wide and the canvas shows as a 100px strip down each side
+           — a white sheet floating on an off-white page, which is the exact
+           seam this wrapper was created to remove in the first place.
+
+           So the GROUND follows the route. A product page is one product and
+           has no stack of shelves to separate, which is what the canvas is for;
+           every other page has one and keeps it.
+
+           `startsWith` rather than an exact match, because the route is
+           `/products/[id]` and the id is a slug that can be anything. */}
+      <div
+        className={`flex-1 ${
+          pathname.startsWith("/products/") ? "bg-white" : "bg-shop-canvas"
+        }`}
+      >
         <div className="mx-auto w-full max-w-[var(--shell)]">{children}</div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's

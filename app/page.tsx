@@ -4,7 +4,7 @@ import DealCarousel from "@/components/DealCarousel";
 import HeroBanner from "@/components/home/HeroBanner";
 import MaximiseSavings from "@/components/home/MaximiseSavings";
 import TrustRibbon from "@/components/home/TrustRibbon";
-import ShopByCategory from "@/components/home/ShopByCategory";
+
 
 import SuperDeals from "@/components/home/SuperDeals";
 import SectionHeader from "@/components/home/SectionHeader";
@@ -92,8 +92,6 @@ export default async function Home() {
    */
   const {
     settings,
-    departments,
-    categoryImages,
     trending,
     sellerArrivals,
     promoProducts,
@@ -427,26 +425,45 @@ export default async function Home() {
              `imageOnly` still holds. No upload, no banner, no fallback text
              hero — see the prop's own note. */}
 
-        {/* ---- The department shortcut row is back, and this time it has a job ----
+        {/* ---- The category row is gone again, and this is the fifth time ----
 
-             It has been chips, then circles, then a card grid, and all three
-             were deleted with the same verdict: nobody could say what the row
-             was for that the masthead was not already doing. That verdict was
-             right every time it was made.
+             Chips, then `CategoryCircles`, then a card grid, then the tinted
+             tile grid this replaces. Every one was removed for a reason, and
+             this one has its own: on a catalogue this size half the tiles had no
+             photograph to draw.
 
-             It stopped being right when the department bar came out of the
-             masthead below `md`. A phone now reaches the catalogue's structure
-             through the hamburger and nothing else, so this row is not a second
-             route to the departments any more — on the shop's majority device
-             it is the only one. The full argument is at the head of
-             {@link ShopByCategory}.
+             `collectCategoryImages` finds a picture for a category by looking
+             through the products the feed already fetched, which is about a
+             hundred rows. A category with nothing in that sample gets no
+             picture and falls back to a letter on a tint — so the row rendered
+             Men, Women, Home Decor, Kids, Shoes and Hoodies as products, then
+             J, C, C, L, M and R as coloured squares. Six letters in a
+             twelve-tile grid is not a shopfront; it reads as a page that failed
+             to load.
 
-             Above the merchandise, against this page's own rule, and the rule
-             survives it: what the rule forbids is FOUR blocks of navigation
-             stacked into the opening screen, which is what it was written for.
-             This is one block, and it is the block that decides whether a
-             shopper who arrived wanting shoes finds out this shop sells them. */}
-        <ShopByCategory departments={departments} categoryImages={categoryImages} />
+             Fixing it properly would mean a picture per category from
+             WooCommerce — which is a content job in wp-admin, not a code one —
+             or a request per category, which is twelve round trips to decorate
+             navigation. Neither is worth the top of the page.
+
+             What the space buys instead is merchandise. The page now goes
+             banner → Trending, so the first thing under the artwork is priced
+             stock rather than a route to it.
+
+             `ShopByCategory` is DELETED rather than left unrendered, and
+             `categoryImages` came out of the feed with it — a component nothing
+             imports is a component nobody knows is dead, and a field nothing
+             reads is a request paid for and discarded.
+
+             ---- What this costs on a phone, stated plainly ----
+
+             The department bar was taken out of the masthead below `md`, so
+             with this gone a phone reaches the catalogue's structure through
+             the hamburger and the search field and nothing else. That is a real
+             loss for a shopper who arrived wanting shoes rather than a
+             specific thing. If it shows in the numbers, the cheapest fix is the
+             masthead strip — one line of scrolling department links — not
+             another tile grid. */}
 
         {/* ---- Three blocks reach a phone. The other six still do not ----
          *
@@ -798,6 +815,32 @@ export default async function Home() {
             free-delivery threshold from settings. None of them needs a
             full-width advertisement in the middle of the merchandise. */}
 
+        {/* ---- What this visitor was last looking at, ABOVE the endless grid ----
+
+             It has been second from the top, then last on the page, and it is
+             here now — directly before "Picked for you" rather than after it.
+
+             The argument for the foot was that a shopper who reaches the bottom
+             of the catalogue without buying is exactly the one worth handing
+             their own history back to. That is true of a shopper who REACHES
+             the bottom. "Picked for you" is the whole catalogue in a grid that
+             loads more as you scroll, so on a shop of any size the bottom is a
+             long way down and on a growing one it is effectively unreachable —
+             which makes the highest-intent block on the page the one almost
+             nobody sees.
+
+             Above it, the same rail is the last thing before the shopper starts
+             browsing everything, which is the moment their own trail is worth
+             most: they came back for something they had already looked at, and
+             it is now in front of them rather than forty screens under them.
+
+             Unchanged: it renders nothing at all when the list is empty, so a
+             first-time visitor never meets an empty shelf, and it reads from
+             `kandi-recently-viewed-v1` in their own browser — the same place
+             the product page writes it — so it leaves the device no more than
+             the basket does. */}
+        <RecentlyViewed className="" />
+
         <section className="shop-panel">
           <SectionHeader title="Picked for you" />
           <InfiniteProducts
@@ -806,32 +849,7 @@ export default async function Home() {
           />
         </section>
 
-        {/* ---- What this visitor was last looking at ----
-         *
-         * At the FOOT of the page, after the endless grid has run out.
-         *
-         * It used to be second from the top, and the argument for that was
-         * real: a shopper who leaves and comes back almost always came back for
-         * something specific and already seen, so putting it in front of them
-         * saves them finding it again. What that argument missed is that the
-         * slot it was occupying is the most valuable one on the page, and this
-         * rail is the only thing on the homepage that shows a returning shopper
-         * nothing they have not already looked at. Spending the second screen
-         * of a marketplace on stock somebody has demonstrably not bought yet is
-         * backwards — the rails above sell, this one reminds.
-         *
-         * Down here it is doing the job it is actually good at. "Picked for
-         * you" scrolls until the catalogue is exhausted, and the shopper who
-         * reaches the end of it without buying is precisely the one worth
-         * handing their own history back to. It is the last thing before the
-         * trust strip rather than a detour on the way in.
-         *
-         * Unchanged: it renders nothing at all when the list is empty, so a
-         * first-time visitor never sees an empty shelf, and it reads from
-         * `kandi-recently-viewed-v1` in their own browser — the same place the
-         * product page writes it — so it leaves the device no more than the
-         * basket does. */}
-        <RecentlyViewed className="" />
+
 
         <TrustBar returnsDays={settings.commerce.returns_days} />
 
