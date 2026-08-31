@@ -6,10 +6,9 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { absolute, breadcrumbJsonLd, collectionJsonLd, faqJsonLd } from "@/lib/seo";
 import CategoryIntro, { categoryFaqs } from "@/components/CategoryIntro";
 import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
-import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
-import Pagination from "@/components/Pagination";
+import FilteredProductGrid from "@/components/FilteredProductGrid";
 
 type Search = {
   page?: string;
@@ -345,8 +344,32 @@ export default async function CategoryPage({
                   more air than columns because a grid is scanned downwards, so
                   the join that was actually failing was a tile's last line of
                   text against the next tile's picture. */}
-              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {/* ---- `sizes`, spelled out, because this page is full-bleed ----
+              {/* ---- Endless, rather than numbered ----
+
+                  The grid and the page links below it were replaced by one
+                  component that owns both. It carries the same category, sort
+                  and filters the server ran for page one, so page two is the
+                  same query rather than a fresh one — and it re-applies
+                  `filterProducts` to what arrives, because the brand facet and
+                  the discount slider are refinements WordPress cannot make.
+                  Without that pass, scrolling a filtered category would append
+                  products the rail says are filtered out.
+
+                  `startPage` keeps `/category/shoes?page=3` working: those URLs
+                  are in Google and in people's history, and the grid carries on
+                  from where the server landed rather than re-fetching page two.
+
+                  See `FilteredProductGrid` and `useProductFeed`. */}
+              <FilteredProductGrid
+                initialProducts={visible}
+                totalPages={total_pages}
+                startPage={page}
+                query={{ category: slug, sort }}
+                filters={search}
+                sort={sort}
+                doneLabel={`That is everything in ${title}.`}
+                gridClassName="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                /* ---- `sizes`, spelled out, because this page is full-bleed ----
 
                     The tile's default hint ends in a fixed `240px`, which is
                     the right answer on a page bounded at `--shell`: above
@@ -366,20 +389,8 @@ export default async function CategoryPage({
 
                     These have to move if the column ramp, the rail width or
                     the gaps do. That is the standing cost of a grid that
-                    tracks the window instead of a fixed shell. */}
-                {visible.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 356px) / 4), (max-width: 1279px) calc((100vw - 388px) / 4), (max-width: 1535px) calc((100vw - 412px) / 6), calc((100vw - 424px) / 7)"
-                  />
-                ))}
-              </div>
-              <Pagination
-                basePath={`/category/${slug}`}
-                page={page}
-                totalPages={total_pages}
-                params={{ sort }}
+                    tracks the window instead of a fixed shell. */
+                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 356px) / 4), (max-width: 1279px) calc((100vw - 388px) / 4), (max-width: 1535px) calc((100vw - 412px) / 6), calc((100vw - 424px) / 7)"
               />
 
               {/* Below the grid deliberately. A shopper who arrived knowing what

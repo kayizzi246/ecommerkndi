@@ -1199,31 +1199,37 @@ h6,
   letter-spacing: 0;
 }
 
-/* ---------- Product names on a tile — 400, 13px ----------
+/* ---------- Product names on a tile — 600, 13px ----------
  * A grid tile's name and a product page's <h1> are the same string doing two
- * different jobs. They now agree on the weight and differ only in size.
+ * different jobs. They differ in size and now in weight.
  *
- * This was 600, on the argument that one clipped line of 400 under a
- * photograph reads as a caption rather than as the product's name. What that
- * missed is what the tile is FOR. A shopper scanning a grid is matching
- * pictures and prices; the name is what they read to confirm the match, and
- * confirming is reading, not scanning. At 600 every name in the grid was
- * competing with the price beside it and with the forty other names on the
- * screen, which is forty things shouting and none of them heard.
+ * This has been 600, then 400, and is 600 again. Both arguments are real and
+ * the one that decides it is which of them the TILE is built for.
  *
- * 400 puts the emphasis where the tile's own hierarchy wants it: photograph
- * first, price second, name third and legible. It is also what every
- * marketplace this grid is modelled on sets — Temu, AliExpress and Amazon all
- * run tile titles at regular weight with the price bold beneath.
+ * The case for 400, kept because it is still true of a one-line name: "a
+ * shopper scanning a grid is matching pictures and prices; the name is what
+ * they read to confirm the match, and confirming is reading, not scanning. At
+ * 600 every name in the grid was competing with the price beside it and with
+ * the forty other names on the screen."
  *
- * The colour still carries it. `text-shop-ink` is near-black, not the grey a
- * caption would take, so 400 here is quiet rather than secondary.
+ * What changed under it is the name itself. The tile now gives the name TWO
+ * lines rather than one clipped one (see `ProductCard`), and a two-line block
+ * of 400 at 13px is a paragraph — it stops reading as a label and starts
+ * reading as body copy that happens to sit under a photograph. At 600 the two
+ * lines read as one object with a name, which is what a tile is.
+ *
+ * The competition with the price is answered by the price rather than by the
+ * name: `.price` is 700 and a step larger, and it is the only coloured type in
+ * the tile on a reduction. Two weights apart is enough separation; it does not
+ * need three.
  *
  * Unlayered, like the h1–h6 rule it has to beat — a tile name is an <h3>, so
- * without this it would inherit the display face at 700. */
+ * without this it would inherit the display face at 700. Being unlayered also
+ * means it beats a Tailwind `font-*` utility at the call site, so this rule is
+ * the only place the weight can be changed. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 400;
+  font-weight: 600;
   /* Undoes the heading tracking. A product name is body copy that happens to be
      marked up as a heading and should be spaced like the sentences around it. */
   letter-spacing: 0;

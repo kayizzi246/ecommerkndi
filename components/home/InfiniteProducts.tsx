@@ -1,109 +1,55 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
 import ProductCard from "@/components/ProductCard";
+import ProductFeedFooter from "@/components/ProductFeedFooter";
+import { useProductFeed, type ProductFeedQuery } from "@/lib/use-product-feed";
 
 /**
- * The endless grid that closes the homepage.
+ * The endless product grid.
  *
- * The first page arrives rendered from the server, so the grid is full on
- * arrival and search engines index real products rather than an empty div. Each
- * further page loads when the sentinel at the foot scrolls into view.
+ * Page one arrives with the server render, so the shop is never empty on
+ * arrival and a crawler sees real products; everything after it is fetched as
+ * the shopper reaches the bottom. The paging itself lives in `useProductFeed`,
+ * which four grids now share — see that file for what it guarantees.
  *
- * An IntersectionObserver rather than a scroll handler: the browser reports when
- * the sentinel is visible instead of us asking on every frame, which is cheaper
- * and stays correct through resizes and back-navigation restores.
+ * ---- It is not just the homepage any more ----
  *
- * The "Load more" button is not a fallback for the observer — it is the
- * accessible path, because an infinite list with no control is unreachable for
- * anyone driving the page from the keyboard.
+ * This drew the homepage's "Picked for you" and the suggestions under a product
+ * page, and both wanted the same thing: the plain catalogue, optionally
+ * narrowed to one category. /sale, /search and the category pages were
+ * paginated instead, with numbered links at the foot.
+ *
+ * They are all infinite now, and `query` is what made that possible: the grid
+ * no longer assumes "the catalogue" but is told which listing it is a page of,
+ * and passes the same narrowing to `/api/products` that the server used for
+ * page one. That is the part that has to be right — a grid whose page two is a
+ * different query from its page one is a grid that silently mixes two lists.
  */
 export default function InfiniteProducts({
   initialProducts,
   totalPages,
   /**
-   * Restrict the grid to one category, by slug.
+   * The listing this grid is a page of.
    *
-   * The homepage leaves this off and gets the whole catalogue. A product page
-   * passes the category of the product being viewed, so its "You may also like"
-   * grid keeps pulling in neighbours of that item rather than drifting into the
-   * rest of the shop by page three.
+   * Defaulted to the whole catalogue, so the two callers that always wanted
+   * that — the homepage grid and a product page's suggestions, which passes a
+   * category — did not have to change shape.
    */
-  category,
-  /** Exclude one product from the grid — the one whose page this is. */
+  query = {},
   excludeId,
+  /** What the footer says once there is nothing left. */
+  doneLabel,
 }: {
   initialProducts: Product[];
   totalPages: number;
-  category?: string;
+  query?: ProductFeedQuery;
   excludeId?: number;
+  doneLabel?: string;
 }) {
-  const [products, setProducts] = useState(initialProducts);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const sentinel = useRef<HTMLDivElement>(null);
+  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId });
 
-  const done = page >= totalPages;
-
-  const loadMore = useCallback(async () => {
-    if (loading || done) return;
-
-    setLoading(true);
-    setFailed(false);
-
-    try {
-      const next = page + 1;
-      const response = await fetch(
-        `/api/products?page=${next}&per_page=24${
-          category ? `&category=${encodeURIComponent(category)}` : ""
-        }`
-      );
-      if (!response.ok) throw new Error(String(response.status));
-
-      const payload = (await response.json()) as { products: Product[] };
-
-      setProducts((current) => {
-        // WooCommerce can repeat a product across pages when the catalogue is
-        // edited mid-scroll; React would then throw on the duplicate key. The
-        // product whose page this is gets filtered out for the same reason it is
-        // filtered out of the first page — recommending the thing already on
-        // screen is not a recommendation.
-        const seen = new Set(current.map((product) => product.id));
-        return [
-          ...current,
-          ...payload.products.filter((p) => !seen.has(p.id) && p.id !== excludeId),
-        ];
-      });
-      setPage(next);
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, done, page, category, excludeId]);
-
-  useEffect(() => {
-    const node = sentinel.current;
-    // Nothing left to fetch, or a failure the shopper should retry by hand
-    // rather than have us hammer the endpoint automatically.
-    if (!node || done || failed) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore();
-      },
-      // Start a screen early, so the next row is usually there by the time the
-      // shopper reaches it.
-      { rootMargin: "600px" }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore, done, failed]);
-
-  if (products.length === 0) return null;
+  if (feed.products.length === 0) return null;
 
   return (
     <>
@@ -291,44 +237,14 @@ export default function InfiniteProducts({
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
       <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {products.map((product) => (
+        {feed.products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />
           </li>
         ))}
       </ul>
 
-      <div ref={sentinel} className="mt-10 flex justify-center">
-        {loading && (
-          <p className="text-[14px] text-shop-muted" role="status">
-            Loading more…
-          </p>
-        )}
-
-        {failed && (
-          <button
-            type="button"
-            onClick={loadMore}
-            className="rounded-lg border border-shop-line px-6 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
-          >
-            Could not load more — try again
-          </button>
-        )}
-
-        {!loading && !failed && !done && (
-          <button
-            type="button"
-            onClick={loadMore}
-            className="rounded-lg border border-shop-line px-8 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
-          >
-            Load more
-          </button>
-        )}
-
-        {done && (
-          <p className="text-[13px] text-shop-muted">You have seen everything in the shop.</p>
-        )}
-      </div>
+      <ProductFeedFooter feed={feed} doneLabel={doneLabel} />
     </>
   );
 }

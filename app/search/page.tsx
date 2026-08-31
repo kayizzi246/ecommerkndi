@@ -19,10 +19,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
-import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
-import Pagination from "@/components/Pagination";
+import FilteredProductGrid from "@/components/FilteredProductGrid";
 
 type Search = {
   q?: string;
@@ -141,21 +140,31 @@ export default async function SearchPage({
               </Link>
             </div>
           ) : (
-            <>
-              {/* 8/16 on a phone, 12/24 from sm — the shared product-grid
-                  rhythm. See the note in the category grid. */}
-              <div className="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {visible.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-              <Pagination
-                basePath="/search"
-                page={page}
-                totalPages={total_pages}
-                params={{ q: query, sort }}
-              />
-            </>
+            /* ---- Endless, rather than numbered ----
+
+               The grid and the page links here were replaced by one component
+               that owns both. It carries the same search, scope and filters the
+               server ran for page one, so page two is the same query rather than
+               a fresh one — and it re-applies `filterProducts` to what arrives,
+               because the brand facet and the discount slider are refinements
+               WordPress cannot make. See `FilteredProductGrid`.
+
+               `startPage` keeps `/search?...&page=3` working: those URLs are in
+               people's history, and the grid carries on from where the server
+               landed instead of re-fetching page two.
+
+               8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
+               See the note in the category grid. */
+            <FilteredProductGrid
+              initialProducts={visible}
+              totalPages={total_pages}
+              startPage={page}
+              query={{ q: query, category: scope, sort }}
+              filters={search}
+              sort={sort}
+              gridClassName="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              doneLabel="That is every match for this search."
+            />
           )}
         </div>
       </div>

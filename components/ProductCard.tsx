@@ -992,24 +992,48 @@ export default function ProductCard({
           between an object and its label. */}
       <div className="flex flex-1 flex-col gap-0 pt-2">
         <Link href={href} className="block">
-          {/* ---- One line, plain weight ----
+          {/* ---- Two lines, plain weight, and a fixed box ----
 
-              Two lines were reserved here so that a short name still held the
+              This was one truncated line, and the argument for that is kept
+              below because it was sound about the thing it was measuring. What
+              it got wrong is what a truncated line does to a real catalogue:
+              these names arrive from suppliers at forty to eighty characters —
+              "STY Men Cross-body Bag + Wallet + A Free Gift Set- Black" — and
+              one line at this width shows about the first twenty of them. A
+              row of tiles all reading "2 Pack Of Men's Faux Leather…" is a grid
+              a shopper cannot tell apart without opening things, which is the
+              one job the name has.
+
+              Two lines is what the marketplaces this grid is modelled on all
+              use, and it is the point at which a supplier title has said which
+              product it is. Three would start showing the keyword stuffing.
+
+              `min-h-[36px]` is the load-bearing half. `line-clamp-2` is a
+              ceiling, not a height, so a one-line name would leave its tile
+              16px shorter than its neighbours and the prices in a row would
+              land on two different lines — the exact misalignment the old
+              single line was reserving space to avoid. The box is fixed at both
+              ends instead: 2 × 18px leading, whether the name fills it or not.
+
+              The weight goes back to 600 with the second line, and the two
+              changes belong together: a two-line block at 400 reads as a
+              paragraph under a photograph, where the same two lines at 600 read
+              as one object with a name. `.product-name` carries the family and
+              the weight — it is unlayered, so it beats a `font-*` utility here
+              and `globals.css` is the only place that number can be changed.
+
+              ---- The earlier argument, for one line, kept ----
+
+              "Two lines were reserved here so that a short name still held the
               second one and the price below it never moved. The price is
               bottom-pinned now, so the second line was buying nothing and
               costing 16px on every tile — and a truncated second line is where
-              a supplier's keyword-stuffed title does its worst reading.
+              a supplier's keyword-stuffed title does its worst reading."
 
-              The weight went 600 → 400 with the grid: a name is what confirms
-              a match the photograph and the price already made, and forty
-              semibold names on a screen is forty things competing with the
-              prices under them. `.product-name` carries the family and weight
-              — see `globals.css` for the full argument.
-
-              `truncate` rather than `line-clamp-1`: on a single line they look
-              identical, and `truncate` is one property that also guarantees the
-              row cannot wrap in the first place. */}
-          <h3 className="product-name truncate text-[12px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary">
+              The 16px is real and it is what this change spends. It buys the
+              difference between a grid of distinguishable products and a grid
+              of identical prefixes. */}
+          <h3 className="product-name line-clamp-2 min-h-[36px] text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9.5px] font-bold leading-[14px] ${chip.className}`}

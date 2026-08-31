@@ -196,13 +196,17 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      a two-line clamp under it. Every other tile on the site puts
                      the name first and lets the price be the line the eye lands
                      on last and hardest, and the hierarchy is carried by weight
-                     and size rather than by order: `.product-name` is 400,
-                     `.price` is 700.
+                     and size rather than by order: `.product-name` is 600,
+                     `.price` is 700 and a step larger.
 
-                     `truncate` rather than the old `line-clamp-2`, again
-                     matching `ProductCard`: one line means every tile in the row
-                     is the same height, which is the whole reason that card
-                     fixes its text rows. */}
+                     `truncate` rather than `line-clamp-2`, and this is now a
+                     deliberate DIVERGENCE from `ProductCard` rather than a match
+                     to it. That card went to two lines because a grid tile's
+                     name is what tells forty near-identical supplier titles
+                     apart. This is a horizontal rail of things the shopper has
+                     already opened — they know what these are — so the name is
+                     a reminder rather than an identification, and one line
+                     keeps every tile in the row the same height. */}
                 <h3 className="product-name mt-2 truncate text-[12px] leading-[17px] text-shop-ink transition-colors group-hover:text-shop-primary">
                   {item.name}
                 </h3>

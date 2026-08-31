@@ -13,7 +13,6 @@ import CuratedNav from "@/components/CuratedNav";
 import CategoriesMenu from "@/components/CategoriesMenu";
 import CategoryDrawer from "@/components/CategoryDrawer";
 import AccountMenu from "@/components/AccountMenu";
-import SalesTicker from "@/components/SalesTicker";
 
 /**
  * Storefront masthead, in the large-marketplace layout, and it is now THREE
@@ -193,9 +192,6 @@ export default function Header({
      then moved the page under it. */
   const slidUp = hidden && !menuOpen;
 
-  const threshold = settings.commerce.free_delivery_from;
-  const awayFromFreeDelivery = Math.max(0, threshold - subtotal);
-
   return (
     // Once the department bar folds away on a phone there is no rule between
     // the masthead and the grid scrolling under it, and something has to say
@@ -219,130 +215,36 @@ export default function Header({
         slidUp ? "-translate-y-full" : "translate-y-0"
       }`}
     >
-      {/* ---- Announcement strip ----
-           A near-black rule across the top, carrying the shop's three
-           strongest promises — pay on delivery, free returns, the sale.
+      {/* ---- The announcement strip is gone ----
 
-           ---- It was orange, and the orange moved down a row ----
+           An orange band across the very top of every page, carrying the
+           rotating promise ticker, the free-delivery progress line once there
+           was something in the basket, and the sale link on the right. It was
+           the third band of chrome above the fold — strip, masthead, department
+           bar — and on a phone those three took about 150px before a shopper
+           saw anything they could buy.
 
-           The strip and the working row have swapped grounds. Orange can only
-           be spent once, and it buys more on the row that carries the logo, the
-           search field and the cart than it does on a thin marketing band above
-           them: on the working row it makes the masthead one brand object, on
-           the strip it made the chrome three unrelated bands. Every marketplace
-           this shop is measured against paints the working row and leaves the
-           utility strip dark.
+           Nothing it said is lost, and that is what made it safe to remove:
 
-           So the strip takes `shop-nav`, the same near-black as the footer and
-           the admin masthead, and its type goes white at 85% — 14:1. The old
-           note below argued the type here could not be white because white on
-           #ff6a00 is 2.9:1. True, and that constraint moved down with the
-           colour; it now governs the row beneath, not this one.
+             " The free-delivery threshold is in the account panel on the
+               homepage, on every product page beside the price, and in the
+               footer.
+             " Pay on delivery and the returns window are stated on every
+               product page and in the footer.
+             " The sale is a channel in the homepage strip and a link in the
+               department bar on every page.
 
-           This has been white on white (palest text on the page, read by
-           nobody), then near-black (read, but receded), then yellow. Yellow
-           worked — black on #facc15 is 11:1 — and its only fault was being a
-           second brand colour in a shop that has one. Orange says the same
-           thing in the shop's own hue: the strip rather than the type is what
-           does the shouting, which is why it survives the row beneath it going
-           from gray-900 back to white.
+           What it uniquely carried was the LIVE nudge — "add UGX 12,000 more
+           for free delivery" — which is genuinely useful and is now only in the
+           basket drawer. If that is missed, the place to put it back is the
+           drawer's own header or the basket page, not a band above the logo.
 
-           The white-on-orange limit did not disappear with the colour, it moved
-           one row down and is answered there: the working row keeps near-black
-           type on its new orange ground. See the note on that row.
-
-           Once there is something in the cart the rotating line gives way to
-           live free-delivery progress, which is the more useful message. Every
-           figure is real: the threshold from settings, the shopper's own
-           subtotal, the payment methods actually accepted at checkout. */}
-      {/* ---- Once it is gone, it stays gone ----
-           This was `hidden md:block` when scrolled, so the strip folded away on
-           a phone and stayed put on a desktop. It is now hidden at every width
-           past the first scroll, and that matters more than it did before the
-           masthead started sliding.
-
-           The strip is an opening statement — the promises a shopper reads once
-           on arrival and does not need again. When the header slides back in on
-           a scroll up, it is answering a specific reach for search or the cart,
-           and bringing 32px of rotating marketing back with it would push the
-           thing they actually reached for further down the screen. What returns
-           is the working row and nothing else. */}
-      {/* ---- Brand orange, with near-black on it ----
-
-           The strip has been orange before and the note below records why the
-           call to action changed shape when it was. What is different this time
-           is the TEXT colour, and it is the whole reason an orange strip works
-           at all: white on #ff6a00 is 2.9:1 and fails AA at every size, which
-           is what made the last orange bar a compromise. Near-black on it is
-           6.2:1, and at 85% — which is what the rest of the row runs at —
-           still 5.1:1. So the row is legible at 11px, which is the size it is.
-
-           Measured, not assumed: #111827 on #ff6a00. */}
-      <div
-        className={`bg-shop-primary text-shop-ink/85 ${scrolled ? "hidden" : ""}`}
-      >
-        {/* 11.5px, and the lines inside are plain rather than semibold. This
-            strip is the smallest thing on the page and it was set in the same
-            weight as the navigation under it, which is what made three bands
-            of chrome read as three headlines. A promise bar is read once on
-            arrival; it does not need to be heavy to be seen, it needs to be
-            small and out of the way, which it is. */}
-        <div className="mx-auto flex max-w-[var(--shell)] items-center justify-between gap-4 px-4 py-1.5 text-[11px] md:px-8">
-          {count > 0 && awayFromFreeDelivery > 0 ? (
-            <button
-              type="button"
-              onClick={openDrawer}
-              className="truncate font-medium transition-opacity hover:opacity-85"
-            >
-              Add {formatPrice(awayFromFreeDelivery)} more for FREE delivery ›
-            </button>
-          ) : count > 0 ? (
-            /* No emoji. This is a line about money in a strip that also
-               carries the delivery threshold and the returns window — a party
-               popper next to it makes the whole row read as marketing rather
-               than as the shop telling you what you will be charged. */
-            <span className="truncate font-medium">
-              Delivery on this order is free
-            </span>
-          ) : (
-            <SalesTicker messages={settings.ticker} className="min-w-0 font-medium" />
-          )}
-
-          <div className="hidden shrink-0 items-center gap-5 sm:flex">
-            {settings.promo.lines.slice(1, 3).map((line, index) => (
-              <span key={line} className={index === 1 ? "hidden md:inline" : undefined}>
-                {line}
-              </span>
-            ))}
-            {/* The one accent in the strip, and with the strip near-black it
-                goes back to being a COLOUR rather than a fill.
-
-                It was a white pill, and the note that made it one was correct
-                for the bar it was written on: an orange strip leaves no orange
-                to differentiate with, so the call to action had to separate by
-                shape and brightness instead of hue. A near-black strip gives
-                the hue back — brand orange on #111827 is 5.9:1 — so the pill's
-                whole reason for existing is gone.
-
-                Dropping it is worth more than the contrast. A rounded white
-                capsule in a 24px-tall utility strip is the single most generic
-                object a header can contain; the strips this one is modelled on
-                run their calls to action as plain underlined type, because a
-                utility bar is a row of links and should look like one. The
-                underline is what makes it read as clickable without a fill. */}
-            <Link
-              href={settings.promo.cta_url}
-              /* Solid ink against the row's 85%, plus the underline. Flame
-                 was the accent while the strip was near-black — on brand
-                 orange it measures 1.8:1, which is not an accent, it is
-                 camouflage. The lift here is weight and opacity instead. */
-              className="font-bold text-shop-ink underline decoration-shop-ink/40 underline-offset-[3px] transition-colors hover:decoration-shop-ink"
-            >
-              {settings.promo.cta_label} ›
-            </Link>
-          </div>
-        </div>
-      </div>
+           The markup is deleted rather than hidden, since a block behind a
+           permanent `false` is a block nobody knows is dead. `SalesTicker` goes
+           with it: this strip was its only caller, so the component is deleted
+           too rather than left sitting unimported. `settings.ticker` still
+           carries the lines in wp-admin, and the history has the component if a
+           rotating promise line is ever wanted somewhere else. */}
       {/* ---- Main row ----
            White, tight, and dominated by the search field — the marketplace
            masthead. Search is the primary way into a catalogue this size, so it

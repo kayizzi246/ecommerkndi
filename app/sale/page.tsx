@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductsSafe } from "@/lib/woocommerce";
@@ -6,9 +6,8 @@ import { sortProducts, toProductQuery } from "@/lib/sort-products";
 import { discountPercent, formatPrice } from "@/lib/currency";
 import { getSiteSettings } from "@/lib/site-settings";
 import { breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
-import ProductCard from "@/components/ProductCard";
 import SortDropdown from "@/components/SortDropdown";
-import Pagination from "@/components/Pagination";
+import SaleBoard from "@/components/SaleBoard";
 import FlashSaleCountdown from "@/components/FlashSaleCountdown";
 
 export const metadata = {
@@ -111,19 +110,14 @@ export default async function SalePage({
    * under two others. So the bands are the DEFAULT arrangement, and choosing
    * a sort replaces them with the flat grid, which is what was asked for.
    */
-  const banded = !sort;
-  const bands = banded
-    ? TIERS.map((tier, index) => ({
-        ...tier,
-        /* Walked deepest-first, each band taking what the one above it did
-           not, so a product lands in exactly one of them. */
-        products: sorted.filter((product) => {
-          const cut = discountPercent(product.regular_price, product.price);
-          const ceiling = index === 0 ? Infinity : TIERS[index - 1].min;
-          return cut >= tier.min && cut < ceiling;
-        }),
-      })).filter((tier) => tier.products.length > 0)
-    : [];
+  /* The banding itself moved into `SaleBoard`, and it had to: the bands are
+     recomputed from every product on the board each time another page arrives,
+     which is a client concern now that the board scrolls forever. `TIERS` is
+     still declared here, beside the page that names them, and passed in.
+
+     What is kept above is the argument for WHY a chosen sort replaces the
+     bands rather than reordering within them. `SaleBoard` applies the same
+     rule; this is where it is explained. */
 
   return (
     <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-12">
@@ -212,42 +206,19 @@ export default async function SalePage({
           copy="Nothing is reduced at the moment. The shop's newest stock is still worth a look."
         />
       ) : (
-        <>
-          {banded ? (
-            bands.map((band) => (
-              <section
-                key={band.id}
-                className="shop-panel shop-panel-strong mb-1"
-                /* The band colour, read by the same rule the homepage shelves
-                   use. Inline because it is per-band data rather than one of
-                   the eight fixed shelves that each have a class. */
-                style={{ ["--shelf"]: band.shelf } as CSSProperties}
-              >
-                <div className="section-head flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h2 className="heading-black text-[18px] md:text-[21px]">
-                    {band.title}
-                  </h2>
-                  <p className="section-sub text-[13px]">
-                    {band.products.length}{" "}
-                    {band.products.length === 1 ? "product" : "products"}
-                  </p>
-                </div>
-                <div className={GRID}>
-                  {band.products.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              </section>
-            ))
-          ) : (
-            <div className={GRID}>
-              {sorted.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
-          <Pagination basePath="/sale" page={page} totalPages={total_pages} params={{ sort }} />
-        </>
+        <SaleBoard
+          initialProducts={sorted}
+          totalPages={total_pages}
+          /* The page the server rendered. Almost always 1 — /sale no longer
+             produces numbered URLs — but `?page=` is still honoured above for
+             the links already in Google and in people's history, and the board
+             carries on from wherever that landed rather than re-fetching a page
+             the shopper is already looking at. */
+          startPage={page}
+          sort={sort}
+          tiers={TIERS}
+          gridClassName={GRID}
+        />
       )}
     </main>
   );

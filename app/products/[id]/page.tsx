@@ -489,7 +489,11 @@ export default async function ProductPage({
           <InfiniteProducts
             initialProducts={related}
             totalPages={relatedTotalPages}
-            category={brand?.slug}
+            /* The grid takes the whole listing now rather than a bare category,
+               so that its page two is the same query the server used for page
+               one. Same narrowing as before — this section is the brand's own
+               shelf — just stated in the shape every infinite grid uses. */
+            query={{ category: brand?.slug }}
             excludeId={product.id}
           />
         </section>
