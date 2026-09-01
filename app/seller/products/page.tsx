@@ -59,16 +59,33 @@ export default function SellerProductsPage() {
   const [editing, setEditing] = useState<SellerProduct | null>(null);
 
   /**
-   * Bulk delete, in two states: `confirming` puts the second step on screen,
-   * `progress` runs while the listings are going.
+   * Bulk delete, in two states: `confirming` puts the second step on screen and
+   * says WHICH set it is about, `progress` runs while the listings are going.
    *
    * Deliberately not a `window.confirm`, which is what a single delete uses.
    * A browser dialog is one click away from emptying a whole shop, it cannot
-   * say WHICH listings are about to go, and it cannot show progress while
+   * say which listings are about to go, and it cannot show progress while
    * eleven requests run. The in-page panel does all three.
    */
-  const [confirmingBulk, setConfirmingBulk] = useState(false);
+  const [confirming, setConfirming] = useState<"listed" | "selected" | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
+  /**
+   * The ticked rows, by id.
+   *
+   * Ids rather than products, so a row that is edited or restocked while ticked
+   * stays ticked — the set would otherwise be holding a stale copy of a product
+   * that has since been replaced in `products`.
+   *
+   * The selection SURVIVES a filter or search change, which is the behaviour
+   * every mail client has trained people to expect: search "boots", tick three,
+   * search "shoes", tick two more, delete five. It is also safe in a way that a
+   * blanket "delete everything" is not — every one of those rows was ticked by
+   * hand. Where it could still surprise, the confirmation says so out loud: if
+   * some of the ticked rows are not on screen under the current filter, the
+   * panel counts them separately.
+   */
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -190,7 +207,7 @@ export default function SellerProductsPage() {
    * Whether the delete-all button is aimed at the entire catalogue or at a
    * filtered subset of it.
    *
-   * The button acts on what is LISTED, never on what is hidden behind a filter.
+   * That button acts on what is LISTED, never on what is hidden behind a filter.
    * With no filter and no search that is every product, which is what the button
    * is for; with "Out of stock" selected it is those four, and the label and the
    * confirmation both say so. The alternative — a button that always deletes
@@ -199,17 +216,57 @@ export default function SellerProductsPage() {
    */
   const bulkIsEverything = filter === "all" && query.trim().length === 0;
 
-  const removeAll = async () => {
-    // Snapshotted before the first request: `visible` is derived from
-    // `products`, which this loop empties as it goes, so iterating it directly
-    // would delete the first item and then walk a list that had moved.
-    const targets = [...visible];
-    if (targets.length === 0) return;
+  /** The ticked rows that still exist, in catalogue order. */
+  const selectedProducts = useMemo(
+    () => (products ?? []).filter((product) => selected.has(product.id)),
+    [products, selected]
+  );
 
-    setConfirmingBulk(false);
+  /** Ticked rows the current filter is hiding — named in the confirmation. */
+  const selectedOffScreen =
+    selectedProducts.length - visible.filter((product) => selected.has(product.id)).length;
+
+  const allListedSelected =
+    visible.length > 0 && visible.every((product) => selected.has(product.id));
+  const someListedSelected = visible.some((product) => selected.has(product.id));
+
+  const toggleOne = (id: number) => {
+    setConfirming(null);
+    setSelected((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  };
+
+  /** The header checkbox: ticks every listed row, or unticks them all. */
+  const toggleAllListed = () => {
+    setConfirming(null);
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const product of visible) {
+        if (allListedSelected) next.delete(product.id);
+        else next.add(product.id);
+      }
+      return next;
+    });
+  };
+
+  /** What the open confirmation is about, recomputed live rather than frozen. */
+  const bulkTargets = confirming === "selected" ? selectedProducts : visible;
+
+  const removeMany = async (targets: SellerProduct[]) => {
+    // Copied before the first request: both `visible` and `selectedProducts`
+    // are derived from `products`, which this loop empties as it goes, so
+    // iterating one directly would delete the first item and then walk a list
+    // that had moved under it.
+    const queue = [...targets];
+    if (queue.length === 0) return;
+
+    setConfirming(null);
     setError(null);
     setNotice(null);
-    setBulkProgress({ done: 0, total: targets.length });
+    setBulkProgress({ done: 0, total: queue.length });
 
     let deleted = 0;
     const failed: string[] = [];
@@ -218,15 +275,22 @@ export default function SellerProductsPage() {
     // revalidates the storefront's product cache (see the seller proxy), so
     // firing eleven at once asks WordPress to rebuild the shop eleven times
     // over. One at a time is also what makes the progress count honest.
-    for (const product of targets) {
+    for (const product of queue) {
       try {
         await sellerApi.deleteProduct(product.id);
         deleted += 1;
         setProducts((current) => (current ?? []).filter((entry) => entry.id !== product.id));
+        // Untick as it goes, so a partial run leaves the selection holding
+        // exactly the rows that are still there to try again.
+        setSelected((current) => {
+          const next = new Set(current);
+          next.delete(product.id);
+          return next;
+        });
       } catch {
         failed.push(product.name);
       }
-      setBulkProgress({ done: deleted + failed.length, total: targets.length });
+      setBulkProgress({ done: deleted + failed.length, total: queue.length });
     }
 
     setBulkProgress(null);
@@ -272,8 +336,9 @@ export default function SellerProductsPage() {
                   setFilter(entry.value);
                   // An open confirmation names a count and a filter. Changing
                   // either underneath it would leave a panel saying "delete
-                  // these 4" above a list of eleven.
-                  setConfirmingBulk(false);
+                  // these 4" above a list of eleven. The SELECTION survives —
+                  // see the note on that state.
+                  setConfirming(null);
                 }}
                 disabled={bulkProgress !== null}
                 aria-pressed={active}
@@ -297,7 +362,7 @@ export default function SellerProductsPage() {
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
-              setConfirmingBulk(false);
+              setConfirming(null);
             }}
             placeholder="Search by name or SKU"
             className="field-shop w-full max-w-[280px] text-[15px]"
@@ -312,9 +377,9 @@ export default function SellerProductsPage() {
           {visible.length > 0 && (
             <button
               type="button"
-              onClick={() => setConfirmingBulk((open) => !open)}
+              onClick={() => setConfirming((open) => (open === "listed" ? null : "listed"))}
               disabled={bulkProgress !== null}
-              aria-expanded={confirmingBulk}
+              aria-expanded={confirming === "listed"}
               className="shrink-0 rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink disabled:opacity-50"
             >
               {bulkIsEverything ? "Delete all" : `Delete these ${visible.length}`}
@@ -323,13 +388,92 @@ export default function SellerProductsPage() {
         </div>
       </div>
 
+      {/* ---- The selection bar ----
+
+          Tick-and-delete and delete-all are two different jobs, and this shop
+          needs both: "clear the lot" is one click above, and "these four, not
+          those seven" is what a seller actually does most of the time. They
+          share one confirmation panel and one delete loop; all that differs is
+          which list is handed to it.
+
+          The bar is always on screen while there are rows — not only once
+          something is ticked — because a selection UI a seller has to discover
+          by hovering is one they never find. The right-hand half appears with
+          the first tick. */}
+      {products !== null && visible.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-shop-line bg-white px-4 py-2.5">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[14px] font-semibold text-shop-body">
+            <input
+              type="checkbox"
+              checked={allListedSelected}
+              // Half-ticked when only some of the listed rows are: the tri-state
+              // is a DOM property, not an attribute, so it can only be set on
+              // the node itself.
+              ref={(node) => {
+                if (node) node.indeterminate = someListedSelected && !allListedSelected;
+              }}
+              onChange={toggleAllListed}
+              disabled={bulkProgress !== null}
+              className="h-[18px] w-[18px] shrink-0 cursor-pointer accent-shop-primary"
+            />
+            Select all {visible.length}
+          </label>
+
+          {selectedProducts.length > 0 && (
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <span className="text-[14px] font-semibold text-shop-ink">
+                {selectedProducts.length} selected
+                {selectedOffScreen > 0 && (
+                  <span className="font-medium text-shop-muted">
+                    {" "}
+                    ({selectedOffScreen} not shown here)
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setConfirming((open) => (open === "selected" ? null : "selected"))
+                }
+                disabled={bulkProgress !== null}
+                aria-expanded={confirming === "selected"}
+                className="rounded-lg border border-shop-ink/25 px-4 py-2 text-[14px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline disabled:opacity-50"
+              >
+                Delete {selectedProducts.length}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(new Set());
+                  setConfirming(null);
+                }}
+                disabled={bulkProgress !== null}
+                className="rounded-lg px-3 py-2 text-[14px] font-semibold text-shop-body transition-colors hover:text-shop-ink disabled:opacity-50"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* The second step. It names the number, says where the listings go, and
           puts the destructive button beside a Cancel of equal weight. */}
-      {confirmingBulk && bulkProgress === null && visible.length > 0 && (
+      {confirming !== null && bulkProgress === null && bulkTargets.length > 0 && (
         <div className="mb-4 rounded-xl border border-shop-ink/20 bg-shop-hairline px-4 py-3.5">
           <p className="text-[15px] font-semibold text-shop-ink">
-            Delete {visible.length} {visible.length === 1 ? "product" : "products"}
-            {bulkIsEverything ? " — everything in your store" : " matching this filter"}?
+            Delete {bulkTargets.length} {bulkTargets.length === 1 ? "product" : "products"}
+            {confirming === "selected"
+              ? // Ticked rows the filter is hiding are the one case where the
+                // count on the button is bigger than the list underneath it, so
+                // it is spelled out rather than left to be discovered after.
+                selectedOffScreen > 0
+                ? ` — including ${selectedOffScreen} not shown by this filter`
+                : " you selected"
+              : bulkIsEverything
+                ? " — everything in your store"
+                : " matching this filter"}
+            ?
           </p>
           <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-shop-body">
             They come off the shop straight away and move to the bin, so Kandi
@@ -339,14 +483,14 @@ export default function SellerProductsPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={removeAll}
+              onClick={() => removeMany(bulkTargets)}
               className="rounded-lg bg-shop-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
             >
-              Yes, delete {visible.length}
+              Yes, delete {bulkTargets.length}
             </button>
             <button
               type="button"
-              onClick={() => setConfirmingBulk(false)}
+              onClick={() => setConfirming(null)}
               className="rounded-lg border border-shop-line bg-white px-5 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
             >
               Cancel
@@ -407,6 +551,8 @@ export default function SellerProductsPage() {
               key={product.id}
               product={product}
               busy={busyId === product.id || bulkProgress !== null}
+              selected={selected.has(product.id)}
+              onSelect={() => toggleOne(product.id)}
               onRestock={(quantity) => restock(product, quantity)}
               onEdit={() => setEditing(product)}
               onVisibility={(hide) => setVisibility(product, hide)}
@@ -434,6 +580,8 @@ export default function SellerProductsPage() {
 function ProductRow({
   product,
   busy,
+  selected,
+  onSelect,
   onRestock,
   onEdit,
   onVisibility,
@@ -441,6 +589,8 @@ function ProductRow({
 }: {
   product: SellerProduct;
   busy: boolean;
+  selected: boolean;
+  onSelect: () => void;
   onRestock: (quantity: number) => void;
   onEdit: () => void;
   onVisibility: (hide: boolean) => void;
@@ -471,9 +621,32 @@ function ProductRow({
     <li
       className={`rounded-2xl border bg-white p-4 transition-opacity ${
         busy ? "opacity-60" : ""
-      } ${soldOut ? "border-pop-red/40" : "border-shop-line"}`}
+      } ${
+        // A ticked row is marked by its EDGE, not by a fill. A tinted row would
+        // fight the status badges it carries — "Out of stock" already colours
+        // this border — and eleven tinted rows in a column read as a broken
+        // page rather than as a selection.
+        selected
+          ? "border-shop-primary ring-1 ring-shop-primary/30"
+          : soldOut
+            ? "border-pop-red/40"
+            : "border-shop-line"
+      }`}
     >
       <div className="flex flex-wrap items-center gap-4">
+        {/* The tick. Its own label rather than a bare input, so the hit area is
+            the full height of the row's left edge rather than 18px of it. */}
+        <label className="flex shrink-0 cursor-pointer items-center self-stretch pr-0.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onSelect}
+            disabled={busy}
+            aria-label={`Select ${product.name}`}
+            className="h-[18px] w-[18px] cursor-pointer accent-shop-primary"
+          />
+        </label>
+
         {/* Thumbnail + title */}
         <div className="flex min-w-0 flex-1 items-center gap-3.5">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-shop-hairline">
