@@ -28,9 +28,54 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* -------------------------------------------------------------------------
+ * 0. Loading twice must not be fatal
+ *
+ * This plugin was activated a second time from a second directory — the file
+ * had been uploaded both as `kandi-notifications/kandi-notifications.php` and
+ * loose in `wp-content/plugins/`, so wp-admin listed "Kandi Notifications"
+ * twice and activating the idle copy while the other was live produced:
+ *
+ *     Fatal error: Cannot redeclare kandi_mail_brand()
+ *     (previously declared in .../kandi-notifications.php:34)
+ *
+ * which wp-admin reports only as "Plugin could not be activated because it
+ * triggered a fatal error." Every function here was declared bare, so the
+ * first one PHP reached on the second pass killed the request.
+ *
+ * ---- Two guards, because one of them does not do what it looks like ----
+ *
+ * The `defined()` return below stops the `add_action` at the foot of the file
+ * running twice. It does NOT stop the redeclare, and that is the part worth
+ * writing down: PHP early-binds functions that are declared UNCONDITIONALLY at
+ * the top level of a file, registering them while the file is compiled — which
+ * happens before any of its statements execute. A `return` on line 40 is
+ * reached long after `kandi_mail_brand()` has already been declared and has
+ * already collided.
+ *
+ * What actually prevents it is the `if ( ! function_exists( … ) ) :` wrapper
+ * around each function below. A conditionally-declared function is bound when
+ * execution reaches it, not at compile time, so the second copy finds the name
+ * taken and skips it. This is the same pairing `kandi-customer-auth.php` uses.
+ *
+ * The wrappers use the alternative `:` / `endif;` syntax rather than braces so
+ * that six hundred lines of function bodies keep their indentation and the
+ * change stays readable in a diff.
+ *
+ * Re-adding the same hook twice is harmless either way — WordPress keys a
+ * callback by name and replaces rather than appends — so the worst a duplicate
+ * copy can now do is nothing at all.
+ * ---------------------------------------------------------------------- */
+
+if ( defined( 'KANDI_NOTIFICATIONS_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_NOTIFICATIONS_LOADED', true );
+
+/* -------------------------------------------------------------------------
  * 1. Branding, read from the storefront settings so email matches the shop
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_mail_brand' ) ) :
 function kandi_mail_brand() {
 	$settings = get_option( 'kandi_storefront_settings', array() );
 	$settings = is_array( $settings ) ? $settings : array();
@@ -70,6 +115,7 @@ function kandi_mail_brand() {
 			: home_url(),
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 2. The one email template
@@ -84,9 +130,11 @@ function kandi_mail_brand() {
  * the message is set in the reader's own interface font — which is what every
  * WooCommerce, Amazon and Jumia receipt does, and why they look native.
  */
+if ( ! function_exists( 'kandi_mail_font' ) ) :
 function kandi_mail_font() {
 	return "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
 }
+endif;
 
 /**
  * Wraps a message in the shop's letterhead.
@@ -125,6 +173,7 @@ function kandi_mail_font() {
  * @param array  $cta      Optional array( 'label' => …, 'url' => … ).
  * @param string $preview  Optional inbox preview line. Falls back to the heading.
  */
+if ( ! function_exists( 'kandi_mail_template' ) ) :
 function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
 	$brand = kandi_mail_brand();
 	$font  = kandi_mail_font();
@@ -271,6 +320,7 @@ function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
 		esc_html( wp_parse_url( $brand['url'], PHP_URL_HOST ) ?: $brand['name'] )
 	);
 }
+endif;
 
 /**
  * Sends one branded HTML email. Returns wp_mail's own result.
@@ -278,6 +328,7 @@ function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
  * The Seller Centre calls this when it is available and drops back to plain
  * wp_mail when it is not, so the two plugins stay independent.
  */
+if ( ! function_exists( 'kandi_send_mail' ) ) :
 function kandi_send_mail( $to, $subject, $heading, $body, $cta = null, $preview = '' ) {
 	if ( ! $to || ! is_email( $to ) ) {
 		return false;
@@ -314,6 +365,7 @@ function kandi_send_mail( $to, $subject, $heading, $body, $cta = null, $preview 
 
 	return $sent;
 }
+endif;
 
 /**
  * Turns the HTML body into readable plain text for the multipart alternative.
@@ -321,6 +373,7 @@ function kandi_send_mail( $to, $subject, $heading, $body, $cta = null, $preview 
  * Not a general HTML-to-text converter — it only has to handle the markup this
  * plugin generates: paragraphs, line breaks, list items and a button.
  */
+if ( ! function_exists( 'kandi_mail_plain_text' ) ) :
 function kandi_mail_plain_text( $heading, $body, $cta = null ) {
 	$text = str_ireplace(
 		array( '</p>', '<br>', '<br/>', '<br />', '</tr>', '</li>' ),
@@ -349,13 +402,16 @@ function kandi_mail_plain_text( $heading, $body, $cta = null ) {
 
 	return $out;
 }
+endif;
 
 /** Hands PHPMailer the plain-text half of the message. */
+if ( ! function_exists( 'kandi_mail_attach_plain_text' ) ) :
 function kandi_mail_attach_plain_text( $phpmailer ) {
 	if ( ! empty( $GLOBALS['kandi_mail_plain'] ) ) {
 		$phpmailer->AltBody = $GLOBALS['kandi_mail_plain'];
 	}
 }
+endif;
 
 /**
  * The address mail is sent from.
@@ -365,11 +421,13 @@ function kandi_mail_attach_plain_text( $phpmailer ) {
  * support address. Replies still go where they should: `Reply-To` carries the
  * support address on messages a shopper might answer.
  */
+if ( ! function_exists( 'kandi_mail_from_address' ) ) :
 function kandi_mail_from_address() {
 	$host = wp_parse_url( home_url(), PHP_URL_HOST );
 	$host = preg_replace( '/^www\./i', '', (string) $host );
 	return apply_filters( 'kandi_mail_from_address', 'no-reply@' . $host );
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. Small formatting helpers shared by the order emails
@@ -388,6 +446,7 @@ function kandi_mail_from_address() {
  * broken across two lines, which is the one thing in a receipt that must not
  * happen. The name column takes the wrapping instead.
  */
+if ( ! function_exists( 'kandi_mail_items_table' ) ) :
 function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 	$font = kandi_mail_font();
 
@@ -434,8 +493,10 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 
 	return $html . '</table>';
 }
+endif;
 
 /** True when WooCommerce is already sending the shopper this message itself. */
+if ( ! function_exists( 'kandi_wc_email_enabled' ) ) :
 function kandi_wc_email_enabled( $class ) {
 	if ( ! function_exists( 'WC' ) || ! WC()->mailer() ) {
 		return false;
@@ -443,19 +504,25 @@ function kandi_wc_email_enabled( $class ) {
 	$emails = WC()->mailer()->get_emails();
 	return isset( $emails[ $class ] ) && $emails[ $class ]->is_enabled();
 }
+endif;
 
 /** The shopper's address on an order, or '' when it is a guest with none. */
+if ( ! function_exists( 'kandi_order_email' ) ) :
 function kandi_order_email( $order ) {
 	$email = $order->get_billing_email();
 	return is_email( $email ) ? $email : '';
 }
+endif;
 
+if ( ! function_exists( 'kandi_order_first_name' ) ) :
 function kandi_order_first_name( $order ) {
 	$name = trim( (string) $order->get_billing_first_name() );
 	return '' !== $name ? $name : 'there';
 }
+endif;
 
 /** Every line on an order, formatted for kandi_mail_items_table. */
+if ( ! function_exists( 'kandi_order_rows' ) ) :
 function kandi_order_rows( $order ) {
 	$rows = array();
 	foreach ( $order->get_items() as $item ) {
@@ -467,8 +534,10 @@ function kandi_order_rows( $order ) {
 	}
 	return $rows;
 }
+endif;
 
 /** Where the shopper follows their order on the storefront. */
+if ( ! function_exists( 'kandi_order_tracking_url' ) ) :
 function kandi_order_tracking_url( $order ) {
 	$brand = kandi_mail_brand();
 	return sprintf(
@@ -478,6 +547,7 @@ function kandi_order_tracking_url( $order ) {
 		rawurlencode( (string) $order->get_billing_email() )
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 4. Shopper email
@@ -491,6 +561,7 @@ function kandi_order_tracking_url( $order ) {
  * which reads as an update to something you were never told about. This is the
  * receipt.
  */
+if ( ! function_exists( 'kandi_mail_order_placed' ) ) :
 function kandi_mail_order_placed( $order_id ) {
 	$order = wc_get_order( $order_id );
 	if ( ! $order || $order->get_meta( '_kandi_mailed_placed' ) ) {
@@ -546,8 +617,10 @@ function kandi_mail_order_placed( $order_id ) {
 
 	return true;
 }
+endif;
 
 /** "We are packing it" / "It is on the way" / "Delivered". */
+if ( ! function_exists( 'kandi_mail_order_status' ) ) :
 function kandi_mail_order_status( $order_id, $from_status, $to_status ) {
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
@@ -652,9 +725,11 @@ function kandi_mail_order_status( $order_id, $from_status, $to_status ) {
 		);
 	}
 }
+endif;
 add_action( 'woocommerce_order_status_changed', 'kandi_mail_order_status', 20, 3 );
 
 /** The shop's published returns window, for the delivery email. */
+if ( ! function_exists( 'kandi_returns_days' ) ) :
 function kandi_returns_days() {
 	$settings = get_option( 'kandi_storefront_settings', array() );
 	if ( is_array( $settings ) && ! empty( $settings['returns_days'] ) ) {
@@ -662,3 +737,4 @@ function kandi_returns_days() {
 	}
 	return 14;
 }
+endif;
