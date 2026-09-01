@@ -8,6 +8,11 @@ import { formatPrice, discountPercent } from "@/lib/currency";
 import { useSellerSession } from "@/lib/seller-session";
 import ImageUploader from "../ImageUploader";
 import CategoryPicker from "@/components/seller/CategoryPicker";
+import ColorOptions, {
+  colorPayload,
+  emptyColorRow,
+  type ColorOption,
+} from "@/components/seller/ColorOptions";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -28,7 +33,10 @@ export default function NewProductPage() {
   const [salePrice, setSalePrice] = useState("");
   const [stock, setStock] = useState("1");
   const [sizes, setSizes] = useState("");
-  const [colors, setColors] = useState("");
+  // Colours are rows now — a name and a photograph of the product in it — not a
+  // comma-separated string. See `components/seller/ColorOptions`.
+  const [colorRows, setColorRows] = useState<ColorOption[]>(() => [emptyColorRow()]);
+  const [colorsUploading, setColorsUploading] = useState(false);
   // Photos are uploaded as they are picked, so this holds media-library URLs,
   // not files — the form only ever submits what has already landed.
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -62,7 +70,7 @@ export default function NewProductPage() {
       setError("The sale price must be lower than the regular price.");
       return;
     }
-    if (uploading) {
+    if (uploading || colorsUploading) {
       setError("Wait for the photos to finish uploading.");
       return;
     }
@@ -83,7 +91,9 @@ export default function NewProductPage() {
         sale_price: sale > 0 ? sale : null,
         stock_quantity: Number(stock) || 0,
         sizes: splitList(sizes),
-        colors: splitList(colors),
+        // `colors` and `color_images` together — the names the shopper picks
+        // from, and the photograph behind each one.
+        ...colorPayload(colorRows),
         image_urls: imageUrls,
       });
       router.push("/seller/products");
@@ -191,14 +201,22 @@ export default function NewProductPage() {
 
           {/* Variants */}
           <Section title="Options">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Sizes" hint="Comma separated, e.g. 12 M, 24 M">
-                <input value={sizes} onChange={(e) => setSizes(e.target.value)} className={INPUT} />
-              </Field>
-              <Field label="Colours" hint="Comma separated, e.g. Multicolor, Beige">
-                <input value={colors} onChange={(e) => setColors(e.target.value)} className={INPUT} />
-              </Field>
-            </div>
+            <Field label="Sizes" hint="Comma separated, e.g. 12 M, 24 M">
+              <input value={sizes} onChange={(e) => setSizes(e.target.value)} className={INPUT} />
+            </Field>
+
+            {/* No longer sharing a row with Sizes: a colour is a row with a
+                photograph in it now, not a one-line text box. */}
+            <Field
+              label="Colours"
+              hint="Add a photo of the product in each colour — shoppers pick the colour by the picture."
+            >
+              <ColorOptions
+                rows={colorRows}
+                onChange={setColorRows}
+                onBusyChange={setColorsUploading}
+              />
+            </Field>
           </Section>
 
           {/* Images */}

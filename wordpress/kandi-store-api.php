@@ -197,8 +197,35 @@ function kandi_format_product( $product, $with_description = false ) {
 				);
 			}
 		} else {
+			/*
+			 * Custom (non-taxonomy) attributes — which is every attribute on a
+			 * seller's own listing, because `kandi_apply_product_attributes`
+			 * writes Size and Color as custom lists rather than as terms.
+			 *
+			 * These have no term to hang a swatch on, so the colour photographs
+			 * come from the product's own `_kandi_color_images` map, keyed by
+			 * the option name. That map is written by the seller form; see
+			 * `kandi_save_color_images` in `kandi-seller-api.php` for why it
+			 * lives on the product rather than on a shared term.
+			 *
+			 * Read once outside the loop: `get_post_meta` is cached per post,
+			 * but the guard below also keeps the lookup off every Size option
+			 * on every product in a 60-item grid.
+			 */
+			$color_images = array();
+			if ( 0 === strcasecmp( wc_attribute_label( $attribute->get_name() ), 'Color' ) ) {
+				$stored = get_post_meta( $product->get_id(), '_kandi_color_images', true );
+				if ( is_array( $stored ) ) {
+					$color_images = $stored;
+				}
+			}
+
 			foreach ( (array) $attribute->get_options() as $option ) {
-				$options[] = array( 'name' => $option, 'value' => null, 'image' => null );
+				$options[] = array(
+					'name'  => $option,
+					'value' => null,
+					'image' => isset( $color_images[ $option ] ) ? $color_images[ $option ] : null,
+				);
 			}
 		}
 

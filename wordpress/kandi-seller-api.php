@@ -1099,6 +1099,53 @@ function kandi_apply_product_attributes( $product, $sizes, $colors ) {
 }
 
 /**
+ * Stores a photograph of the product in each of its colours.
+ *
+ * ---- Why this is product meta and not term meta ----
+ *
+ * The storefront reads swatch images off attribute TERMS — see the
+ * `thumbnail_id` lookup in `kandi_format_product` — which is where a swatch
+ * plugin puts them, and which is right for a shop-wide colour taxonomy where
+ * "Red" is one term with one picture.
+ *
+ * That is exactly wrong for this. A seller's colours are CUSTOM attributes,
+ * unique to the listing, and the picture is of THIS product in that colour. Two
+ * sellers listing a black shoe need two different photographs behind the same
+ * word, and term meta gives them one. So the map is stored per product.
+ *
+ * Keyed by colour NAME, matching the option names `kandi_apply_product_attributes`
+ * writes. An index would re-point every picture the moment a colour was removed
+ * from the middle of the list.
+ *
+ * Passing an empty array clears the map, which is what lets a seller take the
+ * last photograph off a listing.
+ */
+function kandi_save_color_images( $product_id, $map ) {
+	$clean = array();
+
+	foreach ( (array) $map as $name => $url ) {
+		$name = sanitize_text_field( (string) $name );
+		$url  = esc_url_raw( (string) $url );
+		if ( '' === $name || '' === $url ) {
+			continue;
+		}
+		// Only ever this site's own media library. A seller cannot make the
+		// storefront hotlink an arbitrary remote URL through this field.
+		if ( ! attachment_url_to_postid( $url ) ) {
+			continue;
+		}
+		$clean[ $name ] = $url;
+	}
+
+	if ( empty( $clean ) ) {
+		delete_post_meta( $product_id, '_kandi_color_images' );
+		return;
+	}
+
+	update_post_meta( $product_id, '_kandi_color_images', $clean );
+}
+
+/**
  * Attaches image URLs to a product. The first becomes the main image, the rest
  * the gallery.
  *
@@ -1797,6 +1844,11 @@ add_action( 'rest_api_init', function () {
 
 				update_post_meta( $product_id, '_kandi_seller_id', $seller_id );
 
+				// Colour photographs, keyed by the colour names just written above.
+				if ( isset( $body['color_images'] ) ) {
+					kandi_save_color_images( $product_id, $body['color_images'] );
+				}
+
 				/*
 				 * And put the seller's name on the post itself.
 				 *
@@ -1883,6 +1935,11 @@ add_action( 'rest_api_init', function () {
 				}
 				if ( isset( $body['sizes'] ) || isset( $body['colors'] ) ) {
 					kandi_apply_product_attributes( $product, $body['sizes'] ?? array(), $body['colors'] ?? array() );
+				}
+				// Only when the key is present, so an editor that never touched the
+				// colours does not wipe their photographs.
+				if ( isset( $body['color_images'] ) ) {
+					kandi_save_color_images( $product_id, $body['color_images'] );
 				}
 				// A seller may unpublish their own listing, but never self-publish one.
 				if ( isset( $body['status'] ) && 'draft' === $body['status'] ) {

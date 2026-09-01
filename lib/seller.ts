@@ -201,6 +201,18 @@ export type NewProductInput = {
   category: string;
   sizes: string[];
   colors: string[];
+  /**
+   * A photograph of the product in each colour, keyed by the colour name.
+   *
+   * Keyed by name rather than by index because `colors` is a set the plugin
+   * re-derives on every save — an index would silently re-point every picture
+   * the moment a seller removed a colour from the middle of the list.
+   *
+   * Sparse on purpose: a seller with eight colours and photographs of three
+   * sends three entries, and the storefront falls back to a plain colour dot
+   * for the rest. See `components/seller/ColorOptions`.
+   */
+  color_images?: Record<string, string>;
   image_urls: string[];
 };
 
