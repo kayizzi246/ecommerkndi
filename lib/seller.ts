@@ -188,6 +188,16 @@ export type NewProductInput = {
   sale_price?: number | null;
   sku: string;
   stock_quantity: number;
+  /**
+   * The category SLUG, not its name.
+   *
+   * WordPress resolves this with `term_exists`, which matches a slug or a name
+   * — and a name is ambiguous here. This shop has 17 category names living in
+   * more than one branch: "Shoes" exists under Men, Women AND Kids, and
+   * `term_exists('Shoes')` returns whichever of the three the database hands
+   * back first. Sending `shoes-women` files a women's sandal under Women every
+   * time; sending "Shoes" was a one-in-three guess.
+   */
   category: string;
   sizes: string[];
   colors: string[];

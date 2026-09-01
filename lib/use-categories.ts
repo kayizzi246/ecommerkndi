@@ -50,40 +50,69 @@ export function useCategories() {
   return { categories, loading };
 }
 
+export type CategoryBranch = PickableCategory & { children: CategoryBranch[] };
+
 /**
- * Category names indented to show the department tree, so "Running Shoes" reads
- * as living under "Shoes" in a flat <select> where nesting cannot be drawn.
+ * The flat category list as the tree it actually is.
+ *
+ * This replaces `categoryOptions`, which flattened the same data back down into
+ * one <select> and drew the nesting with em-dash prefixes — "— — Necklaces".
+ * That works while a shop has two departments. This one has ten, several three
+ * levels deep, and the result was a forty-row dropdown where a seller had to
+ * count dashes to work out whether the "Shoes" they were looking at was the
+ * one under Men or the one under Women. Two identical labels at two different
+ * depths is not a picker, it is a quiz.
+ *
+ * A tree lets the picker ask one question at a time — see
+ * `components/seller/CategoryPicker`.
  */
-export function categoryOptions(categories: PickableCategory[]) {
-  const children = new Map<number, PickableCategory[]>();
+export function categoryTree(categories: PickableCategory[]): CategoryBranch[] {
+  const byId = new Map<number, CategoryBranch>();
   for (const category of categories) {
-    const parent = category.parent ?? 0;
-    if (!children.has(parent)) children.set(parent, []);
-    children.get(parent)!.push(category);
+    byId.set(category.id, { ...category, children: [] });
   }
 
-  const options: { value: string; label: string }[] = [];
+  const roots: CategoryBranch[] = [];
+  for (const branch of byId.values()) {
+    const parent = branch.parent ? byId.get(branch.parent) : undefined;
+    // A category whose parent is missing from the list would otherwise vanish
+    // from the picker entirely; promote it to a department rather than drop it.
+    if (parent) parent.children.push(branch);
+    else roots.push(branch);
+  }
 
-  const walk = (parentId: number, depth: number) => {
-    for (const category of children.get(parentId) ?? []) {
-      options.push({
-        value: category.name,
-        label: `${"— ".repeat(depth)}${category.name}`,
-      });
-      walk(category.id, depth + 1);
+  return roots;
+}
+
+/**
+ * The chain of categories from a department down to the one with this slug, so
+ * a form holding `necklaces-jewelry-women` can reopen on Women › Jewelry ›
+ * Necklaces rather than on an empty picker with the answer three levels down.
+ *
+ * ---- Slug, not name, and this is not a detail ----
+ *
+ * This shop has 64 categories and 17 names that appear in more than one branch.
+ * There is a "Shoes" under Men, a "Shoes" under Women and a "Shoes" under Kids;
+ * "Necklaces" exists three times over. A name does not identify a category here
+ * — it identifies up to three of them — so a picker that resolves by name has
+ * to guess, and a first-match-wins guess sends a women's necklace to Kids.
+ *
+ * Slugs are unique: WordPress enforces it, and all 64 in this shop are distinct
+ * (`necklaces`, `necklaces-jewelry-women`, `necklaces-jewelry-kids`). So the
+ * slug is what the picker holds and what the form submits.
+ */
+export function categoryPath(tree: CategoryBranch[], slug: string): CategoryBranch[] {
+  if (!slug) return [];
+
+  const walk = (branches: CategoryBranch[], trail: CategoryBranch[]): CategoryBranch[] | null => {
+    for (const branch of branches) {
+      const here = [...trail, branch];
+      if (branch.slug === slug) return here;
+      const deeper = walk(branch.children, here);
+      if (deeper) return deeper;
     }
+    return null;
   };
 
-  walk(0, 0);
-
-  // Any category whose parent is missing from the list would otherwise vanish;
-  // promote it rather than silently dropping it from the picker.
-  const seen = new Set(options.map((option) => option.value));
-  for (const category of categories) {
-    if (!seen.has(category.name)) {
-      options.push({ value: category.name, label: category.name });
-    }
-  }
-
-  return options;
+  return walk(tree, []) ?? [];
 }

@@ -6,8 +6,8 @@ import { useState } from "react";
 import { sellerApi } from "@/lib/seller";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import { useSellerSession } from "@/lib/seller-session";
-import { useCategories, categoryOptions } from "@/lib/use-categories";
 import ImageUploader from "../ImageUploader";
+import CategoryPicker from "@/components/seller/CategoryPicker";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -18,10 +18,9 @@ export default function NewProductPage() {
 
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  // The shop's real WooCommerce departments, so a seller can only file a
-  // product where a shopper can actually browse to it.
-  const { categories, loading: categoriesLoading } = useCategories();
-  const options = categoryOptions(categories);
+  // Only the chosen category name is held here. The picker fetches the shop's
+  // real WooCommerce departments itself and walks the seller down the tree one
+  // level at a time — see `components/seller/CategoryPicker`.
   const [category, setCategory] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
@@ -123,35 +122,20 @@ export default function NewProductPage() {
               />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="SKU / style code">
-                <input value={sku} onChange={(e) => setSku(e.target.value)} className={INPUT} />
-              </Field>
-              <Field
-                label="Category"
-                hint="Shoppers browse these exact departments."
-              >
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  disabled={categoriesLoading}
-                  className={INPUT}
-                >
-                  <option value="">
-                    {categoriesLoading
-                      ? "Loading departments…"
-                      : options.length === 0
-                        ? "No departments set up yet"
-                        : "Choose a department"}
-                  </option>
-                  {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
+            <Field label="SKU / style code">
+              <input value={sku} onChange={(e) => setSku(e.target.value)} className={INPUT} />
+            </Field>
+
+            {/* Full width, and no longer sharing a row with the SKU box. Three
+                rows of chips need the width, and pairing a one-line text input
+                with a control that grows as it is used made the row jump every
+                time a seller went a level deeper. */}
+            <Field
+              label="Category"
+              hint="Pick a department, then narrow it down. Shoppers browse these exact departments."
+            >
+              <CategoryPicker value={category} onChange={setCategory} />
+            </Field>
 
             <Field label="Short description" hint="One or two lines, shown under the price.">
               <textarea
