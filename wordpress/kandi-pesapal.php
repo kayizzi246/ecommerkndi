@@ -64,6 +64,7 @@ define( 'KANDI_PESAPAL_LIVE', 'https://pay.pesapal.com/v3' );
  * Returns null when the shop has not been set up, so callers can say "payments
  * are not configured" rather than failing halfway through one.
  */
+if ( ! function_exists( 'kandi_pesapal_config' ) ) :
 function kandi_pesapal_config() {
 	$settings = get_option( 'kandi_pesapal_settings', array() );
 	$settings = is_array( $settings ) ? $settings : array();
@@ -92,14 +93,17 @@ function kandi_pesapal_config() {
 		'live'   => 'live' === strtolower( $env ),
 	);
 }
+endif;
 
 /** Writes to the WordPress debug log, prefixed so it can be grepped. */
+if ( ! function_exists( 'kandi_pesapal_log' ) ) :
 function kandi_pesapal_log( $message, $context = null ) {
 	if ( null !== $context ) {
 		$message .= ' ' . wp_json_encode( $context );
 	}
 	error_log( '[kandi-pesapal] ' . $message );
 }
+endif;
 
 /**
  * Runs a payment step and turns *anything* that goes wrong into a readable
@@ -115,6 +119,7 @@ function kandi_pesapal_log( $message, $context = null ) {
  * like a missing extension, so the worst case is now a sentence naming the file
  * and line rather than silence. Payments must never fail invisibly.
  */
+if ( ! function_exists( 'kandi_pesapal_guard' ) ) :
 function kandi_pesapal_guard( callable $work ) {
 	try {
 		return $work();
@@ -135,6 +140,7 @@ function kandi_pesapal_guard( callable $work ) {
 		);
 	}
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 2. Getting a request out of this server
@@ -154,6 +160,7 @@ function kandi_pesapal_guard( callable $work ) {
  * retried on the other one, and whichever answers is remembered for the hour so
  * the next payment does not pay the cost of discovering it again.
  */
+if ( ! function_exists( 'kandi_pesapal_http' ) ) :
 function kandi_pesapal_http( $url, $args ) {
 	$settings = get_option( 'kandi_pesapal_settings', array() );
 	$mode     = is_array( $settings ) ? ( $settings['transport'] ?? 'auto' ) : 'auto';
@@ -234,6 +241,7 @@ function kandi_pesapal_http( $url, $args ) {
 		array( 'status' => 502 )
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. The Pesapal API
@@ -245,6 +253,7 @@ function kandi_pesapal_http( $url, $args ) {
  * Cached in a transient rather than a static: PHP hands each request its own
  * process, so a static would re-authenticate on every single call.
  */
+if ( ! function_exists( 'kandi_pesapal_token' ) ) :
 function kandi_pesapal_token( $config ) {
 	$cached = get_transient( 'kandi_pesapal_token' );
 	if ( $cached ) {
@@ -279,8 +288,10 @@ function kandi_pesapal_token( $config ) {
 	set_transient( 'kandi_pesapal_token', $body['token'], 4 * MINUTE_IN_SECONDS );
 	return $body['token'];
 }
+endif;
 
 /** One authenticated call to Pesapal. Returns the decoded body or a WP_Error. */
+if ( ! function_exists( 'kandi_pesapal_call' ) ) :
 function kandi_pesapal_call( $config, $path, $method = 'GET', $payload = null ) {
 	$token = kandi_pesapal_token( $config );
 	if ( is_wp_error( $token ) ) {
@@ -322,6 +333,7 @@ function kandi_pesapal_call( $config, $path, $method = 'GET', $payload = null ) 
 
 	return $body;
 }
+endif;
 
 /**
  * The IPN id to attach to payments.
@@ -330,6 +342,7 @@ function kandi_pesapal_call( $config, $path, $method = 'GET', $payload = null ) 
  * and only registers a new one when it is genuinely absent — otherwise every
  * payment would add another duplicate to the merchant account.
  */
+if ( ! function_exists( 'kandi_pesapal_ipn_id' ) ) :
 function kandi_pesapal_ipn_id( $config ) {
 	if ( $config['ipn_id'] ) {
 		return $config['ipn_id'];
@@ -367,6 +380,7 @@ function kandi_pesapal_ipn_id( $config ) {
 	set_transient( 'kandi_pesapal_ipn_id', $created['ipn_id'], WEEK_IN_SECONDS );
 	return $created['ipn_id'];
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. References
@@ -376,10 +390,13 @@ function kandi_pesapal_ipn_id( $config ) {
  * used, so payments started before this plugin still settle.
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_pesapal_reference' ) ) :
 function kandi_pesapal_reference( $kind, $id ) {
 	return sprintf( '%s-%d-%s', 'order' === $kind ? 'ORD' : 'SEL', (int) $id, strtolower( base_convert( (string) time(), 10, 36 ) ) );
 }
+endif;
 
+if ( ! function_exists( 'kandi_pesapal_parse_reference' ) ) :
 function kandi_pesapal_parse_reference( $reference ) {
 	if ( ! preg_match( '/^(ORD|SEL)-(\d+)-/', (string) $reference, $match ) ) {
 		return null;
@@ -389,6 +406,7 @@ function kandi_pesapal_parse_reference( $reference ) {
 		'id'   => (int) $match[2],
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3b. What is being paid, and how much
@@ -406,6 +424,7 @@ function kandi_pesapal_parse_reference( $reference ) {
  *
  * Returns a WP_Error the REST layer can hand straight back.
  */
+if ( ! function_exists( 'kandi_pesapal_quote' ) ) :
 function kandi_pesapal_quote( $kind, $id ) {
 	$id = (int) $id;
 
@@ -469,6 +488,7 @@ function kandi_pesapal_quote( $kind, $id ) {
 		'ipn_url'     => rest_url( 'kandi/v1/payments/ipn' ),
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 4. Settling
@@ -481,6 +501,7 @@ function kandi_pesapal_quote( $kind, $id ) {
  * both arrive for the same payment, and an order must never be paid twice nor
  * have its stock taken twice.
  */
+if ( ! function_exists( 'kandi_pesapal_settle' ) ) :
 function kandi_pesapal_settle( $reference, $status ) {
 	$purpose = kandi_pesapal_parse_reference( $reference );
 	if ( ! $purpose ) {
@@ -546,6 +567,7 @@ function kandi_pesapal_settle( $reference, $status ) {
 
 	return true;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 5. REST — kandi/v1/payments/*
@@ -789,6 +811,7 @@ add_action( 'rest_api_init', function () {
  *
  * Nothing here charges anything or creates a payment.
  */
+if ( ! function_exists( 'kandi_pesapal_diagnose' ) ) :
 function kandi_pesapal_diagnose() {
 	/**
 	 * Prints one row and pushes it to the browser immediately.
@@ -986,6 +1009,7 @@ function kandi_pesapal_diagnose() {
 
 	return;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 7. Settings screen — wp-admin > Kandi Storefront > Pesapal
@@ -1002,6 +1026,7 @@ add_action( 'admin_menu', function () {
 	);
 }, 20 );
 
+if ( ! function_exists( 'kandi_pesapal_settings_page' ) ) :
 function kandi_pesapal_settings_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( 'You do not have permission to manage payments.' );
@@ -1177,3 +1202,4 @@ function kandi_pesapal_settings_page() {
 	</div>
 	<?php
 }
+endif;

@@ -35,6 +35,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* -------------------------------------------------------------------------
+ * Loading twice must not be fatal.
+ *
+ * Uploading a plugin to two paths — inside its own directory and loose in
+ * wp-content/plugins/ — makes wp-admin list it twice, and activating the idle
+ * copy used to die with "Cannot redeclare kandi_…()", which wp-admin reports
+ * only as "Plugin could not be activated because it triggered a fatal error."
+ *
+ * Two guards, and the one below is the lesser of them: it stops the hook
+ * registrations at the foot of this file running twice. It does NOT stop a
+ * redeclare, because PHP early-binds functions declared unconditionally at the
+ * top level while the file is COMPILED — before any statement here executes.
+ * What actually prevents that is the `if ( ! function_exists( … ) ) :` wrapper
+ * around every function in this file. See kandi-notifications.php for the long
+ * version of the argument.
+ * ---------------------------------------------------------------------- */
+
+if ( defined( 'KANDI_OWNER_API_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_OWNER_API_LOADED', true );
+
+/* -------------------------------------------------------------------------
  * 1. Authentication
  *
  * Two credentials, both required. The shared secret proves the request came
@@ -44,6 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * an httpOnly cookie and replays it on each call.
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_owner_shared_secret' ) ) :
 function kandi_owner_shared_secret() {
 	// kandi-store-api.php owns the resolution order (wp-config constant, then
 	// the settings screen, then the legacy fallback).
@@ -55,13 +78,16 @@ function kandi_owner_shared_secret() {
 	}
 	return (string) get_option( 'kandi_api_secret', '' );
 }
+endif;
 
+if ( ! function_exists( 'kandi_owner_passcode' ) ) :
 function kandi_owner_passcode() {
 	if ( defined( 'KANDI_OWNER_PASSCODE' ) ) {
 		return (string) KANDI_OWNER_PASSCODE;
 	}
 	return (string) get_option( 'kandi_owner_passcode', '' );
 }
+endif;
 
 /**
  * Permission callback for every owner endpoint.
@@ -69,6 +95,7 @@ function kandi_owner_passcode() {
  * Comparisons use hash_equals so a wrong passcode takes the same time to reject
  * however many leading characters it got right.
  */
+if ( ! function_exists( 'kandi_owner_permission' ) ) :
 function kandi_owner_permission( WP_REST_Request $request ) {
 	$secret = kandi_owner_shared_secret();
 	if ( '' === $secret ) {
@@ -92,6 +119,7 @@ function kandi_owner_permission( WP_REST_Request $request ) {
 
 	return true;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 2. Formatting + write helpers
@@ -101,6 +129,7 @@ function kandi_owner_permission( WP_REST_Request $request ) {
  * ---------------------------------------------------------------------- */
 
 /** Turns a WC_Product into the shape the storefront's admin screen consumes. */
+if ( ! function_exists( 'kandi_owner_format_product' ) ) :
 function kandi_owner_format_product( $product ) {
 	if ( ! $product ) {
 		return null;
@@ -162,8 +191,10 @@ function kandi_owner_format_product( $product ) {
 		'seller_name'       => $seller_name,
 	);
 }
+endif;
 
 /** Applies size/colour lists as custom (non-taxonomy) product attributes. */
+if ( ! function_exists( 'kandi_owner_apply_attributes' ) ) :
 function kandi_owner_apply_attributes( $product, $sizes, $colors ) {
 	$attributes = array();
 	$position   = 0;
@@ -184,12 +215,14 @@ function kandi_owner_apply_attributes( $product, $sizes, $colors ) {
 
 	$product->set_attributes( $attributes );
 }
+endif;
 
 /**
  * Sideloads remote image URLs into the media library. The first becomes the
  * main image, the rest the gallery. Existing images are replaced, so sending
  * the list a product already has is a no-op from the shopper's point of view.
  */
+if ( ! function_exists( 'kandi_owner_attach_images' ) ) :
 function kandi_owner_attach_images( $product_id, $urls ) {
 	$urls = array_values( array_filter( array_map( 'esc_url_raw', (array) $urls ) ) );
 	if ( empty( $urls ) ) {
@@ -221,8 +254,10 @@ function kandi_owner_attach_images( $product_id, $urls ) {
 	$product->set_gallery_image_ids( $attachment_ids );
 	$product->save();
 }
+endif;
 
 /** Assigns a product to a category by name, creating the term if it is new. */
+if ( ! function_exists( 'kandi_owner_set_category' ) ) :
 function kandi_owner_set_category( $product_id, $category ) {
 	$category = sanitize_text_field( (string) $category );
 	if ( '' === $category ) {
@@ -237,12 +272,15 @@ function kandi_owner_set_category( $product_id, $category ) {
 		wp_set_object_terms( $product_id, (int) $term['term_id'], 'product_cat' );
 	}
 }
+endif;
 
 /** The statuses the owner is allowed to set. */
+if ( ! function_exists( 'kandi_owner_clean_status' ) ) :
 function kandi_owner_clean_status( $status ) {
 	$status = (string) $status;
 	return in_array( $status, array( 'publish', 'draft', 'pending' ), true ) ? $status : '';
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. Routes

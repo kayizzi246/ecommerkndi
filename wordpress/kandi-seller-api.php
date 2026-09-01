@@ -80,9 +80,11 @@ define( 'KANDI_SELLER_MAX_UPLOAD', 8 * 1024 * 1024 );
  * `ACCEPTED` in ImageUploader.tsx. All three must agree, or a file passes one
  * gate and is turned away by the next.
  */
+if ( ! function_exists( 'kandi_seller_image_mimes' ) ) :
 function kandi_seller_image_mimes() {
 	return array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif' );
 }
+endif;
 
 /**
  * Lets WordPress itself accept WebP and AVIF.
@@ -124,6 +126,7 @@ define( 'KANDI_SELLER_CODE_TTL', 30 * MINUTE_IN_SECONDS );
  * companion plugin is missing would lock every new seller out of their own
  * account.
  */
+if ( ! function_exists( 'kandi_seller_mail' ) ) :
 function kandi_seller_mail( $to, $subject, $heading, $body_html, $cta = null ) {
 	if ( function_exists( 'kandi_send_mail' ) ) {
 		return kandi_send_mail( $to, $subject, $heading, $body_html, $cta );
@@ -136,6 +139,7 @@ function kandi_seller_mail( $to, $subject, $heading, $body_html, $cta = null ) {
 
 	return wp_mail( $to, $subject, $heading . "\n\n" . $text );
 }
+endif;
 
 /**
  * The caller's IP, as well as it can be known behind a proxy.
@@ -146,6 +150,7 @@ function kandi_seller_mail( $to, $subject, $heading, $body_html, $cta = null ) {
  * limit across attackers, not authenticating anyone — but it is why nothing
  * security-critical is ever decided from this value.
  */
+if ( ! function_exists( 'kandi_seller_client_ip' ) ) :
 function kandi_seller_client_ip() {
 	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $header ) {
 		if ( empty( $_SERVER[ $header ] ) ) {
@@ -160,6 +165,7 @@ function kandi_seller_client_ip() {
 	}
 	return '0.0.0.0';
 }
+endif;
 
 /**
  * A fixed-window rate limit, counted in transients.
@@ -171,6 +177,7 @@ function kandi_seller_client_ip() {
  * (an email, usually), because limiting by IP alone punishes everyone behind
  * one mobile carrier NAT — which in Uganda is most of the country.
  */
+if ( ! function_exists( 'kandi_seller_rate_limit' ) ) :
 function kandi_seller_rate_limit( $action, $identity, $limit, $window ) {
 	$key   = 'kandi_rl_' . md5( $action . '|' . strtolower( (string) $identity ) );
 	$count = (int) get_transient( $key );
@@ -189,16 +196,21 @@ function kandi_seller_rate_limit( $action, $identity, $limit, $window ) {
 
 	return true;
 }
+endif;
 
 /** Clears a bucket after a success, so one good login forgives the typos before it. */
+if ( ! function_exists( 'kandi_seller_rate_clear' ) ) :
 function kandi_seller_rate_clear( $action, $identity ) {
 	delete_transient( 'kandi_rl_' . md5( $action . '|' . strtolower( (string) $identity ) ) );
 }
+endif;
 
 /** A six-digit verification code. Random_int, not rand — this guards an account. */
+if ( ! function_exists( 'kandi_seller_new_code' ) ) :
 function kandi_seller_new_code() {
 	return str_pad( (string) random_int( 0, 999999 ), 6, '0', STR_PAD_LEFT );
 }
+endif;
 
 /**
  * Stores a fresh code against a seller and emails it.
@@ -207,6 +219,7 @@ function kandi_seller_new_code() {
  * a database dump should still not hand over a working key to every unverified
  * account in it.
  */
+if ( ! function_exists( 'kandi_seller_send_code' ) ) :
 function kandi_seller_send_code( $user_id ) {
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
@@ -233,6 +246,7 @@ function kandi_seller_send_code( $user_id ) {
 		)
 	);
 }
+endif;
 
 /**
  * True once the seller has entered the code that was emailed to them.
@@ -248,10 +262,12 @@ function kandi_seller_send_code( $user_id ) {
  * kandi_seller_session_response. It decides what an unconfirmed account may do
  * once inside, which is everything except take money out.
  */
+if ( ! function_exists( 'kandi_seller_is_verified' ) ) :
 function kandi_seller_is_verified( $user_id ) {
 	$flag = get_user_meta( $user_id, '_kandi_email_verified', true );
 	return '' === $flag || '1' === (string) $flag;
 }
+endif;
 
 /**
  * The session payload every way into an account returns.
@@ -275,6 +291,7 @@ function kandi_seller_is_verified( $user_id ) {
  * `email_verified` rides in the seller object, so the storefront can ask for
  * confirmation without guessing.
  */
+if ( ! function_exists( 'kandi_seller_session_response' ) ) :
 function kandi_seller_session_response( $user_id ) {
 	return rest_ensure_response( array(
 		'token'      => kandi_seller_issue_token( $user_id ),
@@ -282,25 +299,31 @@ function kandi_seller_session_response( $user_id ) {
 		'seller'     => kandi_format_seller( $user_id ),
 	) );
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 1. Install — roles and ledger tables
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_seller_commissions_table' ) ) :
 function kandi_seller_commissions_table() {
 	global $wpdb;
 	return $wpdb->prefix . 'kandi_commissions';
 }
+endif;
 
+if ( ! function_exists( 'kandi_seller_payouts_table' ) ) :
 function kandi_seller_payouts_table() {
 	global $wpdb;
 	return $wpdb->prefix . 'kandi_payouts';
 }
+endif;
 
 /**
  * Creates the seller role and the two ledger tables. Safe to call repeatedly —
  * dbDelta only applies differences.
  */
+if ( ! function_exists( 'kandi_seller_install' ) ) :
 function kandi_seller_install() {
 	global $wpdb;
 
@@ -367,30 +390,38 @@ function kandi_seller_install() {
 		add_option( 'kandi_seller_auto_approve_products', 0 );
 	}
 }
+endif;
 register_activation_hook( __FILE__, 'kandi_seller_install' );
 
 /** Covers the Code Snippets install path, where the activation hook never runs. */
+if ( ! function_exists( 'kandi_seller_maybe_install' ) ) :
 function kandi_seller_maybe_install() {
 	if ( get_option( 'kandi_seller_db_version' ) !== KANDI_SELLER_DB_VERSION ) {
 		kandi_seller_install();
 	}
 }
+endif;
 add_action( 'plugins_loaded', 'kandi_seller_maybe_install' );
 
 /* -------------------------------------------------------------------------
  * 2. Seller profile helpers
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_default_commission_rate' ) ) :
 function kandi_default_commission_rate() {
 	return (float) get_option( 'kandi_default_commission_rate', 12 );
 }
+endif;
 
+if ( ! function_exists( 'kandi_is_seller' ) ) :
 function kandi_is_seller( $user_id ) {
 	$user = get_userdata( $user_id );
 	return $user && in_array( KANDI_SELLER_ROLE, (array) $user->roles, true );
 }
+endif;
 
 /** Shapes a WP user into the seller object the Next.js client expects. */
+if ( ! function_exists( 'kandi_format_seller' ) ) :
 function kandi_format_seller( $user_id ) {
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
@@ -442,13 +473,17 @@ function kandi_format_seller( $user_id ) {
 		'business_number'    => (string) get_user_meta( $user->ID, '_kandi_business_number', true ),
 	);
 }
+endif;
 
 /** The payment reference a seller quotes when sending the registration fee. */
+if ( ! function_exists( 'kandi_seller_fee_reference' ) ) :
 function kandi_seller_fee_reference( $user_id ) {
 	return 'KND-' . str_pad( (string) (int) $user_id, 4, '0', STR_PAD_LEFT );
 }
+endif;
 
 /** The monthly seller fee currently configured in Kandi Storefront settings. */
+if ( ! function_exists( 'kandi_seller_registration_fee' ) ) :
 function kandi_seller_registration_fee() {
 	$settings = get_option( 'kandi_storefront_settings', array() );
 	if ( is_array( $settings ) && isset( $settings['seller_fee'] ) && '' !== $settings['seller_fee'] ) {
@@ -456,6 +491,7 @@ function kandi_seller_registration_fee() {
 	}
 	return 50000.0;
 }
+endif;
 
 /* ==========================================================================
  * THE MONTHLY SELLER FEE
@@ -480,16 +516,20 @@ function kandi_seller_registration_fee() {
  */
 
 /** How long one payment buys. */
+if ( ! function_exists( 'kandi_seller_fee_period' ) ) :
 function kandi_seller_fee_period() {
 	return '+1 month';
 }
+endif;
 
 /**
  * When this seller's cover expires, as a Unix timestamp. 0 if never paid.
  */
+if ( ! function_exists( 'kandi_seller_fee_paid_until' ) ) :
 function kandi_seller_fee_paid_until( $seller_id ) {
 	return (int) get_user_meta( $seller_id, '_kandi_fee_paid_until', true );
 }
+endif;
 
 /**
  * The seller's fee standing right now: 'waived', 'paid' or 'unpaid'.
@@ -505,6 +545,7 @@ function kandi_seller_fee_paid_until( $seller_id ) {
  * from the later of now and the existing expiry, so marking a payment late
  * never costs the seller the days you took to record it.
  */
+if ( ! function_exists( 'kandi_seller_fee_state' ) ) :
 function kandi_seller_fee_state( $seller_id ) {
 	if ( 'waived' === get_user_meta( $seller_id, '_kandi_fee_status', true ) ) {
 		return 'waived';
@@ -519,6 +560,7 @@ function kandi_seller_fee_state( $seller_id ) {
 
 	return ( $until > 0 && $until >= time() ) ? 'paid' : 'unpaid';
 }
+endif;
 
 /**
  * Credits one month of cover.
@@ -530,6 +572,7 @@ function kandi_seller_fee_state( $seller_id ) {
  * bug — resetting the clock to `now` on every payment — and it silently shortens
  * every cycle a seller ever buys.
  */
+if ( ! function_exists( 'kandi_seller_extend_fee' ) ) :
 function kandi_seller_extend_fee( $seller_id ) {
 	$current = kandi_seller_fee_paid_until( $seller_id );
 	$from    = max( time(), $current );
@@ -542,6 +585,7 @@ function kandi_seller_extend_fee( $seller_id ) {
 
 	return $until;
 }
+endif;
 
 /**
  * Every seller who is not currently paid up.
@@ -551,6 +595,7 @@ function kandi_seller_extend_fee( $seller_id ) {
  * at once, and long enough that a burst of catalogue requests does not re-read
  * every seller's meta from the database.
  */
+if ( ! function_exists( 'kandi_seller_lapsed_ids' ) ) :
 function kandi_seller_lapsed_ids() {
 	$cached = get_transient( 'kandi_lapsed_sellers' );
 	if ( is_array( $cached ) ) {
@@ -569,11 +614,14 @@ function kandi_seller_lapsed_ids() {
 
 	return $lapsed;
 }
+endif;
 
 /** Drops the cache above, so a payment takes effect without waiting it out. */
+if ( ! function_exists( 'kandi_seller_flush_lapsed_cache' ) ) :
 function kandi_seller_flush_lapsed_cache() {
 	delete_transient( 'kandi_lapsed_sellers' );
 }
+endif;
 
 /**
  * Hides the products of sellers who are not paid up.
@@ -596,6 +644,7 @@ function kandi_seller_flush_lapsed_cache() {
  * Products with no `_kandi_seller_id` are the shop's own stock and are never
  * touched by this.
  */
+if ( ! function_exists( 'kandi_seller_hide_lapsed_products' ) ) :
 function kandi_seller_hide_lapsed_products( $query ) {
 	// Never in wp-admin: the shop must still be able to see and manage the
 	// listings of a seller who has lapsed, which is precisely when somebody
@@ -627,17 +676,21 @@ function kandi_seller_hide_lapsed_products( $query ) {
 
 	$query->set( 'meta_query', $meta_query );
 }
+endif;
 add_action( 'woocommerce_product_query', 'kandi_seller_hide_lapsed_products' );
 
+if ( ! function_exists( 'kandi_seller_commission_rate' ) ) :
 function kandi_seller_commission_rate( $seller_id ) {
 	$rate = get_user_meta( $seller_id, '_kandi_commission_rate', true );
 	return '' === $rate ? kandi_default_commission_rate() : (float) $rate;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. Authentication — shared secret + bearer token
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_seller_secret' ) ) :
 function kandi_seller_secret() {
 	// kandi-store-api.php owns the resolution order (wp-config constant, then
 	// the settings screen, then the legacy fallback). Only installs without
@@ -650,8 +703,10 @@ function kandi_seller_secret() {
 	}
 	return (string) get_option( 'kandi_api_secret', '' );
 }
+endif;
 
 /** True when the caller presented the storefront's shared secret. */
+if ( ! function_exists( 'kandi_seller_check_secret' ) ) :
 function kandi_seller_check_secret( WP_REST_Request $request ) {
 	$secret = kandi_seller_secret();
 	if ( empty( $secret ) ) {
@@ -663,17 +718,23 @@ function kandi_seller_check_secret( WP_REST_Request $request ) {
 	}
 	return true;
 }
+endif;
 
+if ( ! function_exists( 'kandi_seller_token_key' ) ) :
 function kandi_seller_token_key( $token ) {
 	return 'kandi_seller_tok_' . hash( 'sha256', $token );
 }
+endif;
 
+if ( ! function_exists( 'kandi_seller_issue_token' ) ) :
 function kandi_seller_issue_token( $user_id ) {
 	$token = bin2hex( random_bytes( 32 ) );
 	set_transient( kandi_seller_token_key( $token ), (int) $user_id, KANDI_SELLER_TOKEN_TTL );
 	return $token;
 }
+endif;
 
+if ( ! function_exists( 'kandi_seller_bearer_token' ) ) :
 function kandi_seller_bearer_token( WP_REST_Request $request ) {
 	$header = (string) $request->get_header( 'authorization' );
 	if ( 0 === stripos( $header, 'bearer ' ) ) {
@@ -681,8 +742,10 @@ function kandi_seller_bearer_token( WP_REST_Request $request ) {
 	}
 	return '';
 }
+endif;
 
 /** Resolves the seller behind the bearer token, or 0. */
+if ( ! function_exists( 'kandi_seller_current_id' ) ) :
 function kandi_seller_current_id( WP_REST_Request $request ) {
 	$token = kandi_seller_bearer_token( $request );
 	if ( '' === $token ) {
@@ -691,13 +754,17 @@ function kandi_seller_current_id( WP_REST_Request $request ) {
 	$user_id = (int) get_transient( kandi_seller_token_key( $token ) );
 	return kandi_is_seller( $user_id ) ? $user_id : 0;
 }
+endif;
 
 /** Permission callback for public seller endpoints (register, login). */
+if ( ! function_exists( 'kandi_seller_public_permission' ) ) :
 function kandi_seller_public_permission( WP_REST_Request $request ) {
 	return kandi_seller_check_secret( $request );
 }
+endif;
 
 /** Permission callback for everything that acts on a signed-in seller. */
+if ( ! function_exists( 'kandi_seller_permission' ) ) :
 function kandi_seller_permission( WP_REST_Request $request ) {
 	$secret = kandi_seller_check_secret( $request );
 	if ( is_wp_error( $secret ) ) {
@@ -716,6 +783,7 @@ function kandi_seller_permission( WP_REST_Request $request ) {
 
 	return true;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 4. Date-range parsing shared by stats and commissions
@@ -725,6 +793,7 @@ function kandi_seller_permission( WP_REST_Request $request ) {
  * Turns "7d" / "30d" / "90d" / "mtd" / "ytd" into a start/end pair plus the
  * equally long preceding window used for the change figures.
  */
+if ( ! function_exists( 'kandi_parse_range' ) ) :
 function kandi_parse_range( $range ) {
 	$now   = current_time( 'timestamp' );
 	$end   = $now;
@@ -762,13 +831,16 @@ function kandi_parse_range( $range ) {
 		'end_ts'         => $end,
 	);
 }
+endif;
 
+if ( ! function_exists( 'kandi_percent_change' ) ) :
 function kandi_percent_change( $current, $previous ) {
 	if ( $previous <= 0 ) {
 		return $current > 0 ? 100.0 : 0.0;
 	}
 	return round( ( ( $current - $previous ) / $previous ) * 100, 1 );
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 5. Commission ledger — written from WooCommerce order status changes
@@ -778,6 +850,7 @@ function kandi_percent_change( $current, $previous ) {
  * Writes one ledger row per order line item that belongs to a seller.
  * Keyed on order_item_id, so re-running on a later status change is a no-op.
  */
+if ( ! function_exists( 'kandi_record_order_commissions' ) ) :
 function kandi_record_order_commissions( $order_id ) {
 	global $wpdb;
 
@@ -828,8 +901,10 @@ function kandi_record_order_commissions( $order_id ) {
 		);
 	}
 }
+endif;
 
 /** Moves an order's ledger rows between pending / payable / cancelled. */
+if ( ! function_exists( 'kandi_sync_commission_status' ) ) :
 function kandi_sync_commission_status( $order_id, $new_status ) {
 	global $wpdb;
 	$table = kandi_seller_commissions_table();
@@ -862,6 +937,7 @@ function kandi_sync_commission_status( $order_id, $new_status ) {
 		)
 	);
 }
+endif;
 
 add_action(
 	'woocommerce_order_status_changed',
@@ -881,6 +957,7 @@ add_action(
  * ---------------------------------------------------------------------- */
 
 /** The lines on an order that belong to one seller, with that seller's totals. */
+if ( ! function_exists( 'kandi_seller_order_lines' ) ) :
 function kandi_seller_order_lines( $order, $seller_id ) {
 	$lines = array();
 	$total = 0.0;
@@ -900,8 +977,10 @@ function kandi_seller_order_lines( $order, $seller_id ) {
 
 	return array( 'lines' => $lines, 'total' => $total );
 }
+endif;
 
 /** Renders order lines as an HTML table, with or without the Notifications plugin. */
+if ( ! function_exists( 'kandi_seller_lines_html' ) ) :
 function kandi_seller_lines_html( $lines, $total_label = '', $total = null ) {
 	if ( function_exists( 'kandi_mail_items_table' ) ) {
 		return kandi_mail_items_table( $lines, $total_label, $total );
@@ -915,14 +994,17 @@ function kandi_seller_lines_html( $lines, $total_label = '', $total = null ) {
 
 	return null === $total ? $html : $html . sprintf( '<p><strong>%s %s</strong></p>', esc_html( $total_label ), wp_kses_post( $total ) );
 }
+endif;
 
 /** The Seller Centre's orders screen, for the link in the alert. */
+if ( ! function_exists( 'kandi_seller_centre_url' ) ) :
 function kandi_seller_centre_url( $path = '/seller/orders' ) {
 	$base = function_exists( 'kandi_storefront_url' ) && kandi_storefront_url()
 		? kandi_storefront_url()
 		: home_url();
 	return $base . $path;
 }
+endif;
 
 /**
  * Emails every seller with something in a new order.
@@ -935,6 +1017,7 @@ function kandi_seller_centre_url( $path = '/seller/orders' ) {
  * order that moves on-hold → processing → completed passes through this hook
  * three times.
  */
+if ( ! function_exists( 'kandi_notify_sellers_of_order' ) ) :
 function kandi_notify_sellers_of_order( $order_id ) {
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
@@ -1025,11 +1108,13 @@ function kandi_notify_sellers_of_order( $order_id ) {
 	$order->update_meta_data( '_kandi_seller_alerted', array_values( array_unique( $already ) ) );
 	$order->save();
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 6. Product formatting for the Seller Centre
  * ---------------------------------------------------------------------- */
 
+if ( ! function_exists( 'kandi_format_seller_product' ) ) :
 function kandi_format_seller_product( $product ) {
 	$image_id = $product->get_image_id();
 
@@ -1075,8 +1160,10 @@ function kandi_format_seller_product( $product ) {
 		'created_at'     => $product->get_date_created() ? $product->get_date_created()->date( 'c' ) : null,
 	);
 }
+endif;
 
 /** Applies size/colour lists as custom (non-taxonomy) product attributes. */
+if ( ! function_exists( 'kandi_apply_product_attributes' ) ) :
 function kandi_apply_product_attributes( $product, $sizes, $colors ) {
 	$attributes = array();
 	$position   = 0;
@@ -1097,6 +1184,7 @@ function kandi_apply_product_attributes( $product, $sizes, $colors ) {
 
 	$product->set_attributes( $attributes );
 }
+endif;
 
 /**
  * Stores a photograph of the product in each of its colours.
@@ -1120,6 +1208,7 @@ function kandi_apply_product_attributes( $product, $sizes, $colors ) {
  * Passing an empty array clears the map, which is what lets a seller take the
  * last photograph off a listing.
  */
+if ( ! function_exists( 'kandi_save_color_images' ) ) :
 function kandi_save_color_images( $product_id, $map ) {
 	$clean = array();
 
@@ -1144,6 +1233,7 @@ function kandi_save_color_images( $product_id, $map ) {
 
 	update_post_meta( $product_id, '_kandi_color_images', $clean );
 }
+endif;
 
 /**
  * Attaches image URLs to a product. The first becomes the main image, the rest
@@ -1158,6 +1248,7 @@ function kandi_save_color_images( $product_id, $map ) {
  * With $replace true and an empty list the product's photos are cleared, which
  * is what lets a seller delete the last picture from the editor.
  */
+if ( ! function_exists( 'kandi_attach_product_images' ) ) :
 function kandi_attach_product_images( $product_id, $urls, $replace = false ) {
 	$urls = array_values( array_filter( array_map( 'esc_url_raw', (array) $urls ) ) );
 	if ( empty( $urls ) && ! $replace ) {
@@ -1197,6 +1288,7 @@ function kandi_attach_product_images( $product_id, $urls, $replace = false ) {
 		delete_post_meta( $product_id, '_product_image_gallery' );
 	}
 }
+endif;
 
 /**
  * Stores a verification document against a seller and returns its URL and id.
@@ -1208,6 +1300,7 @@ function kandi_attach_product_images( $product_id, $urls, $replace = false ) {
  * name is not guessable, which is the most a stock WordPress install can offer
  * without a server-level deny rule on the directory.
  */
+if ( ! function_exists( 'kandi_seller_store_document' ) ) :
 function kandi_seller_store_document( $file, $seller_id, $kind ) {
 	if ( ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
 		return new WP_Error( 'kandi_no_file', 'No document was received.', array( 'status' => 400 ) );
@@ -1266,6 +1359,7 @@ function kandi_seller_store_document( $file, $seller_id, $kind ) {
 
 	return array( 'id' => (int) $attachment_id, 'url' => wp_get_attachment_url( $attachment_id ) );
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 7. REST API — kandi/v1/seller/*
@@ -2905,15 +2999,18 @@ add_action( 'admin_menu', function () {
 } );
 
 /** Guard shared by every admin action handler. */
+if ( ! function_exists( 'kandi_admin_guard' ) ) :
 function kandi_admin_guard( $nonce_action ) {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		wp_die( 'You do not have permission to manage Kandi sellers.' );
 	}
 	check_admin_referer( $nonce_action );
 }
+endif;
 
 /* ---- Sellers ---- */
 
+if ( ! function_exists( 'kandi_admin_sellers_page' ) ) :
 function kandi_admin_sellers_page() {
 	global $wpdb;
 
@@ -3280,7 +3377,9 @@ function kandi_admin_sellers_page() {
 	kandi_admin_status_styles();
 	echo '</div>';
 }
+endif;
 
+if ( ! function_exists( 'kandi_seller_actions_for_status' ) ) :
 function kandi_seller_actions_for_status( $status ) {
 	switch ( $status ) {
 		case 'approved':
@@ -3292,9 +3391,11 @@ function kandi_seller_actions_for_status( $status ) {
 			return array( 'approve' => 'Approve', 'reject' => 'Reject' );
 	}
 }
+endif;
 
 /* ---- Product approvals ---- */
 
+if ( ! function_exists( 'kandi_admin_products_page' ) ) :
 function kandi_admin_products_page() {
 	if ( isset( $_POST['kandi_product_action'] ) ) {
 		kandi_admin_guard( 'kandi_product_action' );
@@ -3369,9 +3470,11 @@ function kandi_admin_products_page() {
 
 	echo '</tbody></table></div>';
 }
+endif;
 
 /* ---- Commissions ---- */
 
+if ( ! function_exists( 'kandi_admin_commissions_page' ) ) :
 function kandi_admin_commissions_page() {
 	global $wpdb;
 	$table = kandi_seller_commissions_table();
@@ -3437,9 +3540,11 @@ function kandi_admin_commissions_page() {
 
 	echo '</tbody></table></div>';
 }
+endif;
 
 /* ---- Payouts ---- */
 
+if ( ! function_exists( 'kandi_admin_payouts_page' ) ) :
 function kandi_admin_payouts_page() {
 	global $wpdb;
 
@@ -3534,9 +3639,11 @@ function kandi_admin_payouts_page() {
 	kandi_admin_status_styles();
 	echo '</div>';
 }
+endif;
 
 /* ---- Settings ---- */
 
+if ( ! function_exists( 'kandi_admin_settings_page' ) ) :
 function kandi_admin_settings_page() {
 	if ( isset( $_POST['kandi_settings_submit'] ) ) {
 		kandi_admin_guard( 'kandi_seller_settings' );
@@ -3588,7 +3695,9 @@ function kandi_admin_settings_page() {
 	echo '<p><button class="button button-primary" name="kandi_settings_submit" value="1">Save settings</button></p>';
 	echo '</form></div>';
 }
+endif;
 
+if ( ! function_exists( 'kandi_admin_status_styles' ) ) :
 function kandi_admin_status_styles() {
 	echo '<style>
 		.kandi-status{display:inline-block;padding:2px 8px;border-radius:3px;font-size:12px;font-weight:600;text-transform:capitalize}
@@ -3597,6 +3706,7 @@ function kandi_admin_status_styles() {
 		.kandi-status-suspended,.kandi-status-rejected,.kandi-status-cancelled{background:#fdeaea;color:#a51f1f}
 	</style>';
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 10. Keep sellers out of wp-admin

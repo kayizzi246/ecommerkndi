@@ -22,6 +22,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/* -------------------------------------------------------------------------
+ * Loading twice must not be fatal.
+ *
+ * Uploading a plugin to two paths — inside its own directory and loose in
+ * wp-content/plugins/ — makes wp-admin list it twice, and activating the idle
+ * copy used to die with "Cannot redeclare kandi_…()", which wp-admin reports
+ * only as "Plugin could not be activated because it triggered a fatal error."
+ *
+ * Two guards, and the one below is the lesser of them: it stops the hook
+ * registrations at the foot of this file running twice. It does NOT stop a
+ * redeclare, because PHP early-binds functions declared unconditionally at the
+ * top level while the file is COMPILED — before any statement here executes.
+ * What actually prevents that is the `if ( ! function_exists( … ) ) :` wrapper
+ * around every function in this file. See kandi-notifications.php for the long
+ * version of the argument.
+ * ---------------------------------------------------------------------- */
+
+if ( defined( 'KANDI_STORE_API_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_STORE_API_LOADED', true );
+
 /**
  * The shared secret the storefront proves itself with, resolved once for every
  * Kandi plugin.
@@ -112,6 +134,7 @@ if ( ! defined( 'KANDI_MAX_VARIATIONS' ) ) {
  *                                     a grid, so a listing must never ask for
  *                                     them. See the note on variations below.
  */
+if ( ! function_exists( 'kandi_format_product' ) ) :
 function kandi_format_product( $product, $with_description = false ) {
 	/*
 	 * ---- The main product image ----
@@ -360,6 +383,7 @@ function kandi_format_product( $product, $with_description = false ) {
 	 */
 	return apply_filters( 'kandi_product_payload', $data, $product );
 }
+endif;
 
 add_action( 'rest_api_init', function () {
 
@@ -1031,22 +1055,29 @@ if ( ! defined( 'KANDI_CUSTOMER_TOKEN_TTL' ) ) {
 	define( 'KANDI_CUSTOMER_TOKEN_TTL', 30 * DAY_IN_SECONDS );
 }
 
+if ( ! function_exists( 'kandi_customer_token_key' ) ) :
 function kandi_customer_token_key( $token ) {
 	return 'kandi_cust_tok_' . hash( 'sha256', $token );
 }
+endif;
 
+if ( ! function_exists( 'kandi_customer_issue_token' ) ) :
 function kandi_customer_issue_token( $user_id ) {
 	$token = bin2hex( random_bytes( 32 ) );
 	set_transient( kandi_customer_token_key( $token ), (int) $user_id, KANDI_CUSTOMER_TOKEN_TTL );
 	return $token;
 }
+endif;
 
+if ( ! function_exists( 'kandi_customer_bearer' ) ) :
 function kandi_customer_bearer( WP_REST_Request $request ) {
 	$header = (string) $request->get_header( 'authorization' );
 	return 0 === stripos( $header, 'bearer ' ) ? trim( substr( $header, 7 ) ) : '';
 }
+endif;
 
 /** Checks the storefront's shared secret. */
+if ( ! function_exists( 'kandi_customer_check_secret' ) ) :
 function kandi_customer_check_secret( WP_REST_Request $request ) {
 	$secret = kandi_shared_secret();
 	if ( empty( $secret ) ) {
@@ -1058,7 +1089,9 @@ function kandi_customer_check_secret( WP_REST_Request $request ) {
 	}
 	return true;
 }
+endif;
 
+if ( ! function_exists( 'kandi_customer_permission' ) ) :
 function kandi_customer_permission( WP_REST_Request $request ) {
 	$secret = kandi_customer_check_secret( $request );
 	if ( is_wp_error( $secret ) ) {
@@ -1068,13 +1101,17 @@ function kandi_customer_permission( WP_REST_Request $request ) {
 	$user_id = '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
 	return $user_id > 0 ? true : new WP_Error( 'kandi_unauthorised', 'Not signed in.', array( 'status' => 401 ) );
 }
+endif;
 
+if ( ! function_exists( 'kandi_customer_current_id' ) ) :
 function kandi_customer_current_id( WP_REST_Request $request ) {
 	$token = kandi_customer_bearer( $request );
 	return '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
 }
+endif;
 
 /** Shapes a WP user into the shopper object the storefront expects. */
+if ( ! function_exists( 'kandi_format_customer' ) ) :
 function kandi_format_customer( $user_id ) {
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
@@ -1094,6 +1131,7 @@ function kandi_format_customer( $user_id ) {
 		),
 	);
 }
+endif;
 
 add_action( 'rest_api_init', function () {
 
@@ -1345,6 +1383,7 @@ add_action( 'rest_api_init', function () {
  * ---------------------------------------------------------------------- */
 
 /** The review this shopper has already left on a product, if any. */
+if ( ! function_exists( 'kandi_find_customer_review' ) ) :
 function kandi_find_customer_review( $product_id, $user_id ) {
 	if ( ! $product_id || ! $user_id ) {
 		return null;
@@ -1360,8 +1399,10 @@ function kandi_find_customer_review( $product_id, $user_id ) {
 
 	return $found ? $found[0] : null;
 }
+endif;
 
 /** Shapes a review comment into the object the storefront renders. */
+if ( ! function_exists( 'kandi_format_review' ) ) :
 function kandi_format_review( $comment ) {
 	return array(
 		'id'       => (int) $comment->comment_ID,
@@ -1374,6 +1415,7 @@ function kandi_format_review( $comment ) {
 		'approved' => '1' === (string) $comment->comment_approved,
 	);
 }
+endif;
 
 add_action( 'rest_api_init', function () {
 

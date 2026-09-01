@@ -22,6 +22,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/* -------------------------------------------------------------------------
+ * Loading twice must not be fatal.
+ *
+ * Uploading a plugin to two paths — inside its own directory and loose in
+ * wp-content/plugins/ — makes wp-admin list it twice, and activating the idle
+ * copy used to die with "Cannot redeclare kandi_…()", which wp-admin reports
+ * only as "Plugin could not be activated because it triggered a fatal error."
+ *
+ * Two guards, and the one below is the lesser of them: it stops the hook
+ * registrations at the foot of this file running twice. It does NOT stop a
+ * redeclare, because PHP early-binds functions declared unconditionally at the
+ * top level while the file is COMPILED — before any statement here executes.
+ * What actually prevents that is the `if ( ! function_exists( … ) ) :` wrapper
+ * around every function in this file. See kandi-notifications.php for the long
+ * version of the argument.
+ * ---------------------------------------------------------------------- */
+
+if ( defined( 'KANDI_STOREFRONT_SETTINGS_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_STOREFRONT_SETTINGS_LOADED', true );
+
 const KANDI_SETTINGS_OPTION = 'kandi_storefront_settings';
 
 /**
@@ -29,6 +51,7 @@ const KANDI_SETTINGS_OPTION = 'kandi_storefront_settings';
  * the field is left blank. These defaults are the current wording, so an empty
  * install looks exactly like the shipped site.
  */
+if ( ! function_exists( 'kandi_settings_defaults' ) ) :
 function kandi_settings_defaults() {
 	return array(
 		'logo_url'            => '',
@@ -140,6 +163,7 @@ function kandi_settings_defaults() {
 		'seller_pay_name'     => '',
 	);
 }
+endif;
 
 /**
  * Turns the promotions textarea into a list the storefront can render.
@@ -156,6 +180,7 @@ function kandi_settings_defaults() {
  * Only the headline is required. A line without one is skipped rather than
  * published as an empty card, and six is the most the row will carry.
  */
+if ( ! function_exists( 'kandi_parse_promotions' ) ) :
 function kandi_parse_promotions( $raw ) {
 	$out = array();
 
@@ -185,8 +210,10 @@ function kandi_parse_promotions( $raw ) {
 
 	return $out;
 }
+endif;
 
 /** The saved settings merged over the defaults. */
+if ( ! function_exists( 'kandi_settings_all' ) ) :
 function kandi_settings_all() {
 	$saved = get_option( KANDI_SETTINGS_OPTION, array() );
 	if ( ! is_array( $saved ) ) {
@@ -203,6 +230,7 @@ function kandi_settings_all() {
 
 	return $settings;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * Storefront connection
@@ -218,9 +246,11 @@ const KANDI_PASSCODE_OPTION  = 'kandi_owner_passcode';
 const KANDI_STOREFRONT_URL   = 'kandi_storefront_url';
 
 /** The storefront's public base URL, without a trailing slash. */
+if ( ! function_exists( 'kandi_storefront_url' ) ) :
 function kandi_storefront_url() {
 	return untrailingslashit( (string) get_option( KANDI_STOREFRONT_URL, '' ) );
 }
+endif;
 
 /**
  * Learns the storefront's URL by itself, so nobody has to type it in.
@@ -263,6 +293,7 @@ add_action( 'rest_api_init', function () {
  * wait on an HTTP round trip to another host, and a storefront that is down
  * should not make wp-admin feel broken.
  */
+if ( ! function_exists( 'kandi_purge_storefront_cache' ) ) :
 function kandi_purge_storefront_cache() {
 	static $already_sent = false;
 
@@ -289,8 +320,10 @@ function kandi_purge_storefront_cache() {
 		'headers'  => array( 'X-Kandi-Secret' => $secret ),
 	) );
 }
+endif;
 
 /** Only products matter here — a page or a post cannot change the catalogue. */
+if ( ! function_exists( 'kandi_purge_on_product_change' ) ) :
 function kandi_purge_on_product_change( $post_id ) {
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 		return;
@@ -300,6 +333,7 @@ function kandi_purge_on_product_change( $post_id ) {
 	}
 	kandi_purge_storefront_cache();
 }
+endif;
 
 // `before_delete_post` rather than `deleted_post`: by the time the latter runs
 // the row is gone, so the post-type check below could no longer tell whether it
@@ -440,6 +474,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 } );
 
 /** Text fields are sanitised per type; URLs and emails get their own filters. */
+if ( ! function_exists( 'kandi_settings_sanitise' ) ) :
 function kandi_settings_sanitise( $key, $value ) {
 	$url_fields   = array( 'logo_url', 'favicon_url', 'promo_cta_url', 'banner_cta_url', 'banner_image_url', 'banner_image_mobile_url', 'banner_image_href', 'facebook_url', 'instagram_url', 'tiktok_url', 'x_url', 'app_store_url', 'play_store_url' );
 	$number_field = array( 'free_delivery_from', 'returns_days', 'logo_id', 'favicon_id', 'banner_image_id', 'banner_image_mobile_id', 'seller_fee', 'seller_commission', 'seller_payout_days', 'delivery_lat', 'delivery_lng', 'delivery_base', 'delivery_per_km', 'delivery_free_km', 'delivery_max_fee', 'delivery_max_km' );
@@ -468,7 +503,9 @@ function kandi_settings_sanitise( $key, $value ) {
 
 	return sanitize_text_field( $value );
 }
+endif;
 
+if ( ! function_exists( 'kandi_settings_render_page' ) ) :
 function kandi_settings_render_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( 'You do not have permission to edit the storefront.' );
@@ -1146,3 +1183,4 @@ function kandi_settings_render_page() {
 	</script>
 	<?php
 }
+endif;

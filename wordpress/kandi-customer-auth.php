@@ -66,6 +66,7 @@ if ( ! function_exists( 'kandi_customer_rate_limit' ) ) {
 }
 
 /** The session handed back to a shopper who has just proved who they are. */
+if ( ! function_exists( 'kandi_customer_session_payload' ) ) :
 function kandi_customer_session_payload( $user_id ) {
 	return array(
 		'token'      => kandi_customer_issue_token( $user_id ),
@@ -73,6 +74,7 @@ function kandi_customer_session_payload( $user_id ) {
 		'customer'   => kandi_format_customer( $user_id ),
 	);
 }
+endif;
 
 /**
  * Guards every route here against Kandi Store API being absent.
@@ -81,12 +83,15 @@ function kandi_customer_session_payload( $user_id ) {
  * fatal error rather than a warning — which on this shop means a blank 502 and
  * a shopper who cannot sign in and cannot be told why.
  */
+if ( ! function_exists( 'kandi_customer_auth_ready' ) ) :
 function kandi_customer_auth_ready() {
 	return function_exists( 'kandi_customer_issue_token' )
 		&& function_exists( 'kandi_format_customer' )
 		&& function_exists( 'kandi_customer_check_secret' );
 }
+endif;
 
+if ( ! function_exists( 'kandi_customer_auth_guard' ) ) :
 function kandi_customer_auth_guard( WP_REST_Request $request ) {
 	if ( ! kandi_customer_auth_ready() ) {
 		return new WP_Error(
@@ -98,6 +103,7 @@ function kandi_customer_auth_guard( WP_REST_Request $request ) {
 
 	return kandi_customer_check_secret( $request );
 }
+endif;
 
 add_action( 'rest_api_init', function () {
 

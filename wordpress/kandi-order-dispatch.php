@@ -40,6 +40,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/* -------------------------------------------------------------------------
+ * Loading twice must not be fatal.
+ *
+ * Uploading a plugin to two paths — inside its own directory and loose in
+ * wp-content/plugins/ — makes wp-admin list it twice, and activating the idle
+ * copy used to die with "Cannot redeclare kandi_…()", which wp-admin reports
+ * only as "Plugin could not be activated because it triggered a fatal error."
+ *
+ * Two guards, and the one below is the lesser of them: it stops the hook
+ * registrations at the foot of this file running twice. It does NOT stop a
+ * redeclare, because PHP early-binds functions declared unconditionally at the
+ * top level while the file is COMPILED — before any statement here executes.
+ * What actually prevents that is the `if ( ! function_exists( … ) ) :` wrapper
+ * around every function in this file. See kandi-notifications.php for the long
+ * version of the argument.
+ * ---------------------------------------------------------------------- */
+
+if ( defined( 'KANDI_ORDER_DISPATCH_LOADED' ) ) {
+	return;
+}
+define( 'KANDI_ORDER_DISPATCH_LOADED', true );
+
 define( 'KANDI_DISPATCH_VERSION', '1.0.0' );
 
 /* -------------------------------------------------------------------------
@@ -53,6 +75,7 @@ define( 'KANDI_DISPATCH_VERSION', '1.0.0' );
  * there is one secret to rotate rather than two. Falls back to a WordPress salt,
  * which is per-install and never leaves the server.
  */
+if ( ! function_exists( 'kandi_dispatch_secret' ) ) :
 function kandi_dispatch_secret() {
 	if ( function_exists( 'kandi_seller_secret' ) ) {
 		$secret = kandi_seller_secret();
@@ -62,6 +85,7 @@ function kandi_dispatch_secret() {
 	}
 	return wp_salt( 'auth' );
 }
+endif;
 
 /**
  * The token proving a link came from the email we sent to this seller.
@@ -78,6 +102,7 @@ function kandi_dispatch_secret() {
  * to be acceptable from the original email, which is the whole point of sending
  * the link.
  */
+if ( ! function_exists( 'kandi_dispatch_token' ) ) :
 function kandi_dispatch_token( $order_id, $seller_id ) {
 	return hash_hmac(
 		'sha256',
@@ -85,15 +110,19 @@ function kandi_dispatch_token( $order_id, $seller_id ) {
 		kandi_dispatch_secret()
 	);
 }
+endif;
 
 /** Constant-time check of a presented token. */
+if ( ! function_exists( 'kandi_dispatch_token_valid' ) ) :
 function kandi_dispatch_token_valid( $order_id, $seller_id, $token ) {
 	return is_string( $token )
 		&& '' !== $token
 		&& hash_equals( kandi_dispatch_token( $order_id, $seller_id ), $token );
 }
+endif;
 
 /** The URL that accepts one seller's part of one order in a single click. */
+if ( ! function_exists( 'kandi_dispatch_accept_url' ) ) :
 function kandi_dispatch_accept_url( $order_id, $seller_id ) {
 	return add_query_arg(
 		array(
@@ -103,6 +132,7 @@ function kandi_dispatch_accept_url( $order_id, $seller_id ) {
 		rest_url( 'kandi/v1/dispatch/accept/' . (int) $order_id )
 	);
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 2. Accepting, and completing
@@ -123,6 +153,7 @@ function kandi_dispatch_accept_url( $order_id, $seller_id ) {
  * seller was going to accept anyway — but it could do it *early*, which is the
  * one caveat worth knowing about one-click accept links.
  */
+if ( ! function_exists( 'kandi_dispatch_accept' ) ) :
 function kandi_dispatch_accept( $order, $seller_id ) {
 	$seller_id = (int) $seller_id;
 
@@ -185,12 +216,15 @@ function kandi_dispatch_accept( $order, $seller_id ) {
 		'order'       => $order,
 	);
 }
+endif;
 
 /** A seller's store name, or something printable when the plugin is absent. */
+if ( ! function_exists( 'kandi_dispatch_store_name' ) ) :
 function kandi_dispatch_store_name( $seller_id ) {
 	$name = (string) get_user_meta( (int) $seller_id, '_kandi_store_name', true );
 	return '' !== $name ? $name : sprintf( 'Seller #%d', (int) $seller_id );
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 3. The endpoint behind the emailed link
@@ -276,6 +310,7 @@ add_action( 'rest_api_init', function () {
  * with an HTML content type so it can be served from the REST route without
  * needing a page, a rewrite rule or a template.
  */
+if ( ! function_exists( 'kandi_dispatch_page' ) ) :
 function kandi_dispatch_page( $title, $message, $ok ) {
 	$brand = function_exists( 'kandi_mail_brand' ) ? kandi_mail_brand() : array( 'name' => 'Kandi', 'url' => home_url(), 'mark' => '' );
 	$tint  = $ok ? '#16a34a' : '#e53935';
@@ -315,6 +350,7 @@ function kandi_dispatch_page( $title, $message, $ok ) {
 
 	return $response;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 4. Hooking the Seller Centre's order email
@@ -353,6 +389,7 @@ add_filter( 'kandi_seller_order_cta', function ( $cta, $order, $seller_id ) {
  * Stamped on the order so it cannot go twice — a multi-seller order reaches
  * "all accepted" exactly once, but a re-completed order should not re-announce.
  */
+if ( ! function_exists( 'kandi_dispatch_notify_buyer_dispatched' ) ) :
 function kandi_dispatch_notify_buyer_dispatched( $order ) {
 	if ( $order->get_meta( '_kandi_dispatch_emailed' ) ) {
 		return;
@@ -401,6 +438,7 @@ function kandi_dispatch_notify_buyer_dispatched( $order ) {
 		wp_strip_all_tags( str_replace( '</p>', "\n\n", $body ) )
 	);
 }
+endif;
 
 /**
  * Suppresses the "your order has been delivered" email on an order this plugin
@@ -434,6 +472,7 @@ add_filter( 'kandi_send_completed_email', function ( $send, $order ) {
  * rejects the rest. Returns '' when there is nothing usable, which is what makes
  * the senders below skip rather than post rubbish to an API.
  */
+if ( ! function_exists( 'kandi_dispatch_msisdn' ) ) :
 function kandi_dispatch_msisdn( $raw ) {
 	$digits = preg_replace( '/\D/', '', (string) $raw );
 	if ( '' === $digits ) {
@@ -449,14 +488,17 @@ function kandi_dispatch_msisdn( $raw ) {
 	// A Ugandan subscriber number is nine digits after the country code.
 	return 9 === strlen( $digits ) ? '256' . $digits : '';
 }
+endif;
 
 /** Dispatch settings, all optional. */
+if ( ! function_exists( 'kandi_dispatch_option' ) ) :
 function kandi_dispatch_option( $key, $default = '' ) {
 	$options = get_option( 'kandi_dispatch_settings', array() );
 	return is_array( $options ) && isset( $options[ $key ] ) && '' !== $options[ $key ]
 		? $options[ $key ]
 		: $default;
 }
+endif;
 
 /**
  * Sends one SMS through Africa's Talking, or through a generic URL template.
@@ -470,6 +512,7 @@ function kandi_dispatch_option( $key, $default = '' ) {
  * Returns false and logs when unconfigured or when the gateway refuses. Never
  * throws: an SMS that does not send must not take the order email down with it.
  */
+if ( ! function_exists( 'kandi_dispatch_send_sms' ) ) :
 function kandi_dispatch_send_sms( $to, $text ) {
 	$msisdn = kandi_dispatch_msisdn( $to );
 	if ( '' === $msisdn ) {
@@ -514,6 +557,7 @@ function kandi_dispatch_send_sms( $to, $text ) {
 
 	return kandi_dispatch_ok( wp_remote_get( $url, array( 'timeout' => 15 ) ), 'SMS' );
 }
+endif;
 
 /**
  * Sends one WhatsApp message through the Meta Cloud API.
@@ -540,6 +584,7 @@ function kandi_dispatch_send_sms( $to, $text ) {
  * works only inside an open 24-hour window — useful for testing against your own
  * number, not for production.
  */
+if ( ! function_exists( 'kandi_dispatch_send_whatsapp' ) ) :
 function kandi_dispatch_send_whatsapp( $to, $params, $fallback_text ) {
 	$msisdn = kandi_dispatch_msisdn( $to );
 	$token  = kandi_dispatch_option( 'wa_token' );
@@ -595,6 +640,7 @@ function kandi_dispatch_send_whatsapp( $to, $params, $fallback_text ) {
 
 	return kandi_dispatch_ok( $response, 'WhatsApp' );
 }
+endif;
 
 /**
  * True when a gateway accepted the message; logs and returns false otherwise.
@@ -604,6 +650,7 @@ function kandi_dispatch_send_whatsapp( $to, $params, $fallback_text ) {
  * log line is what turns "the seller says they got nothing" into a five-minute
  * answer instead of an afternoon.
  */
+if ( ! function_exists( 'kandi_dispatch_ok' ) ) :
 function kandi_dispatch_ok( $response, $label ) {
 	if ( is_wp_error( $response ) ) {
 		error_log( sprintf( 'Kandi Dispatch: %s failed — %s', $label, $response->get_error_message() ) );
@@ -623,6 +670,7 @@ function kandi_dispatch_ok( $response, $label ) {
 
 	return true;
 }
+endif;
 
 /* -------------------------------------------------------------------------
  * 7. Alerting the seller when an order lands
@@ -697,6 +745,7 @@ add_action( 'admin_menu', function () {
 	);
 }, 20 );
 
+if ( ! function_exists( 'kandi_dispatch_settings_page' ) ) :
 function kandi_dispatch_settings_page() {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		wp_die( 'You do not have permission to manage dispatch settings.' );
@@ -746,3 +795,4 @@ function kandi_dispatch_settings_page() {
 	echo '<p><button class="button button-primary" name="kandi_dispatch_save" value="1">Save settings</button></p>';
 	echo '</form></div>';
 }
+endif;
