@@ -58,6 +58,18 @@ export default function SellerProductsPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [editing, setEditing] = useState<SellerProduct | null>(null);
 
+  /**
+   * Bulk delete, in two states: `confirming` puts the second step on screen,
+   * `progress` runs while the listings are going.
+   *
+   * Deliberately not a `window.confirm`, which is what a single delete uses.
+   * A browser dialog is one click away from emptying a whole shop, it cannot
+   * say WHICH listings are about to go, and it cannot show progress while
+   * eleven requests run. The in-page panel does all three.
+   */
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -174,6 +186,64 @@ export default function SellerProductsPage() {
     }
   };
 
+  /**
+   * Whether the delete-all button is aimed at the entire catalogue or at a
+   * filtered subset of it.
+   *
+   * The button acts on what is LISTED, never on what is hidden behind a filter.
+   * With no filter and no search that is every product, which is what the button
+   * is for; with "Out of stock" selected it is those four, and the label and the
+   * confirmation both say so. The alternative — a button that always deletes
+   * everything regardless of what the screen is showing — is how a seller who
+   * filtered to one shelf loses the other ten.
+   */
+  const bulkIsEverything = filter === "all" && query.trim().length === 0;
+
+  const removeAll = async () => {
+    // Snapshotted before the first request: `visible` is derived from
+    // `products`, which this loop empties as it goes, so iterating it directly
+    // would delete the first item and then walk a list that had moved.
+    const targets = [...visible];
+    if (targets.length === 0) return;
+
+    setConfirmingBulk(false);
+    setError(null);
+    setNotice(null);
+    setBulkProgress({ done: 0, total: targets.length });
+
+    let deleted = 0;
+    const failed: string[] = [];
+
+    // Sequential rather than `Promise.all`. Every delete on this route also
+    // revalidates the storefront's product cache (see the seller proxy), so
+    // firing eleven at once asks WordPress to rebuild the shop eleven times
+    // over. One at a time is also what makes the progress count honest.
+    for (const product of targets) {
+      try {
+        await sellerApi.deleteProduct(product.id);
+        deleted += 1;
+        setProducts((current) => (current ?? []).filter((entry) => entry.id !== product.id));
+      } catch {
+        failed.push(product.name);
+      }
+      setBulkProgress({ done: deleted + failed.length, total: targets.length });
+    }
+
+    setBulkProgress(null);
+
+    if (failed.length > 0) {
+      const named = failed.slice(0, 3).join(", ");
+      setError(
+        `${deleted} deleted. ${failed.length} could not be — ${named}${
+          failed.length > 3 ? ` and ${failed.length - 3} more` : ""
+        }. Try those again.`
+      );
+      return;
+    }
+
+    setNotice(`${deleted} ${deleted === 1 ? "product" : "products"} deleted.`);
+  };
+
   return (
     <div className="mx-auto max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -198,7 +268,14 @@ export default function SellerProductsPage() {
               <button
                 key={entry.value}
                 type="button"
-                onClick={() => setFilter(entry.value)}
+                onClick={() => {
+                  setFilter(entry.value);
+                  // An open confirmation names a count and a filter. Changing
+                  // either underneath it would leave a panel saying "delete
+                  // these 4" above a list of eleven.
+                  setConfirmingBulk(false);
+                }}
+                disabled={bulkProgress !== null}
                 aria-pressed={active}
                 className={`rounded-full border px-4 py-2 text-[14px] font-semibold transition-colors ${
                   active
@@ -215,13 +292,80 @@ export default function SellerProductsPage() {
           })}
         </div>
 
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name or SKU"
-          className="field-shop ml-auto w-full max-w-[280px] text-[15px]"
-        />
+        <div className="ml-auto flex flex-1 flex-wrap items-center justify-end gap-2">
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setConfirmingBulk(false);
+            }}
+            placeholder="Search by name or SKU"
+            className="field-shop w-full max-w-[280px] text-[15px]"
+          />
+
+          {/* Only offered when there is something to delete, and never while a
+              delete is already running. Outlined rather than filled: this is
+              the one control on the screen that cannot be undone from here, and
+              a solid button beside "Add a product" is a mis-click waiting to
+              happen. It turns solid only in the confirmation below, where it is
+              the thing the seller came to press. */}
+          {visible.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmingBulk((open) => !open)}
+              disabled={bulkProgress !== null}
+              aria-expanded={confirmingBulk}
+              className="shrink-0 rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink disabled:opacity-50"
+            >
+              {bulkIsEverything ? "Delete all" : `Delete these ${visible.length}`}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* The second step. It names the number, says where the listings go, and
+          puts the destructive button beside a Cancel of equal weight. */}
+      {confirmingBulk && bulkProgress === null && visible.length > 0 && (
+        <div className="mb-4 rounded-xl border border-shop-ink/20 bg-shop-hairline px-4 py-3.5">
+          <p className="text-[15px] font-semibold text-shop-ink">
+            Delete {visible.length} {visible.length === 1 ? "product" : "products"}
+            {bulkIsEverything ? " — everything in your store" : " matching this filter"}?
+          </p>
+          <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-shop-body">
+            They come off the shop straight away and move to the bin, so Kandi
+            can put them back if this was a mistake. Past orders keep their
+            record either way.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={removeAll}
+              className="rounded-lg bg-shop-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Yes, delete {visible.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingBulk(false)}
+              className="rounded-lg border border-shop-line bg-white px-5 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Progress. Eleven sequential deletes is long enough that a frozen screen
+          reads as a hang, and the list emptying behind this line is the other
+          half of the same answer. */}
+      {bulkProgress !== null && (
+        <p
+          role="status"
+          className="mb-4 rounded-xl bg-shop-primary-soft px-4 py-3 text-[15px] font-medium text-shop-primary-ink"
+        >
+          Deleting {Math.min(bulkProgress.done + 1, bulkProgress.total)} of {bulkProgress.total}…
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mb-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red">
@@ -262,7 +406,7 @@ export default function SellerProductsPage() {
             <ProductRow
               key={product.id}
               product={product}
-              busy={busyId === product.id}
+              busy={busyId === product.id || bulkProgress !== null}
               onRestock={(quantity) => restock(product, quantity)}
               onEdit={() => setEditing(product)}
               onVisibility={(hide) => setVisibility(product, hide)}
@@ -403,8 +547,9 @@ function ProductRow({
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && dirty) onRestock(Number(stock) || 0);
                 }}
-                aria-label={`Stock for ${product.name}`}
-                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[15px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none"
+                disabled={busy}
+                aria-label={`Stock for `}
+                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[15px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none disabled:bg-shop-hairline"
               />
               <button
                 type="button"
@@ -423,16 +568,18 @@ function ProductRow({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+            disabled={busy}
+            className="rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary disabled:pointer-events-none"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            aria-label={`More actions for ${product.name}`}
+            disabled={busy}
+            aria-label={`More actions for `}
             aria-expanded={menuOpen}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-shop-line text-shop-body hover:border-shop-primary hover:text-shop-primary"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-shop-line text-shop-body hover:border-shop-primary hover:text-shop-primary disabled:pointer-events-none"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="5" r="1.6" />
