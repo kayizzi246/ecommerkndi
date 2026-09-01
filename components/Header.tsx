@@ -613,7 +613,7 @@ export default function Header({
                   cleanly out of the white cart glyph behind it. An orange fill
                   would be invisible here — it was the contrast against a white
                   row that made the old badge a badge at all. */}
-              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-nav px-1 text-[11px] font-bold text-white ring-2 ring-white">
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-primary px-1 text-[11px] font-bold text-white ring-2 ring-white">
                 {count > 9 ? "9+" : count}
               </span>
             </span>

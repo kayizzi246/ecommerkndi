@@ -45,6 +45,8 @@ export type FeatureCard = {
   badge: string;
   /** Tailwind classes for that chip. */
   badgeTone: string;
+  /** The soft gradient the card fades from — a Tailwind `from-*` class. */
+  tint: string;
   href: string;
   products: Product[];
 };
@@ -64,7 +66,9 @@ export default function FeatureCards({ cards }: { cards: FeatureCard[] }) {
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {filled.map((card) => (
           <li key={card.title}>
-            <div className="group flex h-full flex-col rounded-2xl bg-white p-3.5 ring-1 ring-shop-line transition-shadow duration-200 ease-out hover:shadow-[0_10px_26px_-14px_rgba(17,24,39,0.3)]">
+            <div
+              className={`group flex h-full flex-col rounded-2xl bg-gradient-to-b ${card.tint} to-white to-60% p-3.5 ring-1 ring-shop-edge transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-20px_rgba(120,72,30,0.55)]`}
+            >
               <div className="flex items-start justify-between gap-2">
                 {/* `after:absolute inset-0` would be the usual trick for making
                     the whole card clickable from one link. It is deliberately not

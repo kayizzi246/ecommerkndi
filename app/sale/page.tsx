@@ -57,7 +57,7 @@ const TIERS: { id: string; min: number; title: string; shelf: string }[] = [
  * product-grid rhythm.
  */
 const GRID =
-  "grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+  "grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
 
 export default async function SalePage({
   searchParams,

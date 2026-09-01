@@ -55,7 +55,7 @@ export default function MiniProduct({
       aria-label={`${product.name} — ${formatPrice(product.price)}`}
       className="group block"
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-shop-hairline ring-1 ring-shop-ink/[0.04]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-photo ring-1 ring-shop-edge">
         {product.image ? (
           <Image
             quality={90}
@@ -76,36 +76,34 @@ export default function MiniProduct({
             on every tile is a flag that means nothing, which is the rule the
             full card is held to as well. */}
         {discount > 0 && (
-          <span className="absolute left-0 top-0 rounded-br-lg bg-shop-primary px-1.5 py-0.5 text-[10px] font-bold leading-tight text-white">
+          <span className="absolute left-1 top-1 rounded-full bg-shop-primary px-1.5 py-0.5 text-[10px] font-bold leading-tight text-shop-ink shadow-[0_3px_8px_-3px_rgba(255,106,0,0.9)]">
             -{discount}%
           </span>
         )}
       </div>
 
-      {/* ---- The price is a chip, not a line of text ----
+      {/* ---- And now it is a line of text again ----
 
-          The reference sets every thumbnail price in a bordered box, and the
-          reason it works is that a panel of pictures has no other typography in
-          it: a bare number under a photograph reads as a caption, where the same
-          number in a chip reads as a price tag. It is the only ink in the cell,
-          so it may as well be the loudest thing in it.
+          It was a chip: a filled yellow box under every thumbnail, on the
+          argument that a bare number under a photograph reads as a caption
+          where the same number in a box reads as a price tag, and that yellow
+          was where this shop's deal language lived.
 
-          ---- Yellow, and it is the shop's own yellow ----
+          Both halves of that stopped being true. The deal language is orange
+          now — the corner flag on a grid tile and the Super Deal chip both
+          moved off `bfl-yellow` — so a yellow price tag is no longer the same
+          voice those are speaking, it is a fifth accent with nothing else
+          wearing it. And the panels these thumbnails sit in are white cards on
+          a cream page, where four filled yellow blocks in a row are the
+          heaviest thing on the homepage by a distance. That weight is the whole
+          complaint this pass is answering.
 
-          This was orange on the brand's soft tint, and the trouble with that is
-          that the panels these chips sit in are ALSO orange — the campaign band
-          beside them, the discount flag above them, the sale channel above
-          that. An orange chip on a page of orange is a chip that has to be
-          looked for.
-
-          `bfl-yellow` is where the deal language already lives in this shop:
-          the "-35%" flag on a grid tile and the Super Deal chip both take it,
-          so a yellow price tag is the same voice those are speaking rather than
-          a fifth accent. It is also the strongest pairing available — near-black
-          on #facc15 is about 11:1, where the orange-on-tint it replaces was
-          5.9:1 — which matters at 11.5px more than it does anywhere else on the
-          page. */}
-      <span className="mt-1.5 inline-flex max-w-full items-center truncate rounded-md bg-bfl-yellow px-1.5 py-0.5 text-[11.5px] font-bold leading-tight text-shop-ink">
+          A bare number is enough here because the cell now has an edge of its
+          own — the thumbnail is a ringed, rounded frame — so the price reads as
+          belonging to the picture above it rather than floating under it.
+          `.price` is the shop's tabular price face, which is what every other
+          number in the store is set in. */}
+      <span className="price mt-1.5 block max-w-full truncate text-[12px] text-shop-ink">
         {formatPrice(product.price)}
       </span>
     </Link>

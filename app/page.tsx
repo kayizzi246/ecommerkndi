@@ -228,6 +228,7 @@ export default async function Home() {
       note: "Reduced from the regular price",
       badge: "Sale",
       badgeTone: "bg-shop-primary-soft text-shop-primary-ink",
+      tint: "from-shop-primary-soft",
       href: "/sale",
       /* The deals the price panel did not take, which are the next deepest cuts
          in the shop rather than a different shelf. */
@@ -238,6 +239,7 @@ export default async function Home() {
       note: "The ones other shoppers keep buying",
       badge: "Top",
       badgeTone: "bg-pop-blue-soft text-pop-blue",
+      tint: "from-pop-blue-soft",
       href: "/search?sort=popular",
       /* `total_sales > 0` is enforced rather than decorative: a "best seller"
          nobody has bought is the one claim on this page that would be a lie. */
@@ -253,6 +255,7 @@ export default async function Home() {
       note: "From independent Ugandan stores",
       badge: "Stores",
       badgeTone: "bg-pop-green-soft text-shop-save",
+      tint: "from-pop-green-soft",
       href: "/sellers",
       /* Filtered on `product.seller`, so this is only ever marketplace stock —
          never the shop's own shelves. It is the one card that says Kandi is a
@@ -268,6 +271,7 @@ export default async function Home() {
       note: "The newest stock in the shop",
       badge: "New",
       badgeTone: "bg-pop-violet-soft text-pop-violet",
+      tint: "from-pop-violet-soft",
       href: "/search?sort=newest",
       products: pick(newArrivals, [...latest].sort(newestFirst)),
     },

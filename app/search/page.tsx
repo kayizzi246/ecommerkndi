@@ -162,7 +162,7 @@ export default async function SearchPage({
               query={{ q: query, category: scope, sort }}
               filters={search}
               sort={sort}
-              gridClassName="grid grid-cols-2 gap-x-1.5 gap-y-3 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              gridClassName="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
               doneLabel="That is every match for this search."
             />
           )}

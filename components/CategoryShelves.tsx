@@ -117,7 +117,7 @@ export default function CategoryShelves({
             department would undo the one choice they just made. */}
         <Link
           href={`/category/${shownSlug}`}
-          className="shrink-0 rounded-full bg-shop-ink px-3.5 py-2 text-[12.5px] font-bold text-white transition-opacity hover:opacity-90"
+          className="shrink-0 rounded-full bg-shop-primary px-3.5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-shop-primary-dark"
         >
           Shop all
         </Link>
@@ -210,7 +210,7 @@ function Tab({
       onClick={onSelect}
       className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
         active
-          ? "border-shop-ink bg-shop-ink text-white"
+          ? "border-shop-primary bg-shop-primary text-white"
           : "border-shop-line bg-white text-shop-body hover:border-shop-primary hover:text-shop-primary"
       }`}
     >

@@ -69,8 +69,8 @@ export default function TileCartButton({
 
   const filled =
     variant === "bar"
-      ? `${base} bg-shop-ink text-white hover:bg-shop-primary`
-      : variant === "icon" ? `${base} border-shop-ink bg-white text-shop-ink hover:bg-shop-hairline` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
+      ? `${base} bg-shop-primary text-white hover:bg-shop-primary-dark`
+      : variant === "icon" ? `${base} border-shop-primary/30 bg-white text-shop-primary hover:bg-shop-primary hover:text-white` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
 
   if (needsOptions) {
     return (

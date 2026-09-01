@@ -353,18 +353,40 @@ export default function ProductCard({
    *
    * Ink type on it, not white: black on #facc15 is 11:1, white on it is 1.6:1
    * and illegible. A yellow chip is the one case in this file where the label
-   * colour has to flip, and it is why this is not just a background swap. */
+   * colour has to flip, and it is why this is not just a background swap.
+   *
+   * ---- All four chips are soft tints now ----
+   *
+   * The history above is four rounds of asking which SATURATED fill each chip
+   * should take, and every round produced a filled block with reversed type —
+   * a black "Choice", a white-on-green "New", a yellow "Super Deal" — sitting
+   * inside the first line of the product's name. On a page of white cards on
+   * cream those blocks are the heaviest ink on the screen, and they are heaviest
+   * on exactly the tiles a shopper is meant to find inviting.
+   *
+   * Each chip now takes the soft tint of its own hue with that hue's dark step
+   * as the type: orange for the deal, green for new, blue for top rated, violet
+   * for the shop's own pick. Every pair is a `*-soft` ground with a `pop-*` or
+   * `shop-*` ink from the same family, and all four clear AA — 4.9:1 for the
+   * orange, 4.8:1 for the green, 6.2:1 for the violet, 5.8:1 for the blue —
+   * which is what this 9.5px label needs and all it needs. The yellow chip's
+   * 11:1 was buying nothing above that, and it was buying it with a block.
+   *
+   * The four stay distinguishable, which was the real point of the round above:
+   * they differ by HUE now rather than by fill, so "Choice" and "Super Deal" can
+   * never collapse into the same black rectangle again the way they did when a
+   * token was retired underneath them. */
   const chip = product.featured
-    ? { label: "Choice", className: "bg-shop-ink text-white" }
+    ? { label: "Choice", className: "bg-pop-violet-soft text-pop-violet" }
     : discount >= 30
-      ? { label: "Super Deal", className: "bg-bfl-yellow text-shop-ink" }
+      ? { label: "Super Deal", className: "bg-shop-primary-soft text-shop-primary-ink" }
       : /* New sits above "Top rated" and below the two deal chips: a shopper
            who has been here before is looking for what changed, and a new
            listing has no rating yet to win the slot on anyway. */
         isNew
-        ? { label: "New", className: "bg-shop-save text-white" }
+        ? { label: "New", className: "bg-pop-green-soft text-shop-save" }
         : topRated
-          ? { label: "Top rated", className: "bg-shop-surface text-shop-ink" }
+          ? { label: "Top rated", className: "bg-pop-blue-soft text-pop-blue" }
           : null;
 
   /* The ribbon on the photograph. "Selling fast" outranks the sales tiers
@@ -557,8 +579,35 @@ export default function ProductCard({
 
        `h-full` stays. A grid row stretches its tiles to a common height and the
        price is bottom-pinned against that, so the tile has to actually fill the
-       row for the pinning to line anything up. */
-    <article className="group relative flex h-full flex-col">
+       row for the pinning to line anything up.
+
+       ---- And the card is back, at every width this time ----
+
+       Everything above was right about ONE tile at every width and wrong about
+       which one. It chose the transparent block because a white card on a white
+       panel draws a rectangle nobody can see — which was true, and was a fact
+       about the PAGE rather than about the tile.
+
+       The page moved. The canvas is a warm cream now (see the `--color-shop-
+       canvas` note in globals.css), the grids that carry most of this shop's
+       traffic — /search, /category, the endless homepage feed — lay their tiles
+       straight onto it with no panel underneath, and a chrome-free tile there
+       is a photograph on cream with four rows of loose text below it. So the
+       card is real again: it is what puts the name, the price, the rating and
+       the delivery line on the photograph's own surface instead of on the page.
+
+       It is `.tile-card`, one class in globals.css, rather than a string of
+       utilities repeated here — the tile appears in six grids and three
+       carousels, and a hover lift that disagrees between them is the sort of
+       thing nobody can name and everybody feels.
+
+       The hover moved with it, from the photograph to the whole card. The
+       argument above for putting it on the photo was that a lift on a chrome-
+       free tile has nothing to lift; a card does, and lifting the card rather
+       than the picture inside it is what makes the tile read as one object. The
+       padding is the only thing the two screens still disagree about: 6px on a
+       phone where 2.5 tiles share the glass, 8px from `md`. */
+    <article className="tile-card group relative flex h-full flex-col p-1.5 md:p-2">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -662,7 +711,7 @@ export default function ProductCard({
               is a 4% neutral — enough to draw the tile, not enough to read as a
               grey rectangle behind a photograph shot on white. It is what the
               reference does on its own white page. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-hairline ring-1 ring-shop-ink/[0.04] transition-shadow duration-200 ease-out group-hover:shadow-[0_8px_22px_-8px_rgba(17,24,39,0.22)]">
+          <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-shop-photo">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -721,7 +770,7 @@ export default function ProductCard({
         </Link>
 
         {soldOut && (
-          <span className="absolute left-2 top-2 rounded-lg bg-shop-ink px-2 py-1 text-[11px] font-bold leading-none text-white">
+          <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold leading-none text-shop-body ring-1 ring-shop-line backdrop-blur-sm">
             Sold out
           </span>
         )}
@@ -800,15 +849,30 @@ export default function ProductCard({
              with two left carried it in three places; yellow means the deal and
              nothing else, and the stock line keeps its own voice. */}
         {!soldOut && discount > 0 && (
-          /* Heavier and rounder than it was, and that is the whole change: the
-             flag is now the only object drawn ON a resting tile — the card,
-             its ring and its padding are gone — so it has to carry the corner
-             on its own rather than as one detail among several. `rounded-lg`
-             matches the chips below it, 800 weight and a hair more padding
-             make it read as a stamp rather than as a caption that drifted
-             into the corner. Colour is untouched: yellow is the deal language,
-             shared with the Super Deal chip and the deals shelf. */
-          <span className="pointer-events-none absolute right-2 top-2 rounded-lg bg-bfl-yellow px-2 py-1 text-[11px] font-extrabold leading-none text-shop-ink">
+          /* ---- And the deal language came back to orange ----
+
+             The note above is the full history: red, then orange, then yellow.
+             Yellow won on the argument that orange was "one more orange object"
+             on an orange page — which was decided when the tile had no card and
+             the flag was the only thing drawn on a bare photograph.
+
+             The tile is a white card on a cream page now, and yellow lost the
+             argument on sight: #facc15 next to #ff6a00, on a warm ground, is two
+             saturated warm hues a few degrees apart, which is the one pairing
+             that reads as an accident rather than as a system. Four of those in
+             a row is what made the old homepage look cluttered rather than
+             cheap. One warm hue, used for the brand AND for the deal, is fewer
+             things to learn and a calmer page.
+
+             Ink type on the orange rather than white, and that part is not
+             taste: white on #ff6a00 is 2.9:1 and this label is 11px, where
+             near-black on it is 6.0:1. It also happens to look better — a dark
+             number on a bright chip is what a price sticker looks like.
+
+             The shape stays as the note above describes it: a pill, 800 weight,
+             a hair of padding, and a warm shadow so it lifts off the photograph
+             rather than sitting flat on it. */
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-shop-primary px-2 py-1 text-[11px] font-extrabold leading-none text-shop-ink shadow-[0_4px_10px_-4px_rgba(255,106,0,0.9)]">
             −{discount}%
           </span>
         )}
@@ -868,7 +932,7 @@ export default function ProductCard({
              the shop has done to the price, one saying what other shoppers
              have done about it — so a shape shared between them is what stops
              the picture looking like it collected two unrelated stickers. */
-          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-lg bg-shop-ink/90 px-2 py-1 text-[11px] font-bold leading-none text-white backdrop-blur-sm">
+          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-bold leading-none text-shop-primary-ink ring-1 ring-shop-primary/15 backdrop-blur-sm">
             {ribbon}
           </span>
         )}
@@ -1194,10 +1258,12 @@ export default function ProductCard({
                work.
 
                Nothing is lost. "Reduced" is still said three times on the tile
-               — the yellow corner flag, the struck-through original beside this
+               — the orange corner flag, the struck-through original beside this
                number, and the "Save UGX x" line under it — and none of those
                ever depended on the price's own colour. */}
-          <span className="price whitespace-nowrap text-shop-ink">
+          <span
+            className="price whitespace-nowrap text-shop-ink"
+          >
             {formatPrice(product.price)}
           </span>
           {/* ---- The struck-through original, and NOT the percentage ----

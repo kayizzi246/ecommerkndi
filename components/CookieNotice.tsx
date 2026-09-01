@@ -79,7 +79,7 @@ export default function CookieNotice() {
         <button
           type="button"
           onClick={acknowledge}
-          className="rounded-lg bg-shop-ink px-5 py-2 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+          className="rounded-lg bg-shop-primary px-5 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-shop-primary-dark"
         >
           Got it
         </button>

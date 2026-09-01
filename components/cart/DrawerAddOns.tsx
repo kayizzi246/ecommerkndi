@@ -179,7 +179,7 @@ export default function DrawerAddOns({
                   1
                 )
               }
-              className="shrink-0 rounded-full border border-shop-ink px-3 py-1.5 text-[12px] font-bold text-shop-ink transition-colors hover:bg-shop-ink hover:text-white"
+              className="shrink-0 rounded-full border border-shop-primary/40 px-3 py-1.5 text-[12px] font-bold text-shop-primary transition-colors hover:bg-shop-primary hover:text-white"
             >
               Add
             </button>

@@ -353,8 +353,31 @@
    *
    * Phones are the exception and keep no panel at all — see `.shop-panel`.
    */
-  --color-shop-canvas: #ffffff;
+  /* ---- Warm light, not flat white ----
+   *
+   * The seventh turn of the argument at the head of this file, and the first
+   * one that stops asking "white or grey". Both answers were cold: a flat
+   * white page gives the eye nothing to group by, and every off-white tried
+   * here was a NEUTRAL grey, which under a #ff6a00 brand reads as the page
+   * being switched off.
+   *
+   * The canvas is a 3% warm cream. It is lighter than every grey this file
+   * has reverted (it is a tint of the brand, not a shade of black), and it is
+   * what makes the white things on top of it read as white — the panels, and
+   * now the product tiles, which carry their own white card everywhere rather
+   * than only on a phone. No product photograph ever touches the cream: a
+   * tile is a white card, so the ground shows only in the gutters and gaps.
+   *
+   * `--color-shop-edge` is the hairline that goes with it. The cool #e5e7eb
+   * the panels used reads faintly blue on cream, and at one pixel on a
+   * near-white fill, faint is the whole budget.
+   *
+   * `--color-shop-photo` is the ground a photo sits on while it loads, warmed
+   * off the cool #f3f4f6 for the same reason. */
+  --color-shop-canvas: #fff8f2;
   --color-shop-panel: #ffffff;
+  --color-shop-edge: #f2e7db;
+  --color-shop-photo: #fbf7f4;
 
 
   /* ---- The accent shelves ----
@@ -482,12 +505,23 @@
    * 55) gain contrast rather than lose it. The 55 step is the one that
    * mattered — support hours and an address at 55% of white were 9.3:1 on
    * gray-900 and are 11.6:1 here. */
-  --color-shop-footer: #000000;
+  /* ---- And the footer is light too ----
+   *
+   * Everything above about white on #000 was true and it was solving for the
+   * wrong thing. A black slab under a cream page is the single largest dark
+   * object on the site, and it is what a shopper means when they say the shop
+   * "looks dark" — the page is light, the thing at the bottom of it is not.
+   *
+   * The footer is now the deepest step of the same warm ramp the canvas is
+   * drawn from, so the page ends by getting slightly warmer rather than by
+   * falling off a cliff. Type goes back to the shop ink ramp, which is where
+   * every contrast ratio in this file was calculated. */
+  --color-shop-footer: #fff4e9;
   /* The legal bar goes a step LIGHTER, which only looks backwards. The band
      above it is already #000: there is nothing darker to separate it with, so
      the strip lifts by a hair instead and the `border-white/10` above it does
      the rest of the work. */
-  --color-shop-footer-deep: #0a0a0a;
+  --color-shop-footer-deep: #ffece0;
 
   /* Kept for the odd accent that still wants it (seller badges, chart series). */
   --color-shop-olive: #6f7c02;
@@ -1513,8 +1547,15 @@ h6,
  * property of the panel.
  */
 .shop-panel {
+  /* The panel now paints its ground on a phone as well. It used to be a
+     transparent bleed, which was right while the page was white — the panel
+     and the page were the same colour, so there was nothing to paint. With a
+     cream canvas underneath, a shelf that paints nothing is a shelf whose
+     copy sits on the page rather than on a surface, and the full-bleed white
+     band is what tells a phone where one section ends. */
   margin-inline: -12px;
   padding: 14px 12px;
+  background: var(--color-shop-panel);
 }
 
 @media (min-width: 768px) {
@@ -1523,8 +1564,15 @@ h6,
        column is nowhere near the edge of the screen for it to reach. */
     margin-inline: 0;
     background: var(--color-shop-panel);
-    border-radius: 16px;
-    box-shadow: inset 0 0 0 1px var(--color-shop-line);
+    border-radius: 18px;
+    /* A warm hairline plus a shadow soft enough to be felt rather than seen.
+       The ring alone was enough on a white page; on cream the panel is also
+       lifting off a tinted ground, and a few pixels of diffusion is what
+       makes it read as laid ON the page instead of cut OUT of it. */
+    box-shadow:
+      inset 0 0 0 1px var(--color-shop-edge),
+      0 1px 2px rgba(120, 72, 30, 0.04),
+      0 12px 28px -22px rgba(120, 72, 30, 0.35);
     padding: 20px 24px;
   }
 }
@@ -1743,8 +1791,45 @@ h6,
 
 .card-shop {
   background: #fff;
-  border: 1px solid var(--color-shop-line);
-  border-radius: 6px;
+  border: 1px solid var(--color-shop-edge);
+  border-radius: 10px;
+}
+
+/* ---- The product tile ----
+ *
+ * Every tile in the shop is a white card on the cream canvas, on every screen
+ * — this used to be a phone-only treatment, back when the page was white and
+ * a card drawn on it would have been an invisible rectangle. The ground moved,
+ * so the rule that depended on it moved too.
+ *
+ * It is one class rather than a string of utilities because the tile appears
+ * in six grids and three carousels, and a hover lift that disagrees between
+ * them is the sort of thing nobody sees and everybody feels. Tune it here.
+ *
+ * The lift is 2px and the shadow is warm — a neutral drop shadow on a cream
+ * page goes grey, which is exactly the cast this whole redesign is removing.
+ */
+.tile-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px var(--color-shop-edge);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.tile-card:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 106, 0, 0.32),
+    0 16px 32px -20px rgba(120, 72, 30, 0.55);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-card {
+    transition: none;
+  }
+  .tile-card:hover {
+    transform: none;
+  }
 }
 
 /* Text inputs and selects on the checkout form. */

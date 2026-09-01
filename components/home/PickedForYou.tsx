@@ -115,7 +115,7 @@ export default function PickedForYou({
               stay the same: two grids of different column counts under one tab
               row is the page re-laying itself out every time a chip is tapped.
               If that ramp moves, this moves with it. */}
-          <ul className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:grid-cols-4 md:gap-x-2 md:gap-y-5 lg:grid-cols-5 xl:grid-cols-6">
+          <ul className="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:grid-cols-4 md:gap-x-3 md:gap-y-4 lg:grid-cols-5 xl:grid-cols-6">
             {department.products.map((product) => (
               <li key={product.id}>
                 <ProductCard product={product} />

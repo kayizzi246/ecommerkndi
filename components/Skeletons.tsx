@@ -1,21 +1,22 @@
 export function ProductCardSkeleton() {
   return (
-    // Flat at every width, because that is what `ProductCard` is now. It used
-    // to be a white card below `md` and flat above it, matching the tile's own
-    // breakpoint; the tile lost that split when the homepage sections became
-    // white panels, and this lost it in the same pass.
+    // A white card at every width, because that is what `ProductCard` is now.
+    // It was flat for a while, which was right while the page was white; the
+    // tile took its card back when the canvas went cream, and this follows it
+    // in the same pass — including the `tile-card` class itself, so the two
+    // cannot drift apart on radius or hairline again.
     //
     // Everything here is copied from `ProductCard` rather than chosen: a
     // placeholder that is a different shape from what replaces it makes the
     // grid visibly re-draw itself when the products land, which reads as a
     // layout bug rather than as loading.
-    <div>
+    <div className="tile-card p-1.5 md:p-2">
       {/* Row for row: the square photograph, one line of name, the short
           sold-and-rating line, then the price. The ratio is the part that has
           to track — it is nearly all of the tile's height. The text bars matter
           too: a bare box shimmering on its own reads as a broken image, where a
           box with lines under it reads as a product on its way. */}
-      <div className="shimmer aspect-square w-full rounded-xl" />
+      <div className="shimmer aspect-square w-full rounded-[10px]" />
       <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
       <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
       <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
@@ -88,7 +89,7 @@ export function ProductRailSkeleton({
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-x-1 gap-y-2 sm:grid-cols-3 md:gap-x-2 md:gap-y-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {Array.from({ length: count }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}

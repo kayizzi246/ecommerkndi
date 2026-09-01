@@ -63,7 +63,7 @@ export default function PortalAccount({
   return (
     <aside
       aria-label="Your account"
-      className="hidden h-full flex-col rounded-2xl bg-white p-4 ring-1 ring-shop-line xl:flex"
+      className="hidden h-full flex-col rounded-2xl bg-white p-4 ring-1 ring-shop-edge xl:flex"
     >
       <div className="flex items-center gap-2.5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-shop-primary-soft">

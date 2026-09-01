@@ -378,7 +378,7 @@ export default function SearchBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-nav text-white transition-colors hover:bg-shop-nav-dark"
+            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-primary text-white transition-colors hover:bg-shop-primary-dark"
           >
             <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path

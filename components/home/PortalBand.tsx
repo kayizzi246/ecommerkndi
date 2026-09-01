@@ -112,7 +112,7 @@ export default function PortalBand({
              panel rather than a hole in the front page. */
           <Link
             href={settings.banner.cta_url || "/sale"}
-            className="group relative flex flex-1 flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-shop-primary to-shop-ember p-6 text-white"
+            className="group relative flex flex-1 flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#fff4ea] via-[#ffe6d2] to-[#ffd6b6] p-6 text-shop-ink ring-1 ring-shop-primary/15"
           >
             {/* Two soft discs, bottom right. The panel is a flat gradient
                 otherwise, and a flat gradient at this size reads as an image
@@ -120,23 +120,23 @@ export default function PortalBand({
                 purpose. `aria-hidden` because they carry nothing. */}
             <span
               aria-hidden
-              className="absolute -bottom-16 -right-10 h-52 w-52 rounded-full bg-white/10"
+              className="absolute -bottom-16 -right-10 h-52 w-52 rounded-full bg-white/55"
             />
             <span
               aria-hidden
-              className="absolute -bottom-4 right-16 h-24 w-24 rounded-full bg-white/10"
+              className="absolute -bottom-4 right-16 h-24 w-24 rounded-full bg-shop-primary/10"
             />
 
-            <span className="relative text-[12px] font-bold uppercase tracking-[0.14em] text-white/85">
+            <span className="relative text-[12px] font-bold uppercase tracking-[0.14em] text-shop-primary-ink">
               {settings.banner.eyebrow}
             </span>
             <span className="hero-display relative mt-1.5 max-w-[15ch] text-[30px] leading-[1.08] tracking-[-0.02em] md:text-[38px]">
               {settings.banner.headline}
             </span>
-            <span className="relative mt-2 max-w-[34ch] text-[13.5px] leading-snug text-white/90">
+            <span className="relative mt-2 max-w-[34ch] text-[13.5px] leading-snug text-shop-body">
               {`Free delivery over ${formatPrice(settings.commerce.free_delivery_from)} · pay on delivery · ${settings.commerce.returns_days}-day returns`}
             </span>
-            <span className="relative mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2 text-[13.5px] font-bold text-shop-primary-ink transition-transform duration-200 ease-out group-hover:translate-x-0.5">
+            <span className="relative mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2 text-[13.5px] font-bold text-shop-primary-ink shadow-[0_8px_18px_-8px_rgba(120,72,30,0.55)] ring-1 ring-shop-primary/20 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
               {settings.banner.cta_label}
               <svg
                 className="h-4 w-4"
@@ -162,10 +162,10 @@ export default function PortalBand({
               <li key={offer.headline} className="min-w-0 flex-1">
                 <Link
                   href={offer.url || "/sale"}
-                  className="flex h-full flex-col justify-center rounded-xl bg-white px-3 py-2.5 ring-1 ring-shop-line transition-colors hover:ring-shop-primary"
+                  className="flex h-full flex-col justify-center rounded-xl bg-white px-3 py-2.5 ring-1 ring-shop-edge transition-colors hover:ring-shop-primary"
                 >
                   {offer.badge && (
-                    <span className="mb-1 w-fit rounded bg-shop-ink px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-white">
+                    <span className="mb-1 w-fit rounded bg-shop-primary-soft px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-shop-primary-ink">
                       {offer.badge}
                     </span>
                   )}
@@ -196,7 +196,7 @@ export default function PortalBand({
           than four discounts to show, so a shop running no sale gets a
           three-column band rather than an empty promise. */}
       {deals.length >= 4 && (
-        <div className="flex h-full flex-col rounded-2xl bg-white p-4 ring-1 ring-shop-line md:col-span-2 xl:col-span-1">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-4 shadow-[0_12px_28px_-24px_rgba(120,72,30,0.5)] ring-1 ring-shop-edge md:col-span-2 xl:col-span-1">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-[14px] font-bold leading-tight text-shop-ink">
               Today&rsquo;s deepest cuts

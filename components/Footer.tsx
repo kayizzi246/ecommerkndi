@@ -84,7 +84,7 @@ export default function Footer({
      that they had to differ, and the row read as a set of unrelated badges
      rather than as one statement the shop is making four times.
 
-     They are white now, with the icon carrying the single accent. That is the
+     They are one ink now, with the icon carrying the single accent. That is the
      same rule the rest of the shop follows — see the ONE ACCENT note on /sell —
      and it is what lets the row be read as a group rather than scanned as four
      separate objects.
@@ -118,13 +118,30 @@ export default function Footer({
   const socialLinks = Object.entries(social).filter(([, url]) => Boolean(url));
 
   return (
-    /* ---- Still `bg-shop-footer`, which is #000 ----
+    /* ---- `bg-shop-footer` is light now ----
 
-       Black was already the ground here and it stays: the token note in
-       `globals.css` has the argument, and it is a good one — under warm product
-       photography and an orange masthead, any TINTED near-black is a third hue
-       on the page and the eye reads it as one. White on #000 is also 21:1, so
-       every step of white in here gains contrast rather than loses it.
+       It was #000, on the argument recorded in `globals.css`: under warm
+       photography and an orange masthead a tinted near-black would read as a
+       third hue, and white on black is 21:1 so every step of white gained
+       contrast. Both points are true and neither was the question.
+
+       The question is what a shopper sees. A black slab under a light page is
+       the largest dark object on the site, and it is most of what "the shop
+       looks dark" means — the page is light and the thing at the bottom of it
+       is not. So the footer takes the deepest step of the same warm ramp the
+       canvas is drawn from, and the page ends by getting slightly warmer rather
+       than by falling off a cliff.
+
+       Type went back to the shop's ink ramp on the way, which is where every
+       contrast ratio in `globals.css` was calculated: headings at `shop-ink`
+       (15:1) and everything else at `shop-body` (6.6:1 on the legal bar, which is
+       the deepest tone here). `shop-muted` is deliberately NOT used: it is 4.8:1
+       on white and 4.2:1 on this cream, so the one grey that was fine on the old
+       black ground is the one grey that fails on the new one. The two on-dark
+       accents went the same way — `pop-orange-on-dark` and
+       `pop-green-on-dark` exist to be legible on black and are far too pale for
+       cream, so the offers link is `shop-primary-ink` (5:1 here, where the raw
+       `shop-primary` is 2.8) and WhatsApp is `shop-save`.
 
        ---- What the redesign actually changed ----
 
@@ -147,9 +164,9 @@ export default function Footer({
        Padding came down with it, everywhere: py-7 → py-5 on the promises,
        py-11 → py-8 on the grid, py-5 → py-3.5 on the legal bar, and the
        `mt-14` above the whole thing → mt-10. */
-    <footer className="mt-10 bg-shop-footer text-white/70">
+    <footer className="mt-10 bg-shop-footer text-shop-body">
       {/* Service promises */}
-      <div className="border-b border-white/10">
+      <div className="border-b border-shop-edge">
         <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-4 px-4 py-5 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
           {serviceStrip.map((item) => (
             <div key={item.title} className="flex items-start gap-2.5">
@@ -161,13 +178,13 @@ export default function Footer({
                 strokeWidth="1.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="mt-px h-[18px] w-[18px] shrink-0 text-shop-primary"
+                className="mt-px h-[18px] w-[18px] shrink-0 text-shop-primary-ink"
               >
                 <path d={item.icon} />
               </svg>
               <div className="min-w-0">
-                <p className="text-[13.5px] font-semibold leading-tight text-white">{item.title}</p>
-                <p className="mt-0.5 text-[12px] leading-tight text-white/55">{item.copy}</p>
+                <p className="text-[13.5px] font-semibold leading-tight text-shop-ink">{item.title}</p>
+                <p className="mt-0.5 text-[12px] leading-tight text-shop-body">{item.copy}</p>
               </div>
             </div>
           ))}
@@ -178,14 +195,14 @@ export default function Footer({
       <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-7 px-4 py-8 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
         {shopDepartments.length > 0 && (
           <div>
-            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               Shop by department
             </h2>
-            <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
+            <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
               {shopDepartments.map((department) => (
                 <li key={department.id}>
                   <Link
-                    className="hover:text-white hover:underline"
+                    className="hover:text-shop-primary-ink hover:underline"
                     href={`/category/${department.slug}`}
                   >
                     {department.name}
@@ -193,7 +210,7 @@ export default function Footer({
                 </li>
               ))}
               <li>
-                <Link className="font-semibold text-white/90 hover:underline" href="/categories">
+                <Link className="font-semibold text-shop-ink hover:text-shop-primary-ink hover:underline" href="/categories">
                   All categories
                 </Link>
               </li>
@@ -201,7 +218,7 @@ export default function Footer({
                 {/* The sale page belongs in the footer for the same reason it
                     belongs in the nav: it is the highest-converting page on the
                     shop, and it was reachable from the homepage alone. */}
-                <Link className="font-semibold text-pop-orange-on-dark hover:underline" href="/sale">
+                <Link className="font-semibold text-shop-primary-ink hover:underline" href="/sale">
                   Today&rsquo;s offers
                 </Link>
               </li>
@@ -211,13 +228,13 @@ export default function Footer({
 
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {column.title}
             </h2>
-            <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
+            <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
               {column.items.map((item) => (
                 <li key={item.name}>
-                  <Link className="hover:text-white hover:underline" href={item.href}>
+                  <Link className="hover:text-shop-primary-ink hover:underline" href={item.href}>
                     {item.name}
                   </Link>
                 </li>
@@ -227,24 +244,24 @@ export default function Footer({
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
             Talk to us
           </h2>
-          <ul className="space-y-1.5 text-[13px] leading-snug text-white/70">
+          <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
             <li>
-              <a className="hover:text-white hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
+              <a className="hover:text-shop-primary-ink hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
                 {support.phone}
               </a>
             </li>
             <li>
-              <a className="hover:text-white hover:underline" href={`mailto:${support.email}`}>
+              <a className="hover:text-shop-primary-ink hover:underline" href={`mailto:${support.email}`}>
                 {support.email}
               </a>
             </li>
             {support.whatsapp && (
               <li>
                 <a
-                  className="font-semibold text-pop-green-on-dark hover:underline"
+                  className="font-semibold text-shop-save hover:underline"
                   href={`https://wa.me/${support.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -253,8 +270,8 @@ export default function Footer({
                 </a>
               </li>
             )}
-            <li className="text-white/55">{support.hours}</li>
-            <li className="text-white/55">{support.address}</li>
+            <li className="text-shop-body">{support.hours}</li>
+            <li className="text-shop-body">{support.address}</li>
           </ul>
         </div>
       </div>
@@ -276,10 +293,10 @@ export default function Footer({
            from your phone", set beside two buttons reading App Store and Google
            Play, is a sentence explaining an icon — and the heading next to it
            already says which of the two states this is in. */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-shop-edge">
         <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+            <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {app.available ? "Get the app" : "App coming soon"}
             </h2>
             <AppStoreBadges app={app} />
@@ -287,7 +304,7 @@ export default function Footer({
 
           {socialLinks.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="mr-1 text-[12px] font-bold uppercase tracking-[0.1em] text-white">
+              <h2 className="mr-1 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
                 Follow us
               </h2>
               {socialLinks.map(([network, url]) => (
@@ -296,7 +313,7 @@ export default function Footer({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-full border border-white/10 px-3 py-1 text-[12.5px] font-semibold text-white/70 transition-colors hover:border-white hover:text-white"
+                  className="rounded-full border border-shop-edge bg-white px-3 py-1 text-[12.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
                 >
                   {SOCIAL_LABELS[network] ?? network}
                 </a>
@@ -311,15 +328,15 @@ export default function Footer({
           TYPE colour and only ever coincidentally the same value. Now that the
           footer is black the strip lifts a hair instead of dropping — see the
           token in `globals.css` — and the hairline above carries the join. */}
-      <div className="border-t border-white/10 bg-shop-footer-deep">
-        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2 px-4 py-3.5 text-[12.5px] text-white/70 md:flex-row md:items-center md:justify-between md:px-8">
+      <div className="border-t border-shop-edge bg-shop-footer-deep">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2 px-4 py-3.5 text-[12.5px] text-shop-body md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every
               page of the site, which is what turns one mention of the name
               people search into a site-wide one. */}
           <span>
             © {new Date().getFullYear()} {brand.name} Uganda (KandiUg). All rights reserved.
           </span>
-          <span className="text-white/55">
+          <span className="text-shop-body">
             Cash on delivery · MTN MoMo · Airtel Money · Visa · Mastercard
           </span>
         </div>
