@@ -374,9 +374,37 @@
    *
    * `--color-shop-photo` is the ground a photo sits on while it loads, warmed
    * off the cool #f3f4f6 for the same reason. */
-  --color-shop-canvas: #fff8f2;
+  /* ---- Eighth turn: the ground goes neutral ----
+   *
+   * The cream above was reverted to a warm grey on request. The note stays
+   * because the reasoning it records is still the reasoning that has to be
+   * argued with next time, and because a ninth turn should know what the
+   * eighth traded away.
+   *
+   * What changed: `--color-shop-canvas` from the #fff8f2 cream to #f7f5f2, and
+   * `--color-shop-edge` from #f2e7db to #e8e5e1 to match. Both are warm — the
+   * red channel still leads — but they are warm GREYS rather than tints of the
+   * brand, which is the family the six rounds before the seventh kept landing
+   * in and the seventh talked the shop out of.
+   *
+   * What that buys: the ground reads as paper rather than as colour, so the
+   * saturated shelves (Trending, Super Deals, the department tints) are the
+   * only things on the page making a colour argument. The seventh turn's own
+   * defence of the cream — that no photograph ever touches it — applies here
+   * unchanged: every tile is a white card, so this shows in gutters and gaps.
+   *
+   * What it costs, and what to look at first if the page starts reading cold:
+   * #f7f5f2 is a 3% neutral, and the complaint the seventh turn was answering
+   * was that a neutral off-white under a #ff6a00 brand reads as the page being
+   * switched off. If that comes back, this line is where it comes from, and
+   * #fff8f2 is what it was.
+   *
+   * `--color-shop-photo` stays warm on purpose. It is only ever visible for
+   * the moment before a photograph paints, where a hair of warmth is kinder
+   * than grey and nothing is next to it to be inconsistent with. */
+  --color-shop-canvas: #f7f5f2;
   --color-shop-panel: #ffffff;
-  --color-shop-edge: #f2e7db;
+  --color-shop-edge: #e8e5e1;
   --color-shop-photo: #fbf7f4;
 
 
