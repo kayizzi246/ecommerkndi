@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the server is older than the code in the repository" becomes a sentence on
  * the screen rather than a fortnight of debugging a fix that was never running.
  */
-define( 'KANDI_SELLER_API_VERSION', '2.2.0' );
+define( 'KANDI_SELLER_API_VERSION', '2.3.0' );
 
 /**
  * Load guard — this file must run exactly once.
@@ -235,14 +235,20 @@ function kandi_seller_send_code( $user_id ) {
 		$user->user_email,
 		'Your Kandi verification code: ' . $code,
 		'Verify your seller account',
-		sprintf(
-			'<p style="margin:0 0 18px">Enter this code in the Seller Centre to finish setting up <strong>%s</strong>:</p>
-			 <p style="margin:0 0 18px;font:700 34px/1 Helvetica,Arial,sans-serif;letter-spacing:6px;color:#171717">%s</p>
-			 <p style="margin:0 0 10px">The code works for %d minutes.</p>
-			 <p style="margin:0;color:#71717a;font-size:13px">If you did not apply to sell on Kandi, ignore this email — nothing happens without the code.</p>',
-			esc_html( get_user_meta( $user_id, '_kandi_store_name', true ) ),
-			esc_html( $code ),
-			(int) ( KANDI_SELLER_CODE_TTL / 60 )
+		kandi_seller_p( sprintf(
+			'Enter this code in the Seller Centre to finish setting up <strong>%s</strong>:',
+			esc_html( get_user_meta( $user_id, '_kandi_store_name', true ) )
+		), '0 0 18px' )
+		. ( function_exists( 'kandi_mail_code' )
+			? kandi_mail_code( $code )
+			: sprintf(
+				'<p style="margin:0 0 18px;font:700 32px/1 Helvetica,Arial,sans-serif;letter-spacing:8px;color:#171717">%s</p>',
+				esc_html( $code )
+			) )
+		. kandi_seller_p( sprintf( 'The code works for %d minutes.', (int) ( KANDI_SELLER_CODE_TTL / 60 ) ), '0 0 10px' )
+		. kandi_seller_p(
+			'<span style="color:#8a8178;font-size:13px">If you did not apply to sell on Kandi, ignore this email — nothing happens without the code.</span>',
+			'0'
 		)
 	);
 }
@@ -437,7 +443,11 @@ function kandi_format_seller( $user_id ) {
 		'phone'           => (string) get_user_meta( $user->ID, '_kandi_phone', true ),
 		'owner_name'      => (string) get_user_meta( $user->ID, '_kandi_owner_name', true ),
 		'status'          => (string) ( get_user_meta( $user->ID, '_kandi_status', true ) ?: 'pending' ),
-		'commission_rate' => (float) ( get_user_meta( $user->ID, '_kandi_commission_rate', true ) ?: kandi_default_commission_rate() ),
+		// Through the helper, not a raw meta read with `?:`. That idiom treats a
+		// stored 0 as absent, so a seller on a genuine 0% commission — a launch
+		// partner, a staff store — was silently shown and charged the shop
+		// default instead. The helper distinguishes "no override" from "zero".
+		'commission_rate' => kandi_seller_commission_rate( $user->ID ),
 		'payout_method'   => (string) get_user_meta( $user->ID, '_kandi_payout_method', true ),
 		'payout_account'  => (string) get_user_meta( $user->ID, '_kandi_payout_account', true ),
 		'registered_at'   => mysql2date( 'c', $user->user_registered ),
@@ -1019,6 +1029,70 @@ function kandi_seller_order_lines( $order, $seller_id ) {
 }
 endif;
 
+/**
+ * ---- The email blocks, borrowed when they are available ----
+ *
+ * Kandi Notifications owns the shop's letterhead and the pieces a message is
+ * built from — a paragraph, a row of facts, a tinted panel, a headline figure.
+ * This plugin has to work without it: the two are separate downloads, and a
+ * verification code that never arrives because a companion plugin is missing
+ * would lock every new seller out of their own account.
+ *
+ * So each of these calls the real block when it is loaded and falls back to
+ * plain markup when it is not — the same arrangement `kandi_seller_lines_html`
+ * has always used. The fallbacks are ugly and they deliver, which is the
+ * correct order of priorities for mail.
+ */
+if ( ! function_exists( 'kandi_seller_p' ) ) :
+function kandi_seller_p( $html, $margin = '0 0 14px' ) {
+	if ( function_exists( 'kandi_mail_p' ) ) {
+		return kandi_mail_p( $html, $margin );
+	}
+	return sprintf( '<p style="margin:%s">%s</p>', esc_attr( $margin ), wp_kses_post( $html ) );
+}
+endif;
+
+if ( ! function_exists( 'kandi_seller_facts' ) ) :
+function kandi_seller_facts( $rows ) {
+	if ( function_exists( 'kandi_mail_facts' ) ) {
+		return kandi_mail_facts( $rows );
+	}
+
+	$html = '';
+	foreach ( (array) $rows as $label => $value ) {
+		if ( '' === trim( wp_strip_all_tags( (string) $value ) ) ) {
+			continue;
+		}
+		$html .= sprintf( '<li>%s: %s</li>', esc_html( $label ), wp_kses_post( $value ) );
+	}
+
+	return '' === $html ? '' : '<ul>' . $html . '</ul>';
+}
+endif;
+
+if ( ! function_exists( 'kandi_seller_panel' ) ) :
+function kandi_seller_panel( $html, $tone = 'neutral' ) {
+	if ( function_exists( 'kandi_mail_panel' ) ) {
+		return kandi_mail_panel( $html, $tone );
+	}
+	return sprintf( '<p style="margin:0 0 14px">%s</p>', wp_kses_post( $html ) );
+}
+endif;
+
+if ( ! function_exists( 'kandi_seller_figure' ) ) :
+function kandi_seller_figure( $label, $value, $note = '' ) {
+	if ( function_exists( 'kandi_mail_figure' ) ) {
+		return kandi_mail_figure( $label, $value, $note );
+	}
+	return sprintf(
+		'<p style="margin:0 0 14px">%s: <strong>%s</strong>%s</p>',
+		esc_html( $label ),
+		wp_kses_post( $value ),
+		'' !== $note ? '<br>' . wp_kses_post( $note ) : ''
+	);
+}
+endif;
+
 /** Renders order lines as an HTML table, with or without the Notifications plugin. */
 if ( ! function_exists( 'kandi_seller_lines_html' ) ) :
 function kandi_seller_lines_html( $lines, $total_label = '', $total = null ) {
@@ -1189,25 +1263,33 @@ function kandi_notify_sellers_of_order( $order_id ) {
 			$user->user_email,
 			sprintf( 'New order #%s — %d item(s) to pack', $order->get_order_number(), count( $part['lines'] ) ),
 			'You have a new order',
-			sprintf(
-				'<p style="margin:0 0 14px">Order <strong>#%s</strong> came in for <strong>%s</strong>. Here is your part of it:</p>
-				 %s
-				 <p style="margin:14px 0 4px">Commission at %s%%: %s</p>
-				 <p style="margin:0 0 14px"><strong>You receive: %s</strong></p>
-				 %s
-				 <p style="margin:0">Accept it in the Seller Centre so we can tell the buyer it is being packed.</p>',
-				esc_html( $order->get_order_number() ),
-				esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) ),
-				kandi_seller_lines_html(
+			kandi_seller_p( sprintf(
+					'Order <strong>#%s</strong> came in for <strong>%s</strong>. Here is your part of it:',
+					esc_html( $order->get_order_number() ),
+					esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) )
+				) )
+				. kandi_seller_lines_html(
 					$part['lines'],
 					'Your total',
 					wc_price( $part['total'], array( 'currency' => $order->get_currency() ) )
+				)
+				/* What the seller actually takes home, as the figure rather than
+				   as the third line of a paragraph. It is the number they are
+				   looking for and it was set in body text between two others. */
+				. kandi_seller_figure(
+					'You receive',
+					wc_price( $part['total'] - $commission, array( 'currency' => $order->get_currency() ) ),
+					sprintf(
+						'After %s%% commission (%s).',
+						esc_html( (string) $rate ),
+						wp_kses_post( wc_price( $commission, array( 'currency' => $order->get_currency() ) ) )
+					)
+				)
+				. kandi_seller_delivery_html( $order )
+				. kandi_seller_panel(
+					'Accept it in the Seller Centre so we can tell the buyer it is being packed.',
+					'brand'
 				),
-				esc_html( (string) $rate ),
-				wp_kses_post( wc_price( $commission, array( 'currency' => $order->get_currency() ) ) ),
-				wp_kses_post( wc_price( $part['total'] - $commission, array( 'currency' => $order->get_currency() ) ) ),
-				kandi_seller_delivery_html( $order )
-			),
 			/**
 			 * The button, filtered.
 			 *
@@ -1614,7 +1696,27 @@ add_action( 'rest_api_init', function () {
 			update_user_meta( $user_id, '_kandi_city', sanitize_text_field( $body['city'] ?? '' ) );
 			update_user_meta( $user_id, '_kandi_category', sanitize_text_field( $body['category'] ?? '' ) );
 			update_user_meta( $user_id, '_kandi_status', 'pending' );
-			update_user_meta( $user_id, '_kandi_commission_rate', kandi_default_commission_rate() );
+
+			/**
+			 * ---- No commission rate is written here, and that is the fix ----
+			 *
+			 * This line used to copy the shop's default onto the seller:
+			 *
+			 *     update_user_meta( $user_id, '_kandi_commission_rate', kandi_default_commission_rate() );
+			 *
+			 * which quietly turned a default into a permanent per-seller
+			 * override at the moment of sign-up. Every seller was therefore
+			 * pinned to whatever the rate happened to be on the day they
+			 * joined, and changing "Default commission rate" in wp-admin
+			 * afterwards changed nothing for anybody — the setting appeared to
+			 * do nothing at all, because for every existing seller it did.
+			 *
+			 * Leaving the meta absent means `kandi_seller_commission_rate()`
+			 * falls through to the shop default, so a new seller follows the
+			 * shop and an override exists only where somebody deliberately set
+			 * one on the Sellers screen. Existing sellers already carry the
+			 * stamped value; the Settings screen has a control to clear those.
+			 */
 
 			/**
 			 * The monthly fee. Recorded at the amount in force on the day they
@@ -2805,19 +2907,17 @@ add_action( 'rest_api_init', function () {
 						$user->user_email,
 						sprintf( 'You accepted order #%s', $order->get_order_number() ),
 						'Order accepted',
-						sprintf(
-							'<p style="margin:0 0 14px">You have accepted order <strong>#%s</strong>. The buyer has been told it is being packed.</p>
-							 %s
-							 <p style="margin:14px 0 14px">Have it ready for collection today.</p>
-							 %s',
-							esc_html( $order->get_order_number() ),
-							kandi_seller_lines_html( $part['lines'] ),
-							// The full address and a callable number, not just a
-							// city. This email is the packing slip for a seller
-							// who accepted from their phone and will not open the
-							// Seller Centre again before the rider arrives.
-							kandi_seller_delivery_html( $order )
-						),
+						kandi_seller_p( sprintf(
+							'You have accepted order <strong>#%s</strong>. The buyer has been told it is being packed.',
+							esc_html( $order->get_order_number() )
+						) )
+						. kandi_seller_lines_html( $part['lines'] )
+						. kandi_seller_panel( 'Have it ready for collection today.', 'warn' )
+						// The full address and a callable number, not just a
+						// city. This email is the packing slip for a seller who
+						// accepted from their phone and will not open the Seller
+						// Centre again before the rider arrives.
+						. kandi_seller_delivery_html( $order ),
 						array( 'label' => 'View your orders', 'url' => kandi_seller_centre_url() )
 					);
 				}
@@ -3255,25 +3355,21 @@ add_action( 'rest_api_init', function () {
 				get_option( 'admin_email' ),
 				sprintf( 'Payout requested: %s — %s', $store, wp_strip_all_tags( $amount ) ),
 				'A seller has asked to be paid',
-				sprintf(
-					'<p style="margin:0 0 14px"><strong>%s</strong> requested <strong>%s</strong>.</p>
-					 <table role="presentation" style="border-collapse:collapse;font-size:14px;color:#3f3f46">
-					   <tr><td style="padding:2px 16px 2px 0">Send to</td><td style="padding:2px 0"><strong>%s</strong></td></tr>
-					   <tr><td style="padding:2px 16px 2px 0">Method</td><td style="padding:2px 0">%s</td></tr>
-					   <tr><td style="padding:2px 16px 2px 0">Seller email</td><td style="padding:2px 0">%s</td></tr>
-					   <tr><td style="padding:2px 16px 2px 0">Seller phone</td><td style="padding:2px 0">%s</td></tr>
-					   <tr><td style="padding:2px 16px 2px 0">Cleared orders</td><td style="padding:2px 0">%d</td></tr>
-					   <tr><td style="padding:2px 16px 2px 0">Balance left after</td><td style="padding:2px 0">%s</td></tr>
-					 </table>
-					 <p style="margin:14px 0 0">The seller has been told it is being processed and to expect the money within 24 hours.</p>',
-					esc_html( $store ),
-					wp_kses_post( $amount ),
-					esc_html( $account ),
-					esc_html( $method ),
-					esc_html( $user ? $user->user_email : '—' ),
-					esc_html( (string) get_user_meta( $seller_id, '_kandi_phone', true ) ),
-					count( $covered ),
-					wp_kses_post( $left )
+				kandi_seller_figure(
+					sprintf( '%s is owed', $store ),
+					$amount,
+					sprintf( 'Covering %d cleared order(s).', count( $covered ) )
+				)
+				. kandi_seller_facts( array(
+					'Send to'            => $account,
+					'Method'             => $method,
+					'Seller email'       => $user ? $user->user_email : '',
+					'Seller phone'       => (string) get_user_meta( $seller_id, '_kandi_phone', true ),
+					'Balance left after' => $left,
+				) )
+				. kandi_seller_panel(
+					'The seller has been told it is being processed and to expect the money within 24 hours.',
+					'warn'
 				),
 				array(
 					'label' => 'Review and pay',
@@ -3289,17 +3385,23 @@ add_action( 'rest_api_init', function () {
 					$user->user_email,
 					sprintf( 'Payout requested: %s', wp_strip_all_tags( $amount ) ),
 					'We are processing your payout',
-					sprintf(
-						'<p style="margin:0 0 14px">You asked us to pay out <strong>%s</strong> from %s.</p>
-						 <p style="margin:0 0 14px">Sending to: <strong>%s</strong> (%s)</p>
-						 <p style="margin:0 0 14px">It is being processed now. Every request is settled <strong>within 24 hours</strong>, and mobile money usually lands the same day — you will get another email the moment it goes out.</p>
-						 <p style="margin:0 0 14px">Your balance after this payout is %s.</p>
-						 <p style="margin:0;color:#71717a;font-size:13px">Did not request this? Reply to this email straight away and change your password.</p>',
-						wp_kses_post( $amount ),
-						esc_html( $store ),
-						esc_html( $account ),
-						esc_html( $method ),
-						wp_kses_post( $left )
+					kandi_seller_figure(
+						'On its way to you',
+						$amount,
+						sprintf( 'From %s.', esc_html( $store ) )
+					)
+					. kandi_seller_facts( array(
+						'Sending to'      => $account,
+						'Method'          => $method,
+						'Balance left'    => $left,
+					) )
+					. kandi_seller_panel(
+						'Every request is settled <strong>within 24 hours</strong>, and mobile money usually lands the same day. We will write again the moment it goes out.',
+						'good'
+					)
+					. kandi_seller_p(
+						'<span style="color:#8a8178;font-size:13px">Did not request this? Reply to this email straight away and change your password.</span>',
+						'0'
 					),
 					array( 'label' => 'View your earnings', 'url' => kandi_seller_centre_url( '/seller/commissions' ) )
 				);
@@ -3543,9 +3645,18 @@ function kandi_admin_sellers_page() {
 		}
 
 		if ( 'set_rate' === $action ) {
-			$rate = max( 0, min( 100, (float) $_POST['commission_rate'] ) );
-			update_user_meta( $seller_id, '_kandi_commission_rate', $rate );
-			echo '<div class="notice notice-success is-dismissible"><p>Commission rate updated.</p></div>';
+			$submitted = isset( $_POST['commission_rate'] ) ? trim( (string) wp_unslash( $_POST['commission_rate'] ) ) : '';
+
+			if ( '' === $submitted ) {
+				// Back onto the shop default, and it stays there when the
+				// default moves — which is the whole point of the distinction.
+				delete_user_meta( $seller_id, '_kandi_commission_rate' );
+				kandi_seller_flush_lapsed_cache();
+				echo '<div class="notice notice-success is-dismissible"><p>That store now follows the shop default.</p></div>';
+			} else {
+				update_user_meta( $seller_id, '_kandi_commission_rate', max( 0, min( 100, (float) $submitted ) ) );
+				echo '<div class="notice notice-success is-dismissible"><p>Commission rate updated for that store.</p></div>';
+			}
 		}
 
 		/**
@@ -3610,8 +3721,7 @@ function kandi_admin_sellers_page() {
 	}
 
 	foreach ( $sellers as $seller ) {
-		$status  = get_user_meta( $seller->ID, '_kandi_status', true ) ?: 'pending';
-		$rate    = kandi_seller_commission_rate( $seller->ID );
+		$status = get_user_meta( $seller->ID, '_kandi_status', true ) ?: 'pending';
 		$product_count = count( wc_get_products( array(
 			'limit'      => -1,
 			'status'     => array( 'publish', 'pending', 'draft' ),
@@ -3742,12 +3852,29 @@ function kandi_admin_sellers_page() {
 		echo '</td>';
 
 		// Inline commission-rate editor.
+		//
+		// Empty means "follow the shop default", which is a different state from
+		// "happens to equal the default today" and now looks different: the box
+		// is blank with the default as its placeholder, and clearing it removes
+		// the override rather than writing the same number back as one.
+		$override = get_user_meta( $seller->ID, '_kandi_commission_rate', true );
+
 		echo '<td><form method="post" style="display:flex;gap:4px;align-items:center">';
 		wp_nonce_field( 'kandi_seller_action' );
 		printf( '<input type="hidden" name="seller_id" value="%d">', (int) $seller->ID );
 		echo '<input type="hidden" name="kandi_seller_action" value="set_rate">';
-		printf( '<input type="number" step="0.5" min="0" max="100" name="commission_rate" value="%s" style="width:70px">', esc_attr( $rate ) );
-		echo '<button class="button button-small">%</button></form></td>';
+		printf(
+			'<input type="number" step="0.5" min="0" max="100" name="commission_rate" value="%s" placeholder="%s" style="width:70px">',
+			esc_attr( '' === $override ? '' : $override ),
+			esc_attr( kandi_default_commission_rate() )
+		);
+		echo '<button class="button button-small">%</button></form>';
+		printf(
+			'<span class="description">%s</span></td>',
+			'' === $override
+				? sprintf( 'Shop default (%s%%)', esc_html( kandi_default_commission_rate() ) )
+				: 'Set for this store'
+		);
 
 		printf( '<td>%d</td>', (int) $product_count );
 		echo '<td>' . wp_kses_post( wc_price( (float) $money->gross ) ) . '</td>';
@@ -4015,16 +4142,30 @@ function kandi_admin_payouts_page() {
 					$seller->user_email,
 					sprintf( 'Payout sent: %s', wp_strip_all_tags( wc_price( (float) $payout->amount ) ) ),
 					'Your payout is on its way',
-					sprintf(
-						'<p style="margin:0 0 14px">We have sent <strong>%s</strong> to %s.</p>
-						 <p style="margin:0 0 14px">Mobile money usually lands within minutes; a bank transfer can take a working day.</p>
-						 <p style="margin:0">Your earnings statement in the Seller Centre now shows this period as settled.</p>',
-						wp_kses_post( wc_price( (float) $payout->amount ) ),
-						esc_html( $payout->account ?: 'the account on file' )
-					),
+					kandi_seller_figure(
+						'Sent',
+						wc_price( (float) $payout->amount ),
+						sprintf( 'To %s.', esc_html( $payout->account ?: 'the account on file' ) )
+					)
+					. kandi_seller_panel(
+						'Mobile money usually lands within minutes; a bank transfer can take a working day.',
+						'good'
+					)
+					. kandi_seller_p( 'Your earnings statement in the Seller Centre now shows this period as settled.', '0' ),
 					array( 'label' => 'View your earnings', 'url' => kandi_seller_centre_url( '/seller/commissions' ) )
 				);
 			}
+
+			/**
+			 * So the phone in the seller's pocket knows too.
+			 *
+			 * Kandi Notifications listens on this and asks the storefront to
+			 * push "Payout sent". An action rather than a direct call because
+			 * this plugin must not require that one to be installed — and
+			 * because the next thing that wants to know (an SMS, a webhook) can
+			 * hook the same event rather than being wedged in here.
+			 */
+			do_action( 'kandi_seller_payout_paid', (int) $payout->seller_id, $payout );
 
 			echo '<div class="notice notice-success is-dismissible"><p>Payout marked as paid. The seller has been emailed.</p></div>';
 		} elseif ( $payout && 'cancel' === $action ) {
@@ -4086,6 +4227,31 @@ function kandi_admin_settings_page() {
 		kandi_admin_guard( 'kandi_seller_settings' );
 
 		update_option( 'kandi_default_commission_rate', max( 0, min( 100, (float) $_POST['default_rate'] ) ) );
+
+		/**
+		 * The escape hatch for every seller stamped by the old sign-up.
+		 *
+		 * Changing the default cannot move a seller who carries an override, and
+		 * until the fix above every seller carried one — so a shop that set 6%
+		 * here watched all of its sellers stay on 12% with nothing on screen
+		 * explaining why. This clears the overrides, which is a deliberate,
+		 * ticked, one-off act rather than something a save quietly does: a shop
+		 * that has negotiated a rate with one store must not lose it by editing
+		 * an unrelated field.
+		 */
+		if ( ! empty( $_POST['apply_rate_to_all'] ) ) {
+			$cleared = 0;
+			foreach ( get_users( array( 'role' => KANDI_SELLER_ROLE, 'fields' => 'ID' ) ) as $existing_id ) {
+				if ( '' !== get_user_meta( $existing_id, '_kandi_commission_rate', true ) ) {
+					delete_user_meta( $existing_id, '_kandi_commission_rate' );
+					$cleared++;
+				}
+			}
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%d seller(s) now follow the shop default.</p></div>',
+				(int) $cleared
+			);
+		}
 		update_option( 'kandi_seller_auto_approve_products', isset( $_POST['auto_approve'] ) ? 1 : 0 );
 		update_option( 'kandi_seller_minimum_payout', max( 0, (float) ( $_POST['minimum_payout'] ?? 0 ) ) );
 
@@ -4107,7 +4273,12 @@ function kandi_admin_settings_page() {
 	printf(
 		'<tr><th scope="row"><label for="default_rate">Default commission rate</label></th>
 		 <td><input type="number" step="0.5" min="0" max="100" id="default_rate" name="default_rate" value="%s" class="small-text"> %%
-		 <p class="description">Applied to new sellers. Existing sellers keep their own rate.</p></td></tr>',
+		 <p class="description">Every seller uses this unless a rate has been set for their store individually
+		 on the Sellers screen. Past orders keep the rate they were charged at.</p>
+		 <p style="margin-top:8px"><label><input type="checkbox" name="apply_rate_to_all" value="1">
+		 <strong>Also move every existing seller onto this rate</strong></label></p>
+		 <p class="description">Clears any per-store rates, including the ones older sign-ups were given
+		 automatically. Tick this if you changed the rate above and nothing seemed to happen.</p></td></tr>',
 		esc_attr( $rate )
 	);
 

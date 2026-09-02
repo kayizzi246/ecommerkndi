@@ -268,16 +268,27 @@ function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
 <title>%s</title>
 <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#f4f4f5;-webkit-text-size-adjust:100%%;-ms-text-size-adjust:100%%">
+<body style="margin:0;padding:0;background:#f2eee9;-webkit-text-size-adjust:100%%;-ms-text-size-adjust:100%%">
 %s
 <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
-	style="background:#f4f4f5;padding:24px 12px">
+	style="background:#f2eee9;padding:28px 12px">
 	<tr><td align="center">
 		<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
-			style="width:100%%;max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+			style="width:100%%;max-width:600px;background:#ffffff;border:1px solid #e8e1d9;border-radius:14px;overflow:hidden">
+
+			<!-- The brand bar.
+			     Four pixels of orange across the top of the card, and the only place
+			     the brand colour appears other than the button. It is the cheapest
+			     signal of a designed message there is: an email that opens on a bare
+			     white rectangle reads as something a script produced, one that opens
+			     on a coloured edge reads as stationery. The zero font-size and
+			     line-height are not decoration — Outlook gives an empty cell a line
+			     box and turns a 4px rule into a 20px band without them. -->
+			<tr><td height="4" bgcolor="#ff6a00"
+				style="height:4px;background:#ff6a00;font-size:0;line-height:0;mso-line-height-rule:exactly">&nbsp;</td></tr>
 
 			<!-- Letterhead -->
-			<tr><td style="padding:22px 32px;border-bottom:1px solid #e5e7eb">
+			<tr><td style="padding:22px 32px;border-bottom:1px solid #f0eae3">
 				<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>%s<td style="vertical-align:middle">%s</td></tr></table>
 			</td></tr>
 
@@ -289,12 +300,12 @@ function kandi_mail_template( $heading, $body, $cta = null, $preview = '' ) {
 			%s
 
 			<!-- Footer -->
-			<tr><td style="padding:20px 32px 24px;border-top:1px solid #e5e7eb;background:#fafafa;
-				font:400 13px/1.6 %s;color:#71717a;mso-line-height-rule:exactly">
+			<tr><td style="padding:20px 32px 24px;border-top:1px solid #f0eae3;background:#faf7f4;
+				font:400 13px/1.6 %s;color:#8a8178;mso-line-height-rule:exactly">
 				<div style="font-weight:700;color:#3f3f46">%s</div>
 				%s
 				%s
-				<div style="margin-top:10px;color:#a1a1aa;font-size:12px">
+				<div style="margin-top:10px;color:#a89e93;font-size:12px">
 					You are receiving this because of an order or account on
 					<a href="%s" style="color:#a1a1aa;text-decoration:underline">%s</a>.
 				</div>
@@ -452,13 +463,13 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 
 	$html = sprintf(
 		'<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
-			style="width:100%%;border-collapse:collapse;margin:16px 0 6px;border:1px solid #e5e7eb;border-radius:8px;
+			style="width:100%%;border-collapse:collapse;margin:16px 0 6px;border:1px solid #ece6df;border-radius:10px;
 			font:400 14px/1.5 %s">
 		<tr>
-			<th align="left" style="padding:10px 14px;background:#fafafa;border-bottom:1px solid #e5e7eb;
-				font:600 12px/1.4 %s;color:#71717a;text-transform:uppercase;letter-spacing:0.04em">Item</th>
-			<th align="right" style="padding:10px 14px;background:#fafafa;border-bottom:1px solid #e5e7eb;
-				font:600 12px/1.4 %s;color:#71717a;text-transform:uppercase;letter-spacing:0.04em">Total</th>
+			<th align="left" style="padding:10px 14px;background:#faf7f4;border-bottom:1px solid #ece6df;
+				font:600 12px/1.4 %s;color:#8a8178;text-transform:uppercase;letter-spacing:0.04em">Item</th>
+			<th align="right" style="padding:10px 14px;background:#faf7f4;border-bottom:1px solid #ece6df;
+				font:600 12px/1.4 %s;color:#8a8178;text-transform:uppercase;letter-spacing:0.04em">Total</th>
 		</tr>',
 		$font,
 		$font,
@@ -468,9 +479,9 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 	foreach ( $rows as $row ) {
 		$html .= sprintf(
 			'<tr>
-				<td style="padding:12px 14px;border-bottom:1px solid #f1f1f4;color:#171717;mso-line-height-rule:exactly">%s<br>
-					<span style="color:#71717a;font-size:13px">Qty %d</span></td>
-				<td align="right" style="padding:12px 14px;border-bottom:1px solid #f1f1f4;color:#171717;
+				<td style="padding:12px 14px;border-bottom:1px solid #f4efe9;color:#171717;mso-line-height-rule:exactly">%s<br>
+					<span style="color:#8a8178;font-size:13px">Qty %d</span></td>
+				<td align="right" style="padding:12px 14px;border-bottom:1px solid #f4efe9;color:#171717;
 					white-space:nowrap;vertical-align:top">%s</td>
 			</tr>',
 			esc_html( $row['name'] ),
@@ -482,8 +493,8 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 	if ( null !== $total ) {
 		$html .= sprintf(
 			'<tr>
-				<td style="padding:13px 14px;background:#fafafa;font-weight:700;color:#171717">%s</td>
-				<td align="right" style="padding:13px 14px;background:#fafafa;font-weight:700;color:#171717;
+				<td style="padding:13px 14px;background:#faf7f4;font-weight:700;color:#171717">%s</td>
+				<td align="right" style="padding:13px 14px;background:#faf7f4;font-weight:700;color:#171717;
 					white-space:nowrap;font-size:16px">%s</td>
 			</tr>',
 			esc_html( $total_label ),
@@ -492,6 +503,180 @@ function kandi_mail_items_table( $rows, $total_label = '', $total = null ) {
 	}
 
 	return $html . '</table>';
+}
+endif;
+
+/* -------------------------------------------------------------------------
+ * 3b. The blocks a message is assembled from
+ *
+ * Every email in this shop used to be a `sprintf` of hand-written `<p
+ * style="margin:0 0 14px">` tags, one copy per message, spread across two
+ * plugins. That is why they had drifted: the payout notice used a bare table
+ * with its own padding, the order alert used a list, the verification code used
+ * a one-off `font:700 34px`, and no two of them agreed on a margin.
+ *
+ * These are the pieces instead. They are deliberately few and deliberately
+ * dull — a paragraph, a row of facts, a tinted box, a headline figure, a code —
+ * because an email is not a web page and every extra shape is another thing to
+ * test in Outlook. What they buy is that a change to how a "fact" looks happens
+ * once and reaches every message.
+ *
+ * All of them return HTML fragments for the `$body` argument of
+ * `kandi_mail_template`, and all of them escape their inputs unless the name
+ * says otherwise (`_html` suffix = caller has already escaped).
+ * ---------------------------------------------------------------------- */
+
+/**
+ * A paragraph, with the spacing the template expects.
+ *
+ * The last paragraph before a button or a table wants no bottom margin, hence
+ * the second argument, which is the only reason this is not a one-liner.
+ */
+if ( ! function_exists( 'kandi_mail_p' ) ) :
+function kandi_mail_p( $html, $margin = '0 0 14px' ) {
+	return sprintf(
+		'<p style="margin:%s;mso-line-height-rule:exactly">%s</p>',
+		esc_attr( $margin ),
+		wp_kses_post( $html )
+	);
+}
+endif;
+
+/**
+ * A label-and-value list — the shape of every "here are the details" block.
+ *
+ * A table rather than a definition list, because Outlook does not lay out
+ * `<dl>`, and left-aligned labels in a fixed column are what makes a column of
+ * numbers scannable. Values may carry HTML (`wc_price` returns a `<span>`), so
+ * they are passed through the post allow-list rather than escaped flat.
+ *
+ * @param array $rows Label => value. A row with an empty value is dropped, so a
+ *                    caller can pass optional fields without guarding each one.
+ */
+if ( ! function_exists( 'kandi_mail_facts' ) ) :
+function kandi_mail_facts( $rows ) {
+	$font = kandi_mail_font();
+	$html = '';
+
+	foreach ( (array) $rows as $label => $value ) {
+		if ( '' === trim( wp_strip_all_tags( (string) $value ) ) ) {
+			continue;
+		}
+		$html .= sprintf(
+			'<tr>
+				<td style="padding:7px 16px 7px 0;color:#8a8178;white-space:nowrap;vertical-align:top">%s</td>
+				<td style="padding:7px 0;color:#171717;font-weight:600;vertical-align:top">%s</td>
+			</tr>',
+			esc_html( $label ),
+			wp_kses_post( $value )
+		);
+	}
+
+	if ( '' === $html ) {
+		return '';
+	}
+
+	return sprintf(
+		'<table role="presentation" cellpadding="0" cellspacing="0" border="0"
+			style="border-collapse:collapse;margin:0 0 16px;font:400 14px/1.5 %s;mso-line-height-rule:exactly">%s</table>',
+		$font,
+		$html
+	);
+}
+endif;
+
+/**
+ * A tinted box for the one thing in the message that is not prose.
+ *
+ * Four tones, and they are the shop's own: `brand` for what to do next, `good`
+ * for money arriving and orders confirmed, `warn` for something waiting on
+ * somebody, `neutral` for an aside. Each is a background and a matching left
+ * border rather than a full coloured panel — a solid block of colour behind
+ * body text is the fastest way to make an email look like a promotion, which is
+ * where a receipt should never look like it is going.
+ */
+if ( ! function_exists( 'kandi_mail_panel' ) ) :
+function kandi_mail_panel( $html, $tone = 'neutral' ) {
+	$tones = array(
+		'brand'   => array( '#fff4ec', '#ff6a00', '#7c3a10' ),
+		'good'    => array( '#eaf7ee', '#1a9e4b', '#0a7a2f' ),
+		'warn'    => array( '#fff8e6', '#e0a800', '#8a6100' ),
+		'neutral' => array( '#faf7f4', '#d9d1c8', '#3f3f46' ),
+	);
+	$tone = isset( $tones[ $tone ] ) ? $tone : 'neutral';
+	list( $background, $edge, $ink ) = $tones[ $tone ];
+
+	return sprintf(
+		'<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+			style="width:100%%;border-collapse:collapse;margin:0 0 16px">
+			<tr><td bgcolor="%1$s" style="background:%1$s;border-left:3px solid %2$s;border-radius:0 8px 8px 0;
+				padding:13px 16px;font:400 14px/1.6 %3$s;color:%4$s;mso-line-height-rule:exactly">%5$s</td></tr>
+		</table>',
+		esc_attr( $background ),
+		esc_attr( $edge ),
+		kandi_mail_font(),
+		esc_attr( $ink ),
+		wp_kses_post( $html )
+	);
+}
+endif;
+
+/**
+ * The one number the message is about, at the size it deserves.
+ *
+ * For a payout, a refund, an order total — anything where the reader's first
+ * question is "how much". It exists because those figures were previously set
+ * in the middle of a sentence at body size, and a shopper scanning a receipt on
+ * a phone reads the big number and the heading and nothing else.
+ *
+ * `$note` is the line under it: what it is for, when it lands, what is left.
+ */
+if ( ! function_exists( 'kandi_mail_figure' ) ) :
+function kandi_mail_figure( $label, $value, $note = '' ) {
+	$font = kandi_mail_font();
+
+	return sprintf(
+		'<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"
+			style="width:100%%;border-collapse:collapse;margin:0 0 18px">
+			<tr><td bgcolor="#faf7f4" style="background:#faf7f4;border:1px solid #ece6df;border-radius:10px;
+				padding:16px 18px;mso-line-height-rule:exactly">
+				<div style="font:600 12px/1.4 %1$s;color:#8a8178;text-transform:uppercase;letter-spacing:0.05em">%2$s</div>
+				<div style="font:700 28px/1.2 %1$s;color:#171717;padding-top:4px;mso-line-height-rule:exactly">%3$s</div>
+				%4$s
+			</td></tr>
+		</table>',
+		$font,
+		esc_html( $label ),
+		wp_kses_post( $value ),
+		'' !== $note
+			? sprintf(
+				'<div style="font:400 13px/1.5 %s;color:#8a8178;padding-top:6px">%s</div>',
+				$font,
+				wp_kses_post( $note )
+			)
+			: ''
+	);
+}
+endif;
+
+/**
+ * A one-time code, set to be read off a screen and typed into another.
+ *
+ * Wide letter-spacing and a monospace-ish weight because the failure mode of a
+ * six-digit code is misreading it, not mistyping it — a 0 next to an O, a 1
+ * next to an l. Boxed so it cannot be confused with the sentence around it.
+ */
+if ( ! function_exists( 'kandi_mail_code' ) ) :
+function kandi_mail_code( $code ) {
+	return sprintf(
+		'<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px">
+			<tr><td bgcolor="#faf7f4" style="background:#faf7f4;border:1px solid #ece6df;border-radius:10px;
+				padding:14px 22px;font:700 32px/1 %s;letter-spacing:8px;color:#171717;
+				mso-line-height-rule:exactly">%s</td></tr>
+		</table>',
+		kandi_mail_font(),
+		esc_html( $code )
+	);
 }
 endif;
 
@@ -573,20 +758,28 @@ function kandi_mail_order_placed( $order_id ) {
 		return false;
 	}
 
-	$cod  = 'cod' === $order->get_payment_method();
-	$body = sprintf(
-		'<p style="margin:0 0 14px">Hi %s, thank you — your order <strong>#%s</strong> is in.</p>%s<p style="margin:14px 0 0">%s</p>',
-		esc_html( kandi_order_first_name( $order ) ),
-		esc_html( $order->get_order_number() ),
-		kandi_mail_items_table(
+	$cod = 'cod' === $order->get_payment_method();
+
+	$body = kandi_mail_p( sprintf(
+			'Hi %s, thank you — your order <strong>#%s</strong> is in.',
+			esc_html( kandi_order_first_name( $order ) ),
+			esc_html( $order->get_order_number() )
+		) )
+		. kandi_mail_items_table(
 			kandi_order_rows( $order ),
 			'Total',
 			wc_price( (float) $order->get_total(), array( 'currency' => $order->get_currency() ) )
-		),
-		$cod
-			? 'You pay <strong>when it reaches you</strong> — cash, MTN MoMo or Airtel Money. Please have the exact amount ready for the rider.'
-			: 'We have your payment. Packing starts now.'
-	);
+		)
+		/* The payment line as a panel rather than a trailing sentence.
+		   On a cash-on-delivery order it is an instruction — have the money
+		   ready — and it was previously the last line of a paragraph under a
+		   table, which is the part of an email nobody reads. */
+		. kandi_mail_panel(
+			$cod
+				? 'You pay <strong>when it reaches you</strong> — cash, MTN MoMo or Airtel Money. Please have the exact amount ready for the rider.'
+				: 'We have your payment. Packing starts now.',
+			$cod ? 'warn' : 'good'
+		);
 
 	/**
 	 * The preview line, which is read before the message is opened.
@@ -727,6 +920,306 @@ function kandi_mail_order_status( $order_id, $from_status, $to_status ) {
 }
 endif;
 add_action( 'woocommerce_order_status_changed', 'kandi_mail_order_status', 20, 3 );
+
+/* -------------------------------------------------------------------------
+ * 5. Push notifications — the half that was missing
+ *
+ * The storefront ships a complete push stack: `lib/push.ts` addresses OneSignal,
+ * `/api/notifications/send` authenticates with the shared secret and owns the
+ * wording of every message, and the Flutter app registers its subscriptions. All
+ * of it worked. None of it ever ran, because nothing on this side ever called
+ * it — the route had no callers anywhere in the repository, so every push the
+ * shop was built to send has been dead since it was written.
+ *
+ * This is that call.
+ *
+ * ---- Why WordPress calls the storefront rather than OneSignal ----
+ *
+ * PHP could POST to OneSignal directly and skip a hop. It must not, and the
+ * route's own header says why: the WORDING lives in `orderMessage` and
+ * `sellerMessage` on the storefront, one place where the shop's voice is
+ * decided. Sending from here would mean the copy existing twice, in two
+ * languages, and "on the way" being phrased two ways depending on which one
+ * fired. So WordPress owns WHEN and WHO — it is the thing that has the orders —
+ * and the storefront owns WHAT IT SAYS.
+ *
+ * ---- Why nothing here checks whether push is configured ----
+ *
+ * Because the far end already does, and answers 200 with `skipped: true` when
+ * OneSignal is not set up. A shop with no push keys still takes orders; a status
+ * change that threw because notifications were not configured would turn a
+ * nice-to-have into an outage. The one thing that IS checked is the storefront
+ * URL, since without it there is nowhere to send anything.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Where the Next.js storefront lives, or '' when WordPress has not been told.
+ *
+ * Deliberately NOT falling back to `home_url()` the way the email letterhead
+ * does. A wrong link in an email footer is a cosmetic problem; POSTing a
+ * notification to WordPress's own domain would be a request to an endpoint that
+ * does not exist, repeated on every order, forever.
+ */
+if ( ! function_exists( 'kandi_push_storefront' ) ) :
+function kandi_push_storefront() {
+	if ( ! function_exists( 'kandi_storefront_url' ) ) {
+		return '';
+	}
+	return untrailingslashit( (string) kandi_storefront_url() );
+}
+endif;
+
+/** The shared secret, resolved the same way every other Kandi plugin resolves it. */
+if ( ! function_exists( 'kandi_push_secret' ) ) :
+function kandi_push_secret() {
+	if ( function_exists( 'kandi_shared_secret' ) ) {
+		return (string) kandi_shared_secret();
+	}
+	if ( defined( 'KANDI_API_SECRET' ) && KANDI_API_SECRET ) {
+		return (string) KANDI_API_SECRET;
+	}
+	return (string) get_option( 'kandi_api_secret', '' );
+}
+endif;
+
+/**
+ * Posts one notification request to the storefront.
+ *
+ * ---- Non-blocking, and what that costs ----
+ *
+ * `blocking => false` means PHP hands the request to the socket and carries on
+ * without waiting for the reply. Every one of these fires during a WooCommerce
+ * status change, which on this shop happens inside checkout — so a storefront
+ * that is slow, or asleep on a cold start, would otherwise add its whole
+ * response time to the shopper's wait for a message the shopper is not even
+ * waiting for.
+ *
+ * The price is that failures are invisible: a wrong secret or a moved URL fails
+ * silently and push goes quiet again, which is exactly how this system spent so
+ * long broken. `kandi_push_test()` below is the answer to that — a blocking
+ * call, run on demand from the Notifications screen, that reports what actually
+ * came back.
+ */
+if ( ! function_exists( 'kandi_push_send' ) ) :
+function kandi_push_send( $payload, $blocking = false ) {
+	$storefront = kandi_push_storefront();
+	$secret     = kandi_push_secret();
+
+	if ( '' === $storefront || '' === $secret ) {
+		return false;
+	}
+
+	$response = wp_remote_post(
+		$storefront . '/api/notifications/send',
+		array(
+			'timeout'  => $blocking ? 12 : 1,
+			'blocking' => (bool) $blocking,
+			'headers'  => array(
+				'Content-Type'   => 'application/json',
+				'X-Kandi-Secret' => $secret,
+			),
+			'body'     => wp_json_encode( $payload ),
+		)
+	);
+
+	return $blocking ? $response : true;
+}
+endif;
+
+/**
+ * Tells the shopper their order moved.
+ *
+ * Priority 30, so it runs after the commission ledger (10) and the email (20).
+ * If any of those fatal, the ordering means the shopper still has the email —
+ * the more important of the two channels — before push is attempted.
+ *
+ * ---- Dispatched is not delivered ----
+ *
+ * Kandi Order Dispatch redefines `completed` to mean "every seller accepted and
+ * it is on its way", stamping `_kandi_dispatched_at` as it does. Sending the
+ * shopper "Delivered" at that moment would be a lie told to their lock screen.
+ * The storefront already has the right words for this under the status
+ * `out-for-delivery` — a status WooCommerce does not have and nothing was ever
+ * passing — so the stamp is what selects it.
+ */
+if ( ! function_exists( 'kandi_push_order_status' ) ) :
+function kandi_push_order_status( $order_id, $from_status, $to_status ) {
+	$order = wc_get_order( $order_id );
+	if ( ! $order ) {
+		return;
+	}
+
+	$status = $to_status;
+	if ( 'completed' === $to_status && $order->get_meta( '_kandi_dispatched_at' ) ) {
+		$status = 'out-for-delivery';
+	}
+
+	kandi_push_send( array(
+		'kind'         => 'order',
+		// 0 for a guest checkout, which the storefront answers with
+		// "no customer" rather than an error. Most orders here are guests.
+		'customer_id'  => (int) $order->get_customer_id(),
+		'status'       => $status,
+		'order_number' => (string) $order->get_order_number(),
+	) );
+}
+endif;
+add_action( 'woocommerce_order_status_changed', 'kandi_push_order_status', 30, 3 );
+
+/**
+ * Tells a seller they have something to pack.
+ *
+ * Hooked to `kandi_seller_order_notified`, which the Seller Centre fires once
+ * per seller per order from inside its own de-duplication guard — so an order
+ * moving on-hold to processing to completed cannot buzz the same seller three
+ * times. That hook was added for exactly this and had no listeners.
+ */
+if ( ! function_exists( 'kandi_push_seller_order' ) ) :
+function kandi_push_seller_order( $order, $seller_id, $part = array() ) {
+	kandi_push_send( array(
+		'kind'         => 'seller',
+		'seller_id'    => (int) $seller_id,
+		'event'        => 'new-order',
+		'order_number' => (string) $order->get_order_number(),
+	) );
+}
+endif;
+add_action( 'kandi_seller_order_notified', 'kandi_push_seller_order', 10, 3 );
+
+/** Tells a seller their money has gone out. */
+if ( ! function_exists( 'kandi_push_payout_paid' ) ) :
+function kandi_push_payout_paid( $seller_id, $payout = null ) {
+	kandi_push_send( array(
+		'kind'      => 'seller',
+		'seller_id' => (int) $seller_id,
+		'event'     => 'payout-sent',
+	) );
+}
+endif;
+add_action( 'kandi_seller_payout_paid', 'kandi_push_payout_paid', 10, 2 );
+
+/**
+ * A blocking round trip, for the Notifications screen in wp-admin.
+ *
+ * Returns a human-readable sentence rather than a status code, because the
+ * person pressing the button is trying to answer one question — "is this thing
+ * connected?" — and every failure mode has a different fix: no storefront URL
+ * set, wrong secret, storefront unreachable, or connected but OneSignal keys
+ * missing on the Next.js side.
+ */
+if ( ! function_exists( 'kandi_push_test' ) ) :
+function kandi_push_test( $seller_id = 0 ) {
+	$storefront = kandi_push_storefront();
+	if ( '' === $storefront ) {
+		return array( false, 'No storefront URL is set. Kandi Storefront > Settings, then load the shop once so it can announce itself.' );
+	}
+	if ( '' === kandi_push_secret() ) {
+		return array( false, 'No shared secret is configured. Set KANDI_API_SECRET in wp-config.php.' );
+	}
+
+	$response = kandi_push_send(
+		array(
+			'kind'         => 'seller',
+			'seller_id'    => (int) ( $seller_id ?: get_current_user_id() ),
+			'event'        => 'new-order',
+			'order_number' => 'TEST',
+		),
+		true
+	);
+
+	if ( is_wp_error( $response ) ) {
+		return array( false, sprintf( 'Could not reach %s — %s', $storefront, $response->get_error_message() ) );
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+	if ( 401 === $code ) {
+		return array( false, 'The storefront rejected the shared secret. KANDI_API_SECRET here and in .env.local must match.' );
+	}
+	if ( 200 !== $code ) {
+		return array( false, sprintf( 'The storefront answered %d. Is /api/notifications/send deployed?', $code ) );
+	}
+	if ( is_array( $body ) && ! empty( $body['skipped'] ) ) {
+		return array( false, 'Connected, but the storefront has no OneSignal keys — set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY in .env.local.' );
+	}
+
+	$sent = is_array( $body ) && isset( $body['sent'] ) ? (int) $body['sent'] : 0;
+
+	return array(
+		true,
+		$sent > 0
+			? sprintf( 'Connected. The test reached %d device(s).', $sent )
+			: 'Connected, and OneSignal accepted it — but no device is subscribed for this account yet. Sign in to the app on a phone and try again.'
+	);
+}
+endif;
+
+/* ---- The screen that makes all of the above visible ---- */
+
+add_action( 'admin_menu', function () {
+	add_submenu_page(
+		'woocommerce',
+		'Kandi Notifications',
+		'Kandi Notifications',
+		'manage_woocommerce',
+		'kandi-notifications',
+		'kandi_notifications_admin_page'
+	);
+} );
+
+if ( ! function_exists( 'kandi_notifications_admin_page' ) ) :
+function kandi_notifications_admin_page() {
+	$result = null;
+
+	if ( isset( $_POST['kandi_push_test'] ) ) {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( 'You do not have permission to do that.' );
+		}
+		check_admin_referer( 'kandi_push_test' );
+		$result = kandi_push_test();
+	}
+
+	$storefront = kandi_push_storefront();
+
+	echo '<div class="wrap"><h1>Kandi Notifications</h1>';
+	echo '<p>Email goes out through this site. Push notifications are handed to the storefront, which talks to OneSignal.</p>';
+
+	if ( is_array( $result ) ) {
+		printf(
+			'<div class="notice notice-%s"><p>%s</p></div>',
+			$result[0] ? 'success' : 'error',
+			esc_html( $result[1] )
+		);
+	}
+
+	echo '<table class="form-table"><tbody>';
+	printf(
+		'<tr><th scope="row">Storefront</th><td>%s</td></tr>',
+		$storefront
+			? '<code>' . esc_html( $storefront ) . '</code>'
+			: '<span style="color:#b32d2e">Not known yet — open the shop once so it can announce itself.</span>'
+	);
+	printf(
+		'<tr><th scope="row">Shared secret</th><td>%s</td></tr>',
+		kandi_push_secret()
+			? 'Configured'
+			: '<span style="color:#b32d2e">Missing — set KANDI_API_SECRET in wp-config.php.</span>'
+	);
+	echo '<tr><th scope="row">What gets pushed</th><td>
+			Order confirmed, out for delivery, delivered, cancelled and refunded to the shopper ·
+			new order and payout sent to the seller.
+			<p class="description">Emails are sent regardless. Push is extra, and only reaches people who installed the app.</p>
+		  </td></tr>';
+	echo '</tbody></table>';
+
+	echo '<form method="post">';
+	wp_nonce_field( 'kandi_push_test' );
+	echo '<p><button class="button button-primary" name="kandi_push_test" value="1">Send a test notification</button>';
+	echo '<span class="description" style="margin-left:10px">Goes to the app on whichever phone is signed in as you.</span></p>';
+	echo '</form></div>';
+}
+endif;
 
 /** The shop's published returns window, for the delivery email. */
 if ( ! function_exists( 'kandi_returns_days' ) ) :
