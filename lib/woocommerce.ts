@@ -405,7 +405,7 @@ function toProduct(raw: unknown): Product {
     const category = obj(entry);
     return {
       id: num(category.id),
-      name: str(category.name),
+      name: decodeEntities(str(category.name)),
       slug: str(category.slug),
       count: category.count == null ? undefined : num(category.count),
     };
@@ -492,7 +492,19 @@ function toProduct(raw: unknown): Product {
 
   return {
     id: num(product.id),
-    name: str(product.name),
+    /* ---- Decoded, for the same reason category names are ----
+     *
+     * WordPress stores post titles HTML-encoded, so "David Ultimate Protection
+     * & Cozy Mosquito Net" arrives as "…Protection &amp; Cozy…". React then
+     * renders that entity as literal text — correctly, because a product name
+     * is text and not markup — and the shopper reads "&amp;" in the middle of
+     * the name, on the tile, in the cart, in the order confirmation and in the
+     * email.
+     *
+     * `decodeEntities` was written for exactly this and was only ever wired to
+     * category names, which is why the menu was clean and every product tile
+     * was not. */
+    name: decodeEntities(str(product.name)),
     slug: str(product.slug),
     price,
     regular_price: regularPrice,
@@ -504,7 +516,11 @@ function toProduct(raw: unknown): Product {
     image: mainImage,
     gallery,
     date_created: str(product.date_created) || null,
-    short_description: str(product.short_description ?? product.shortDescription),
+    // Same treatment: this is printed as text under the price on the product
+    // page and in the seller's order emails.
+    short_description: decodeEntities(
+      str(product.short_description ?? product.shortDescription)
+    ),
     categories,
     attributes,
     variations: Array.isArray(product.variations)

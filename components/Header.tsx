@@ -420,7 +420,13 @@ export default function Header({
                    `max-w` cap at both steps: the file is an arbitrary upload,
                    so the height is what is being set and the width is only
                    being stopped from running away. */
-                className="h-8 w-auto max-w-[130px] object-contain md:h-10 md:max-w-[170px]"
+                /* 40px on a phone, up from 32. The wordmark was the smallest
+                   thing in a row that also carries a cart total and a badge,
+                   and on the one screen where the brand has to establish itself
+                   in a single glance it was the quietest element in it. The
+                   cap goes up with it so a wide wordmark is scaled by height
+                   rather than clipped by the width limit. */
+                className="h-10 w-auto max-w-[160px] object-contain md:h-11 md:max-w-[190px]"
               />
             </span>
           ) : (

@@ -149,7 +149,10 @@ export default function DrawerAddOns({
           block is shorter. 38% of the track puts two and a half cards in view,
           and the half card is what says there are more: a row that ends flush
           with the edge reads as a row of two. */}
-      <ul className="no-scrollbar -mx-4 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4">
+      {/* `-mx-6 px-6` matches the drawer's own gutter, so the first card lines
+          up with the cart lines above it and the last one runs to the edge
+          instead of stopping 8px short of it. */}
+      <ul className="no-scrollbar -mx-6 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6">
         {picks.map((product) => (
           <li
             key={product.id}
@@ -174,7 +177,7 @@ export default function DrawerAddOns({
               <p className="line-clamp-2 text-[12px] leading-tight text-shop-ink">
                 {product.name}
               </p>
-              <p className="price mt-0.5 text-[12.5px] text-shop-ink">
+              <p className="price mt-0.5 text-[12.5px] font-extrabold text-shop-ink">
                 {formatPrice(product.price)}
               </p>
 

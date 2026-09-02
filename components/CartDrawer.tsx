@@ -110,7 +110,16 @@ export default function CartDrawer() {
             </button>
           </div>
         ) : (
-          <div className="flex h-full flex-col justify-between overflow-hidden px-6 pb-6">
+          /* `justify-between` is gone. It was distributing the leftover space
+             between four blocks, which was fine while three of them were fixed
+             and one scrolled — and stopped being fine when the add-on rail
+             arrived and started competing with the item list for the same
+             height. On a phone the list lost, and the cart collapsed to a
+             single visible row with everything else stacked under it.
+
+             Flex sizing decides it now: the bar, the totals and the button are
+             `shrink-0`, and the scroll region takes whatever is left. */
+          <div className="flex h-full flex-col overflow-hidden px-6 pb-6">
             {/* Free-delivery progress — the single highest-leverage nudge in a
                 side cart, and it is computed from the real subtotal against the
                 real wp-admin threshold. Hidden entirely when the shop is not
@@ -141,7 +150,16 @@ export default function CartDrawer() {
               </div>
             )}
 
-            <ul className="grow overflow-auto py-2">
+            {/* ---- One scroll region, holding the lines AND the add-ons ----
+
+                 The rail used to sit outside this, between the list and the
+                 totals, where it held a fixed slice of the drawer's height for
+                 itself. Inside it, the cart lines get the full remaining
+                 height and the suggestions scroll into view underneath them —
+                 which is also the honest order: they are an afterthought to
+                 the basket, not a permanent fixture above the total. */}
+            <div className="grow overflow-auto">
+            <ul className="py-2">
               {items.map((item) => (
                 <li key={item.key} className="flex w-full flex-col border-b border-shop-line">
                   <div className="relative flex w-full flex-row justify-between gap-3 py-4">
@@ -254,8 +272,9 @@ export default function CartDrawer() {
               excludeIds={items.map((item) => item.productId)}
               focusable={drawerOpen}
             />
+            </div>
 
-            <div className="py-4 text-[14px] text-shop-muted">
+            <div className="shrink-0 py-4 text-[14px] text-shop-muted">
               <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
                 <p>Taxes</p>
                 <p className="text-right text-[16px] text-shop-ink">Included</p>

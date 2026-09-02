@@ -1140,8 +1140,16 @@ h6,
    *
    * The was-price at 400 and the meta row at 400 are unchanged, so the money
    * row's internal hierarchy — real price, then original, then everything else
-   * — is exactly as it was. */
-  font-weight: 700;
+   * — is exactly as it was.
+   *
+   * ---- And it is finally set to what all of the above argues for ----
+   *
+   * The value said 700 while every line of this comment explained why it should
+   * be 800. Somebody reverted the number and left the reasoning, which is the
+   * worst of both: the file documented an intention it was not carrying out,
+   * and anybody reading it would have believed the price was two steps above
+   * the product name when it was one. */
+  font-weight: 800;
   /* ---- 16px on a phone, 18px from 640px up ----
    *
    * The scale's price row is 18px and that is the size on any screen with room
@@ -1199,15 +1207,6 @@ h6,
      do — a column of UGX prices down a grid now lines up because the figures
      are actually the same width, not because they happen to be close. */
   font-variant-numeric: tabular-nums;
-}
-
-/* The point the price gives back once there is room for it. Phones carry the
-   smaller size; everything from a small tablet up is the 13px this has always
-   been. */
-@media (min-width: 640px) {
-  .price {
-    font-size: 13px;
-  }
 }
 
 /* One step up as soon as there is width for it. 640px is where the grid goes
