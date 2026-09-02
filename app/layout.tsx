@@ -114,11 +114,24 @@ const poppins = Poppins({
  * The `width`/`initialScale` defaults Next already emits are left alone. They
  * are correct, and `maximumScale`/`userScalable` are deliberately NOT set —
  * pinch-zoom is how a shopper reads a product photograph or a size chart, and
- * taking it away is an accessibility failure, not a polish step.
+ * taking it away is an accessibility failure, not a polish step. Stopping the
+ * browser zooming *uninvited* when a form field is focused is a separate
+ * problem with a separate fix, in globals.css: 16px controls on phones.
+ *
+ * `interactiveWidget` is the other half of that fix, and it is about what the
+ * on-screen keyboard does to the page rather than what focus does to the zoom.
+ * By default a phone keyboard OVERLAYS the layout: the page keeps its full
+ * height, the bottom third of it is simply underneath the keys, and anything
+ * anchored to the bottom of the window — the cart's checkout bar — is invisible
+ * exactly while somebody is typing above it. `resizes-content` makes the
+ * keyboard take height away from the layout instead, so the visible page really
+ * is the visible page: fixed bars sit on top of the keyboard, and a focused
+ * field scrolls into a region that exists.
  */
 export const viewport: Viewport = {
   colorScheme: "light",
   themeColor: "#ffffff",
+  interactiveWidget: "resizes-content",
 };
 
 /**

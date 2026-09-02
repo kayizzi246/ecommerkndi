@@ -163,8 +163,20 @@ export default function ProductPurchase({
 
            On a phone the grid collapses back to the flex column and DOM order
            decides: gallery, buy box, then description. The buy box must not end
-           up below the copy on the screen where it is hardest to reach. */}
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8 lg:gap-y-6">
+           up below the copy on the screen where it is hardest to reach.
+
+           ---- Why the row is capped well inside the shell ----
+
+           The shell is 1720px, and this row does not want it. Nothing in the
+           buy box gets better as it widens: the price, the delivery promise and
+           the two buttons are all short, so the extra width goes into the
+           product NAME, which is the one string on the page long enough to take
+           it — and a title running 700px across the top of a 480px photograph
+           reads as a page whose columns have come apart. 1200 is the same cap
+           the cart and the Seller Centre sit on, and it puts the buy box at
+           roughly 640: wide enough for the delivery line to stay on one row,
+           narrow enough that the title wraps like a title. */}
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8 lg:gap-y-6">
         {/* ---- Gallery ----
              44% of the row, capped at 560px including the thumbnail rail — so
              the frame itself lands near 480 square.

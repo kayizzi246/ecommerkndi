@@ -1882,6 +1882,53 @@ h6,
   box-shadow: 0 0 0 3px rgba(192, 90, 28, 0.12);
 }
 
+/* ---------- Typing must not move the page ----------
+ *
+ * ---- The bug ----
+ *
+ * Focus a form field on iOS whose font is under 16px and Safari zooms the page
+ * in to make it readable. It does not zoom back out. So a shopper filling in
+ * checkout on a phone taps "Phone number", the layout jumps to about 115%, the
+ * keyboard covers the bottom half of what is left, and the rest of the form —
+ * and the pay button at the end of it — is now off the right-hand edge of a
+ * viewport they have to pinch their way back out of. Every field after the
+ * first is fought for. It is the single most expensive interaction in this shop
+ * and it happens on the page where the money is.
+ *
+ * Chrome on Android does the same thing for the same reason.
+ *
+ * ---- Why not the one-line fix ----
+ *
+ * `maximum-scale=1, user-scalable=no` in the viewport meta also stops it, and
+ * is what most sites do. It is not on the table here: pinch-zoom is how a
+ * shopper reads a size chart, a spec table or the small print on a product
+ * photograph, and taking that away from everyone to fix a form is an
+ * accessibility failure. app/layout.tsx says so where the viewport is declared,
+ * and this is the other half of that decision.
+ *
+ * ---- What this does instead ----
+ *
+ * 16px is the threshold, so every control that takes typed input gets 16px on a
+ * phone. Nothing is disabled and zoom still works; there is simply no longer a
+ * reason for the browser to do it uninvited.
+ *
+ * Under `max-width: 767px` only, so the denser 14px fields on a desktop — where
+ * no browser has ever zoomed on focus — are untouched. Unlayered, so it beats
+ * the Tailwind utilities in `@layer utilities` that set text-[14px]/[15px] on
+ * individual fields, which is the point: those are scattered across two dozen
+ * files and this has to hold for all of them, including the next one somebody
+ * writes.
+ *
+ * Checkboxes, radios and ranges are excluded — they render no text, and forcing
+ * a font size on them changes their box on some browsers. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Safari still paints a disclosure triangle when list-style is none. */
 summary::-webkit-details-marker {
   display: none;
