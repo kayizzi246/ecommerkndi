@@ -145,6 +145,34 @@ const nextConfig: NextConfig = {
   // watching are scoped to the shop rather than to everything above it.
   turbopack: { root: __dirname },
 
+  /**
+   * ---- Do not stampede WordPress during a build ----
+   *
+   * Prerendering fans out across workers, and each product page makes several
+   * calls to shop.kandiug.com. Measured from here that host answers a single
+   * product in about 1.4 seconds — fine — but it is shared hosting, and eight
+   * workers asking at once queue behind each other until pages start blowing
+   * through Next's 60-second per-page ceiling. The build log fills with
+   *
+   *     Failed to build /products/[id]/page: ... because it took more than 60
+   *     seconds. Retrying again shortly.
+   *
+   * and every one of those is a page rendered two or three times over. The
+   * builds still passed; they were just paying for the same page repeatedly and
+   * taking several minutes to do it.
+   *
+   * Three at a time is slower in theory and faster in practice against a host
+   * that can only serve so many PHP requests at once. The retry count is raised
+   * from the default 1 so a genuine blip costs a retry rather than the build.
+   *
+   * If the shop moves to a host that can take the load, raise this — it is a
+   * ceiling on concurrency, not a target.
+   */
+  experimental: {
+    staticGenerationMaxConcurrency: 3,
+    staticGenerationRetryCount: 3,
+  },
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "acculifepharma.co.ug" },

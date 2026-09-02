@@ -19,6 +19,18 @@
  *     nothing on our side to prune.
  *   • No JWT signing. A REST key in a header.
  *
+ * ---- Push only. This is a billing constraint, not a preference ----
+ *
+ * OneSignal bills for email, for SMS, and for web push past 10,000 subscribers.
+ * Mobile push is unlimited on the free plan, and mobile push is the entirety of
+ * what this shop sends: every function below hardcodes `target_channel: "push"`
+ * and there is no email or SMS call anywhere in this file.
+ *
+ * Keep it that way. Shop email goes through wp_mail on WordPress — see the
+ * Kandi Notifications plugin — and moving any of it here would put a bill on
+ * something that currently costs nothing. If a transactional message needs
+ * adding, it belongs in that plugin's template, not in an OneSignal channel.
+ *
  * ---- Configuration ----
  *
  *   ONESIGNAL_APP_ID       — the same id the app is built with
