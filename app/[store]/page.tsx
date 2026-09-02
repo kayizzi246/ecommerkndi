@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStores } from "@/lib/woocommerce";
+import { storeSlugFromPath } from "@/lib/store-routes";
 import StorePage, {
   generateMetadata as storeMetadata,
 } from "@/app/sellers/[slug]/page";
@@ -37,25 +38,15 @@ import StorePage, {
  * on both points at this short form, which is also the URL the Seller Centre
  * hands sellers to share. One page, one canonical address, two ways in.
  */
-const RESERVED = new Set([
-  "about", "account", "admin", "api", "careers", "cart", "categories",
-  "category", "checkout", "contact", "help", "order-received", "payment",
-  "privacy", "products", "reset-password", "returns", "sale", "search",
-  "sell", "seller", "seller-policies", "sellers", "shipping", "terms",
-  "track-order", "wp-admin", "wp-json", "wp-content", "assets", "static",
-  "_next", "favicon.ico", "robots.txt", "sitemap.xml", "icon.png",
-  "brand-icon", "opengraph-image",
-]);
-
 type Params = { params: Promise<{ store: string }> };
 
 /** True when this path could be a store rather than something the shop owns. */
 async function resolve(slug: string): Promise<boolean> {
-  if (RESERVED.has(slug.toLowerCase())) return false;
-
-  // Anything with a dot is a file request that reached the router — a stray
-  // asset path, a probe for wp-config.php — and never a store.
-  if (slug.includes(".")) return false;
+  // The reserved list and the shape check both live in lib/store-routes, so the
+  // chrome and this route cannot disagree about what a store address looks
+  // like. They did once, and every short link paid for it. Existence is checked
+  // here and only here, because it costs a fetch.
+  if (storeSlugFromPath(`/${slug}`) === "") return false;
 
   const stores = await getStores();
   return stores.some((entry) => entry.store_slug === slug);
@@ -77,7 +68,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export async function generateStaticParams() {
   const stores = await getStores();
   return stores
-    .filter((entry) => entry.store_slug && !RESERVED.has(entry.store_slug))
+    .filter((entry) => storeSlugFromPath(`/${entry.store_slug}`) !== "")
     .map((entry) => ({ store: entry.store_slug }));
 }
 

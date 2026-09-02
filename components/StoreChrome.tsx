@@ -11,6 +11,7 @@ import CartDrawer from "@/components/CartDrawer";
 import CookieNotice from "@/components/CookieNotice";
 import ContactRail from "@/components/ContactRail";
 import { SellHeader, SellFooter } from "@/components/SellChrome";
+import { storeSlugFromPath, storeNameFromSlug } from "@/lib/store-routes";
 
 /**
  * The Seller Centre and the owner's product manager are separate application
@@ -75,23 +76,21 @@ export default function StoreChrome({
    * to a store index they never came from. So the department bar is dropped,
    * the shell cap is lifted, and the search field says whose shop this is.
    *
-   * The name is title-cased from the slug rather than plumbed down from the
-   * page. WordPress builds the slug with `sanitize_title(store_name)`, so
-   * "Sports Kicks" round-trips exactly; a store whose name carries its own
-   * casing ("mySHOP") comes back conventionally cased instead. That is a
-   * cosmetic loss in a placeholder, and the alternative — a context provider
-   * wrapping the whole chrome so a child can name itself to its own header —
-   * is a lot of machinery for one line of grey text.
+   * ---- Why this reads from lib/store-routes ----
+   *
+   * It used to test `pathname.startsWith("/sellers/")` here, and that stopped
+   * being the whole answer the moment short links shipped: a seller shares
+   * kandiug.com/their-store, which contains no "/sellers/" at all, so every
+   * link a seller actually hands out rendered inside the shell cap with the
+   * department bar still on it — the exact page the full-width treatment was
+   * written for, arriving by the one route that missed it.
+   *
+   * Two independent answers to "is this a store page?" is what caused that.
+   * There is one now, and `app/[store]/page.tsx` reads the same one.
    */
-  const storeSlug = pathname.startsWith("/sellers/") ? pathname.slice("/sellers/".length) : "";
-  const isStorePage = storeSlug !== "" && !storeSlug.includes("/");
-  const storeName = isStorePage
-    ? storeSlug
-        .split("-")
-        .filter(Boolean)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
-    : "";
+  const storeSlug = storeSlugFromPath(pathname);
+  const isStorePage = storeSlug !== "";
+  const storeName = isStorePage ? storeNameFromSlug(storeSlug) : "";
 
   if (isAppArea) {
     return <>{children}</>;
