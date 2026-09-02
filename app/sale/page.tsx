@@ -9,6 +9,7 @@ import { breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
 import SortDropdown from "@/components/SortDropdown";
 import SaleBoard from "@/components/SaleBoard";
 import FlashSaleCountdown from "@/components/FlashSaleCountdown";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 export const metadata = {
   title: "Super Price Store",
@@ -57,7 +58,7 @@ const TIERS: { id: string; min: number; title: string; shelf: string }[] = [
  * product-grid rhythm.
  */
 const GRID =
-  "grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+  PRODUCT_GRID;
 
 export default async function SalePage({
   searchParams,

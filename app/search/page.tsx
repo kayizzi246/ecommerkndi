@@ -22,6 +22,7 @@ import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
 import FilteredProductGrid from "@/components/FilteredProductGrid";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 type Search = {
   q?: string;
@@ -162,7 +163,7 @@ export default async function SearchPage({
               query={{ q: query, category: scope, sort }}
               filters={search}
               sort={sort}
-              gridClassName="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              gridClassName={PRODUCT_GRID}
               doneLabel="That is every match for this search."
             />
           )}

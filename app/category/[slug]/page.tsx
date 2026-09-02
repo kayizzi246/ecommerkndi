@@ -9,6 +9,7 @@ import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib
 import SortDropdown from "@/components/SortDropdown";
 import FilterSidebar from "@/components/FilterSidebar";
 import FilteredProductGrid from "@/components/FilteredProductGrid";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 type Search = {
   page?: string;
@@ -368,7 +369,7 @@ export default async function CategoryPage({
                 filters={search}
                 sort={sort}
                 doneLabel={`That is everything in ${title}.`}
-                gridClassName="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                gridClassName={PRODUCT_GRID}
                 /* ---- `sizes`, spelled out, because this page is full-bleed ----
 
                     The tile's default hint ends in a fixed `240px`, which is

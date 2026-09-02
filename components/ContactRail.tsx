@@ -64,6 +64,48 @@ export default function ContactRail({ support }: { support: Support }) {
   const dialable = support.phone.replace(/[^\d+]/g, "");
 
   return (
+    <>
+      {/* ---- Back to top, phones ----
+
+           The rail this lives in is desktop-only, for a good reason stated
+           above: a column of round buttons against the edge of a phone lands on
+           the products. But that reasoning took the back-to-top away with it,
+           and the phone is where it is needed most — the homepage is a dozen
+           shelves and an infinite grid, so a shopper who has scrolled into the
+           feed has no way back to the search bar except a long thumb drag.
+
+           Centred rather than cornered. The two bottom corners are spoken for
+           on every screen this appears over: the bottom navigation fills the
+           bar, and on a product page the buy bar does. The middle is the one
+           horizontal position that is free on all of them, and a centred pill
+           reads as a page control rather than as another action competing with
+           those.
+
+           76px clears whichever bar is present — the 64px navigation, or the
+           product and cart bars that replace it — plus the home indicator on an
+           iPhone, which is what `env(safe-area-inset-bottom)` is adding.
+
+           A label beside the chevron, not a bare circle: an arrow alone at this
+           size is read as "collapse" or "previous" about as often as it is read
+           as "top", and the word costs 30 pixels. */}
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Back to top"
+        aria-hidden={!scrolled}
+        tabIndex={scrolled ? 0 : -1}
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-shop-line bg-white/95 py-2 pl-3 pr-3.5 text-[13px] font-semibold text-shop-body shadow-[0_2px_10px_rgba(120,72,30,0.16)] backdrop-blur transition-all duration-200 active:scale-95 lg:hidden ${
+          scrolled
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-2 opacity-0"
+        }`}
+      >
+        <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m5 15 7-7 7 7" />
+        </svg>
+        Top
+      </button>
+
     <aside
       aria-label="Contact us"
       className="fixed right-3 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 lg:flex"
@@ -115,6 +157,7 @@ export default function ContactRail({ support }: { support: Support }) {
         <RailLabel>Back to top</RailLabel>
       </button>
     </aside>
+    </>
   );
 }
 

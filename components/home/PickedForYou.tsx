@@ -5,6 +5,7 @@ import { useState } from "react";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import ProductCard from "@/components/ProductCard";
 import type { Product } from "@/lib/woocommerce";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 /**
  * "You might like" — the tab row, and the endless grid under it.
@@ -115,7 +116,7 @@ export default function PickedForYou({
               stay the same: two grids of different column counts under one tab
               row is the page re-laying itself out every time a chip is tapped.
               If that ramp moves, this moves with it. */}
-          <ul className="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:grid-cols-4 md:gap-x-3 md:gap-y-4 lg:grid-cols-5 xl:grid-cols-6">
+          <ul className={PRODUCT_GRID}>
             {department.products.map((product) => (
               <li key={product.id}>
                 <ProductCard product={product} />

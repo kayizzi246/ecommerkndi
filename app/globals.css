@@ -402,9 +402,32 @@
    * `--color-shop-photo` stays warm on purpose. It is only ever visible for
    * the moment before a photograph paints, where a hair of warmth is kinder
    * than grey and nothing is next to it to be inconsistent with. */
-  --color-shop-canvas: #f7f5f2;
+  /* ---- Ninth turn: off-white, and this time visibly so ----
+   *
+   * The eighth turn's #f7f5f2 is a 3% neutral. On a calibrated monitor it is a
+   * ground; on a phone in Kampala daylight it is white, and it was reported as
+   * white — which is the same complaint the seventh turn was answering, arriving
+   * again by a different route. A ground nobody can see is not a ground, it is
+   * a token with a comment attached.
+   *
+   * #f7f3ec is the same lightness family and roughly twice the separation from
+   * white, with the warmth put back: red leads green by 4 and blue by 11, so it
+   * reads as paper rather than as grey. That is the "warm cream" the seventh
+   * turn argued for, at a depth the eighth turn's neutrality was aiming at —
+   * the two positions were never actually in conflict, they were arguing about
+   * saturation while the real problem was contrast.
+   *
+   * The eighth turn's defence still holds and is the reason this is safe: no
+   * product photograph ever touches the canvas. Every tile is a white card, so
+   * this shows only in the gutter and between panels.
+   *
+   * If it ever reads as dirty rather than warm, the fault is the blue channel —
+   * take #f7f3ec toward #f7f4f0 before reaching for a neutral again. */
+  --color-shop-canvas: #f7f3ec;
   --color-shop-panel: #ffffff;
-  --color-shop-edge: #e8e5e1;
+  /* The hairline follows the ground's temperature. A cool edge on a warm
+     canvas is the seam that makes a panel look pasted on. */
+  --color-shop-edge: #eae4da;
   --color-shop-photo: #fbf7f4;
 
 
@@ -1582,7 +1605,11 @@ h6,
      copy sits on the page rather than on a surface, and the full-bleed white
      band is what tells a phone where one section ends. */
   margin-inline: -12px;
-  padding: 14px 12px;
+  /* 12/10 rather than 14/12. The panel bleeds to both edges of a phone, so its
+     horizontal padding is subtracted from the same 360px the product grid is
+     trying to divide into two readable columns — every pixel here costs the
+     photographs twice over. */
+  padding: 12px 10px;
   background: var(--color-shop-panel);
 }
 

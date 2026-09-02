@@ -329,7 +329,14 @@ export default async function Home() {
           department bar does. It is the one block on the page that is not inset. */}
       <ChannelRow />
 
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-3 py-3 md:gap-6 md:px-8 md:py-5">
+      {/* Phone spacing is deliberately tighter than the desktop step below it.
+          16px between shelves and 12px of gutter is a desktop rhythm applied to
+          a screen a quarter the width: it pushed roughly one tile-row of
+          merchandise below the fold on every scroll. 12px and 10px keeps the
+          shelves reading as separate objects — they each paint a white panel,
+          which is what actually separates them — while giving the grid its
+          width back. Everything from md: up is unchanged. */}
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-2.5 py-2.5 md:gap-6 md:px-8 md:py-5">
         <PortalBand settings={settings} departments={departments} deals={deals} />
 
         <FeatureCards cards={cards} />

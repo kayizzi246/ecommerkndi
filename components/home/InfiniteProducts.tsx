@@ -4,6 +4,7 @@ import type { Product } from "@/lib/woocommerce";
 import ProductCard from "@/components/ProductCard";
 import ProductFeedFooter from "@/components/ProductFeedFooter";
 import { useProductFeed, type ProductFeedQuery } from "@/lib/use-product-feed";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 /**
  * The endless product grid.
@@ -236,7 +237,7 @@ export default function InfiniteProducts({
            still keeps the white blocks visibly separate, so nothing merges into
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
-      <ul className="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-3 md:gap-x-3 md:gap-y-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <ul className={PRODUCT_GRID}>
         {feed.products.map((product) => (
           <li key={product.id}>
             <ProductCard product={product} />
