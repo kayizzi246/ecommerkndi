@@ -723,18 +723,23 @@ export default function ProductCard({
                shoes are all taller than they are wide, so a square frame spent
                its width on the room around the product.
 
-               6:7 rather than the 5:6 this was for one pass. 5:6 is a sixth
-               taller than square and read as a deliberately tall frame; 6:7 is
-               a seventh, which is enough to stop the crop fighting portrait
-               stock and little enough that the tile still reads as a tile. The
-               columns do not move at either.
+               8:9 now, having been 5:6 and then 6:7 on the way. Each step is
+               the same trade read from a different distance: taller flatters
+               portrait stock, shorter fits more rows on a screen. At a ninth
+               taller than square the frame still does the first — a duvet or a
+               jacket is not cropped to its middle — while a grid row costs
+               about fifteen pixels less, which compounds down a page of forty
+               products.
+
+               The columns do not move at any of these. Only the height changes,
+               so nothing else in the grid has to be re-reasoned.
 
                `object-cover` still crops, and now crops the sides rather than
                the top and bottom, which for portrait stock is the crop that
                keeps the subject. Anything genuinely landscape loses a little at
                the edges, which is the trade; the alternative is letterboxing
                every portrait shot to suit a minority of the catalogue. */}
-          <div className="relative aspect-[6/7] w-full overflow-hidden rounded-[10px] bg-shop-photo">
+          <div className="relative aspect-[8/9] w-full overflow-hidden rounded-[10px] bg-shop-photo">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -1077,7 +1082,7 @@ export default function ProductCard({
           picture from the copy — at 4px the name read as a caption stuck to the
           bottom edge of the image. 8px is the figure the rest of the page uses
           between an object and its label. */}
-      <div className="flex flex-1 flex-col gap-0 pt-2">
+      <div className="flex flex-1 flex-col gap-0 pt-1.5">
         <Link href={href} className="block">
           {/* ---- Two lines, plain weight, and a fixed box ----
 
@@ -1120,7 +1125,13 @@ export default function ProductCard({
               The 16px is real and it is what this change spends. It buys the
               difference between a grid of distinguishable products and a grid
               of identical prefixes. */}
-          <h3 className="product-name line-clamp-2 min-h-[36px] text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary">
+          {/* 2 x 17px rather than 2 x 18px. The box has to stay fixed at both
+              ends — a one-line name in a flexible box drops its tile and lands
+              the prices in a row on two different lines — so the saving comes
+              from the leading rather than from the line count. 17px on 13px
+              type is still a comfortable 1.31, and it is two pixels off every
+              tile in the grid. */}
+          <h3 className="product-name line-clamp-2 min-h-[34px] text-[13px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9.5px] font-bold leading-[14px] ${chip.className}`}
