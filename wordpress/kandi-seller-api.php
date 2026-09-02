@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the server is older than the code in the repository" becomes a sentence on
  * the screen rather than a fortnight of debugging a fix that was never running.
  */
-define( 'KANDI_SELLER_API_VERSION', '2.1.0' );
+define( 'KANDI_SELLER_API_VERSION', '2.2.0' );
 
 /**
  * Load guard — this file must run exactly once.
@@ -61,7 +61,7 @@ if ( defined( 'KANDI_SELLER_LOADED_FROM' ) ) {
 
 define( 'KANDI_SELLER_LOADED_FROM', __FILE__ );
 
-define( 'KANDI_SELLER_DB_VERSION', '1.0.0' );
+define( 'KANDI_SELLER_DB_VERSION', '1.1.0' );
 define( 'KANDI_SELLER_ROLE', 'kandi_seller' );
 define( 'KANDI_SELLER_TOKEN_TTL', 14 * DAY_IN_SECONDS );
 /** Ceiling for one product photo, in bytes. Phone cameras routinely exceed 5 MB. */
@@ -374,6 +374,7 @@ function kandi_seller_install() {
 			account VARCHAR(120) NOT NULL DEFAULT '',
 			status VARCHAR(20) NOT NULL DEFAULT 'requested',
 			note TEXT NULL,
+			entry_ids LONGTEXT NULL,
 			requested_at DATETIME NOT NULL,
 			paid_at DATETIME NULL,
 			PRIMARY KEY  (id),
@@ -683,6 +684,45 @@ if ( ! function_exists( 'kandi_seller_commission_rate' ) ) :
 function kandi_seller_commission_rate( $seller_id ) {
 	$rate = get_user_meta( $seller_id, '_kandi_commission_rate', true );
 	return '' === $rate ? kandi_default_commission_rate() : (float) $rate;
+}
+endif;
+
+/**
+ * The ways this marketplace can actually send a seller money.
+ *
+ * One list, filterable, served to the payout dialog AND enforced by the endpoint
+ * that accepts a request. The Seller Centre used to carry the only copy, as a
+ * constant in its settings screen, so the browser could offer a method the shop
+ * had no way to pay through and nothing would notice until a human read the
+ * payout row. The list still has to be mirrored in app/seller/settings — keep
+ * the two in step, and this is the one that decides.
+ */
+if ( ! function_exists( 'kandi_seller_payout_methods' ) ) :
+function kandi_seller_payout_methods() {
+	return (array) apply_filters(
+		'kandi_seller_payout_methods',
+		array( 'MTN Mobile Money', 'Airtel Money', 'Bank transfer' )
+	);
+}
+endif;
+
+/**
+ * The smallest payout the shop will send, never above what the seller has.
+ *
+ * A floor exists because each transfer costs the marketplace a fee, and forty
+ * 500-shilling withdrawals cost more to send than they are worth. It is capped
+ * at the balance for the opposite reason: a seller whose whole earnings are
+ * below the floor must still be able to take them out, or the rule quietly
+ * becomes "we keep small balances", which is not a rule anyone agreed to.
+ */
+if ( ! function_exists( 'kandi_seller_payout_floor' ) ) :
+function kandi_seller_payout_floor( $payable ) {
+	$minimum = (float) apply_filters(
+		'kandi_seller_minimum_payout',
+		(float) get_option( 'kandi_seller_minimum_payout', 10000 )
+	);
+
+	return min( max( 0, $minimum ), max( 0, (float) $payable ) );
 }
 endif;
 
@@ -1007,6 +1047,105 @@ function kandi_seller_centre_url( $path = '/seller/orders' ) {
 endif;
 
 /**
+ * Everything a seller needs to physically get the parcel to the buyer.
+ *
+ * One function, because the same four facts — who, where, which phone, which
+ * pin — have to read identically in the Seller Centre, in the "new order" email
+ * and in the acceptance email. They did not: the orders table showed a name and
+ * a city, the new-order email added the street, and the acceptance email had
+ * neither a street nor a phone number. A seller reading the last of those had
+ * been told to have the parcel ready for a buyer they could not call.
+ *
+ * Shipping first, billing as the fallback. The storefront writes both from the
+ * one checkout form, so they agree for every order placed through it — but an
+ * order raised by hand in wp-admin, or imported, routinely carries only billing,
+ * and an empty address block is the one failure mode this must not have.
+ *
+ * The map link is the pin the shopper dropped at checkout
+ * (`_kandi_delivery_lat/lng`, written by Kandi Store API). Half of Kampala has
+ * no numbered street, so for a lot of these orders the pin IS the address and
+ * the typed line is only a description of it.
+ */
+if ( ! function_exists( 'kandi_seller_delivery' ) ) :
+function kandi_seller_delivery( $order ) {
+	$pick = function ( $shipping, $billing ) {
+		$shipping = trim( (string) $shipping );
+		return '' !== $shipping ? $shipping : trim( (string) $billing );
+	};
+
+	$lat = $order->get_meta( '_kandi_delivery_lat' );
+	$lng = $order->get_meta( '_kandi_delivery_lng' );
+
+	return array(
+		'name'      => $pick(
+			trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
+			trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() )
+		),
+		// Phone and email live on billing in WooCommerce's schema, and that is
+		// where the storefront writes them, so there is nothing to fall back from.
+		'phone'     => (string) $order->get_billing_phone(),
+		'email'     => (string) $order->get_billing_email(),
+		'address_1' => $pick( $order->get_shipping_address_1(), $order->get_billing_address_1() ),
+		'address_2' => $pick( $order->get_shipping_address_2(), $order->get_billing_address_2() ),
+		'city'      => $pick( $order->get_shipping_city(), $order->get_billing_city() ),
+		'note'      => (string) $order->get_customer_note(),
+		'map_url'   => ( $lat && $lng )
+			? sprintf( 'https://maps.google.com/?q=%F,%F', (float) $lat, (float) $lng )
+			: '',
+	);
+}
+endif;
+
+/** The same delivery details, as a block for an email. */
+if ( ! function_exists( 'kandi_seller_delivery_html' ) ) :
+function kandi_seller_delivery_html( $order ) {
+	$to    = kandi_seller_delivery( $order );
+	$lines = array();
+
+	if ( $to['name'] ) {
+		$lines[] = '<strong>' . esc_html( $to['name'] ) . '</strong>';
+	}
+	if ( $to['phone'] ) {
+		// A tel: link, because this is read on the phone the seller is about to
+		// call from — and the digits in plain sight beside it, because it is
+		// also read on a laptop where a tel: link does nothing at all.
+		$lines[] = sprintf(
+			'<a href="tel:%s" style="color:#c05a1c;text-decoration:none">%s</a>',
+			esc_attr( preg_replace( '/[^0-9+]/', '', $to['phone'] ) ),
+			esc_html( $to['phone'] )
+		);
+	}
+	foreach ( array( $to['address_1'], $to['address_2'], $to['city'] ) as $part ) {
+		if ( '' !== trim( (string) $part ) ) {
+			$lines[] = esc_html( $part );
+		}
+	}
+	if ( $to['map_url'] ) {
+		$lines[] = sprintf(
+			'<a href="%s" style="color:#c05a1c">Open the delivery pin in Maps</a>',
+			esc_url( $to['map_url'] )
+		);
+	}
+
+	$html = sprintf(
+		'<p style="margin:0 0 4px"><strong>Deliver to</strong></p>
+		 <p style="margin:0 0 14px;color:#3f3f46;line-height:1.7">%s</p>',
+		$lines ? implode( '<br>', $lines ) : 'No address was recorded on this order.'
+	);
+
+	if ( '' !== trim( $to['note'] ) ) {
+		$html .= sprintf(
+			'<p style="margin:0 0 4px"><strong>The buyer asked</strong></p>
+			 <p style="margin:0 0 14px;color:#3f3f46">%s</p>',
+			esc_html( $to['note'] )
+		);
+	}
+
+	return $html;
+}
+endif;
+
+/**
  * Emails every seller with something in a new order.
  *
  * One email per seller per order, holding only their own lines — a seller must
@@ -1055,8 +1194,7 @@ function kandi_notify_sellers_of_order( $order_id ) {
 				 %s
 				 <p style="margin:14px 0 4px">Commission at %s%%: %s</p>
 				 <p style="margin:0 0 14px"><strong>You receive: %s</strong></p>
-				 <p style="margin:0 0 4px"><strong>Deliver to</strong></p>
-				 <p style="margin:0 0 14px;color:#3f3f46">%s<br>%s<br>%s</p>
+				 %s
 				 <p style="margin:0">Accept it in the Seller Centre so we can tell the buyer it is being packed.</p>',
 				esc_html( $order->get_order_number() ),
 				esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) ),
@@ -1068,9 +1206,7 @@ function kandi_notify_sellers_of_order( $order_id ) {
 				esc_html( (string) $rate ),
 				wp_kses_post( wc_price( $commission, array( 'currency' => $order->get_currency() ) ) ),
 				wp_kses_post( wc_price( $part['total'] - $commission, array( 'currency' => $order->get_currency() ) ) ),
-				esc_html( trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) ),
-				esc_html( trim( $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2() ) ),
-				esc_html( $order->get_shipping_city() . ' · ' . $order->get_billing_phone() )
+				kandi_seller_delivery_html( $order )
 			),
 			/**
 			 * The button, filtered.
@@ -2578,6 +2714,22 @@ add_action( 'rest_api_init', function () {
 					$net          += (float) $line->net;
 				}
 
+				/**
+				 * The buyer's contact details, which a seller packing a parcel
+				 * cannot work without.
+				 *
+				 * This screen used to carry a first name and a city and nothing
+				 * else, so every seller had to email or phone the marketplace to
+				 * ask where an order they had already accepted was going. There
+				 * is no privacy argument for withholding it: the seller is the
+				 * one delivering, WooCommerce shows it to any shop manager, and
+				 * the same details are already in the email this endpoint's
+				 * sibling sends them. What IS withheld is anything belonging to
+				 * another store — the line items above are filtered to this
+				 * seller, so a shared order never leaks a competitor's sale.
+				 */
+				$to = kandi_seller_delivery( $order );
+
 				$orders[] = array(
 					'id'           => $order->get_id(),
 					'number'       => $order->get_order_number(),
@@ -2585,8 +2737,15 @@ add_action( 'rest_api_init', function () {
 					// Whether *this* seller has accepted their part, which is
 					// what the Accept button in the Seller Centre keys off.
 					'accepted'     => in_array( $seller_id, (array) $order->get_meta( '_kandi_accepted_by' ), true ),
-					'customer'     => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
-					'city'         => $order->get_billing_city(),
+					'customer'     => $to['name'],
+					'city'         => $to['city'],
+					'phone'        => $to['phone'],
+					'email'        => $to['email'],
+					'address_1'    => $to['address_1'],
+					'address_2'    => $to['address_2'],
+					'map_url'      => $to['map_url'],
+					'note'         => $to['note'],
+					'payment'      => $order->get_payment_method_title(),
 					'date'         => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : null,
 					'seller_total' => round( $seller_total, 2 ),
 					'commission'   => round( $commission, 2 ),
@@ -2649,11 +2808,15 @@ add_action( 'rest_api_init', function () {
 						sprintf(
 							'<p style="margin:0 0 14px">You have accepted order <strong>#%s</strong>. The buyer has been told it is being packed.</p>
 							 %s
-							 <p style="margin:14px 0 0">Have it ready for collection today. Deliver to %s, %s.</p>',
+							 <p style="margin:14px 0 14px">Have it ready for collection today.</p>
+							 %s',
 							esc_html( $order->get_order_number() ),
 							kandi_seller_lines_html( $part['lines'] ),
-							esc_html( trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) ),
-							esc_html( $order->get_shipping_city() )
+							// The full address and a callable number, not just a
+							// city. This email is the packing slip for a seller
+							// who accepted from their phone and will not open the
+							// Seller Centre again before the rider arrives.
+							kandi_seller_delivery_html( $order )
 						),
 						array( 'label' => 'View your orders', 'url' => kandi_seller_centre_url() )
 					);
@@ -2814,6 +2977,88 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 
+	/* ---- GET /seller/payouts ----
+	 *
+	 * Everything the payout dialog needs in one call: what is cleared, where
+	 * the money would go, the floor, and — the part that was missing entirely —
+	 * the requests already made.
+	 *
+	 * Without that list a seller who asked for a payout on Monday had no way to
+	 * tell on Tuesday whether it had been seen, so they asked again, hit the
+	 * "you already have a request being processed" error, and wrote to support.
+	 * A request in progress has to be visible as a request in progress.
+	 *
+	 * Registered as its own call rather than folded into the POST below as a
+	 * two-endpoint array — the shape used elsewhere in this file. Both are
+	 * correct: `register_rest_route` merges a second registration of the same
+	 * route into the first unless `$override` is passed, so GET and POST end up
+	 * on one route either way. Two calls because the two are 200 lines apart in
+	 * behaviour, and nesting them would put the read path inside the diff of
+	 * every future change to the write path.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/payouts', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => 'kandi_seller_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			global $wpdb;
+
+			$seller_id = kandi_seller_current_id( $request );
+			$table     = kandi_seller_commissions_table();
+
+			$buckets = $wpdb->get_row( $wpdb->prepare(
+				"SELECT COALESCE(SUM(CASE WHEN status = 'payable' THEN net ELSE 0 END),0) AS payable,
+				        COALESCE(SUM(CASE WHEN status = 'pending' THEN net ELSE 0 END),0) AS pending
+				   FROM {$table}
+				  WHERE seller_id = %d",
+				$seller_id
+			) );
+
+			$rows = $wpdb->get_results( $wpdb->prepare(
+				"SELECT id, amount, method, account, status, note, requested_at, paid_at
+				   FROM " . kandi_seller_payouts_table() . "
+				  WHERE seller_id = %d
+				  ORDER BY requested_at DESC
+				  LIMIT 50",
+				$seller_id
+			) );
+
+			$payouts = array();
+			$open    = false;
+
+			foreach ( $rows as $row ) {
+				if ( 'requested' === $row->status ) {
+					$open = true;
+				}
+				$payouts[] = array(
+					'id'           => (int) $row->id,
+					'amount'       => (float) $row->amount,
+					'method'       => (string) $row->method,
+					'account'      => (string) $row->account,
+					'status'       => (string) $row->status,
+					'note'         => (string) $row->note,
+					'requested_at' => $row->requested_at ? mysql2date( 'c', $row->requested_at ) : null,
+					'paid_at'      => $row->paid_at ? mysql2date( 'c', $row->paid_at ) : null,
+				);
+			}
+
+			$payable = (float) $buckets->payable;
+
+			return rest_ensure_response( array(
+				'currency' => get_woocommerce_currency(),
+				'payable'  => round( $payable, 2 ),
+				'pending'  => round( (float) $buckets->pending, 2 ),
+				// The floor never exceeds what the seller actually has: a shop
+				// with a 10,000 minimum must not trap somebody's 4,000 forever.
+				'minimum'  => round( kandi_seller_payout_floor( $payable ), 2 ),
+				'method'   => (string) get_user_meta( $seller_id, '_kandi_payout_method', true ),
+				'account'  => (string) get_user_meta( $seller_id, '_kandi_payout_account', true ),
+				'methods'  => kandi_seller_payout_methods(),
+				'open'     => $open,
+				'payouts'  => $payouts,
+			) );
+		},
+	) );
+
 	/* ---- POST /seller/payouts ---- */
 	register_rest_route( 'kandi/v1', '/seller/payouts', array(
 		'methods'             => WP_REST_Server::CREATABLE,
@@ -2863,51 +3108,198 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_nothing_payable', 'You have no cleared earnings to pay out yet.', array( 'status' => 400 ) );
 			}
 
+			/**
+			 * Where the money goes.
+			 *
+			 * From the request when the seller chose in the dialog, from the
+			 * account on file otherwise — then written back, so the choice made
+			 * at the moment of being paid becomes the default next time instead
+			 * of being forgotten between two screens.
+			 *
+			 * Refusing an empty account is not pedantry. A payout row with no
+			 * number on it reaches finance as "pay this person somehow", and the
+			 * only way to resolve it is to ring the seller, which is exactly the
+			 * conversation this field exists to prevent.
+			 */
+			$method  = sanitize_text_field( (string) $request->get_param( 'method' ) );
+			$account = sanitize_text_field( (string) $request->get_param( 'account' ) );
+
+			if ( '' === $method ) {
+				$method = (string) get_user_meta( $seller_id, '_kandi_payout_method', true );
+			}
+			if ( '' === $account ) {
+				$account = (string) get_user_meta( $seller_id, '_kandi_payout_account', true );
+			}
+
+			if ( '' !== $method && ! in_array( $method, kandi_seller_payout_methods(), true ) ) {
+				return new WP_Error(
+					'kandi_bad_method',
+					'Choose one of the payout methods we support.',
+					array( 'status' => 400 )
+				);
+			}
+
+			if ( '' === $method || '' === $account ) {
+				return new WP_Error(
+					'kandi_no_payout_account',
+					'Tell us the number to send the money to before requesting a payout — Settings, then Payout details.',
+					array( 'status' => 400 )
+				);
+			}
+
+			update_user_meta( $seller_id, '_kandi_payout_method', $method );
+			update_user_meta( $seller_id, '_kandi_payout_account', $account );
+
+			/**
+			 * How much.
+			 *
+			 * A missing or zero amount means "all of it", which is what the old
+			 * button did and what most requests will be. Anything else is
+			 * checked against the ceiling HERE rather than trusted from the
+			 * dialog — the browser's copy of the balance is a photograph of a
+			 * number that moves every time an order completes.
+			 */
+			$requested = (float) $request->get_param( 'amount' );
+			if ( $requested <= 0 ) {
+				$requested = $payable;
+			}
+
+			if ( $requested > $payable + 0.01 ) {
+				return new WP_Error(
+					'kandi_payout_too_large',
+					sprintf( 'You can withdraw up to %s right now.', wp_strip_all_tags( wc_price( $payable ) ) ),
+					array( 'status' => 400 )
+				);
+			}
+
+			$floor = kandi_seller_payout_floor( $payable );
+			if ( $requested < $floor - 0.01 ) {
+				return new WP_Error(
+					'kandi_payout_too_small',
+					sprintf( 'The smallest payout we can send is %s.', wp_strip_all_tags( wc_price( $floor ) ) ),
+					array( 'status' => 400 )
+				);
+			}
+
+			/**
+			 * ---- Payouts settle whole orders ----
+			 *
+			 * The ledger is one row per order line, each either payable or paid;
+			 * there is no way to mark three fifths of a row settled. So a partial
+			 * request is filled from the oldest cleared orders up to the amount
+			 * asked for, and the payout records the exact rows it covers.
+			 *
+			 * Recording them is the point. Before this, settling a payout in
+			 * wp-admin closed EVERY cleared row for that seller regardless of
+			 * what the payout said — harmless while the only possible request
+			 * was "all of it", and silently wrong the moment a seller could ask
+			 * for less: a 50,000 withdrawal against a 300,000 balance would have
+			 * wiped the other 250,000 off the books. See kandi_admin_payouts_page().
+			 */
+			$rows     = $wpdb->get_results( $wpdb->prepare(
+				"SELECT id, net FROM {$table} WHERE seller_id = %d AND status = 'payable' ORDER BY created_at ASC, id ASC",
+				$seller_id
+			) );
+			$covered  = array();
+			$settling = 0.0;
+
+			foreach ( $rows as $row ) {
+				if ( $settling + (float) $row->net > $requested + 0.01 ) {
+					continue;
+				}
+				$covered[] = (int) $row->id;
+				$settling += (float) $row->net;
+			}
+
+			if ( empty( $covered ) ) {
+				return new WP_Error(
+					'kandi_payout_too_small',
+					sprintf(
+						'Payouts are sent one whole order at a time, and your smallest cleared order comes to more than %s. Ask for a little more.',
+						wp_strip_all_tags( wc_price( $requested ) )
+					),
+					array( 'status' => 400 )
+				);
+			}
+
 			$wpdb->insert(
 				kandi_seller_payouts_table(),
 				array(
 					'seller_id'    => $seller_id,
-					'amount'       => $payable,
-					'method'       => (string) get_user_meta( $seller_id, '_kandi_payout_method', true ),
-					'account'      => (string) get_user_meta( $seller_id, '_kandi_payout_account', true ),
+					'amount'       => $settling,
+					'method'       => $method,
+					'account'      => $account,
 					'status'       => 'requested',
+					'entry_ids'    => wp_json_encode( $covered ),
 					'requested_at' => current_time( 'mysql' ),
 				),
-				array( '%d', '%f', '%s', '%s', '%s', '%s' )
+				array( '%d', '%f', '%s', '%s', '%s', '%s', '%s' )
 			);
+			$payout_id = (int) $wpdb->insert_id;
 
-			wp_mail(
+			$store  = (string) get_user_meta( $seller_id, '_kandi_store_name', true );
+			$user   = get_userdata( $seller_id );
+			$amount = wc_price( $settling );
+			$left   = wc_price( max( 0, $payable - $settling ) );
+
+			/**
+			 * The shop's own copy.
+			 *
+			 * Branded through the same mailer as everything else rather than a
+			 * bare `wp_mail` string, because this is the message that makes
+			 * somebody move money: it should arrive carrying the amount, the
+			 * destination and the screen where it is actioned, not a sentence
+			 * that has to be decoded first.
+			 */
+			kandi_seller_mail(
 				get_option( 'admin_email' ),
-				'Kandi seller payout requested',
+				sprintf( 'Payout requested: %s — %s', $store, wp_strip_all_tags( $amount ) ),
+				'A seller has asked to be paid',
 				sprintf(
-					"%s requested a payout of %s.\n\nReview it: %s",
-					get_user_meta( $seller_id, '_kandi_store_name', true ),
-					wc_price( $payable ),
-					admin_url( 'admin.php?page=kandi-seller-payouts' )
+					'<p style="margin:0 0 14px"><strong>%s</strong> requested <strong>%s</strong>.</p>
+					 <table role="presentation" style="border-collapse:collapse;font-size:14px;color:#3f3f46">
+					   <tr><td style="padding:2px 16px 2px 0">Send to</td><td style="padding:2px 0"><strong>%s</strong></td></tr>
+					   <tr><td style="padding:2px 16px 2px 0">Method</td><td style="padding:2px 0">%s</td></tr>
+					   <tr><td style="padding:2px 16px 2px 0">Seller email</td><td style="padding:2px 0">%s</td></tr>
+					   <tr><td style="padding:2px 16px 2px 0">Seller phone</td><td style="padding:2px 0">%s</td></tr>
+					   <tr><td style="padding:2px 16px 2px 0">Cleared orders</td><td style="padding:2px 0">%d</td></tr>
+					   <tr><td style="padding:2px 16px 2px 0">Balance left after</td><td style="padding:2px 0">%s</td></tr>
+					 </table>
+					 <p style="margin:14px 0 0">The seller has been told it is being processed and to expect the money within 24 hours.</p>',
+					esc_html( $store ),
+					wp_kses_post( $amount ),
+					esc_html( $account ),
+					esc_html( $method ),
+					esc_html( $user ? $user->user_email : '—' ),
+					esc_html( (string) get_user_meta( $seller_id, '_kandi_phone', true ) ),
+					count( $covered ),
+					wp_kses_post( $left )
+				),
+				array(
+					'label' => 'Review and pay',
+					'url'   => admin_url( 'admin.php?page=kandi-seller-payouts' ),
 				)
 			);
 
 			// The seller's receipt. Money leaving the platform should always be
 			// something they were told about in writing, at the address on the
 			// account — that record is what settles a dispute later.
-			$user = get_userdata( $seller_id );
 			if ( $user ) {
-				$method  = (string) get_user_meta( $seller_id, '_kandi_payout_method', true );
-				$account = (string) get_user_meta( $seller_id, '_kandi_payout_account', true );
-
 				kandi_seller_mail(
 					$user->user_email,
-					sprintf( 'Payout requested: %s', wp_strip_all_tags( wc_price( $payable ) ) ),
-					'We have your payout request',
+					sprintf( 'Payout requested: %s', wp_strip_all_tags( $amount ) ),
+					'We are processing your payout',
 					sprintf(
 						'<p style="margin:0 0 14px">You asked us to pay out <strong>%s</strong> from %s.</p>
-						 <p style="margin:0 0 14px">Sending to: <strong>%s</strong>%s</p>
-						 <p style="margin:0 0 14px">Our finance team settles requests every Friday, and you will get another email the moment the money goes out.</p>
+						 <p style="margin:0 0 14px">Sending to: <strong>%s</strong> (%s)</p>
+						 <p style="margin:0 0 14px">It is being processed now. Every request is settled <strong>within 24 hours</strong>, and mobile money usually lands the same day — you will get another email the moment it goes out.</p>
+						 <p style="margin:0 0 14px">Your balance after this payout is %s.</p>
 						 <p style="margin:0;color:#71717a;font-size:13px">Did not request this? Reply to this email straight away and change your password.</p>',
-						wp_kses_post( wc_price( $payable ) ),
-						esc_html( get_user_meta( $seller_id, '_kandi_store_name', true ) ),
-						esc_html( $account ?: 'the account on file' ),
-						$method ? ' (' . esc_html( $method ) . ')' : ''
+						wp_kses_post( $amount ),
+						esc_html( $store ),
+						esc_html( $account ),
+						esc_html( $method ),
+						wp_kses_post( $left )
 					),
 					array( 'label' => 'View your earnings', 'url' => kandi_seller_centre_url( '/seller/commissions' ) )
 				);
@@ -2915,7 +3307,26 @@ add_action( 'rest_api_init', function () {
 
 			return rest_ensure_response( array(
 				'ok'      => true,
-				'message' => 'Payout requested. Our finance team settles requests every Friday.',
+				'message' => sprintf(
+					'Payout of %s requested. We are processing it, and the money reaches %s within 24 hours.',
+					wp_strip_all_tags( $amount ),
+					$account
+				),
+				'payout'  => array(
+					'id'           => $payout_id,
+					'amount'       => round( $settling, 2 ),
+					'method'       => $method,
+					'account'      => $account,
+					'status'       => 'requested',
+					'note'         => '',
+					'requested_at' => mysql2date( 'c', current_time( 'mysql' ) ),
+					'paid_at'      => null,
+				),
+				// What was asked for against what whole cleared orders could
+				// actually fill, so the screen can say so plainly rather than
+				// quietly sending a different number.
+				'requested_amount' => round( $requested, 2 ),
+				'payable_left'     => round( max( 0, $payable - $settling ), 2 ),
 			) );
 		},
 	) );
@@ -3559,12 +3970,36 @@ function kandi_admin_payouts_page() {
 		$payout    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$payouts_table} WHERE id = %d", $payout_id ) );
 
 		if ( $payout && 'mark_paid' === $action ) {
-			// Settling a payout closes every cleared ledger row for that seller.
-			$wpdb->query( $wpdb->prepare(
-				"UPDATE {$commissions_table} SET status = 'paid', paid_at = %s WHERE seller_id = %d AND status = 'payable'",
-				current_time( 'mysql' ),
-				(int) $payout->seller_id
-			) );
+			/**
+			 * Settling closes exactly the ledger rows this payout was raised
+			 * against — no more.
+			 *
+			 * This used to close every cleared row for the seller, which was
+			 * indistinguishable from correct while "request a payout" meant "all
+			 * of it" and could only ever be wrong afterwards: a seller who asked
+			 * for 50,000 of a 300,000 balance would have had the other 250,000
+			 * marked paid and vanish from their statement.
+			 *
+			 * `entry_ids` is written at request time. Older rows predate the
+			 * column and have none, and for those the whole-balance sweep is
+			 * still the right reading — they could only have been full requests.
+			 */
+			$entry_ids = array_filter( array_map( 'intval', (array) json_decode( (string) $payout->entry_ids, true ) ) );
+
+			if ( $entry_ids ) {
+				$placeholders = implode( ',', array_fill( 0, count( $entry_ids ), '%d' ) );
+				$wpdb->query( $wpdb->prepare(
+					"UPDATE {$commissions_table} SET status = 'paid', paid_at = %s
+					  WHERE seller_id = %d AND status = 'payable' AND id IN ({$placeholders})",
+					array_merge( array( current_time( 'mysql' ), (int) $payout->seller_id ), $entry_ids )
+				) );
+			} else {
+				$wpdb->query( $wpdb->prepare(
+					"UPDATE {$commissions_table} SET status = 'paid', paid_at = %s WHERE seller_id = %d AND status = 'payable'",
+					current_time( 'mysql' ),
+					(int) $payout->seller_id
+				) );
+			}
 			$wpdb->update(
 				$payouts_table,
 				array( 'status' => 'paid', 'paid_at' => current_time( 'mysql' ) ),
@@ -3603,17 +4038,19 @@ function kandi_admin_payouts_page() {
 	echo '<div class="wrap"><h1>Seller payouts</h1>';
 	echo '<p>Marking a payout as paid closes all cleared commission entries for that seller.</p>';
 	echo '<table class="wp-list-table widefat fixed striped"><thead><tr>
-			<th>Seller</th><th>Amount</th><th>Method</th><th>Account</th><th>Requested</th><th>Status</th><th>Actions</th>
+			<th>Seller</th><th>Amount</th><th>Orders</th><th>Method</th><th>Account</th><th>Requested</th><th>Status</th><th>Actions</th>
 		  </tr></thead><tbody>';
 
 	if ( empty( $payouts ) ) {
-		echo '<tr><td colspan="7">No payout requests yet.</td></tr>';
+		echo '<tr><td colspan="8">No payout requests yet.</td></tr>';
 	}
 
 	foreach ( $payouts as $payout ) {
 		echo '<tr>';
 		printf( '<td><strong>%s</strong></td>', esc_html( get_user_meta( (int) $payout->seller_id, '_kandi_store_name', true ) ) );
 		echo '<td>' . wp_kses_post( wc_price( (float) $payout->amount ) ) . '</td>';
+		$covers = array_filter( array_map( 'intval', (array) json_decode( (string) $payout->entry_ids, true ) ) );
+		printf( '<td>%s</td>', $covers ? count( $covers ) : '—' );
 		printf( '<td>%s</td>', esc_html( $payout->method ?: '—' ) );
 		printf( '<td>%s</td>', esc_html( $payout->account ?: '—' ) );
 		printf( '<td>%s</td>', esc_html( mysql2date( 'j M Y, H:i', $payout->requested_at ) ) );
@@ -3650,6 +4087,7 @@ function kandi_admin_settings_page() {
 
 		update_option( 'kandi_default_commission_rate', max( 0, min( 100, (float) $_POST['default_rate'] ) ) );
 		update_option( 'kandi_seller_auto_approve_products', isset( $_POST['auto_approve'] ) ? 1 : 0 );
+		update_option( 'kandi_seller_minimum_payout', max( 0, (float) ( $_POST['minimum_payout'] ?? 0 ) ) );
 
 		if ( ! defined( 'KANDI_API_SECRET' ) && isset( $_POST['api_secret'] ) ) {
 			update_option( 'kandi_api_secret', sanitize_text_field( wp_unslash( $_POST['api_secret'] ) ) );
@@ -3660,6 +4098,7 @@ function kandi_admin_settings_page() {
 
 	$rate         = kandi_default_commission_rate();
 	$auto_approve = (int) get_option( 'kandi_seller_auto_approve_products', 0 );
+	$minimum      = (float) get_option( 'kandi_seller_minimum_payout', 10000 );
 
 	echo '<div class="wrap"><h1>Kandi Seller settings</h1><form method="post">';
 	wp_nonce_field( 'kandi_seller_settings' );
@@ -3676,6 +4115,14 @@ function kandi_admin_settings_page() {
 		'<tr><th scope="row">New listings</th>
 		 <td><label><input type="checkbox" name="auto_approve" value="1" %s> Publish seller products immediately (skip approval)</label></td></tr>',
 		checked( 1, $auto_approve, false )
+	);
+
+	printf(
+		'<tr><th scope="row"><label for="minimum_payout">Smallest payout</label></th>
+		 <td><input type="number" step="500" min="0" id="minimum_payout" name="minimum_payout" value="%s" class="small-text">
+		 <p class="description">A seller cannot request less than this. It never blocks a seller whose whole
+		 balance is below it — they can always withdraw the lot. Set to 0 to allow any amount.</p></td></tr>',
+		esc_attr( $minimum )
 	);
 
 	if ( defined( 'KANDI_API_SECRET' ) ) {

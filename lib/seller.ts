@@ -150,6 +150,27 @@ export type SellerOrder = {
   accepted: boolean;
   customer: string;
   city: string;
+  /**
+   * Where the parcel goes and who to ring about it.
+   *
+   * Optional across the board, and that is about deployment rather than about
+   * privacy: these fields are served by a version of the seller plugin that an
+   * install may not have yet, and a Seller Centre that renders "undefined" as
+   * an address is worse than one that renders nothing. Every consumer checks.
+   *
+   * Nothing here belongs to another store. The line items on this order are
+   * already filtered to this seller, so a shared basket never shows a
+   * competitor's sale — only the delivery it also has to reach.
+   */
+  phone?: string;
+  email?: string;
+  address_1?: string;
+  address_2?: string;
+  /** The pin the shopper dropped at checkout, as a Maps link. */
+  map_url?: string;
+  /** Whatever the shopper typed in "anything the rider should know". */
+  note?: string;
+  payment?: string;
   date: string;
   seller_total: number;
   commission: number;
@@ -178,6 +199,41 @@ export type CommissionSummary = {
   payable: number;
   pending: number;
   entries: CommissionEntry[];
+};
+
+/** One request for money to leave the marketplace. */
+export type PayoutRequest = {
+  id: number;
+  amount: number;
+  method: string;
+  account: string;
+  /**
+   * "requested" is the state the seller sees as *Processing* — finance has it
+   * and has not sent it yet. "paid" and "cancelled" are both terminal.
+   */
+  status: "requested" | "paid" | "cancelled";
+  note: string;
+  requested_at: string | null;
+  paid_at: string | null;
+};
+
+/** What the payout dialog opens with. */
+export type PayoutOverview = {
+  currency: string;
+  /** Cleared and withdrawable right now — the ceiling on a request. */
+  payable: number;
+  /** Earned but not yet cleared. Shown so the ceiling makes sense. */
+  pending: number;
+  /** The floor, already capped at `payable` by the server. */
+  minimum: number;
+  /** The account on file, which the dialog prefills. */
+  method: string;
+  account: string;
+  /** The methods this marketplace can actually send money through. */
+  methods: string[];
+  /** True while a request is with finance. Only one may be open at a time. */
+  open: boolean;
+  payouts: PayoutRequest[];
 };
 
 export type NewProductInput = {
@@ -448,7 +504,31 @@ export const sellerApi = {
   commissions: (range: string) =>
     request<CommissionSummary>(`/commissions?range=${encodeURIComponent(range)}`),
 
-  requestPayout: () => request<{ ok: true; message: string }>("/payouts", { method: "POST" }),
+  /** The balance, the account on file, and every request already made. */
+  payouts: () => request<PayoutOverview>("/payouts"),
+
+  /**
+   * Asks for money.
+   *
+   * `amount` is optional and omitting it means "everything cleared", which is
+   * what the button did before there was a dialog. It is a request rather than
+   * an instruction: the server re-reads the balance, refuses anything above it,
+   * and fills the request from whole cleared orders — so the amount that comes
+   * back in `payout.amount` is the one that will actually be sent, and can be
+   * a little under what was asked for. The dialog shows what came back rather
+   * than what it sent.
+   */
+  requestPayout: (input?: { amount?: number; method?: string; account?: string }) =>
+    request<{
+      ok: true;
+      message: string;
+      payout: PayoutRequest;
+      requested_amount: number;
+      payable_left: number;
+    }>("/payouts", {
+      method: "POST",
+      body: JSON.stringify(input ?? {}),
+    }),
 
   updateSettings: (input: Partial<Seller>) =>
     request<{ seller: Seller }>("/settings", {
