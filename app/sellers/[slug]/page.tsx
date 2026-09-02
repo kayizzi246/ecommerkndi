@@ -260,9 +260,9 @@ export default async function StorePage({ params }: Params) {
               full-width and its entire job is "here is everything this seller
               has", so the extra column puts noticeably more of the store above
               the fold. It tracks the shared grid rather than sitting at a fixed
-              number — that grid dropped to five at xl, so this is six, and the
-              cards here stay the same width as the cards everywhere else. */}
-          <div className={`px-3 md:px-8 ${PRODUCT_GRID} 2xl:grid-cols-6`}>
+              number — that grid is six at xl, so this is seven, and the cards
+              here stay the same width as the cards everywhere else. */}
+          <div className={`px-3 md:px-8 ${PRODUCT_GRID} 2xl:grid-cols-7`}>
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends
