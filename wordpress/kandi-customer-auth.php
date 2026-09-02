@@ -65,6 +65,79 @@ if ( ! function_exists( 'kandi_customer_rate_limit' ) ) {
 	}
 }
 
+/** Empties one bucket after a success, so a shopper's own typos do not add up. */
+if ( ! function_exists( 'kandi_customer_rate_clear' ) ) {
+	function kandi_customer_rate_clear( $action, $identity ) {
+		delete_transient( 'kandi_crl_' . md5( $action . '|' . strtolower( (string) $identity ) ) );
+	}
+}
+
+/**
+ * The caller's IP, as well as it can be known behind a proxy.
+ *
+ * Reuses the Seller Centre's resolver when that plugin is loaded so both halves
+ * of the site agree about who is calling, and falls back to a local copy of the
+ * same logic when it is not — these limits must not quietly stop existing
+ * because a companion plugin was deactivated.
+ *
+ * Forwarded headers are trivially forged. That is fine for what this is used
+ * for — spreading a limit across attackers rather than authenticating anyone —
+ * and it is why nothing security-critical is ever decided from this value.
+ */
+if ( ! function_exists( 'kandi_customer_client_ip' ) ) :
+function kandi_customer_client_ip() {
+	if ( function_exists( 'kandi_seller_client_ip' ) ) {
+		return kandi_seller_client_ip();
+	}
+
+	foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $header ) {
+		if ( empty( $_SERVER[ $header ] ) ) {
+			continue;
+		}
+		$value = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) );
+		// X-Forwarded-For is a chain; the client is the first entry.
+		$value = trim( explode( ',', $value )[0] );
+		if ( filter_var( $value, FILTER_VALIDATE_IP ) ) {
+			return $value;
+		}
+	}
+
+	return '0.0.0.0';
+}
+endif;
+
+/**
+ * ---- Two buckets, because either one alone can be walked around ----
+ *
+ * Every limit on these endpoints counted the EMAIL and nothing else, which
+ * stops one account being hammered and stops nothing else:
+ *
+ *   • Password spraying — one common password tried against ten thousand
+ *     addresses — never trips a per-email counter, because each address is only
+ *     touched once. It is also the attack that actually works against a
+ *     consumer shop, where some fraction of accounts will be using a password
+ *     from a leak.
+ *   • Registration flooding — a different address every time — was likewise
+ *     unlimited, and every attempt creates a WordPress user and sends an email.
+ *   • The reset endpoint could be walked through an address list to find out
+ *     which ones have accounts here, one request each.
+ *
+ * So each endpoint now counts the caller as well. The IP allowance is
+ * deliberately much larger than the per-email one: a Ugandan mobile carrier
+ * puts a great many real shoppers behind one NAT address, and a limit tight
+ * enough to stop a determined attacker would lock out a suburb.
+ */
+if ( ! function_exists( 'kandi_customer_guard_pair' ) ) :
+function kandi_customer_guard_pair( $action, $email, $email_limit, $ip_limit, $window ) {
+	$limited = kandi_customer_rate_limit( $action . '_ip', kandi_customer_client_ip(), $ip_limit, $window );
+	if ( is_wp_error( $limited ) ) {
+		return $limited;
+	}
+
+	return kandi_customer_rate_limit( $action, $email, $email_limit, $window );
+}
+endif;
+
 /** The session handed back to a shopper who has just proved who they are. */
 if ( ! function_exists( 'kandi_customer_session_payload' ) ) :
 function kandi_customer_session_payload( $user_id ) {
@@ -124,7 +197,7 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_weak_password', 'Use at least 8 characters for your password.', array( 'status' => 400 ) );
 			}
 
-			$limited = kandi_customer_rate_limit( 'register', $email, 5, 15 * MINUTE_IN_SECONDS );
+			$limited = kandi_customer_guard_pair( 'register', $email, 5, 20, 15 * MINUTE_IN_SECONDS );
 			if ( is_wp_error( $limited ) ) {
 				return $limited;
 			}
@@ -183,7 +256,7 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_bad_login', 'Enter your email and your password.', array( 'status' => 400 ) );
 			}
 
-			$limited = kandi_customer_rate_limit( 'login', $email, 10, 10 * MINUTE_IN_SECONDS );
+			$limited = kandi_customer_guard_pair( 'login', $email, 10, 60, 10 * MINUTE_IN_SECONDS );
 			if ( is_wp_error( $limited ) ) {
 				return $limited;
 			}
@@ -201,6 +274,12 @@ add_action( 'rest_api_init', function () {
 					array( 'status' => 401 )
 				);
 			}
+
+			// Clears the email bucket only. The caller's own bucket stays as it
+			// is: one correct password among fifty wrong ones is what a
+			// successful spray looks like, and forgiving the IP there would
+			// hand the attacker a fresh allowance for guessing the next account.
+			kandi_customer_rate_clear( 'login', $email );
 
 			return rest_ensure_response( kandi_customer_session_payload( $user->ID ) );
 		},
@@ -226,7 +305,7 @@ add_action( 'rest_api_init', function () {
 				return $answer;
 			}
 
-			$limited = kandi_customer_rate_limit( 'forgot', $email, 3, 15 * MINUTE_IN_SECONDS );
+			$limited = kandi_customer_guard_pair( 'forgot', $email, 3, 15, 15 * MINUTE_IN_SECONDS );
 			if ( is_wp_error( $limited ) ) {
 				return $limited;
 			}

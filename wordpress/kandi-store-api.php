@@ -1223,6 +1223,109 @@ if ( ! defined( 'KANDI_CUSTOMER_TOKEN_TTL' ) ) {
 	define( 'KANDI_CUSTOMER_TOKEN_TTL', 30 * DAY_IN_SECONDS );
 }
 
+/**
+ * ---- Signing out every device, without a table of devices ----
+ *
+ * A session here is a transient keyed by the HASH of a random token, holding
+ * the user id. That is a good shape for looking a token up and a useless one
+ * for revoking: there is no index from a user back to their tokens, so nothing
+ * could ever answer "invalidate everything this person is signed in with".
+ *
+ * Which meant resetting a password did not end a session. Somebody whose phone
+ * was stolen, or who typed their password into a phishing page and then did the
+ * right thing by changing it, kept the attacker signed in for the rest of the
+ * token's thirty days. The reset felt like a fix and was not one — and it is
+ * the one action a person takes when they believe they have been compromised.
+ *
+ * The fix is a counter rather than an index. Every token records the generation
+ * it was minted in; every request compares that against the generation now on
+ * the user. Bumping the number invalidates every outstanding token for that
+ * person at once, in one meta write, with no lookup table and nothing to clean
+ * up — the dead transients expire on their own.
+ *
+ * ---- Why a legacy token still works ----
+ *
+ * Tokens issued before this existed hold a bare integer instead of an array.
+ * Those are read as generation 0, and a user who has never had a password reset
+ * is also at generation 0, so nobody is signed out by the upgrade itself. The
+ * moment that user's password IS reset the counter moves to 1 and every one of
+ * those old tokens stops working, which is the entire point.
+ */
+if ( ! function_exists( 'kandi_token_generation' ) ) :
+function kandi_token_generation( $user_id ) {
+	return (int) get_user_meta( (int) $user_id, '_kandi_token_gen', true );
+}
+endif;
+
+/**
+ * Ends every session this person has, everywhere.
+ *
+ * Shared by the shopper and the seller sides on purpose: one WordPress user can
+ * be both, one password protects both, and a password change that ended only
+ * half of the sessions would be worse than useless — it would report success
+ * while leaving the other half open.
+ */
+if ( ! function_exists( 'kandi_revoke_tokens' ) ) :
+function kandi_revoke_tokens( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return;
+	}
+	update_user_meta( $user_id, '_kandi_token_gen', kandi_token_generation( $user_id ) + 1 );
+}
+endif;
+
+/**
+ * Reads a session transient of either shape and returns the user it belongs to,
+ * or 0 when the token is unknown, expired or from a revoked generation.
+ *
+ * The revoked case deletes the transient on the way out. It would expire by
+ * itself, but a token that is known to be dead should not be left sitting in
+ * the options table for another month waiting for its clock to run out.
+ */
+if ( ! function_exists( 'kandi_user_from_token_record' ) ) :
+function kandi_user_from_token_record( $stored, $transient_key ) {
+	if ( false === $stored ) {
+		return 0;
+	}
+
+	$user_id    = is_array( $stored ) ? (int) ( $stored['uid'] ?? 0 ) : (int) $stored;
+	$generation = is_array( $stored ) ? (int) ( $stored['gen'] ?? 0 ) : 0;
+
+	if ( $user_id <= 0 ) {
+		return 0;
+	}
+
+	if ( $generation !== kandi_token_generation( $user_id ) ) {
+		delete_transient( $transient_key );
+		return 0;
+	}
+
+	return $user_id;
+}
+endif;
+
+/**
+ * Every route into a changed password, funnelled into one revocation.
+ *
+ * `after_password_reset` covers the "forgot password" flow — ours and
+ * WordPress's own. `profile_update` covers wp-admin, WooCommerce's account page
+ * and anything else that writes a user; it compares the stored hash so that
+ * saving a display name does not sign somebody out of every device they own.
+ */
+add_action( 'after_password_reset', function ( $user ) {
+	if ( $user instanceof WP_User ) {
+		kandi_revoke_tokens( $user->ID );
+	}
+}, 10, 1 );
+
+add_action( 'profile_update', function ( $user_id, $old_user_data ) {
+	$fresh = get_userdata( $user_id );
+	if ( $fresh && isset( $old_user_data->user_pass ) && $fresh->user_pass !== $old_user_data->user_pass ) {
+		kandi_revoke_tokens( $user_id );
+	}
+}, 10, 2 );
+
 if ( ! function_exists( 'kandi_customer_token_key' ) ) :
 function kandi_customer_token_key( $token ) {
 	return 'kandi_cust_tok_' . hash( 'sha256', $token );
@@ -1232,7 +1335,12 @@ endif;
 if ( ! function_exists( 'kandi_customer_issue_token' ) ) :
 function kandi_customer_issue_token( $user_id ) {
 	$token = bin2hex( random_bytes( 32 ) );
-	set_transient( kandi_customer_token_key( $token ), (int) $user_id, KANDI_CUSTOMER_TOKEN_TTL );
+	set_transient(
+		kandi_customer_token_key( $token ),
+		// The generation this token belongs to. See kandi_revoke_tokens().
+		array( 'uid' => (int) $user_id, 'gen' => kandi_token_generation( $user_id ) ),
+		KANDI_CUSTOMER_TOKEN_TTL
+	);
 	return $token;
 }
 endif;
@@ -1265,8 +1373,11 @@ function kandi_customer_permission( WP_REST_Request $request ) {
 	if ( is_wp_error( $secret ) ) {
 		return $secret;
 	}
-	$token   = kandi_customer_bearer( $request );
-	$user_id = '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
+	// Through the same reader as `kandi_customer_current_id`, so the permission
+	// check and the identity check can never disagree about whether a token is
+	// still valid — which is exactly the kind of split that leaves a revoked
+	// session able to pass the guard and then act as somebody.
+	$user_id = kandi_customer_current_id( $request );
 	return $user_id > 0 ? true : new WP_Error( 'kandi_unauthorised', 'Not signed in.', array( 'status' => 401 ) );
 }
 endif;
@@ -1274,7 +1385,11 @@ endif;
 if ( ! function_exists( 'kandi_customer_current_id' ) ) :
 function kandi_customer_current_id( WP_REST_Request $request ) {
 	$token = kandi_customer_bearer( $request );
-	return '' === $token ? 0 : (int) get_transient( kandi_customer_token_key( $token ) );
+	if ( '' === $token ) {
+		return 0;
+	}
+	$key = kandi_customer_token_key( $token );
+	return kandi_user_from_token_record( get_transient( $key ), $key );
 }
 endif;
 

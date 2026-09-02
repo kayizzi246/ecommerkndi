@@ -779,7 +779,18 @@ endif;
 if ( ! function_exists( 'kandi_seller_issue_token' ) ) :
 function kandi_seller_issue_token( $user_id ) {
 	$token = bin2hex( random_bytes( 32 ) );
-	set_transient( kandi_seller_token_key( $token ), (int) $user_id, KANDI_SELLER_TOKEN_TTL );
+	set_transient(
+		kandi_seller_token_key( $token ),
+		// Same generation stamp the shopper tokens carry, read from the same
+		// user meta — one password protects both sides of this account, so one
+		// password change has to end the sessions on both. The helpers live in
+		// kandi-store-api.php; without that plugin a seller session behaves
+		// exactly as it did before.
+		function_exists( 'kandi_token_generation' )
+			? array( 'uid' => (int) $user_id, 'gen' => kandi_token_generation( $user_id ) )
+			: (int) $user_id,
+		KANDI_SELLER_TOKEN_TTL
+	);
 	return $token;
 }
 endif;
@@ -801,7 +812,14 @@ function kandi_seller_current_id( WP_REST_Request $request ) {
 	if ( '' === $token ) {
 		return 0;
 	}
-	$user_id = (int) get_transient( kandi_seller_token_key( $token ) );
+
+	$key    = kandi_seller_token_key( $token );
+	$stored = get_transient( $key );
+
+	$user_id = function_exists( 'kandi_user_from_token_record' )
+		? kandi_user_from_token_record( $stored, $key )
+		: (int) $stored;
+
 	return kandi_is_seller( $user_id ) ? $user_id : 0;
 }
 endif;

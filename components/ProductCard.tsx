@@ -716,16 +716,20 @@ export default function ProductCard({
                A square is the safe ratio and it is not the flattering one for
                most of this catalogue: duvet sets, mosquito nets, jackets and
                shoes are all taller than they are wide, so a square frame spent
-               its width on the room around the product. A sixth more height is
-               a noticeably larger picture at the same grid width — the tile
-               grows, the columns do not move.
+               its width on the room around the product.
+
+               6:7 rather than the 5:6 this was for one pass. 5:6 is a sixth
+               taller than square and read as a deliberately tall frame; 6:7 is
+               a seventh, which is enough to stop the crop fighting portrait
+               stock and little enough that the tile still reads as a tile. The
+               columns do not move at either.
 
                `object-cover` still crops, and now crops the sides rather than
                the top and bottom, which for portrait stock is the crop that
                keeps the subject. Anything genuinely landscape loses a little at
                the edges, which is the trade; the alternative is letterboxing
                every portrait shot to suit a minority of the catalogue. */}
-          <div className="relative aspect-[5/6] w-full overflow-hidden rounded-[10px] bg-shop-photo">
+          <div className="relative aspect-[6/7] w-full overflow-hidden rounded-[10px] bg-shop-photo">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
