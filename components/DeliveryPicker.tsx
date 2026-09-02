@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatPrice } from "@/lib/currency";
 import type { LatLng } from "@/lib/delivery";
 import {
@@ -68,6 +68,65 @@ export default function DeliveryPicker({
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [activeSaved, setActiveSaved] = useState<string | null>(null);
+
+  /**
+   * ---- The suggestion list ----
+   *
+   * Typing an area and pressing a Check button is one interaction too many at
+   * the point in the checkout where people give up, and it hides the real
+   * problem: "Kira" is a road in Kampala AND a town in Wakiso twenty kilometres
+   * away, at different delivery fees. A single geocode silently picked one.
+   * Showing the candidates makes the shopper choose, which is both faster and
+   * the only way the fee can be right.
+   */
+  const [places, setPlaces] = useState<{ label: string; point: LatLng }[]>([]);
+  const [openList, setOpenList] = useState(false);
+
+  /* Set when a suggestion is taken, so the effect below does not immediately
+     re-search for the text it just wrote into the field. */
+  const chosen = useRef(false);
+
+  useEffect(() => {
+    if (chosen.current) {
+      chosen.current = false;
+      return;
+    }
+
+    const query = address.trim();
+    // Emptying the list is done in the change handler, not here: setState in
+    // an effect body cascades a render, and "the box is now too short to
+    // search" is something typing caused rather than something to synchronise.
+    if (query.length < 3) return;
+
+    /* 300ms. Every one of these is a geocoding request, billed when the shop
+       has a Google key and rate-limited by Nominatim when it does not, so a
+       request per keystroke is not an option. 300 is about the gap between
+       words when somebody is typing an address they know. */
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/delivery/suggest?q=${encodeURIComponent(query)}`);
+        if (!response.ok) return;
+        const data = (await response.json()) as { places?: { label: string; point: LatLng }[] };
+        setPlaces(data.places ?? []);
+        setOpenList(true);
+      } catch {
+        // A suggestion list that cannot load is not worth an error message:
+        // the field still works, and Check still prices whatever was typed.
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [address]);
+
+  /** Takes one suggestion: fills the field, closes the list, prices it. */
+  const choose = (place: { label: string; point: LatLng }) => {
+    chosen.current = true;
+    setAddress(place.label);
+    setPlaces([]);
+    setOpenList(false);
+    setActiveSaved(null);
+    quote({ point: place.point });
+  };
 
   // localStorage is state React does not own, so it is read through the hook
   // built for that. The server snapshot is empty — there is no browser storage
@@ -226,20 +285,49 @@ export default function DeliveryPicker({
 
         <span className="text-[13px] text-shop-muted">or</span>
 
-        <div className="flex min-w-[220px] flex-1 gap-2">
+        <div className="relative flex min-w-[220px] flex-1 gap-2">
           <input
             value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAddress(next);
+              // Below the search threshold there is nothing to offer, and a
+              // stale list under a half-deleted word is worse than none.
+              if (next.trim().length < 3) {
+                setPlaces([]);
+                setOpenList(false);
+              }
+            }}
+            onFocus={() => places.length > 0 && setOpenList(true)}
+            /* Closed on a delay rather than immediately: a click on a
+               suggestion blurs the input first, and hiding the list on blur
+               removes the thing being clicked before the click lands. */
+            onBlur={() => window.setTimeout(() => setOpenList(false), 150)}
             onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setOpenList(false);
+                return;
+              }
               if (event.key === "Enter") {
                 // The picker sits inside the checkout form; Enter here must
                 // price a delivery, not submit the order.
                 event.preventDefault();
-                if (address.trim()) quote({ address });
+                // Enter takes the first suggestion when there is one, because
+                // that is what the list has been offering while they typed.
+                if (openList && places.length > 0) {
+                  choose(places[0]);
+                } else if (address.trim()) {
+                  quote({ address });
+                }
               }
             }}
-            placeholder="Area or landmark, e.g. Ntinda"
+            placeholder="Start typing your area, e.g. Ntinda"
             aria-label="Delivery area"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="delivery-suggestions"
+            aria-expanded={openList && places.length > 0}
+            autoComplete="off"
             className="field-shop text-[14px]"
           />
           <button
@@ -250,6 +338,41 @@ export default function DeliveryPicker({
           >
             Check
           </button>
+
+          {openList && places.length > 0 && (
+            <ul
+              id="delivery-suggestions"
+              role="listbox"
+              aria-label="Matching places"
+              /* Above the field's own row and anything after it. The checkout
+                 has a sticky summary at the top and a sticky pay bar at the
+                 bottom; a dropdown that slides under either is unusable. */
+              className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-xl border border-shop-line bg-white shadow-lg"
+            >
+              {places.map((place) => (
+                <li key={`${place.label}-${place.point.lat}`}>
+                  <button
+                    type="button"
+                    onClick={() => choose(place)}
+                    className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left text-[14px] text-shop-ink transition-colors hover:bg-shop-surface"
+                  >
+                    <svg
+                      aria-hidden
+                      className="mt-0.5 h-4 w-4 shrink-0 text-shop-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                    </svg>
+                    {place.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

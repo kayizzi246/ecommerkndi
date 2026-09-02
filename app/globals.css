@@ -1956,6 +1956,66 @@ h6,
   }
 }
 
+/* ---------- The footer is black ----------
+ *
+ * Done by re-pointing the tokens on the element rather than by rewriting the
+ * thirty-odd utility classes inside it. Every colour in Footer.tsx is already
+ * semantic — `text-shop-ink` for headings, `text-shop-body` for links,
+ * `border-shop-edge` for the rules — and a Tailwind utility compiles to
+ * `color: var(--color-shop-ink)`, which is resolved where it is USED. So
+ * redefining those variables on the footer re-colours everything descended from
+ * it and touches nothing anywhere else on the page.
+ *
+ * The alternative — a `dark:`-style variant, or thirty hand-edited classes —
+ * would have to be re-applied to every link added to the footer afterwards.
+ * This cannot drift: a new `text-shop-body` link inside the footer is dark-mode
+ * correct the moment it is written.
+ *
+ * On the values: the body grey is #a8a29c rather than a pure mid-grey because
+ * the ground is warm-black rather than pure black, and a neutral grey on a warm
+ * ground reads as slightly blue. The accent lifts from #c05a1c to #ff8a3d for
+ * the same reason it has to — the darker orange was chosen for contrast against
+ * WHITE and is close to unreadable on black. */
+.site-footer {
+  --color-shop-footer: #121110;
+  /* The legal bar lifts a hair rather than dropping, so the join reads as a
+     seam in one object instead of a second, darker object below it. */
+  --color-shop-footer-deep: #1c1a18;
+  --color-shop-ink: #ffffff;
+  --color-shop-body: #a8a29c;
+  --color-shop-muted: #8a847d;
+  --color-shop-edge: #2b2724;
+  --color-shop-line: #2b2724;
+  --color-shop-primary-ink: #ff8a3d;
+  --color-shop-save: #5fd08a;
+  color-scheme: dark;
+}
+
+/* ---------- The checkout pay bar gets out of the way of the keyboard ----------
+ *
+ * The bar is pinned to the bottom of the viewport, and `interactiveWidget:
+ * resizes-content` (see app/layout.tsx) shrinks that viewport when the phone
+ * keyboard opens — so the bar lands directly on top of the keyboard, which is
+ * where a browser also wants to put the field being typed into. The two fight,
+ * and the field loses.
+ *
+ * While a text field in the checkout has focus, the bar slides out. Nobody
+ * needs a Pay now button in the half-second they are typing a phone number,
+ * and it comes straight back on blur.
+ *
+ * Scoped to text-entry fields on purpose: choosing a payment method is a radio,
+ * and hiding the button the moment somebody picks how to pay would be exactly
+ * backwards. `:has()` is unsupported on some older Android browsers, where this
+ * rule simply does not match and the bar behaves as it did — a progressive
+ * enhancement, not a dependency. */
+@media (max-width: 1023px) {
+  form:has(input[type="text"]:focus, input[type="tel"]:focus, input[type="email"]:focus, input[type="search"]:focus, input[type="number"]:focus, input:not([type]):focus, textarea:focus)
+    .checkout-paybar {
+    transform: translateY(115%);
+    pointer-events: none;
+  }
+}
+
 /* Safari still paints a disclosure triangle when list-style is none. */
 summary::-webkit-details-marker {
   display: none;

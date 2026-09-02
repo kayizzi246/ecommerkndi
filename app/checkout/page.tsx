@@ -84,7 +84,7 @@ const PAYMENT_METHODS: {
 ];
 
 export default function CheckoutPage() {
-  const { items, count, subtotal, clearCart } = useCart();
+  const { items, count, subtotal, clearCart, removeItem } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -357,7 +357,15 @@ export default function CheckoutPage() {
 
       if (!viaPesapal) {
         clearCart();
-        router.push(`/order-received?id=${data.id}&total=${data.total}`);
+        // The phone rides along so the confirmation page's "Track this
+        // order" button is one tap rather than a form to fill in again. It is
+        // the shopper's own number, on their own screen, and it is the same
+        // detail the confirmation email already carries in its tracking link.
+        router.push(
+          `/order-received?id=${data.id}&total=${data.total}&phone=${encodeURIComponent(
+            addressFields.phone
+          )}`
+        );
         return;
       }
 
@@ -457,6 +465,20 @@ export default function CheckoutPage() {
                     .join(" · ")}
                 </p>
               )}
+              {/* ---- Removing a line without leaving the checkout ----
+                  Changing your mind about one item meant going back to the
+                  cart, which on a phone means losing every field already
+                  filled in — so the real choice was "buy it anyway" or
+                  "abandon", and plenty chose the second. `type="button"` is
+                  load-bearing: this sits inside the checkout form, and a bare
+                  button in a form submits it. */}
+              <button
+                type="button"
+                onClick={() => removeItem(item.key)}
+                className="mt-1 text-[12.5px] font-medium text-shop-muted underline underline-offset-2 hover:text-shop-sale"
+              >
+                Remove
+              </button>
             </div>
             <span className="whitespace-nowrap text-[14px] font-medium text-shop-ink">
               {formatPrice(item.price * item.quantity)}
@@ -523,9 +545,20 @@ export default function CheckoutPage() {
 
   return (
     <form onSubmit={handleSubmit} className="lg:grid lg:min-h-screen lg:grid-cols-2">
-      {/* Mobile summary disclosure, as Shopify shows above the form. */}
-      <details className="group border-y border-shop-line bg-shop-surface lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-4">
+      {/* ---- The mobile summary, pinned ----
+
+           It was a disclosure at the top of the document, which meant it
+           scrolled away with the first field and the shopper spent the rest of
+           the checkout unable to see what they were paying without scrolling
+           back. Sticky, it is a permanent header: the total is always on
+           screen, and the list is one tap under it when they want to check.
+
+           `z-30` sits under the location autocomplete (z-40) and under the pay
+           bar, and above the form. Open, it scrolls internally rather than
+           growing past the viewport — a summary of eight items that covers the
+           whole screen when tapped is worse than one that scrolls away. */}
+      <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface/95 backdrop-blur lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
           <span className="flex items-center gap-2 text-[15px] text-shop-ink">
             Order summary
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -534,12 +567,12 @@ export default function CheckoutPage() {
           </span>
           <span className="text-[20px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
         </summary>
-        <div className="px-4 pb-6">{summary}</div>
+        <div className="max-h-[60vh] overflow-y-auto px-4 pb-6">{summary}</div>
       </details>
 
       {/* Form column */}
       <div className="order-1 bg-white">
-        <div className="mx-auto w-full max-w-[560px] px-4 py-10 md:px-8 lg:ml-auto lg:mr-0 lg:px-14">
+        <div className="mx-auto w-full max-w-[560px] px-4 pb-28 pt-6 md:px-8 lg:ml-auto lg:mr-0 lg:px-14 lg:pb-10 lg:pt-10">
           <nav className="mb-8 flex items-center gap-2 text-[13px] text-shop-muted">
             <Link href="/cart" className="hover:text-shop-ink">
               Cart
@@ -554,7 +587,7 @@ export default function CheckoutPage() {
             <StepHeading
               step={1}
               title="How we reach you"
-              sub="The rider calls before delivering, so this has to be a number you answer."
+              sub="We call this number before delivering."
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -605,8 +638,7 @@ export default function CheckoutPage() {
                   className="field-shop"
                 />
                 <p id="email-hint" className={hintClass}>
-                  For your receipt and order tracking. We&apos;ll send a link to set a
-                  password so you can follow the order.
+                  For your receipt and order tracking.
                 </p>
               </div>
             </div>
@@ -616,7 +648,7 @@ export default function CheckoutPage() {
             <StepHeading
               step={2}
               title="Where we deliver it"
-              sub="Drop a pin or type a landmark — we price the delivery from it straight away."
+              sub="We price delivery from your location."
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
@@ -667,7 +699,7 @@ export default function CheckoutPage() {
                   <FieldError>We need a name for the rider to ask for.</FieldError>
                 ) : (
                   <p id="first_name-hint" className={hintClass}>
-                    Who is receiving the parcel.
+                    Who the rider asks for.
                   </p>
                 )}
               </div>
@@ -715,7 +747,7 @@ export default function CheckoutPage() {
                      "opposite the mosque" is what actually gets a parcel to a
                      gate. A placeholder disappears the moment anyone types. */
                   <p id="address_1-hint" className={hintClass}>
-                    A nearby landmark helps most — &ldquo;next to Cafe Javas, green gate&rdquo;.
+                    A landmark helps most — &ldquo;next to Cafe Javas, green gate&rdquo;.
                   </p>
                 )}
               </div>
@@ -756,9 +788,7 @@ export default function CheckoutPage() {
                   aria-describedby="country-hint"
                   className="field-shop bg-shop-surface text-shop-muted"
                 />
-                <p id="country-hint" className={hintClass}>
-                  We deliver within Uganda only.
-                </p>
+
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="notes">
@@ -773,9 +803,7 @@ export default function CheckoutPage() {
                   aria-describedby="notes-hint"
                   className="field-shop resize-y"
                 />
-                <p id="notes-hint" className={hintClass}>
-                  Gate codes, a better time to come, or who to hand it to.
-                </p>
+
               </div>
             </div>
           </section>
@@ -784,7 +812,7 @@ export default function CheckoutPage() {
             <StepHeading
               step={3}
               title="How you pay"
-              sub="All transactions are secure and encrypted."
+              sub="Secure and encrypted."
             />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
@@ -877,18 +905,55 @@ export default function CheckoutPage() {
                 appear is not off the bottom of a phone screen. */}
             <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileNonce} />
 
+            {/* Hidden on a phone, where the sticky bar at the foot of the
+                page carries this instead — two Pay now buttons on one screen is
+                a shopper wondering which one is the real one. */}
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 w-full py-4 text-[16px]"
+              className="btn-shop mt-6 hidden w-full py-4 text-[16px] lg:block"
             >
-              {submitting ? "Placing order…" : "Pay now"}
+              {submitting ? "Placing order…" : `Pay ${formatPrice(total)}`}
             </button>
 
-            <p className="mt-8 border-t border-shop-line pt-5 text-[13px] text-shop-muted">
+            <p className="mt-6 text-[12.5px] text-shop-muted">
               By placing this order you agree to our terms of sale.
             </p>
           </section>
+        </div>
+      </div>
+
+      {/* ---- Pay, pinned to the bottom on phones ----
+
+           The button was at the end of a form roughly three screens long, so
+           the one control the whole page exists for was only ever reachable by
+           scrolling to the end of it — and a shopper who scrolled back up to
+           check their address had to scroll all the way down again to buy.
+
+           It carries the total, because a payment button without an amount
+           makes people scroll up to check before they trust it, which is the
+           behaviour this is trying to remove.
+
+           `type="submit"` inside the same form as the fields, so it runs the
+           same handler and the same validation as the desktop button. The form
+           column carries `pb-28` on phones so the last field is not underneath
+           this. */}
+      <div className="checkout-paybar fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 lg:hidden">
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[12px] text-shop-muted">
+              {count} {count === 1 ? "item" : "items"}
+              {delivery?.deliverable && !delivery.free ? " + delivery" : ""}
+            </p>
+            <p className="price text-[18px] leading-none text-shop-ink">{formatPrice(total)}</p>
+          </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn-shop ml-auto shrink-0 px-8 py-3.5 text-[15px]"
+          >
+            {submitting ? "Placing…" : "Pay now"}
+          </button>
         </div>
       </div>
 
@@ -919,7 +984,7 @@ export default function CheckoutPage() {
             router.push(
               `/order-received?id=${outcome.orderId ?? pendingOrder?.id ?? ""}&total=${
                 pendingOrder?.total ?? subtotal
-              }`
+              }&paid=1&phone=${encodeURIComponent(addressFields.phone)}`
             );
             return;
           }

@@ -163,6 +163,110 @@ export async function describeLocation(point: LatLng): Promise<PlaceDetails> {
   }
 }
 
+/** One place a shopper might mean, for the checkout's suggestion list. */
+export type PlaceSuggestion = {
+  /** What the shopper reads: "Ntinda, Kampala". */
+  label: string;
+  point: LatLng;
+};
+
+/**
+ * Places matching what has been typed so far — the checkout's autocomplete.
+ *
+ * Distinct from `locateAddress` in the one way that matters: it returns
+ * SEVERAL candidates instead of silently taking the first. "Kira" is a road in
+ * Kampala and a town in Wakiso twenty kilometres away, and those are different
+ * delivery fees; picking one on the shopper's behalf and charging for it is the
+ * failure this exists to prevent.
+ *
+ * Both providers are biased to Uganda and capped at five. Five is what fits
+ * under a field on a phone without covering the next one, and past three the
+ * list stops being read anyway.
+ *
+ * Errors return an empty list rather than throwing. A suggestion box that
+ * cannot suggest is an inconvenience; the shopper can still type the area and
+ * press the button, which is the path that existed before this.
+ */
+export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) return [];
+
+  const key = googleKey();
+  const scoped = /uganda/i.test(trimmed) ? trimmed : `${trimmed}, Uganda`;
+
+  try {
+    if (key) {
+      const response = await fetch(
+        `${GOOGLE}?address=${encodeURIComponent(scoped)}&key=${key}&region=ug`,
+        { cache: "no-store" }
+      );
+      const data = (await response.json()) as {
+        results?: {
+          formatted_address?: string;
+          geometry?: { location?: { lat: number; lng: number } };
+        }[];
+      };
+
+      return (data.results ?? [])
+        .slice(0, 5)
+        .map((result) => ({
+          label: tidyLabel(result.formatted_address ?? ""),
+          point: {
+            lat: result.geometry?.location?.lat ?? 0,
+            lng: result.geometry?.location?.lng ?? 0,
+          },
+        }))
+        .filter((entry) => entry.label !== "" && entry.point.lat !== 0);
+    }
+
+    const response = await fetch(
+      `${NOMINATIM}/search?format=jsonv2&limit=5&countrycodes=ug&q=${encodeURIComponent(scoped)}`,
+      {
+        headers: { "User-Agent": "KandiUg-Storefront/1.0 (support@kandiug.com)" },
+        cache: "no-store",
+      }
+    );
+
+    const data = (await response.json()) as
+      | { lat?: string; lon?: string; display_name?: string }[]
+      | null;
+
+    return (data ?? [])
+      .map((entry) => ({
+        label: tidyLabel(entry.display_name ?? ""),
+        point: { lat: Number(entry.lat ?? 0), lng: Number(entry.lon ?? 0) },
+      }))
+      .filter((entry) => entry.label !== "" && Number.isFinite(entry.point.lat) && entry.point.lat !== 0)
+      .slice(0, 5);
+  } catch (error) {
+    console.error("[kandi-store] place search failed:", error);
+    return [];
+  }
+}
+
+/**
+ * Trims a geocoder's full label down to something a person would say.
+ *
+ * Nominatim returns the entire administrative chain — "Ntinda, Nakawa Division,
+ * Kampala, Central Region, 256, Uganda" — which is six commas of noise around
+ * the two words the shopper recognises. The first three parts, minus the
+ * country and any postcode, is the address as it would be spoken.
+ */
+function tidyLabel(raw: string): string {
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(
+      (part) =>
+        part !== "" &&
+        !/^uganda$/i.test(part) &&
+        !/^\d+$/.test(part) &&
+        !/region$/i.test(part)
+    );
+
+  return parts.slice(0, 3).join(", ");
+}
+
 /** Coordinates for a typed address. Used by the manual-entry fallback. */
 export async function locateAddress(query: string): Promise<LatLng | null> {
   const key = googleKey();

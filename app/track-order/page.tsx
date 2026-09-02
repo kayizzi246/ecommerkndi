@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import InfoPage, { InfoSection } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
 import TrackOrderPanel from "./TrackOrderPanel";
@@ -17,9 +18,15 @@ export default async function TrackOrderPage() {
     <InfoPage
       eyebrow="Customer service"
       title="Track your order"
-      intro="Every order placed with your account, with its live status straight from the warehouse."
+      intro="Enter your order number and the phone or email you ordered with. No account needed."
     >
-      <TrackOrderPanel />
+      {/* `TrackOrderPanel` reads the query string, so it needs a boundary: a
+          component calling `useSearchParams` opts its whole subtree out of
+          static rendering, and without this the page would be rendered on
+          demand on every visit for the sake of two optional parameters. */}
+      <Suspense fallback={<div className="h-64 animate-skeleton rounded-2xl bg-shop-hairline" />}>
+        <TrackOrderPanel />
+      </Suspense>
 
       <InfoSection title="What the statuses mean">
         <ul>
@@ -40,13 +47,16 @@ export default async function TrackOrderPage() {
         </ul>
       </InfoSection>
 
-      <InfoSection title="Ordered as a guest?">
+      <InfoSection title="Can&rsquo;t find your order?">
         <p>
-          Guest orders are not tied to an account, so they do not appear here. Call{" "}
+          The order number is in the confirmation email we sent when you ordered — it is the
+          number after the # . Use the same phone number or email address you gave at checkout;
+          if you typed a different one by mistake, the lookup will not match.
+        </p>
+        <p>
+          Still stuck? Call{" "}
           <a href={`tel:${support.phone.replace(/\s/g, "")}`}>{support.phone}</a> or email{" "}
-          <a href={`mailto:${support.email}`}>{support.email}</a> with your order number and we
-          will look it up. Next time, sign in before checking out and everything lands here
-          automatically.
+          <a href={`mailto:${support.email}`}>{support.email}</a> and we will find it for you.
         </p>
       </InfoSection>
     </InfoPage>

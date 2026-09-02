@@ -33,7 +33,10 @@ export default function CallbackBridge({ result }: { result: PaymentResult }) {
 
     const timer = setTimeout(() => {
       if (result.paid && result.orderId) {
-        window.location.replace(`/order-received?id=${result.orderId}`);
+        // `paid=1`: this bridge only runs after Pesapal has confirmed, so
+        // the confirmation must not tell somebody who has already paid to have
+        // cash ready for the rider.
+        window.location.replace(`/order-received?id=${result.orderId}&paid=1`);
       } else if (result.paid) {
         window.location.replace("/seller");
       } else {

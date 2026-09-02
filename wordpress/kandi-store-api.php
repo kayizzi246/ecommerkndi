@@ -667,6 +667,174 @@ add_action( 'rest_api_init', function () {
 	) );
 
 	// POST /wp-json/kandi/v1/orders  (requires X-Kandi-Secret header)
+	/* ---- GET /orders/track ----
+	 *
+	 * Look up one order by its number plus the phone or email it was placed
+	 * with. No account, no session.
+	 *
+	 * ---- Why this has to exist ----
+	 *
+	 * The storefront's tracking page could only ever show orders belonging to a
+	 * signed-in customer, and told everyone else to telephone the shop. On a
+	 * marketplace that takes cash on delivery, the overwhelming majority of
+	 * orders are placed by guests — `get_customer_id()` is 0 on them — so the
+	 * page was blank for almost everyone who needed it, including everybody
+	 * following the "Track this order" button in their own confirmation email.
+	 * Those emails link to /track-order?order=NUMBER&email=ADDRESS, which the
+	 * page had no way to act on.
+	 *
+	 * ---- Why this is not an information leak ----
+	 *
+	 * Order numbers are sequential and therefore guessable, which is exactly why
+	 * the number alone is not enough. The caller must also present the phone or
+	 * the email on the order, and the comparison is constant-time on a
+	 * normalised copy. What comes back is deliberately thin: status, dates, item
+	 * names and the total. NOT the delivery address, not the full phone, not the
+	 * email — nothing that turns a correct guess into a profile of the buyer.
+	 *
+	 * Rate limited hard, because this is the one public endpoint where guessing
+	 * has a payoff. Ten attempts per five minutes per IP, and the failure
+	 * message never distinguishes "no such order" from "wrong contact" — the
+	 * difference is precisely what a script would use to enumerate.
+	 */
+	register_rest_route( 'kandi/v1', '/orders/track', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => function ( WP_REST_Request $request ) {
+			$secret = kandi_shared_secret();
+			if ( empty( $secret ) ) {
+				return new WP_Error( 'kandi_no_secret', 'KANDI_API_SECRET is not configured on the server.', array( 'status' => 500 ) );
+			}
+			$sent = $request->get_header( 'x-kandi-secret' );
+			if ( empty( $sent ) || ! hash_equals( $secret, $sent ) ) {
+				return new WP_Error( 'kandi_forbidden', 'Invalid API secret.', array( 'status' => 403 ) );
+			}
+			return true;
+		},
+		'callback'            => function ( WP_REST_Request $request ) {
+			$number  = trim( (string) $request->get_param( 'number' ) );
+			$contact = trim( (string) $request->get_param( 'contact' ) );
+
+			if ( '' === $number || '' === $contact ) {
+				return new WP_Error(
+					'kandi_track_incomplete',
+					'Enter your order number and the phone number or email you ordered with.',
+					array( 'status' => 400 )
+				);
+			}
+
+			/* One message for every failure below. See the header. */
+			$refuse = new WP_Error(
+				'kandi_track_not_found',
+				'We could not find an order with those details. Check the number and the phone or email you used.',
+				array( 'status' => 404 )
+			);
+
+			// Rate limit. Uses the Seller Centre's helper when that plugin is
+			// present and falls back to a local transient otherwise, so this
+			// endpoint is never unlimited just because a companion is missing.
+			$ip = isset( $_SERVER['REMOTE_ADDR'] )
+				? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+				: '0.0.0.0';
+
+			if ( function_exists( 'kandi_seller_rate_limit' ) ) {
+				$limited = kandi_seller_rate_limit( 'track', $ip, 10, 5 * MINUTE_IN_SECONDS );
+				if ( is_wp_error( $limited ) ) {
+					return $limited;
+				}
+			} else {
+				$key   = 'kandi_track_' . md5( $ip );
+				$tries = (int) get_transient( $key );
+				if ( $tries >= 10 ) {
+					return new WP_Error( 'kandi_rate_limited', 'Too many attempts. Please wait a few minutes.', array( 'status' => 429 ) );
+				}
+				set_transient( $key, $tries + 1, 5 * MINUTE_IN_SECONDS );
+			}
+
+			// "#1563", "1563" and " 1563 " are all the same order to a shopper.
+			$number = ltrim( $number, '#' );
+			$order  = wc_get_order( (int) $number );
+
+			// An order number is not always the post id — a sequential-numbers
+			// plugin can change it — so fall back to searching the meta WooCommerce
+			// stores it in before giving up.
+			if ( ! $order ) {
+				$found = wc_get_orders( array(
+					'limit'      => 1,
+					'return'     => 'ids',
+					'meta_key'   => '_order_number',
+					'meta_value' => $number,
+				) );
+				if ( ! empty( $found ) ) {
+					$order = wc_get_order( (int) $found[0] );
+				}
+			}
+
+			if ( ! $order ) {
+				return $refuse;
+			}
+
+			/* ---- Does the caller know who this order belongs to? ---- */
+			$given_digits = preg_replace( '/\D/', '', $contact );
+			$order_digits = preg_replace( '/\D/', '', (string) $order->get_billing_phone() );
+
+			$matches = false;
+
+			// Phone: compared on the last nine digits, so 0772…, +256772… and
+			// 256772… all match the same person. Ugandan mobiles are nine
+			// digits after the country code.
+			if ( strlen( $given_digits ) >= 9 && strlen( $order_digits ) >= 9 ) {
+				$matches = hash_equals( substr( $order_digits, -9 ), substr( $given_digits, -9 ) );
+			}
+
+			if ( ! $matches && is_email( $contact ) ) {
+				$matches = hash_equals(
+					strtolower( (string) $order->get_billing_email() ),
+					strtolower( $contact )
+				);
+			}
+
+			if ( ! $matches ) {
+				return $refuse;
+			}
+
+			/* ---- The reply. Thin on purpose. ---- */
+			$items = array();
+			foreach ( $order->get_items() as $item ) {
+				$product = $item->get_product();
+				$items[] = array(
+					'name'     => $item->get_name(),
+					'quantity' => $item->get_quantity(),
+					'total'    => (float) $item->get_total(),
+					'image'    => $product && $product->get_image_id()
+						? wp_get_attachment_image_url( $product->get_image_id(), 'thumbnail' )
+						: '',
+				);
+			}
+
+			$created   = $order->get_date_created();
+			$paid      = $order->get_date_paid();
+			$completed = $order->get_date_completed();
+
+			return rest_ensure_response( array(
+				'number'   => $order->get_order_number(),
+				'status'   => $order->get_status(),
+				'total'    => (float) $order->get_total(),
+				'currency' => $order->get_currency(),
+				'payment'  => $order->get_payment_method_title(),
+				// The town only. Enough for the shopper to recognise their own
+				// order; not enough to be worth guessing for.
+				'city'     => $order->get_shipping_city() ?: $order->get_billing_city(),
+				'created'  => $created ? $created->date( 'c' ) : null,
+				'paid'     => $paid ? $paid->date( 'c' ) : null,
+				'dispatched' => $order->get_meta( '_kandi_dispatched_at' )
+					? mysql2date( 'c', $order->get_meta( '_kandi_dispatched_at' ) )
+					: null,
+				'completed' => $completed ? $completed->date( 'c' ) : null,
+				'items'    => $items,
+			) );
+		},
+	) );
+
 	register_rest_route( 'kandi/v1', '/orders', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'permission_callback' => function ( WP_REST_Request $request ) {

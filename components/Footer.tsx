@@ -164,7 +164,7 @@ export default function Footer({
        Padding came down with it, everywhere: py-7 → py-5 on the promises,
        py-11 → py-8 on the grid, py-5 → py-3.5 on the legal bar, and the
        `mt-14` above the whole thing → mt-10. */
-    <footer className="mt-10 bg-shop-footer text-shop-body">
+    <footer className="site-footer mt-10 bg-shop-footer text-shop-body">
       {/* Service promises */}
       <div className="border-b border-shop-edge">
         <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-4 px-4 py-5 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
@@ -313,7 +313,11 @@ export default function Footer({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-full border border-shop-edge bg-white px-3 py-1 text-[12.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
+                  /* The one literal fill in the footer, and the one thing the
+                     token swap above cannot reach. A white pill on a black
+                     ground is a hole; 6% white is the same lift the rest of the
+                     dark surfaces use. */
+                  className="rounded-full border border-shop-edge bg-white/[0.06] px-3 py-1 text-[12.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
                 >
                   {SOCIAL_LABELS[network] ?? network}
                 </a>

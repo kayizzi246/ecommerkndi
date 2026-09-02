@@ -128,11 +128,15 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
         {products.map((product) => (
           <li
             key={product.id}
-            className="w-[44%] shrink-0 snap-start sm:w-[31%] md:w-auto md:shrink"
+            /* 38%, so two and a half tiles are in view rather than two and a
+               bit. The half-tile is the whole point of a rail: it is the only
+               thing that tells a shopper there is more to the right, and at 44%
+               the third tile was cut so fine it read as a margin. */
+            className="w-[38%] shrink-0 snap-start sm:w-[31%] md:w-auto md:shrink"
           >
             <ProductCard
               product={product}
-              sizes="(max-width: 640px) 44vw, (max-width: 768px) 31vw, (max-width: 1280px) 22vw, 200px"
+              sizes="(max-width: 640px) 38vw, (max-width: 768px) 31vw, (max-width: 1280px) 22vw, 200px"
             />
           </li>
         ))}
