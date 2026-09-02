@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the server is older than the code in the repository" becomes a sentence on
  * the screen rather than a fortnight of debugging a fix that was never running.
  */
-define( 'KANDI_SELLER_API_VERSION', '2.4.0' );
+define( 'KANDI_SELLER_API_VERSION', '2.5.0' );
 
 /**
  * Load guard — this file must run exactly once.
@@ -439,6 +439,9 @@ function kandi_format_seller( $user_id ) {
 		'id'              => (int) $user->ID,
 		'store_name'      => (string) get_user_meta( $user->ID, '_kandi_store_name', true ),
 		'store_slug'      => (string) get_user_meta( $user->ID, '_kandi_store_slug', true ),
+		// The colour behind the store's name on its own page, and the only part
+		// of the shop a seller paints. See kandi_store_colour().
+		'store_color'     => kandi_store_colour( $user->ID ),
 		'email'           => $user->user_email,
 		'phone'           => (string) get_user_meta( $user->ID, '_kandi_phone', true ),
 		'owner_name'      => (string) get_user_meta( $user->ID, '_kandi_owner_name', true ),
@@ -707,6 +710,123 @@ endif;
  * payout row. The list still has to be mirrored in app/seller/settings — keep
  * the two in step, and this is the one that decides.
  */
+/**
+ * ---- A store's own short link ----
+ *
+ * Sellers market these by hand: a slug goes on a flyer, into a WhatsApp status,
+ * onto the side of a boda. So it has to be short enough to say out loud, it has
+ * to be theirs to choose, and — the part that matters most — it must not change
+ * underneath them once it is printed.
+ *
+ * That last point is why renaming a store no longer rewrites the slug. It used
+ * to: `store_slug` was re-derived from `store_name` on every settings save, so
+ * a seller correcting a typo in their shop name silently broke every link they
+ * had ever shared. The slug is now set at registration and only ever changes
+ * when somebody deliberately edits it.
+ *
+ * Refuses, in order:
+ *   • anything under three characters, which is not a name, it is a collision
+ *     waiting to happen;
+ *   • the storefront's own top-level routes — a store called "cart" or "search"
+ *     would be unreachable at kandiug.com/cart because the shop's own page owns
+ *     that address, and the seller would have no way to know why;
+ *   • a slug another store already holds.
+ *
+ * The reserved list is duplicated in the storefront's own route guard. Both
+ * have to agree, and this is the one that decides — the other only exists so a
+ * bad address 404s cleanly instead of rendering an empty shop.
+ */
+if ( ! function_exists( 'kandi_reserved_store_slugs' ) ) :
+function kandi_reserved_store_slugs() {
+	return array(
+		'about', 'account', 'admin', 'api', 'careers', 'cart', 'categories',
+		'category', 'checkout', 'contact', 'help', 'order-received', 'payment',
+		'privacy', 'products', 'reset-password', 'returns', 'sale', 'search',
+		'sell', 'seller', 'seller-policies', 'sellers', 'shipping', 'terms',
+		'track-order', 'wp-admin', 'wp-json', 'wp-content', 'assets', 'static',
+		'_next', 'favicon.ico', 'robots.txt', 'sitemap.xml', 'icon.png',
+		'brand-icon', 'opengraph-image',
+	);
+}
+endif;
+
+/**
+ * Validates a proposed store slug. Returns the clean slug, or a WP_Error saying
+ * which rule it broke — the seller is choosing a public address and deserves to
+ * be told why one was refused rather than have it silently changed.
+ */
+if ( ! function_exists( 'kandi_check_store_slug' ) ) :
+function kandi_check_store_slug( $raw, $seller_id ) {
+	$slug = sanitize_title( (string) $raw );
+
+	if ( strlen( $slug ) < 3 ) {
+		return new WP_Error(
+			'kandi_slug_short',
+			'Your store link needs at least three characters.',
+			array( 'status' => 400 )
+		);
+	}
+
+	if ( strlen( $slug ) > 40 ) {
+		return new WP_Error(
+			'kandi_slug_long',
+			'That store link is too long. Use 40 characters or fewer.',
+			array( 'status' => 400 )
+		);
+	}
+
+	if ( in_array( $slug, kandi_reserved_store_slugs(), true ) ) {
+		return new WP_Error(
+			'kandi_slug_reserved',
+			sprintf( '"%s" is part of the shop itself, so it cannot be a store link. Try something else.', $slug ),
+			array( 'status' => 409 )
+		);
+	}
+
+	// Taken by another store. `get_users` rather than a slug index because there
+	// is no index to keep — a marketplace of this size has tens of sellers, not
+	// tens of thousands, and a correct answer beats a fast wrong one.
+	$holders = get_users( array(
+		'meta_key'   => '_kandi_store_slug',
+		'meta_value' => $slug,
+		'fields'     => 'ID',
+		'number'     => 2,
+	) );
+
+	foreach ( $holders as $holder ) {
+		if ( (int) $holder !== (int) $seller_id ) {
+			return new WP_Error(
+				'kandi_slug_taken',
+				'Another store already uses that link. Try adding your town or a word to it.',
+				array( 'status' => 409 )
+			);
+		}
+	}
+
+	return $slug;
+}
+endif;
+
+/**
+ * The colour behind a store's name on its own page.
+ *
+ * Stored as a hex, defaulted to the near-black every store started with. It is
+ * the one piece of the shop a seller can paint, and it is deliberately the only
+ * one: a marketplace where every store page is a different design is a
+ * marketplace that stops looking like one shop, and the products themselves —
+ * the part that actually sells — stay on white either way.
+ *
+ * Six-digit hex only. Three-digit shorthand and named colours are both valid
+ * CSS and both awkward to reason about when the storefront has to work out
+ * whether to set white or black type over the top.
+ */
+if ( ! function_exists( 'kandi_store_colour' ) ) :
+function kandi_store_colour( $seller_id ) {
+	$stored = (string) get_user_meta( (int) $seller_id, '_kandi_store_color', true );
+	return preg_match( '/^#[0-9a-f]{6}$/i', $stored ) ? strtolower( $stored ) : '#1c1a18';
+}
+endif;
+
 if ( ! function_exists( 'kandi_seller_payout_methods' ) ) :
 function kandi_seller_payout_methods() {
 	return (array) apply_filters(
@@ -2271,8 +2391,49 @@ add_action( 'rest_api_init', function () {
 			if ( isset( $body['logo'] ) ) {
 				update_user_meta( $seller_id, '_kandi_logo', esc_url_raw( (string) $body['logo'] ) );
 			}
-			if ( isset( $body['store_name'] ) ) {
-				update_user_meta( $seller_id, '_kandi_store_slug', sanitize_title( (string) $body['store_name'] ) );
+
+			/**
+			 * ---- Renaming the store no longer rewrites its link ----
+			 *
+			 * This used to re-derive `_kandi_store_slug` from the store name on
+			 * every save, which meant a seller correcting a typo in their shop
+			 * name silently broke every link they had ever shared — the flyer,
+			 * the WhatsApp status, the QR code on the counter. A name is a
+			 * label and an address is an address; only one of them is safe to
+			 * change on somebody's behalf.
+			 *
+			 * The slug now changes when, and only when, it is edited.
+			 */
+			if ( isset( $body['store_slug'] ) ) {
+				$slug = kandi_check_store_slug( $body['store_slug'], $seller_id );
+				if ( is_wp_error( $slug ) ) {
+					return $slug;
+				}
+				update_user_meta( $seller_id, '_kandi_store_slug', $slug );
+			}
+
+			/* A store with no slug at all predates this being a field — give it
+			   one derived from the name rather than leaving it unreachable. */
+			if ( '' === (string) get_user_meta( $seller_id, '_kandi_store_slug', true ) ) {
+				$fallback = kandi_check_store_slug(
+					(string) get_user_meta( $seller_id, '_kandi_store_name', true ),
+					$seller_id
+				);
+				if ( ! is_wp_error( $fallback ) ) {
+					update_user_meta( $seller_id, '_kandi_store_slug', $fallback );
+				}
+			}
+
+			if ( isset( $body['store_color'] ) ) {
+				$colour = strtolower( trim( (string) $body['store_color'] ) );
+				if ( ! preg_match( '/^#[0-9a-f]{6}$/', $colour ) ) {
+					return new WP_Error(
+						'kandi_bad_colour',
+						'Choose a colour from the swatches, or enter one as a six-digit hex like #1c1a18.',
+						array( 'status' => 400 )
+					);
+				}
+				update_user_meta( $seller_id, '_kandi_store_color', $colour );
 			}
 
 			return rest_ensure_response( array( 'seller' => kandi_format_seller( $seller_id ) ) );
@@ -4582,6 +4743,7 @@ add_action( 'rest_api_init', function () {
 					'id'            => (int) $seller->ID,
 					'store_name'    => $store_name,
 					'store_slug'    => (string) get_user_meta( $seller->ID, '_kandi_store_slug', true ),
+					'store_color'   => kandi_store_colour( $seller->ID ),
 					'logo'          => (string) get_user_meta( $seller->ID, '_kandi_logo', true ),
 					'product_count' => count( $product_ids ),
 					'since'         => mysql2date( 'c', $seller->user_registered ),

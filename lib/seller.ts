@@ -13,6 +13,8 @@ export type Seller = {
   id: number;
   store_name: string;
   store_slug: string;
+  /** The colour behind the store name on its public page. Six-digit hex. */
+  store_color: string;
   email: string;
   phone: string;
   owner_name: string;

@@ -182,6 +182,14 @@ export type Store = {
   logo: string;
   product_count: number;
   since: string;
+  /**
+   * The colour behind this store's name on its own page, chosen by the seller.
+   *
+   * Always a six-digit hex — WordPress refuses anything else and falls back to
+   * the shop default — so a caller can pass it straight to CSS and to a
+   * luminance calculation without re-validating it.
+   */
+  store_color: string;
 };
 
 /**
@@ -766,6 +774,10 @@ export async function getStores(): Promise<Store[]> {
         logo: String(store.logo ?? ""),
         product_count: Number(store.product_count ?? 0) || 0,
         since: String(store.since ?? ""),
+        // Defaulted here as well as in WordPress: a store read from an install
+        // running the previous plugin has no colour at all, and an empty string
+        // reaching a background declaration is a transparent header.
+        store_color: String(store.store_color ?? "") || "#1c1a18",
       };
     });
   } catch (error) {

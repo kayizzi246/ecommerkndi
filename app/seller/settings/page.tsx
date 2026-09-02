@@ -4,6 +4,7 @@ import { useState } from "react";
 import { sellerApi, type Seller } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import { formatPrice } from "@/lib/currency";
+import StorefrontCard from "@/components/seller/StorefrontCard";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -200,6 +201,15 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
           {saving ? "Saving…" : "Save changes"}
         </button>
       </form>
+
+      {/* Below the account form rather than inside it, and saving separately.
+          Changing a store's public address is a different kind of decision from
+          correcting a phone number, and a single Save covering both would let
+          somebody edit their payout account and change the link on their
+          flyers in the same click without meaning to. */}
+      <div className="mt-8">
+        <StorefrontCard seller={seller} onSaved={onSaved} />
+      </div>
     </div>
   );
 }

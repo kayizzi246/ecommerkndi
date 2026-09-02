@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductsSafe, getStores } from "@/lib/woocommerce";
+import { inkFor } from "@/lib/contrast";
 import { absolute, breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
 import { formatPrice } from "@/lib/currency";
 import ProductCard from "@/components/ProductCard";
@@ -19,9 +20,18 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description: store
       ? `Shop ${store.product_count} products from ${store.store_name} on Kandi.`
       : undefined,
-    // A store page is a real landing page — someone searching a shop by name
-    // should find it — so it is canonical to itself rather than inheriting.
-    alternates: { canonical: `/sellers/${slug}` },
+    /* ---- Canonical to the SHORT address ----
+     *
+     * The same page answers at /sellers/<slug> and at /<slug>, and only one of
+     * them should be the one a search engine indexes and a seller shares. The
+     * short one wins: it is the address printed on flyers and read out over
+     * the phone, so it is the one that should accumulate whatever authority
+     * the page earns.
+     *
+     * This path keeps working — it is in circulation and in the index — but it
+     * points at the short form rather than at itself, which is what stops the
+     * pair being read as duplicate content. */
+    alternates: { canonical: `/${slug}` },
   };
 }
 
@@ -87,6 +97,10 @@ export default async function StorePage({ params }: Params) {
   const from = prices.length > 0 ? Math.min(...prices) : 0;
   const trading = since(store.since);
 
+  /* The header paints itself in the seller's colour, so its type has to be
+     derived from that colour rather than assumed. See lib/contrast.ts. */
+  const { dark, ink, veil } = inkFor(store.store_color);
+
   const stats = [
     { label: "Listings", value: String(store.product_count) },
     ...(from > 0 ? [{ label: "From", value: formatPrice(from) }] : []),
@@ -151,7 +165,24 @@ export default async function StorePage({ params }: Params) {
            It is also the only place a shopper meets a store's identity, so it
            can afford to be the one heavy block on the route — the grid beneath
            is white and chrome-free and stays that way. */}
-      <header className="overflow-hidden bg-[#1c1a18] px-4 pb-6 pt-7 text-white md:px-8 md:pb-8 md:pt-9">
+      {/* ---- The seller's own colour, with the type derived from it ----
+
+           A seller who picks a pale mustard and gets white text on it has been
+           handed a broken page by a feature meant to help them market. So the
+           ink is not a choice: it is computed from the colour's relative
+           luminance, and everything layered on the header — the supporting
+           line, the stat labels, the dividers — is that ink at an opacity
+           rather than a second hard-coded colour. One decision, and the whole
+           block follows it.
+
+           Inline styles rather than classes because the value arrives at
+           request time from wp-admin; Tailwind compiles what it can see in the
+           source, and no amount of scanning can produce a class for a hex a
+           seller has not chosen yet. */}
+      <header
+        className="overflow-hidden px-4 pb-6 pt-7 md:px-8 md:pb-8 md:pt-9"
+        style={{ backgroundColor: store.store_color, color: ink }}
+      >
         <div className="flex flex-wrap items-start gap-4">
           {store.logo ? (
             <Image
@@ -160,10 +191,14 @@ export default async function StorePage({ params }: Params) {
               width={80}
               height={80}
               unoptimized
-              className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover ring-1 ring-white/15 md:h-[88px] md:w-[88px]"
+              style={{ boxShadow: `0 0 0 1px ${veil(0.18)}` }}
+            className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover md:h-[88px] md:w-[88px]"
             />
           ) : (
-            <span className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary ring-1 ring-white/15 md:h-[88px] md:w-[88px] md:text-[34px]">
+            <span
+              style={{ boxShadow: `0 0 0 1px ${veil(0.18)}` }}
+              className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary md:h-[88px] md:w-[88px] md:text-[34px]"
+            >
               {store.store_name.charAt(0).toUpperCase()}
             </span>
           )}
@@ -174,7 +209,7 @@ export default async function StorePage({ params }: Params) {
                   page that has to carry weight on its own, and `tracking-tight`
                   at this size is what stops a two-word name reading as two
                   separate words. */}
-              <h1 className="heading-black text-[28px] leading-[1.1] tracking-tight text-white md:text-[38px]">
+              <h1 className="heading-black text-[28px] leading-[1.1] tracking-tight md:text-[38px]">
                 {store.store_name}
               </h1>
               {/* The tick, not a pill of text. Every store on this site is an
@@ -182,7 +217,13 @@ export default async function StorePage({ params }: Params) {
                   the mark next to the name is still the shorthand a shopper
                   reads for "checked", so it stays as one small green mark with
                   the claim spelled out beside it. */}
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12.5px] font-semibold text-[#5fd08a]">
+              {/* The tick keeps its green on a dark header and takes the
+                  header's own ink on a light one, where a mid-green on pale
+                  yellow is unreadable. */}
+              <span
+                style={{ backgroundColor: veil(0.12), color: dark ? "#5fd08a" : ink }}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-semibold"
+              >
                 <svg aria-hidden className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"
@@ -194,7 +235,10 @@ export default async function StorePage({ params }: Params) {
               </span>
             </div>
 
-            <p className="mt-2 max-w-[52ch] text-[14.5px] leading-relaxed text-white/70">
+            <p
+              style={{ color: veil(0.72) }}
+              className="mt-2 max-w-[52ch] text-[14.5px] leading-relaxed"
+            >
               Sold by {store.store_name}, dispatched and guaranteed through Kandi.
             </p>
 
@@ -209,12 +253,16 @@ export default async function StorePage({ params }: Params) {
               {stats.map((stat, index) => (
                 <div
                   key={stat.label}
-                  className={index > 0 ? "border-l border-white/15 pl-6" : ""}
+                  style={index > 0 ? { borderLeft: `1px solid ${veil(0.18)}` } : undefined}
+                  className={index > 0 ? "pl-6" : ""}
                 >
-                  <dt className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/45">
+                  <dt
+                    style={{ color: veil(0.5) }}
+                    className="text-[10.5px] font-bold uppercase tracking-[0.12em]"
+                  >
                     {stat.label}
                   </dt>
-                  <dd className="price mt-1 text-[17px] text-white md:text-[19px]">
+                  <dd className="price mt-1 text-[17px] md:text-[19px]">
                     {stat.value}
                   </dd>
                 </div>
