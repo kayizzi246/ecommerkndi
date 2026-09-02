@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the server is older than the code in the repository" becomes a sentence on
  * the screen rather than a fortnight of debugging a fix that was never running.
  */
-define( 'KANDI_SELLER_API_VERSION', '2.3.0' );
+define( 'KANDI_SELLER_API_VERSION', '2.4.0' );
 
 /**
  * Load guard — this file must run exactly once.
@@ -1677,6 +1677,11 @@ add_action( 'rest_api_init', function () {
 				// account is reachable only through Google until the seller
 				// asks for a password reset.
 				$password = wp_generate_password( 32, true, true );
+			} elseif ( function_exists( 'kandi_password_problem' ) ) {
+				$weak = kandi_password_problem( $password, $email );
+				if ( $weak ) {
+					return new WP_Error( 'kandi_weak_password', $weak, array( 'status' => 400 ) );
+				}
 			} elseif ( strlen( $password ) < 8 ) {
 				return new WP_Error( 'kandi_weak_password', 'Choose a password of at least 8 characters.', array( 'status' => 400 ) );
 			}
@@ -2013,6 +2018,166 @@ add_action( 'rest_api_init', function () {
 			if ( ! kandi_seller_is_verified( $user->ID ) ) {
 				update_user_meta( $user->ID, '_kandi_email_verified', '1' );
 			}
+
+			return kandi_seller_session_response( $user->ID );
+		},
+	) );
+
+	/* ---- POST /seller/password/forgot ----
+	 *
+	 * ---- Why this did not exist, and why that was serious ----
+	 *
+	 * The Seller Centre had sign-in, sign-up, an emailed verification code and
+	 * Google — and no way whatsoever to recover a forgotten password. A seller
+	 * who set one at registration and forgot it was locked out permanently:
+	 * their listings stayed up, their orders kept arriving, their payouts kept
+	 * clearing, and they could not reach any of it. The only route back in was
+	 * somebody editing wp_users by hand.
+	 *
+	 * That is an availability failure rather than a breach, but it is the kind
+	 * that ends a seller's relationship with a marketplace, and it pushed people
+	 * towards the worst possible workaround: opening a SECOND seller account for
+	 * the same shop, which splits their catalogue and their commission ledger in
+	 * ways nothing here can merge back.
+	 *
+	 * ---- The same construction the shopper flow uses ----
+	 *
+	 * WordPress's own reset key: single use, time limited, and void the moment
+	 * the password changes. Nothing bespoke, because a hand-rolled reset token
+	 * is the single easiest thing in an auth system to get wrong.
+	 */
+	register_rest_route( 'kandi/v1', '/seller/password/forgot', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body  = (array) $request->get_json_params();
+			$email = sanitize_email( $body['email'] ?? '' );
+
+			/* The same answer every time. A different reply for an address with
+			   no seller account would turn this into a way to find out which
+			   shops trade here and who runs them. */
+			$answer = rest_ensure_response( array(
+				'ok'      => true,
+				'message' => 'If that address has a seller account, a reset link is on its way.',
+			) );
+
+			if ( ! is_email( $email ) ) {
+				return $answer;
+			}
+
+			// Two buckets, for the reason given on the sign-in route: a
+			// per-address limit alone never sees an attacker walking a list.
+			foreach ( array(
+				array( 'seller_forgot_ip', kandi_seller_client_ip(), 15 ),
+				array( 'seller_forgot', $email, 3 ),
+			) as $bucket ) {
+				$limited = kandi_seller_rate_limit( $bucket[0], $bucket[1], $bucket[2], 15 * MINUTE_IN_SECONDS );
+				if ( is_wp_error( $limited ) ) {
+					return $limited;
+				}
+			}
+
+			$user = get_user_by( 'email', $email );
+
+			// Sellers only. A shopper asking here is answered exactly as an
+			// unknown address is — they have their own reset flow, and telling
+			// them apart would leak which accounts sell.
+			if ( ! $user || ! kandi_is_seller( $user->ID ) ) {
+				return $answer;
+			}
+
+			$key = get_password_reset_key( $user );
+			if ( is_wp_error( $key ) ) {
+				return $answer;
+			}
+
+			$link = add_query_arg(
+				array(
+					'key'   => rawurlencode( $key ),
+					'login' => rawurlencode( $user->user_login ),
+				),
+				kandi_seller_centre_url( '/seller/reset-password' )
+			);
+
+			kandi_seller_mail(
+				$user->user_email,
+				'Reset your Kandi Seller Centre password',
+				'Reset your password',
+				kandi_seller_p( sprintf(
+						'Somebody asked to reset the password for <strong>%s</strong> on the Kandi Seller Centre.',
+						esc_html( get_user_meta( $user->ID, '_kandi_store_name', true ) ?: $user->user_email )
+					) )
+					. kandi_seller_p( 'The button below works once and stops working after a day.' )
+					. kandi_seller_panel(
+						'If this was not you, nothing has changed and you can ignore this email. '
+						. 'Your password is only altered when somebody opens that link and sets a new one.',
+						'warn'
+					),
+				array( 'label' => 'Choose a new password', 'url' => $link )
+			);
+
+			return $answer;
+		},
+	) );
+
+	/* ---- POST /seller/password/reset ---- */
+	register_rest_route( 'kandi/v1', '/seller/password/reset', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_seller_public_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body     = (array) $request->get_json_params();
+			$key      = (string) ( $body['key'] ?? '' );
+			$login    = (string) ( $body['login'] ?? '' );
+			$password = (string) ( $body['password'] ?? '' );
+
+			if ( '' === $key || '' === $login ) {
+				return new WP_Error( 'kandi_bad_reset', 'That reset link is not valid. Please request a new one.', array( 'status' => 400 ) );
+			}
+
+			// Guarded: the strength check lives in Kandi Store API, and calling a
+			// function that is not there is a fatal rather than a warning — on
+			// the one endpoint a locked-out seller is depending on.
+			if ( function_exists( 'kandi_password_problem' ) ) {
+				$weak = kandi_password_problem( $password, $login );
+				if ( $weak ) {
+					return new WP_Error( 'kandi_weak_password', $weak, array( 'status' => 400 ) );
+				}
+			} elseif ( strlen( $password ) < 8 ) {
+				return new WP_Error( 'kandi_weak_password', 'Use at least 8 characters for your password.', array( 'status' => 400 ) );
+			}
+
+			$limited = kandi_seller_rate_limit( 'seller_reset', $login, 10, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			$user = check_password_reset_key( $key, $login );
+			if ( is_wp_error( $user ) || ! kandi_is_seller( $user->ID ) ) {
+				return new WP_Error(
+					'kandi_bad_reset',
+					'That reset link has expired or has already been used. Please request a new one.',
+					array( 'status' => 400 )
+				);
+			}
+
+			/* `reset_password` clears the key so the link cannot be replayed —
+			   including one sitting in an inbox somebody else can read later —
+			   and fires `after_password_reset`, which is what revokes every
+			   session this account already had open. See kandi_revoke_tokens()
+			   in kandi-store-api.php: without that, resetting a password on a
+			   stolen device would leave the thief signed in. */
+			reset_password( $user, $password );
+
+			/**
+			 * The address is proven by definition here.
+			 *
+			 * Whoever opened this link read the seller's email, which is the
+			 * same fact the six-digit code establishes — so a seller who never
+			 * got round to entering that code is confirmed by having reset their
+			 * password, and does not have to go and find it afterwards to be
+			 * paid out.
+			 */
+			update_user_meta( $user->ID, '_kandi_email_verified', '1' );
 
 			return kandi_seller_session_response( $user->ID );
 		},

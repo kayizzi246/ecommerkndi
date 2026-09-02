@@ -1219,8 +1219,21 @@ add_action( 'rest_api_init', function () {
  * storefront can reach them.
  * ---------------------------------------------------------------------- */
 
+/**
+ * How long a shopper stays signed in.
+ *
+ * Fourteen days, down from thirty. This token is the whole session: whoever
+ * holds it can read that person's order history, their saved addresses and the
+ * phone number a rider calls. Thirty days is a long time for that to sit in the
+ * browser of a shared phone or an internet café, and it is well past the point
+ * where the convenience of not signing in again is worth anything — somebody
+ * who shops here fortnightly is not inconvenienced by a fortnight.
+ *
+ * It is a ceiling rather than a target: every password change now revokes every
+ * outstanding token regardless of its age. See kandi_revoke_tokens().
+ */
 if ( ! defined( 'KANDI_CUSTOMER_TOKEN_TTL' ) ) {
-	define( 'KANDI_CUSTOMER_TOKEN_TTL', 30 * DAY_IN_SECONDS );
+	define( 'KANDI_CUSTOMER_TOKEN_TTL', 14 * DAY_IN_SECONDS );
 }
 
 /**
@@ -1251,6 +1264,86 @@ if ( ! defined( 'KANDI_CUSTOMER_TOKEN_TTL' ) ) {
  * moment that user's password IS reset the counter moves to 1 and every one of
  * those old tokens stops working, which is the entire point.
  */
+/**
+ * Why a password is not acceptable, or '' when it is.
+ *
+ * ---- What eight characters was actually buying ----
+ *
+ * Every place that set a password checked `strlen($password) < 8` and nothing
+ * else, which admits "password", "12345678", "qwertyui" and the shop's own name
+ * — the exact strings at the top of every credential-stuffing list. A length
+ * rule stops nothing that a real attacker does: they are not guessing randomly,
+ * they are replaying the few thousand passwords that people actually pick.
+ *
+ * So this refuses the small set that is genuinely worthless, and nothing else.
+ * It is deliberately NOT a complexity rule — no "one uppercase, one symbol",
+ * because those demonstrably push people towards "Password1!" and a sticky note,
+ * and NIST stopped recommending them years ago. Long and unguessable beats short
+ * and decorated.
+ *
+ * ---- And why the list is short ----
+ *
+ * A hundred entries catches the overwhelming majority of what people type when
+ * they are not thinking, and a hundred thousand would catch a few more at the
+ * cost of shipping a wordlist inside a plugin file. The real defence against
+ * guessing is the rate limit on the sign-in route; this is here to stop an
+ * account being given away before an attacker has to guess at all.
+ *
+ * @param string $password The candidate.
+ * @param string $identity Their email or login, so a password that is simply
+ *                         their own name is refused too.
+ */
+if ( ! function_exists( 'kandi_password_problem' ) ) :
+function kandi_password_problem( $password, $identity = '' ) {
+	$password = (string) $password;
+
+	if ( strlen( $password ) < 8 ) {
+		return 'Use at least 8 characters for your password.';
+	}
+
+	// 72 bytes is bcrypt's ceiling — everything past it is silently ignored,
+	// so a 200-character passphrase would be truncated and the extra security
+	// the person believed they were getting would not exist.
+	if ( strlen( $password ) > 72 ) {
+		return 'That password is too long. Use 72 characters or fewer.';
+	}
+
+	$folded = strtolower( trim( $password ) );
+
+	$common = array(
+		'password', 'password1', 'password123', 'passw0rd', '12345678', '123456789',
+		'1234567890', '111111111', '000000000', 'qwertyui', 'qwerty123', 'qwertyuiop',
+		'iloveyou', 'sunshine', 'princess', 'football', 'baseball', 'welcome1',
+		'admin123', 'letmein1', 'trustno1', 'starwars', 'whatever', 'zaq12wsx',
+		'abc12345', 'abcd1234', '1qaz2wsx', 'monkey12', 'dragon12', 'superman',
+		'michael1', 'jennifer', 'jordan23', 'shadow12', 'master12', 'computer',
+		'internet', 'samsung1', 'nokia123', 'uganda123', 'kampala1', 'kandi123',
+	);
+
+	if ( in_array( $folded, $common, true ) ) {
+		return 'That password is one of the most common in the world. Please choose another.';
+	}
+
+	// A single repeated or sequential character, whatever its length.
+	if ( preg_match( '/^(.)\1+$/', $password ) ) {
+		return 'A password of one repeated character is not secure. Please choose another.';
+	}
+
+	/* Their own name or address. "sportskicks" as the password on
+	   sportskicks@gmail.com is the first thing anybody targeting that seller
+	   would try, and it passes a length check comfortably. */
+	$identity = strtolower( trim( (string) $identity ) );
+	if ( '' !== $identity ) {
+		$local = strtok( $identity, '@' );
+		if ( strlen( $local ) >= 4 && ( $folded === $local || $folded === $identity ) ) {
+			return 'Do not use your email or username as your password.';
+		}
+	}
+
+	return '';
+}
+endif;
+
 if ( ! function_exists( 'kandi_token_generation' ) ) :
 function kandi_token_generation( $user_id ) {
 	return (int) get_user_meta( (int) $user_id, '_kandi_token_gen', true );

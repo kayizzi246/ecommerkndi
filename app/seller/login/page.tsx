@@ -15,6 +15,19 @@ export default function SellerLoginPage() {
   const { refresh, setSession } = useSellerSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  /**
+   * The forgot-password step, shown in place of the form rather than on its own
+   * route.
+   *
+   * A seller who cannot get in is already having a bad minute; sending them to
+   * a second page to type the address they have just typed here is one more
+   * thing to go wrong. `sentTo` is the address the link went to, and its
+   * presence is what switches this screen into the "check your email" state.
+   */
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   /**
@@ -151,6 +164,122 @@ export default function SellerLoginPage() {
     }
   };
 
+  /**
+   * Emails a reset link.
+   *
+   * The reply is the same whether or not that address has a seller account —
+   * WordPress decides, and deliberately does not say — so this screen always
+   * moves to "check your email". Anything else would let somebody find out
+   * which addresses sell here by watching which ones produce a different
+   * answer.
+   */
+  const sendResetLink = async () => {
+    if (!email.trim()) {
+      setError("Enter the email address on your seller account first.");
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+
+    try {
+      await fetch("/api/seller/password/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setSentTo(email.trim());
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (forgotOpen) {
+    return (
+      <SellerAuthLayout eyebrow="Seller Centre">
+        {sentTo ? (
+          <>
+            <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-shop-ink">
+              Check your email
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+              If <span className="font-semibold text-shop-ink">{sentTo}</span> has a seller account,
+              a link to set a new password is on its way. It works once and stops working after a
+              day.
+            </p>
+            <p className="mt-4 text-[14px] text-shop-muted">
+              Nothing after a few minutes? Look in your spam folder, then try again — and check the
+              address above is the one you registered with.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSentTo(null);
+                setForgotOpen(false);
+              }}
+              className="btn-shop mt-7 w-full py-3.5 text-[15px]"
+            >
+              Back to sign in
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-shop-ink">
+              Reset your password
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+              Tell us the address on your seller account and we will email you a link to set a new
+              password.
+            </p>
+
+            <div className="mt-6">
+              <Field label="Email">
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="field-shop"
+                />
+              </Field>
+            </div>
+
+            {error && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              >
+                {error}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={sendResetLink}
+              disabled={sending}
+              className="btn-shop mt-5 w-full py-3.5 text-[15px]"
+            >
+              {sending ? "Sending…" : "Email me a link"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setForgotOpen(false);
+                setError(null);
+              }}
+              className="mt-4 w-full text-[14px] font-semibold text-shop-muted hover:text-shop-ink"
+            >
+              Back to sign in
+            </button>
+          </>
+        )}
+      </SellerAuthLayout>
+    );
+  }
+
   if (unverified) {
     return (
       <SellerAuthLayout eyebrow="Seller Centre">
@@ -224,6 +353,17 @@ export default function SellerLoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="field-shop"
           />
+          {/* `type="button"`, or it submits the sign-in form it sits inside —
+              which would try to sign in with a blank password and answer the
+              seller with "those credentials do not match" at the exact moment
+              they are telling us they do not have them. */}
+          <button
+            type="button"
+            onClick={() => setForgotOpen(true)}
+            className="mt-2 text-[13.5px] font-semibold text-shop-primary hover:underline"
+          >
+            Forgot your password?
+          </button>
         </Field>
 
         {error && (

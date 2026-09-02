@@ -193,7 +193,16 @@ add_action( 'rest_api_init', function () {
 			if ( ! is_email( $email ) ) {
 				return new WP_Error( 'kandi_bad_email', 'Enter a valid email address.', array( 'status' => 400 ) );
 			}
-			if ( strlen( $password ) < 8 ) {
+			// Through the shared check rather than a bare length test — see
+			// kandi_password_problem() for what eight characters was admitting.
+			// Guarded, because this plugin runs without Kandi Store API present
+			// and a missing function is a fatal rather than a warning.
+			if ( function_exists( 'kandi_password_problem' ) ) {
+				$weak = kandi_password_problem( $password, $email );
+				if ( $weak ) {
+					return new WP_Error( 'kandi_weak_password', $weak, array( 'status' => 400 ) );
+				}
+			} elseif ( strlen( $password ) < 8 ) {
 				return new WP_Error( 'kandi_weak_password', 'Use at least 8 characters for your password.', array( 'status' => 400 ) );
 			}
 
@@ -378,7 +387,12 @@ add_action( 'rest_api_init', function () {
 			if ( '' === $key || '' === $login ) {
 				return new WP_Error( 'kandi_bad_reset', 'That reset link is not valid. Please request a new one.', array( 'status' => 400 ) );
 			}
-			if ( strlen( $password ) < 8 ) {
+			if ( function_exists( 'kandi_password_problem' ) ) {
+				$weak = kandi_password_problem( $password, $login );
+				if ( $weak ) {
+					return new WP_Error( 'kandi_weak_password', $weak, array( 'status' => 400 ) );
+				}
+			} elseif ( strlen( $password ) < 8 ) {
 				return new WP_Error( 'kandi_weak_password', 'Use at least 8 characters for your password.', array( 'status' => 400 ) );
 			}
 
