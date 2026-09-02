@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { storeHref } from "@/lib/store-routes";
 import { formatPrice } from "@/lib/currency";
 
 type Suggestion = {
@@ -187,7 +188,7 @@ export default function SearchBar({
     setOpen(false);
     setCursor(-1);
     inputRef.current?.blur();
-    router.push(`/sellers/${slug}`);
+    router.push(storeHref(slug));
   };
 
   const goToSearch = (value: string) => {

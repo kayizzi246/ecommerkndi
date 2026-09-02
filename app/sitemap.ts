@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getCategories, getProductsSafe, getStores } from "@/lib/woocommerce";
 import { productPath, siteUrl } from "@/lib/seo";
+import { storeHref } from "@/lib/store-routes";
 import type { Product } from "@/lib/woocommerce";
 
 /**
@@ -110,7 +111,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...stores
       .filter((store) => store.store_slug && store.product_count > 0)
       .map((store) => ({
-        url: `${base}/sellers/${store.store_slug}`,
+        // The short form, matching the canonical on the page itself. Offering
+        // a crawler the URL the page does not claim as canonical is asking it
+        // to pick, and it picks slowly.
+        url: `${base}${storeHref(store.store_slug)}`,
         lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.5,

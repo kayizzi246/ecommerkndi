@@ -6,6 +6,7 @@ import { useSellerSession } from "@/lib/seller-session";
 import { formatPrice } from "@/lib/currency";
 import StorefrontCard from "@/components/seller/StorefrontCard";
 import LogoUploader from "@/components/seller/LogoUploader";
+import { storeHref } from "@/lib/store-routes";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -184,7 +185,11 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
                 year: "numeric",
               })}
             />
-            <Row label="Store URL" value={`/sellers/${seller.store_slug}`} />
+            {/* The same address the storefront card above hands them to print.
+                This row used to quote /sellers/<slug> while that card said
+                kandiug.com/<slug>, which is one seller asking support which of
+                their two links is the real one. */}
+            <Row label="Store link" value={`kandiug.com${storeHref(seller.store_slug)}`} />
           </dl>
           <p className="mt-3 text-[13px] text-bfl-grey">
             Your commission rate is set by the Kandi marketplace team. Contact support if you think

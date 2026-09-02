@@ -551,7 +551,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                         Your store page will be
                       </p>
                       <p className="mt-1 break-all text-[15px] font-semibold text-shop-primary">
-                        /sellers/{slugify(form.store_name)}
+                        kandiug.com/{slugify(form.store_name)}
                       </p>
                     </div>
                   )}

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSellerSession } from "@/lib/seller-session";
 import VerifyEmailCard from "@/app/seller/VerifyEmailCard";
 import BackendNotice from "@/components/seller/BackendNotice";
+import { storeHref } from "@/lib/store-routes";
 
 /** Routes inside /seller that must render without the authenticated chrome. */
 const PUBLIC_ROUTES = ["/seller/login", "/seller/register"];
@@ -191,7 +192,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
 
         <div className="ml-auto flex items-center gap-3 md:gap-4">
           <Link
-            href={`/sellers/${seller.store_slug}`}
+            href={storeHref(seller.store_slug)}
             className="hidden text-[14px] font-semibold text-shop-body hover:text-shop-primary md:block"
           >
             View my store

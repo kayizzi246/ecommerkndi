@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * `expected_version` is this repository's opinion of what should be on the
  * server. When it disagrees with what answered, the Seller Centre says so.
  */
-export const EXPECTED_PLUGIN_VERSION = "2.5.0";
+export const EXPECTED_PLUGIN_VERSION = "2.5.1";
 
 export type SellerHealth = {
   reachable: boolean;

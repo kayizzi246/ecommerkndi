@@ -70,6 +70,20 @@ export function storeSlugFromPath(pathname: string): string {
 }
 
 /**
+ * The address a store is linked to from anywhere on the shop.
+ *
+ * The short form, because that is the one the Seller Centre prints on the
+ * seller's marketing card, the one WhatsApp shows in full, and the canonical on
+ * both store routes. The site used to link stores by the long /sellers/<slug>
+ * while telling sellers their address was the short one, so a shopper who
+ * arrived on a flyer link and then clicked a store anywhere else watched their
+ * own address bar contradict the flyer.
+ */
+export function storeHref(slug: string): string {
+  return `/${slug}`;
+}
+
+/**
  * A store slug rendered as the name a seller would recognise.
  *
  * Title-cased from the slug rather than fetched, because the one caller is a

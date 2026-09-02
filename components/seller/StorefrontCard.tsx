@@ -142,9 +142,21 @@ export default function StorefrontCard({
         style={{ backgroundColor: colour, color: ink }}
       >
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[18px] font-bold text-shop-primary">
-            {seller.store_name.charAt(0).toUpperCase()}
-          </span>
+          {/* The uploaded picture, not a stand-in for it. A preview captioned
+              "how your shop looks to customers" that ignores the picture the
+              seller just uploaded is telling them the upload did not take. */}
+          {seller.logo ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={seller.logo}
+              alt=""
+              className="h-11 w-11 shrink-0 rounded-full border border-white/60 bg-white object-cover"
+            />
+          ) : (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[18px] font-bold text-shop-primary">
+              {seller.store_name.charAt(0).toUpperCase()}
+            </span>
+          )}
           <div className="min-w-0">
             <p className="truncate text-[17px] font-extrabold leading-tight">
               {seller.store_name}

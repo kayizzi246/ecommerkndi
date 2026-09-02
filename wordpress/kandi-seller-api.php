@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the server is older than the code in the repository" becomes a sentence on
  * the screen rather than a fortnight of debugging a fix that was never running.
  */
-define( 'KANDI_SELLER_API_VERSION', '2.5.0' );
+define( 'KANDI_SELLER_API_VERSION', '2.5.1' );
 
 /**
  * Load guard — this file must run exactly once.
@@ -3790,10 +3790,14 @@ add_filter( 'kandi_product_payload', function ( $data, $product ) {
 	$seller_id = (int) get_post_meta( $product->get_id(), '_kandi_seller_id', true );
 	if ( $seller_id ) {
 		$data['seller'] = array(
-			'id'         => $seller_id,
-			'store_name' => (string) get_user_meta( $seller_id, '_kandi_store_name', true ),
-			'store_slug' => (string) get_user_meta( $seller_id, '_kandi_store_slug', true ),
-			'logo'       => (string) get_user_meta( $seller_id, '_kandi_logo', true ),
+			'id'          => $seller_id,
+			'store_name'  => (string) get_user_meta( $seller_id, '_kandi_store_name', true ),
+			'store_slug'  => (string) get_user_meta( $seller_id, '_kandi_store_slug', true ),
+			'logo'        => (string) get_user_meta( $seller_id, '_kandi_logo', true ),
+			// The colour the seller picked for their own header. The product
+			// page draws the "Sold by" chip in it, so a shopper meets the store
+			// looking the way it will look when they arrive on it.
+			'store_color' => kandi_store_colour( $seller_id ),
 		);
 	}
 	return $data;

@@ -112,6 +112,12 @@ export type ProductSeller = {
   store_name: string;
   store_slug: string;
   logo?: string;
+  /**
+   * The store's own colour, so "Sold by" can look like the store it leads to.
+   * Optional because a product cached before the plugin started sending it will
+   * not have one; callers fall back to the shop default.
+   */
+  store_color?: string;
 };
 
 export type Product = {
@@ -560,6 +566,7 @@ function toProduct(raw: unknown): Product {
           store_name: str(seller.store_name),
           store_slug: str(seller.store_slug),
           logo: str(seller.logo) || undefined,
+          store_color: str(seller.store_color) || undefined,
         }
       : undefined,
   };

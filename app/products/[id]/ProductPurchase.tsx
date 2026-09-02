@@ -17,6 +17,8 @@ import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/Paym
 import RatingSummary from "@/components/RatingSummary";
 import BackInStockForm from "@/components/BackInStockForm";
 import Link from "next/link";
+import { storeHref } from "@/lib/store-routes";
+import { inkFor } from "@/lib/contrast";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
 
@@ -125,6 +127,11 @@ export default function ProductPurchase({
   const onBackorder = product.stock_status === "onbackorder";
 
   const brand = product.categories[0];
+
+  /* The shop default when a product was cached before the plugin began sending
+     the store's colour, so the chip is never rendered against undefined. */
+  const sellerColour = product.seller?.store_color || "#1c1a18";
+  const sellerInk = inkFor(sellerColour).ink;
   const images = [product.image, ...product.gallery].filter(Boolean);
   const colorAttribute = product.attributes?.find(
     (attr) => attr.name.toLowerCase() === "color"
@@ -273,12 +280,43 @@ export default function ProductPurchase({
               )}
               {product.total_sales > 0 && (product.seller || brand) && <span>|</span>}
               {product.seller ? (
-                <span>
-                  Sold by{" "}
-                  <span className="font-medium text-shop-body">
+                /* ---- The store, wearing its own colours ----
+
+                   This was the store's name as plain grey text. A seller
+                   uploads a picture and picks a colour in their settings, is
+                   told the picture appears "beside your products", and then it
+                   did not — the one screen where a shopper decides whether to
+                   trust an unfamiliar shop showed nothing of the shop at all,
+                   and did not even link to it.
+
+                   Small deliberately: the product is what the page is selling.
+                   Enough to recognise a store you have bought from before, and
+                   a way through to the rest of what they sell. */
+                <Link
+                  href={storeHref(product.seller.store_slug)}
+                  className="inline-flex items-center gap-1.5 text-shop-muted transition-colors hover:text-shop-ink"
+                >
+                  Sold by
+                  {product.seller.logo ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={product.seller.logo}
+                      alt=""
+                      style={{ borderColor: sellerColour }}
+                      className="h-5 w-5 rounded-full border object-cover"
+                    />
+                  ) : (
+                    <span
+                      style={{ backgroundColor: sellerColour, color: sellerInk }}
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
+                    >
+                      {product.seller.store_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="font-semibold text-shop-body underline-offset-2 hover:underline">
                     {product.seller.store_name}
                   </span>
-                </span>
+                </Link>
               ) : (
                 brand && (
                   <Link href={`/category/${brand.slug}`} className="hover:text-shop-ink">

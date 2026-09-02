@@ -5,6 +5,8 @@ import { getStores, getProductsSafe, type Product, type Store } from "@/lib/wooc
 import { formatPrice } from "@/lib/currency";
 import { InfoFooterCta } from "@/components/InfoPage";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
+import { storeHref } from "@/lib/store-routes";
+import { inkFor } from "@/lib/contrast";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/sellers" },
@@ -94,7 +96,7 @@ export default async function StoresPage() {
                 .filter((card) => card.store.store_slug && card.store.product_count > 0)
                 .map((card) => ({
                   name: card.store.store_name,
-                  path: `/sellers/${card.store.store_slug}`,
+                  path: storeHref(card.store.store_slug),
                 }))
             ),
           ]),
@@ -173,8 +175,15 @@ export default async function StoresPage() {
  * are the links to the store.
  */
 function StoreCard({ store, products }: { store: Store; products: Product[] }) {
-  const href = `/sellers/${store.store_slug}`;
+  const href = storeHref(store.store_slug);
   const empty = store.product_count === 0;
+
+  /* The colour the seller picked for their own header, used here as the ring
+     around their picture and the tint behind their initial. A directory of
+     identical white cards makes three stores look like three rows of one shop;
+     the colour is the one thing on the card that is theirs, and it is the same
+     colour waiting on the other side of the click. */
+  const { ink } = inkFor(store.store_color);
 
   return (
     <div className="rounded-2xl border border-shop-line bg-white p-4 transition-colors hover:border-shop-primary md:p-5">
@@ -190,10 +199,14 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
               // `unoptimized` because a seller's logo can come from any media
               // library, not only the hosts listed in next.config.
               unoptimized
-              className="h-14 w-14 shrink-0 rounded-full border border-shop-hairline object-cover"
+              style={{ borderColor: store.store_color }}
+              className="h-14 w-14 shrink-0 rounded-full border-2 object-cover"
             />
           ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-shop-primary-soft text-[21px] font-semibold text-shop-primary">
+            <span
+              style={{ backgroundColor: store.store_color, color: ink }}
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[21px] font-semibold"
+            >
               {store.store_name.charAt(0).toUpperCase()}
             </span>
           )}
