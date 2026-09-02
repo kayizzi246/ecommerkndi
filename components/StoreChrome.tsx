@@ -66,6 +66,33 @@ export default function StoreChrome({
    */
   const isShopGrid = pathname.startsWith("/category/");
 
+  /**
+   * ---- A single store's page is its own surface ----
+   *
+   * It is the one route on the shop that belongs to somebody else. A seller
+   * sends this link to their own customers, and what those people are looking
+   * for is that seller's catalogue — not Kandi's departments, not a trail back
+   * to a store index they never came from. So the department bar is dropped,
+   * the shell cap is lifted, and the search field says whose shop this is.
+   *
+   * The name is title-cased from the slug rather than plumbed down from the
+   * page. WordPress builds the slug with `sanitize_title(store_name)`, so
+   * "Sports Kicks" round-trips exactly; a store whose name carries its own
+   * casing ("mySHOP") comes back conventionally cased instead. That is a
+   * cosmetic loss in a placeholder, and the alternative — a context provider
+   * wrapping the whole chrome so a child can name itself to its own header —
+   * is a lot of machinery for one line of grey text.
+   */
+  const storeSlug = pathname.startsWith("/sellers/") ? pathname.slice("/sellers/".length) : "";
+  const isStorePage = storeSlug !== "" && !storeSlug.includes("/");
+  const storeName = isStorePage
+    ? storeSlug
+        .split("-")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : "";
+
   if (isAppArea) {
     return <>{children}</>;
   }
@@ -128,7 +155,12 @@ export default function StoreChrome({
     // no box, so the body's flex column still sees the masthead, the content
     // and the footer as its own children and the sticky header still sticks.
     <div className="contents" style={isShopGrid ? ({ "--shell": "100%" } as React.CSSProperties) : undefined}>
-      <Header departments={departments} settings={settings} />
+      <Header
+        departments={departments}
+        settings={settings}
+        hideNavRow={isStorePage}
+        searchPlaceholder={isStorePage ? `Search in ${storeName}` : undefined}
+      />
       {/* ---- The content column ----
        *
        * Width only. No background and no border: the page is white everywhere
@@ -193,7 +225,20 @@ export default function StoreChrome({
            because a page that wants a different ground should say so itself
            rather than be named in a condition out here. */}
       <div className="flex-1 bg-shop-canvas">
-        <div className="mx-auto w-full max-w-[var(--shell)]">{children}</div>
+        {/* The shell cap, lifted for a store.
+
+             Every other route is capped so a line of text never runs the width
+             of a 27-inch monitor. A store page is a catalogue and nothing else
+             — its content is a grid of photographs, which is the one kind of
+             content that gets better with width rather than worse — so it takes
+             the window and lays its own gutters inside it. */}
+        <div
+          className={
+            isStorePage ? "w-full" : "mx-auto w-full max-w-[var(--shell)]"
+          }
+        >
+          {children}
+        </div>
       </div>
       {/* Mounted here rather than in the layout so it inherits this component's
           one rule about where chrome belongs: the Seller Centre, admin and

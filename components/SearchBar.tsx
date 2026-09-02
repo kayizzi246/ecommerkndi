@@ -77,7 +77,19 @@ const SCOPES = [
   { label: "Home", slug: "home-decor" },
 ];
 
-export default function SearchBar() {
+export default function SearchBar({
+  /**
+   * Overrides the rotating prompts with one fixed line.
+   *
+   * Set on a store page, where the field searches the whole shop but the
+   * shopper's intent is almost always "more from this seller" — so the box says
+   * whose shop they are standing in rather than cycling through prompts about
+   * the catalogue at large.
+   */
+  placeholder,
+}: {
+  placeholder?: string;
+} = {}) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   // Stores that match what is being typed. Kept apart from `suggestions`
@@ -312,7 +324,7 @@ export default function SearchBar() {
                `aria-hidden`, so a screen reader hears one stable prompt rather
                than a field whose label changes every 2.6 seconds. It is also
                what shows if JavaScript never runs. */
-            placeholder="Search for products, brands and more"
+            placeholder={placeholder ?? "Search for products, brands and more"}
             /* `.search-input` is the scale's search row — 400 at 14px — rather
                than the 15px this had picked up on its own. */
             className={`search-input w-full bg-transparent py-2.5 focus:outline-none ${

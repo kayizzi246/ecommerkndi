@@ -95,7 +95,11 @@ export default async function StorePage({ params }: Params) {
   ];
 
   return (
-    <main className="w-full px-3 pb-24 pt-4 md:px-8 lg:pb-16">
+    /* No horizontal padding on the page itself. The route is full-width now,
+       and the dark header has to reach both edges of the window — a masthead
+       inset by 12px is a card pretending to be a masthead. Each block below
+       carries its own gutter instead. */
+    <main className="w-full pb-24 lg:pb-16">
       {/* A store page ranks for the store's own name — often how a seller's
           existing customers look for them — so it says what it is in the form
           Google reads, and names its products rather than leaving them to be
@@ -122,25 +126,32 @@ export default async function StorePage({ params }: Params) {
         }}
       />
 
-      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
-        <Link href="/" className="hover:text-shop-primary">
-          Home
-        </Link>
-        <span aria-hidden>›</span>
-        <Link href="/sellers" className="hover:text-shop-primary">
-          Shop by store
-        </Link>
-        <span aria-hidden>›</span>
-        <span className="text-shop-ink">{store.store_name}</span>
-      </nav>
+      {/* The visible breadcrumb is gone. It named a path nobody took: a store
+          link is shared by the seller and arrives from WhatsApp, from a bio,
+          from a printed card — almost never from the store index it pointed
+          back to. What it cost was the first line of the page, which now goes
+          to the store's own name.
+
+          `breadcrumbJsonLd` above is untouched. That trail is for Google, which
+          uses it to render the path under a search result, and it is true
+          whether or not it is drawn. */}
 
       {/* ---- Store header ----
-           A tinted band rather than a white card in a white page. It is the one
-           piece of chrome on the route and it has a job: to say, in the second
-           before a shopper starts scanning photographs, whose shop this is and
-           whether it is a real one. The tint fades to white before the grid, so
-           nothing coloured sits behind a product. */}
-      <header className="overflow-hidden bg-gradient-to-b from-shop-primary-soft via-white to-white px-3 pb-5 pt-6 md:rounded-2xl md:px-7 md:pb-7">
+
+           A dark band, where this was a peach gradient fading to white.
+
+           The peach was the same wash the homepage campaign panel and the
+           account box already wear, so the one page on the site that belongs to
+           somebody else looked like another Kandi shelf. Ink is the opposite
+           claim: it reads as a masthead for THIS shop, it lets the store's own
+           name be the brightest thing on the page, and it puts a hard edge
+           between the header and the catalogue instead of a gradient dissolving
+           into it.
+
+           It is also the only place a shopper meets a store's identity, so it
+           can afford to be the one heavy block on the route — the grid beneath
+           is white and chrome-free and stays that way. */}
+      <header className="overflow-hidden bg-[#1c1a18] px-4 pb-6 pt-7 text-white md:px-8 md:pb-8 md:pt-9">
         <div className="flex flex-wrap items-start gap-4">
           {store.logo ? (
             <Image
@@ -149,17 +160,21 @@ export default async function StorePage({ params }: Params) {
               width={80}
               height={80}
               unoptimized
-              className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover ring-1 ring-black/5 md:h-20 md:w-20"
+              className="h-[68px] w-[68px] shrink-0 rounded-full bg-white object-cover ring-1 ring-white/15 md:h-[88px] md:w-[88px]"
             />
           ) : (
-            <span className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary ring-1 ring-black/5 md:h-20 md:w-20 md:text-[30px]">
+            <span className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary ring-1 ring-white/15 md:h-[88px] md:w-[88px] md:text-[34px]">
               {store.store_name.charAt(0).toUpperCase()}
             </span>
           )}
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="heading-black text-[24px] leading-tight text-shop-ink md:text-[30px]">
+              {/* Bigger, and tighter. A store name is the one string on this
+                  page that has to carry weight on its own, and `tracking-tight`
+                  at this size is what stops a two-word name reading as two
+                  separate words. */}
+              <h1 className="heading-black text-[28px] leading-[1.1] tracking-tight text-white md:text-[38px]">
                 {store.store_name}
               </h1>
               {/* The tick, not a pill of text. Every store on this site is an
@@ -167,7 +182,7 @@ export default async function StorePage({ params }: Params) {
                   the mark next to the name is still the shorthand a shopper
                   reads for "checked", so it stays as one small green mark with
                   the claim spelled out beside it. */}
-              <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-shop-success">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12.5px] font-semibold text-[#5fd08a]">
                 <svg aria-hidden className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"
@@ -179,20 +194,29 @@ export default async function StorePage({ params }: Params) {
               </span>
             </div>
 
-            <p className="mt-1 text-[14.5px] text-shop-body">
+            <p className="mt-2 max-w-[52ch] text-[14.5px] leading-relaxed text-white/70">
               Sold by {store.store_name}, dispatched and guaranteed through Kandi.
             </p>
 
             {/* The figures, as a row of small facts rather than a sentence.
                 Each one is counted from the catalogue above, so none of them can
                 be true on the day it was written and wrong afterwards. */}
-            <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-              {stats.map((stat) => (
-                <div key={stat.label}>
-                  <dt className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-shop-muted">
+            {/* Separated by rules rather than by air. Four numbers spaced out
+                across a dark band read as four unrelated facts; divided, they
+                read as one specification — which is what they are, and what
+                makes a store look like a business rather than a page. */}
+            <dl className="mt-5 flex flex-wrap items-stretch gap-x-6 gap-y-4">
+              {stats.map((stat, index) => (
+                <div
+                  key={stat.label}
+                  className={index > 0 ? "border-l border-white/15 pl-6" : ""}
+                >
+                  <dt className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-white/45">
                     {stat.label}
                   </dt>
-                  <dd className="price mt-0.5 text-[16px] text-shop-ink">{stat.value}</dd>
+                  <dd className="price mt-1 text-[17px] text-white md:text-[19px]">
+                    {stat.value}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -201,7 +225,7 @@ export default async function StorePage({ params }: Params) {
       </header>
 
       {products.length === 0 ? (
-        <div className="mx-3 mt-8 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center md:mx-0">
+        <div className="mx-3 mt-8 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center md:mx-8">
           <p className="text-[16px] text-shop-muted">
             This store has nothing listed right now. Check back soon.
           </p>
@@ -211,9 +235,9 @@ export default async function StorePage({ params }: Params) {
         </div>
       ) : (
         <>
-          <h2 className="mb-3 mt-7 text-[16px] font-bold text-shop-ink md:text-[18px]">
+          <h2 className="mb-4 mt-8 flex flex-wrap items-baseline gap-x-3 px-3 text-[19px] font-extrabold tracking-tight text-shop-ink md:px-8 md:text-[22px]">
             Everything from this store
-            <span className="ml-2 text-[14px] font-normal text-shop-muted">
+            <span className="text-[13.5px] font-medium tracking-normal text-shop-muted">
               {products.length} {products.length === 1 ? "item" : "items"}
             </span>
           </h2>
@@ -232,7 +256,7 @@ export default async function StorePage({ params }: Params) {
               "here is everything this seller has" is the whole point. */}
           {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
               See the note in the category grid. */}
-          <div className={PRODUCT_GRID}>
+          <div className={`px-3 md:px-8 ${PRODUCT_GRID}`}>
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends

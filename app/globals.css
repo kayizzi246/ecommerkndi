@@ -2057,6 +2057,41 @@ h6,
   }
 }
 
+/* ---------- The phone product grid, flush ----------
+ *
+ * Applied by `PRODUCT_GRID` (lib/product-grid.ts), which sets `gap-0` on a
+ * phone. This is the other half of that: without it, two rounded cards pressed
+ * together leave a notch at every corner and stack their two 1px rings into one
+ * 2px line, and a grid of eight tiles shows both faults sixteen times.
+ *
+ * So on a phone a tile in this grid stops being a card and becomes a cell. The
+ * corners square off, the ring goes, and each cell draws a hairline on its
+ * right and bottom edges only — so between any two neighbours there is exactly
+ * one line, not two. That is the construction every marketplace's phone grid
+ * uses, and it is why theirs read as a continuous sheet rather than as loose
+ * cards that happen to be touching.
+ *
+ * The last cell in each row drops its right-hand line, or the grid would end
+ * with a rule floating inside the page's own padding. Two selectors because
+ * `.tile-card` is sometimes the grid's direct child (the loading skeleton) and
+ * sometimes wrapped in an `<li>` (every real grid).
+ *
+ * 639px, so this stops exactly where `sm:` takes over and the gutters come
+ * back. Nothing above that breakpoint is touched. */
+@media (max-width: 639px) {
+  .product-grid-flush .tile-card {
+    border-radius: 0;
+    box-shadow: none;
+    border-right: 1px solid var(--color-shop-edge);
+    border-bottom: 1px solid var(--color-shop-edge);
+  }
+
+  .product-grid-flush > :nth-child(2n) .tile-card,
+  .product-grid-flush > .tile-card:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
 /* Safari still paints a disclosure triangle when list-style is none. */
 summary::-webkit-details-marker {
   display: none;

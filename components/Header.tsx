@@ -73,11 +73,14 @@ export default function Header({
   departments = [],
   settings,
   hideNavRow = false,
+  searchPlaceholder,
 }: {
   departments?: CategoryNode[];
   settings: SiteSettings;
   /** The homepage renders the nav row itself, beside its category sidebar. */
   hideNavRow?: boolean;
+  /** Replaces the search field's rotating prompts. See `SearchBar`. */
+  searchPlaceholder?: string;
 }) {
   const { count, subtotal, openDrawer } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -571,7 +574,7 @@ export default function Header({
             scrolled ? "order-none" : ""
           }`}
         >
-          <SearchBar />
+          <SearchBar placeholder={searchPlaceholder} />
         </div>
 
         {/* Once the shopper has scrolled, the phone masthead is the search
