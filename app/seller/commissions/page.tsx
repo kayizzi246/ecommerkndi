@@ -32,6 +32,22 @@ const PAYOUT_LABEL: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+/**
+ * Where a payout is being sent, in words, from two fields either of which can
+ * be blank.
+ *
+ * Both are guaranteed on anything requested through the dialog — the endpoint
+ * refuses a payout with no account on it. Rows raised before that rule existed
+ * carry whatever was on the seller's profile at the time, which for a seller
+ * who had never filled in Settings was a method and an empty number. Rendered
+ * naively that came out as "sending to  (MTN Mobile Money)" with a hole in the
+ * middle of the sentence, and as a bare em dash in the table.
+ */
+const payoutDestination = (payout: { account: string; method: string }) => {
+  if (payout.account && payout.method) return `${payout.account} (${payout.method})`;
+  return payout.account || payout.method || "the account on file";
+};
+
 const longDate = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleDateString("en-GB", {
@@ -275,8 +291,7 @@ export default function SellerCommissionsPage() {
 
               <p className="mt-2 text-[14px] text-[#333]">
                 Requested {longDate(openPayout.requested_at)} · sending to{" "}
-                <strong>{openPayout.account}</strong>
-                {openPayout.method ? ` (${openPayout.method})` : ""}.
+                <strong>{payoutDestination(openPayout)}</strong>.
               </p>
 
               {/* A progress bar with no percentage behind it would be theatre.
@@ -339,9 +354,22 @@ export default function SellerCommissionsPage() {
                         {formatPrice(payout.amount)}
                       </td>
                       <td className="px-4 py-3 text-[#333]">
-                        {payout.account || "—"}
-                        {payout.method && (
-                          <span className="block text-[13px] text-bfl-grey">{payout.method}</span>
+                        {/* The number on its own line and the method under it,
+                            but only when there are two things to say — a row
+                            with no account must not print an em dash above its
+                            own method, which reads as missing data rather than
+                            as the one field it is. */}
+                        {payout.account ? (
+                          <>
+                            {payout.account}
+                            {payout.method && (
+                              <span className="block text-[13px] text-bfl-grey">
+                                {payout.method}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          payout.method || "—"
                         )}
                       </td>
                       <td className="px-4 py-3">
