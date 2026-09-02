@@ -5,6 +5,7 @@ import { sellerApi, type Seller } from "@/lib/seller";
 import { useSellerSession } from "@/lib/seller-session";
 import { formatPrice } from "@/lib/currency";
 import StorefrontCard from "@/components/seller/StorefrontCard";
+import LogoUploader from "@/components/seller/LogoUploader";
 
 const INPUT =
   "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
@@ -124,8 +125,13 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
               <input value={seller.email} disabled className={`${INPUT} bg-bfl-surface text-bfl-grey`} />
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Logo URL" hint="Square image, at least 200×200.">
-                <input value={logo} onChange={(e) => setLogo(e.target.value)} className={INPUT} />
+              {/* An uploader, where this was a box asking for a URL. To fill
+                  that in a seller needed their picture already hosted
+                  somewhere public and needed to find the address — which on a
+                  phone does not happen, so nearly every store on the site was
+                  showing the grey initial circle. */}
+              <Field label="Store picture" hint="Shown on your store page and beside your products.">
+                <LogoUploader value={logo} onChange={setLogo} storeName={seller.store_name} />
               </Field>
             </div>
           </div>

@@ -312,10 +312,23 @@ export default function Header({
           scrolled ? "py-1.5" : "py-2"
         }`}
       >
-        <Link
-          href="/"
-          className={`shrink-0 items-center gap-2 md:flex ${scrolled ? "hidden" : "flex"}`}
-        >
+        {/* ---- The logo stays, scrolled or not ----
+
+             It used to be `hidden` once the masthead collapsed, on the argument
+             that a phone scrolling a product grid wants the search field and
+             nothing else. That was written when every visitor arrived through
+             the homepage and knew whose shop they were in.
+
+             They do not any more. A seller shares kandiug.com/their-store, and
+             for that shopper the store page IS the first screen of the site —
+             so a collapsed header with no mark on it left them on an unnamed
+             page with no route back to the shop. Both of those matter: the one
+             that costs money is the missing route back, because the way a
+             marketplace earns anything from a seller's traffic is the second
+             thing that shopper buys.
+
+             It shrinks instead of disappearing. See the size classes below. */}
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           {settings.brand.logo_url ? (
             // An uploaded logo replaces the wordmark entirely. `unoptimized`
             // because the file lives on the WordPress media library, which is
@@ -429,7 +442,9 @@ export default function Header({
                    in a single glance it was the quietest element in it. The
                    cap goes up with it so a wide wordmark is scaled by height
                    rather than clipped by the width limit. */
-                className="h-10 w-auto max-w-[160px] object-contain md:h-11 md:max-w-[190px]"
+                className={`w-auto object-contain md:h-11 md:max-w-[190px] ${
+                  scrolled ? "h-7 max-w-[110px]" : "h-10 max-w-[160px]"
+                }`}
               />
             </span>
           ) : (
@@ -507,7 +522,14 @@ export default function Header({
                   23/27px display type — the same allowance the palette note in
                   `globals.css` makes for the logo. The suffix keeps the ink it
                   has always had, at 16:1. */}
-              <span className="font-heading text-[19px] font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px]">
+              {/* Steps down with the collapsed row, the same as an uploaded
+                  logo does. A wordmark that kept its full size would be the
+                  tallest thing in a row built to be slim. */}
+              <span
+                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px] ${
+                  scrolled ? "text-[15px]" : "text-[19px]"
+                }`}
+              >
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
