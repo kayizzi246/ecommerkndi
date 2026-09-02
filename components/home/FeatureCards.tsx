@@ -46,7 +46,6 @@ export type FeatureCard = {
   /** Tailwind classes for that chip. */
   badgeTone: string;
   /** The soft gradient the card fades from — a Tailwind `from-*` class. */
-  tint: string;
   href: string;
   products: Product[];
 };
@@ -67,7 +66,22 @@ export default function FeatureCards({ cards }: { cards: FeatureCard[] }) {
         {filled.map((card) => (
           <li key={card.title}>
             <div
-              className={`group flex h-full flex-col rounded-2xl bg-gradient-to-b ${card.tint} to-white to-60% p-3.5 ring-1 ring-shop-edge transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-20px_rgba(120,72,30,0.55)]`}
+              /* ---- White, not a tint ----
+
+                 These four cards each had a different pastel washing down from
+                 the top — peach, blue, green, violet. Four unrelated hues in a
+                 row is the arrangement that makes a page look generated rather
+                 than designed: no shop picks four colours because it has four
+                 shelves, and the colours were carrying no meaning, because
+                 "Best sellers" is not blue in any sense a shopper could name.
+
+                 The photography is the colour on this page. Ten product shots
+                 sit inside these four cards, and every tint behind them was
+                 competing with the thing the shopper is trying to look at.
+
+                 What separates the cards now is what always actually separated
+                 them: a hairline, a heading, and the badge. */
+              className="group flex h-full flex-col rounded-2xl bg-white p-3.5 ring-1 ring-shop-edge transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-20px_rgba(120,72,30,0.35)]"
             >
               <div className="flex items-start justify-between gap-2">
                 {/* `after:absolute inset-0` would be the usual trick for making

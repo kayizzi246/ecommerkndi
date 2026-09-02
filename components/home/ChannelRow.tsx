@@ -26,7 +26,21 @@ import Link from "next/link";
  * each guilty of.
  */
 
-/** One channel. `tint` is the icon disc; the label is always ink. */
+/**
+ * One channel. `tint` is the icon disc; the label is always ink.
+ *
+ * ---- Why almost all of them are the same grey ----
+ *
+ * This row had five: orange, green, blue, violet and grey, assigned to nine
+ * destinations. Nothing chose those colours — "Best sellers" is not blue in any
+ * sense a shopper could name — and a rank of unrelated pastels across the top of
+ * a page is the arrangement that reads as generated rather than designed.
+ *
+ * Colour is kept for one entry: Super Deals, which is the only one of the nine
+ * making a claim about price rather than naming a place. The rest are places,
+ * and a place is not a colour — they are told apart by their icon and their
+ * label, which is what a shopper reads anyway.
+ */
 type Channel = {
   label: string;
   href: string;
@@ -67,7 +81,7 @@ const CHANNELS: Channel[] = [
   {
     label: "New in",
     href: "/search?sort=newest",
-    tint: "bg-pop-green-soft text-shop-save",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <path d="M12 3v18M3 12h18" />
@@ -77,7 +91,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Best sellers",
     href: "/search?sort=popular",
-    tint: "bg-pop-blue-soft text-pop-blue",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <path d="M6 20V10M12 20V4M18 20v-7" />
@@ -87,7 +101,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Top rated",
     href: "/search?sort=rating",
-    tint: "bg-pop-violet-soft text-pop-violet",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8L12 3.5Z" />
@@ -97,7 +111,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Shop by store",
     href: "/sellers",
-    tint: "bg-shop-primary-soft text-shop-primary-ink",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <path d="M4 9h16l-1 11H5L4 9Z" />
@@ -118,7 +132,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Free delivery",
     href: "/shipping",
-    tint: "bg-pop-green-soft text-shop-save",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <path d="M3 7h11v9H3V7ZM14 10h4l3 3v3h-7v-6Z" />
@@ -130,7 +144,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Track order",
     href: "/track-order",
-    tint: "bg-pop-blue-soft text-pop-blue",
+    tint: "bg-shop-surface text-shop-body",
     icon: (
       <Glyph>
         <circle cx="12" cy="12" r="8.5" />

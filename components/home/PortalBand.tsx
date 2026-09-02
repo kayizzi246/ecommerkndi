@@ -247,11 +247,20 @@ export default function PortalBand({
 
               ---- On the colour ----
 
-              Purple to crimson, both straight out of the shelf tokens. The page
-              is orange from the masthead down and a warm block here would have
-              read as more of the same panel; this is the one element in the
-              band that is allowed to be loud, which only works if it is loud in
-              a direction nothing else on the page is going.
+              Near-black, warm, the same ground the footer stands on.
+
+              It was a purple-to-crimson gradient for one pass. That is the
+              single most recognisable "generated" move in web design — two
+              saturated hues neither of which the brand owns, blended across a
+              box — and it looked it. A shop's promotional block is not more
+              persuasive for being brighter; it is more persuasive for looking
+              like the shop meant it.
+
+              So: the darkest thing on the page, which is contrast enough to
+              stop the eye without introducing a colour, with the brand orange
+              on the one line that names the offer. Charcoal and orange is the
+              whole palette here, and it is the palette the masthead and the
+              footer already use.
 
               It is a message rather than a control: the panel already has one
               link at its foot pointing at the same page, and a second sitting
@@ -263,21 +272,18 @@ export default function PortalBand({
               products and the link sit one under the other, and this would be
               an extra screenful of chrome in front of a shopper who came to see
               products — on the device where that costs the most. */}
-          <div className="relative mt-3 hidden flex-1 flex-col justify-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,var(--color-shop-panel-trending)_0%,var(--color-shop-panel-deals)_100%)] px-4 py-4 text-white lg:flex">
-            {/* The same soft disc the campaign panel uses, so the two loud
-                blocks on this band are recognisably the same family. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10"
-            />
-
-            <span className="relative text-[10.5px] font-bold uppercase tracking-[0.14em] text-white/85">
+          <div className="relative mt-3 hidden flex-1 flex-col justify-center overflow-hidden rounded-xl bg-[#1c1a18] px-4 py-4 text-white lg:flex">
+            <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#ff8a3d]">
               Pay on delivery
             </span>
-            <span className="relative mt-1 text-[19px] font-extrabold leading-tight">
+            <span className="mt-1 text-[19px] font-extrabold leading-tight">
               Free delivery over {formatPrice(settings.commerce.free_delivery_from)}
             </span>
-            <span className="relative mt-1.5 text-[12.5px] font-medium text-white/90">
+            {/* `white/70` rather than a second colour. A supporting line wants to
+                recede, and on a dark ground that is a job for opacity — reaching
+                for another hue is how a two-colour block becomes a four-colour
+                one. */}
+            <span className="mt-1.5 text-[12.5px] font-medium text-white/70">
               {settings.commerce.returns_days}-day returns · cash, MTN MoMo or Airtel Money
             </span>
           </div>

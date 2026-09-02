@@ -1261,8 +1261,19 @@ export default function ProductCard({
                — the orange corner flag, the struck-through original beside this
                number, and the "Save UGX x" line under it — and none of those
                ever depended on the price's own colour. */}
+          {/* Red when it is a reduction, ink when it is just the price.
+
+               An earlier pass removed a ternary here because both of its
+               branches resolved to ink — a distinction the tile appeared to be
+               making and was not. The distinction is real again: a reduced
+               price is set in the price-was red beside its struck original,
+               which is the oldest price-tag convention there is and the one
+               shoppers read without being taught. A resting price stays ink,
+               so the red still means something when it appears. */}
           <span
-            className="price whitespace-nowrap text-shop-ink"
+            className={`price whitespace-nowrap ${
+              discount > 0 ? "text-[color:var(--color-shop-price-was)]" : "text-shop-ink"
+            }`}
           >
             {formatPrice(product.price)}
           </span>

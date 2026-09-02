@@ -227,8 +227,9 @@ export default async function Home() {
       title: "Super Deals",
       note: "Reduced from the regular price",
       badge: "Sale",
+      // The only coloured badge on the row, because it is the only one that
+      // states a fact about the price rather than a name for a shelf.
       badgeTone: "bg-shop-primary-soft text-shop-primary-ink",
-      tint: "from-shop-primary-soft",
       href: "/sale",
       /* The deals the price panel did not take, which are the next deepest cuts
          in the shop rather than a different shelf. */
@@ -238,8 +239,7 @@ export default async function Home() {
       title: "Best sellers",
       note: "The ones other shoppers keep buying",
       badge: "Top",
-      badgeTone: "bg-pop-blue-soft text-pop-blue",
-      tint: "from-pop-blue-soft",
+      badgeTone: "bg-shop-surface text-shop-body",
       href: "/search?sort=popular",
       /* `total_sales > 0` is enforced rather than decorative: a "best seller"
          nobody has bought is the one claim on this page that would be a lie. */
@@ -254,8 +254,7 @@ export default async function Home() {
       title: "New in",
       note: "From independent Ugandan stores",
       badge: "Stores",
-      badgeTone: "bg-pop-green-soft text-shop-save",
-      tint: "from-pop-green-soft",
+      badgeTone: "bg-shop-surface text-shop-body",
       href: "/sellers",
       /* Filtered on `product.seller`, so this is only ever marketplace stock —
          never the shop's own shelves. It is the one card that says Kandi is a
@@ -270,8 +269,7 @@ export default async function Home() {
       title: "Just landed",
       note: "The newest stock in the shop",
       badge: "New",
-      badgeTone: "bg-pop-violet-soft text-pop-violet",
-      tint: "from-pop-violet-soft",
+      badgeTone: "bg-shop-surface text-shop-body",
       href: "/search?sort=newest",
       products: pick(newArrivals, [...latest].sort(newestFirst)),
     },

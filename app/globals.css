@@ -642,6 +642,20 @@
    * says it is wrong. */
   --color-shop-sale: #111827; /* stock warnings and discount flags — no longer red, see above */
 
+  /* ---- The reduced price, and only the reduced price ----
+   *
+   * A separate token rather than reusing `--color-shop-sale`, which is the ink
+   * for stock warnings and form errors. Those two want to stay near-black; this
+   * one has to be red, because a crossed-out number beside a coloured one is the
+   * oldest price-tag convention there is and shoppers read it without being
+   * taught.
+   *
+   * #c62828 rather than a pure red: it clears 5.5:1 on white, so a price is
+   * still a price to somebody reading at low contrast, and it sits beside the
+   * brand orange without the two arguing. Pure #ff0000 next to #ff6a00 is two
+   * signals shouting the same thing in slightly different voices. */
+  --color-shop-price-was: #c62828;
+
   /* ---- Red on a reduced price ----
    *
    * A discounted price is red across the whole shop — grid, rails, product
@@ -1166,7 +1180,14 @@ h6,
    * a scale is a set of relationships and stepping one member of it down on its
    * own is how a hierarchy inverts. The colour tokens were deliberately NOT
    * touched in the same pass: green and red still mean what they meant. */
-  font-size: 13px;
+  /* ---- 12px on a phone, 13px from 640px up ----
+   *
+   * A phone tile is about 165px wide and carries the price, usually a struck
+   * original beside it, and a saving line under. At a flat 13px those three
+   * competed for width that does not exist, and the price — the thing being
+   * competed for — was what wrapped. A point smaller costs nothing in
+   * legibility at 700 weight and buys the row its second figure. */
+  font-size: 12px;
   /* 1.1 rather than `leading-none`: at exactly 1.0 an 18px line has no room for
      the descender on a comma, and UGX prices are full of them. */
   line-height: 1.1;
@@ -1178,6 +1199,15 @@ h6,
      do — a column of UGX prices down a grid now lines up because the figures
      are actually the same width, not because they happen to be close. */
   font-variant-numeric: tabular-nums;
+}
+
+/* The point the price gives back once there is room for it. Phones carry the
+   smaller size; everything from a small tablet up is the 13px this has always
+   been. */
+@media (min-width: 640px) {
+  .price {
+    font-size: 13px;
+  }
 }
 
 /* One step up as soon as there is width for it. 640px is where the grid goes
@@ -1196,11 +1226,22 @@ h6,
 .was-price {
   font-family: var(--font-ui);
   font-weight: 400;
-  font-size: 11px;
+  /* 10px on a phone, for the same reason the price above dropped a point. */
+  font-size: 10px;
   line-height: 1.1;
-  color: var(--color-shop-faint);
+  /* `muted`, not `faint`. #9ca3af is a light grey, and a struck figure is
+     already de-emphasised by the line through it — set in grey as well it
+     stopped reading as a number at all, which loses the comparison the strike
+     exists to make. */
+  color: var(--color-shop-muted);
   text-decoration: line-through;
   font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .was-price {
+    font-size: 11px;
+  }
 }
 
 /* ---------- Reviews / sold — 400, 12px ----------

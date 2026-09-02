@@ -103,8 +103,37 @@ export default function MiniProduct({
           belonging to the picture above it rather than floating under it.
           `.price` is the shop's tabular price face, which is what every other
           number in the store is set in. */}
-      <span className="price mt-1.5 block max-w-full truncate text-[12px] text-shop-ink">
-        {formatPrice(product.price)}
+      {/* ---- The price, and what it was ----
+
+          A single number under a photograph says what something costs. Two
+          numbers, one of them struck through, say what it costs AND that it has
+          come down — which on a shelf literally called Super Deals is the claim
+          the shelf is making. The panel was printing the first and asserting
+          the second in its heading.
+
+          The reduction is only ever drawn from `product.on_sale`, so a full-price
+          item on the "New in" or "Just landed" shelf prints one number in ink
+          rather than a fake saving. That is the same rule the corner flag above
+          follows, and it is what keeps either of them worth believing.
+
+          Smaller on a phone: two numbers have to share a cell that is about
+          40vw there, and 12px each ran them into one another. */}
+      <span className="mt-1.5 flex max-w-full items-baseline gap-1.5 overflow-hidden">
+        <span
+          className={`price shrink-0 truncate text-[11px] md:text-[12.5px] ${
+            discount > 0
+              ? "font-bold text-[color:var(--color-shop-price-was)]"
+              : "text-shop-ink"
+          }`}
+        >
+          {formatPrice(product.price)}
+        </span>
+
+        {discount > 0 && (
+          <span className="price min-w-0 truncate text-[9.5px] text-shop-muted line-through md:text-[11px]">
+            {formatPrice(product.regular_price)}
+          </span>
+        )}
       </span>
     </Link>
   );
