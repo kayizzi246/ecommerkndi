@@ -607,7 +607,12 @@ export default function ProductCard({
        than the picture inside it is what makes the tile read as one object. The
        padding is the only thing the two screens still disagree about: 6px on a
        phone where 2.5 tiles share the glass, 8px from `md`. */
-    <article className="tile-card group relative flex h-full flex-col p-1.5 md:p-2">
+    /* `p-1.5` at every width, where this was `md:p-2`. The padding is the only
+       thing between the photograph and the card's own edge, so on a desktop it
+       was eight pixels a side taken off the picture to produce a margin nobody
+       was looking at — the card's hairline already does the separating. Two
+       pixels back on each edge is four pixels of image across every tile. */
+    <article className="tile-card group relative flex h-full flex-col p-1.5">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">

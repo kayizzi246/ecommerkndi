@@ -256,13 +256,13 @@ export default async function StorePage({ params }: Params) {
               "here is everything this seller has" is the whole point. */}
           {/* 8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
               See the note in the category grid. */}
-          {/* Seven across at the widest, where every other listing stops at
-              six. This route is full-width and its entire job is "here is
-              everything this seller has", so one more column puts noticeably
-              more of the store above the fold; at 1440px seven still leaves
-              each photograph around 180px. The phone and tablet steps are the
-              shared grid untouched. */}
-          <div className={`px-3 md:px-8 ${PRODUCT_GRID} 2xl:grid-cols-7`}>
+          {/* One more column than every other listing. This route is
+              full-width and its entire job is "here is everything this seller
+              has", so the extra column puts noticeably more of the store above
+              the fold. It tracks the shared grid rather than sitting at a fixed
+              number — that grid dropped to five at xl, so this is six, and the
+              cards here stay the same width as the cards everywhere else. */}
+          <div className={`px-3 md:px-8 ${PRODUCT_GRID} 2xl:grid-cols-6`}>
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends
