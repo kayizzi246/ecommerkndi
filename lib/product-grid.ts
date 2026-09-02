@@ -39,3 +39,23 @@ export const PRODUCT_GRID =
   "sm:grid-cols-3 sm:gap-x-2 sm:gap-y-2.5 " +
   "md:grid-cols-4 md:gap-x-2.5 md:gap-y-3 " +
   "lg:grid-cols-5 xl:grid-cols-6";
+
+/**
+ * The same grid with one more column, for a single store's page.
+ *
+ * A separate constant rather than `PRODUCT_GRID` plus an `xl:grid-cols-7`
+ * override. Both classes would set the same property at the same breakpoint,
+ * and which one won would come down to the order Tailwind happened to emit them
+ * in — not the order they are written in the class list. That is a coin flip
+ * dressed up as a rule, and it is the kind that works in development and lands
+ * wrong once.
+ *
+ * Seven only from xl. The store page is full-width and its whole job is showing
+ * everything one seller has, so the extra column earns its place there and
+ * nowhere else — and below xl there is no spare width to take it from.
+ */
+export const PRODUCT_GRID_WIDE =
+  "product-grid-flush grid grid-cols-2 gap-0 " +
+  "sm:grid-cols-3 sm:gap-x-2 sm:gap-y-2.5 " +
+  "md:grid-cols-4 md:gap-x-2.5 md:gap-y-3 " +
+  "lg:grid-cols-5 xl:grid-cols-7";
