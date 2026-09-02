@@ -116,13 +116,17 @@ export default function MiniProduct({
           rather than a fake saving. That is the same rule the corner flag above
           follows, and it is what keeps either of them worth believing.
 
-          Smaller on a phone: two numbers have to share a cell that is about
-          40vw there, and 12px each ran them into one another. */}
-      <span className="mt-1.5 flex max-w-full items-baseline gap-1.5 overflow-hidden">
+          Stacked, not side by side. These cells are about a quarter of the
+          panel — roughly 110px on a phone — and two UGX figures on one line
+          need close to double that, so the pair was either overflowing the cell
+          or squeezing both numbers to the point of illegibility. One under the
+          other, each gets the full width, and the strike still reads as the
+          strike because it is directly beneath the number replacing it. */}
+      <span className="mt-1.5 flex max-w-full flex-col overflow-hidden">
         <span
-          className={`price shrink-0 truncate text-[11px] md:text-[12.5px] ${
+          className={`price truncate text-[10.5px] leading-tight md:text-[11.5px] ${
             discount > 0
-              ? "font-bold text-[color:var(--color-shop-price-was)]"
+              ? "text-[color:var(--color-shop-price-was)]"
               : "text-shop-ink"
           }`}
         >
@@ -130,7 +134,7 @@ export default function MiniProduct({
         </span>
 
         {discount > 0 && (
-          <span className="price min-w-0 truncate text-[9.5px] text-shop-muted line-through md:text-[11px]">
+          <span className="was-price truncate text-[9px] leading-tight md:text-[10px]">
             {formatPrice(product.regular_price)}
           </span>
         )}

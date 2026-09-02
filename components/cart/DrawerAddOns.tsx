@@ -126,7 +126,7 @@ export default function DrawerAddOns({
   if (picks.length === 0) return null;
 
   return (
-    <div className="shrink-0 border-t border-shop-line pt-3">
+    <div className="mt-4 border-t border-shop-line pt-4">
       <p className="text-[13px] font-semibold text-shop-ink">
         {away > 0 ? (
           <>
@@ -149,14 +149,29 @@ export default function DrawerAddOns({
           block is shorter. 38% of the track puts two and a half cards in view,
           and the half card is what says there are more: a row that ends flush
           with the edge reads as a row of two. */}
-      {/* `-mx-6 px-6` matches the drawer's own gutter, so the first card lines
-          up with the cart lines above it and the last one runs to the edge
-          instead of stopping 8px short of it. */}
-      <ul className="no-scrollbar -mx-6 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-6">
+      {/* ---- Why this has neither a bleed nor scroll-snapping ----
+
+          It had both, and between them they were why the first card arrived
+          cut in half with its price missing.
+
+          SNAP: `snap-mandatory` with `snap-start` aligns a card to the edge of
+          the SCROLLPORT, and the scrollport includes the padding — so with the
+          rail padded to clear the drawer's gutter, snapping dragged the first
+          card underneath that padding and clipped it. The cure is
+          `scroll-padding`, and the better cure is not snapping: three cards is
+          a flick, not a filmstrip, and snap on a short rail mostly fights the
+          finger.
+
+          BLEED: `-mx-6 px-6` widened the flex track past the drawer's content
+          box, so `38%` was 38% of something wider than what is visible and the
+          cards no longer added up to the two and a half they are meant to.
+          Without it the track IS the content box, and the arithmetic is
+          honest: 2.5 × 38% plus two gaps ≈ the full width. */}
+      <ul className="no-scrollbar mt-2.5 flex gap-2.5 overflow-x-auto">
         {picks.map((product) => (
           <li
             key={product.id}
-            className="w-[38%] shrink-0 snap-start overflow-hidden rounded-lg border border-shop-line bg-white"
+            className="w-[38%] shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white"
           >
             <div className="relative aspect-square w-full bg-white">
               {/* Guarded: an imageless product stores "" here, and `next/image`
@@ -167,17 +182,20 @@ export default function DrawerAddOns({
                   src={product.image}
                   alt={product.name}
                   fill
-                  sizes="38vw"
+                  sizes="140px"
                   className="object-contain p-1"
                 />
               )}
             </div>
 
-            <div className="p-1.5">
-              <p className="line-clamp-2 text-[12px] leading-tight text-shop-ink">
+            {/* `min-h` on the name, so a one-line title and a two-line title
+                produce cards of the same height — without it the row's prices
+                and Add buttons sat at three different heights. */}
+            <div className="p-2">
+              <p className="line-clamp-2 min-h-[28px] text-[11.5px] leading-[14px] text-shop-ink">
                 {product.name}
               </p>
-              <p className="price mt-0.5 text-[12.5px] font-extrabold text-shop-ink">
+              <p className="price mt-1 text-[12.5px] font-extrabold text-shop-ink">
                 {formatPrice(product.price)}
               </p>
 
@@ -196,7 +214,7 @@ export default function DrawerAddOns({
                     1
                   )
                 }
-                className="mt-1.5 w-full rounded-full border border-shop-primary/40 py-1 text-[12px] font-bold text-shop-primary transition-colors hover:bg-shop-primary hover:text-white"
+                className="mt-2 w-full rounded-full border border-shop-primary/40 py-1.5 text-[12px] font-bold text-shop-primary transition-colors hover:bg-shop-primary hover:text-white"
               >
                 Add
               </button>

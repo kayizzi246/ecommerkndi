@@ -711,7 +711,21 @@ export default function ProductCard({
               is a 4% neutral — enough to draw the tile, not enough to read as a
               grey rectangle behind a photograph shot on white. It is what the
               reference does on its own white page. */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-shop-photo">
+          {/* ---- 5:6, not 1:1 ----
+
+               A square is the safe ratio and it is not the flattering one for
+               most of this catalogue: duvet sets, mosquito nets, jackets and
+               shoes are all taller than they are wide, so a square frame spent
+               its width on the room around the product. A sixth more height is
+               a noticeably larger picture at the same grid width — the tile
+               grows, the columns do not move.
+
+               `object-cover` still crops, and now crops the sides rather than
+               the top and bottom, which for portrait stock is the crop that
+               keeps the subject. Anything genuinely landscape loses a little at
+               the edges, which is the trade; the alternative is letterboxing
+               every portrait shot to suit a minority of the catalogue. */}
+          <div className="relative aspect-[5/6] w-full overflow-hidden rounded-[10px] bg-shop-photo">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

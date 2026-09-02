@@ -274,20 +274,26 @@ export default function CartDrawer() {
             />
             </div>
 
-            <div className="shrink-0 py-4 text-[14px] text-shop-muted">
-              <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
+            {/* ---- Three facts, one rule ----
+
+                 Every row carried its own bottom border, so the foot of the
+                 drawer was four horizontal lines inside 80 pixels — the total
+                 was boxed in by the two lines nearest it and read as no more
+                 important than "Taxes". One rule above the total is enough to
+                 separate the summary from the sum, and the total takes the
+                 weight instead of a border. */}
+            <div className="shrink-0 pb-4 pt-3 text-[14px] text-shop-muted">
+              <div className="flex items-center justify-between py-1">
                 <p>Taxes</p>
-                <p className="text-right text-[16px] text-shop-ink">Included</p>
+                <p className="text-shop-body">Included</p>
               </div>
-              <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
+              <div className="flex items-center justify-between py-1">
                 <p>Shipping</p>
-                <p className="text-right">Calculated at checkout</p>
+                <p className="text-shop-body">Calculated at checkout</p>
               </div>
-              <div className="mb-3 flex items-center justify-between border-b border-shop-line pb-2">
-                <p>Total</p>
-                <p className="text-right text-[16px] font-semibold text-shop-ink">
-                  {formatPrice(subtotal)}
-                </p>
+              <div className="mt-2.5 flex items-baseline justify-between border-t border-shop-line pt-3">
+                <p className="text-[15px] font-semibold text-shop-ink">Total</p>
+                <p className="price text-[19px] text-shop-ink">{formatPrice(subtotal)}</p>
               </div>
             </div>
 
