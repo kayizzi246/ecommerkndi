@@ -137,10 +137,25 @@ export default function DrawerAddOns({
         )}
       </p>
 
-      <ul className="mt-2 space-y-2">
+      {/* ---- A rail, not a stack ----
+
+          These were full-width rows: a 44px thumbnail, the name, and an Add
+          button, three of them down the foot of the drawer. That shape spends
+          the drawer's scarcest resource — vertical space, directly above the
+          checkout button — on three products it shows badly, because a 44px
+          square is too small to be the reason anyone buys anything.
+
+          As a rail the picture is roughly three times the area and the whole
+          block is shorter. 38% of the track puts two and a half cards in view,
+          and the half card is what says there are more: a row that ends flush
+          with the edge reads as a row of two. */}
+      <ul className="no-scrollbar -mx-4 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4">
         {picks.map((product) => (
-          <li key={product.id} className="flex items-center gap-3">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-shop-line bg-white">
+          <li
+            key={product.id}
+            className="w-[38%] shrink-0 snap-start overflow-hidden rounded-lg border border-shop-line bg-white"
+          >
+            <div className="relative aspect-square w-full bg-white">
               {/* Guarded: an imageless product stores "" here, and `next/image`
                   treats an empty src as a request for the current page. */}
               {product.image && (
@@ -149,40 +164,40 @@ export default function DrawerAddOns({
                   src={product.image}
                   alt={product.name}
                   fill
-                  sizes="44px"
-                  className="object-contain p-0.5"
+                  sizes="38vw"
+                  className="object-contain p-1"
                 />
               )}
             </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-1 text-[13px] leading-tight text-shop-ink">
+            <div className="p-1.5">
+              <p className="line-clamp-2 text-[12px] leading-tight text-shop-ink">
                 {product.name}
               </p>
-              <p className="price text-[13px] text-shop-ink">
+              <p className="price mt-0.5 text-[12.5px] text-shop-ink">
                 {formatPrice(product.price)}
               </p>
-            </div>
 
-            <button
-              type="button"
-              tabIndex={focusable ? 0 : -1}
-              aria-label={`Add ${product.name} to cart`}
-              onClick={() =>
-                addItem(
-                  {
-                    productId: product.id,
-                    name: product.name,
-                    price: product.price,
-                    image: product.image,
-                  },
-                  1
-                )
-              }
-              className="shrink-0 rounded-full border border-shop-primary/40 px-3 py-1.5 text-[12px] font-bold text-shop-primary transition-colors hover:bg-shop-primary hover:text-white"
-            >
-              Add
-            </button>
+              <button
+                type="button"
+                tabIndex={focusable ? 0 : -1}
+                aria-label={`Add ${product.name} to cart`}
+                onClick={() =>
+                  addItem(
+                    {
+                      productId: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.image,
+                    },
+                    1
+                  )
+                }
+                className="mt-1.5 w-full rounded-full border border-shop-primary/40 py-1 text-[12px] font-bold text-shop-primary transition-colors hover:bg-shop-primary hover:text-white"
+              >
+                Add
+              </button>
+            </div>
           </li>
         ))}
       </ul>

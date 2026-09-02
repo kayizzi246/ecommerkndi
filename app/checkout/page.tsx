@@ -465,24 +465,42 @@ export default function CheckoutPage() {
                     .join(" · ")}
                 </p>
               )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2.5">
+              <span className="whitespace-nowrap text-[14px] font-medium text-shop-ink">
+                {formatPrice(item.price * item.quantity)}
+              </span>
+
               {/* ---- Removing a line without leaving the checkout ----
+
                   Changing your mind about one item meant going back to the
-                  cart, which on a phone means losing every field already
-                  filled in — so the real choice was "buy it anyway" or
-                  "abandon", and plenty chose the second. `type="button"` is
-                  load-bearing: this sits inside the checkout form, and a bare
-                  button in a form submits it. */}
+                  cart, which on a phone means losing every field already filled
+                  in — so the real choice was "buy it anyway" or "abandon", and
+                  plenty chose the second.
+
+                  An × at the end of the row rather than a "Remove" link under
+                  the name. The link sat directly beneath the product title,
+                  where it read as part of the product's own description and was
+                  missed; the icon at the end of the row is where every basket
+                  puts it and is what people look for.
+
+                  Icon-only, so it carries an `aria-label` and a 32px hit area —
+                  a bare × glyph is about eight pixels of target on a phone.
+                  `type="button"` is load-bearing: this sits inside the checkout
+                  form, and a bare button in a form submits it. */}
               <button
                 type="button"
                 onClick={() => removeItem(item.key)}
-                className="mt-1 text-[12.5px] font-medium text-shop-muted underline underline-offset-2 hover:text-shop-sale"
+                aria-label={`Remove ${item.name} from your order`}
+                title="Remove"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-sale"
               >
-                Remove
+                <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <span className="whitespace-nowrap text-[14px] font-medium text-shop-ink">
-              {formatPrice(item.price * item.quantity)}
-            </span>
           </li>
         ))}
       </ul>
@@ -533,10 +551,9 @@ export default function CheckoutPage() {
       )}
 
       <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-        <span className="text-[16px] font-medium text-shop-ink">Total</span>
-        <span className="flex items-baseline gap-2">
-          <span className="text-[13px] uppercase text-shop-muted">UGX</span>
-          <span className="text-[20px] font-semibold text-shop-ink">{formatPrice(total)}</span>
+        <span className="text-[16px] font-semibold text-shop-ink">Total</span>
+        <span className="text-[22px] font-extrabold tracking-tight text-shop-ink">
+          {formatPrice(total)}
         </span>
       </div>
       <p className="mt-1 text-right text-[13px] text-shop-muted">Including taxes</p>
@@ -945,7 +962,13 @@ export default function CheckoutPage() {
               {count} {count === 1 ? "item" : "items"}
               {delivery?.deliverable && !delivery.free ? " + delivery" : ""}
             </p>
-            <p className="price text-[18px] leading-none text-shop-ink">{formatPrice(total)}</p>
+            {/* The one number on the screen that decides whether the next tap
+                happens. It was the same weight as the product prices in the
+                summary above it, which on a phone made the thing being paid
+                indistinguishable from the things being bought. */}
+            <p className="price text-[22px] font-extrabold leading-none tracking-tight text-shop-ink">
+              {formatPrice(total)}
+            </p>
           </div>
           <button
             type="submit"

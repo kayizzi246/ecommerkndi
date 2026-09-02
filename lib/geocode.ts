@@ -167,7 +167,17 @@ export async function describeLocation(point: LatLng): Promise<PlaceDetails> {
 export type PlaceSuggestion = {
   /** What the shopper reads: "Ntinda, Kampala". */
   label: string;
-  point: LatLng;
+  /**
+   * Where it is — when the provider happened to say.
+   *
+   * Optional because the best provider does not return one. Google's Places
+   * Autocomplete answers with names and place ids and no coordinates; getting
+   * those is a second, separately billed call. So a suggestion from that source
+   * carries only its label, and the coordinates are resolved once — when the
+   * shopper actually picks it — by the geocoder that was already going to price
+   * the delivery. One paid lookup per order instead of one per keystroke.
+   */
+  point?: LatLng;
 };
 
 /**
@@ -196,6 +206,25 @@ export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
 
   try {
     if (key) {
+      /* ---- Autocomplete first, geocoding as the fallback ----
+       *
+       * These are two different Google products and only one of them is built
+       * for this. Geocoding turns a COMPLETE address into a point; asked for
+       * "kyen" it either fails or confidently returns something else. Places
+       * Autocomplete is the as-you-type product: it is designed for partial
+       * input, it ranks by prominence, and it is what makes typing four letters
+       * offer Kyengera.
+       *
+       * The fallback matters because they are enabled separately in Google
+       * Cloud. A key with Geocoding on and Places off is the commonest way this
+       * is set up, and it should degrade to worse suggestions rather than to no
+       * suggestions.
+       */
+      const viaPlaces = await googleAutocomplete(trimmed, key);
+      if (viaPlaces.length > 0) {
+        return viaPlaces;
+      }
+
       const response = await fetch(
         `${GOOGLE}?address=${encodeURIComponent(scoped)}&key=${key}&region=ug`,
         { cache: "no-store" }
@@ -207,7 +236,7 @@ export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
         }[];
       };
 
-      return (data.results ?? [])
+      const viaGeocoding = (data.results ?? [])
         .slice(0, 5)
         .map((result) => ({
           label: tidyLabel(result.formatted_address ?? ""),
@@ -217,6 +246,12 @@ export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
           },
         }))
         .filter((entry) => entry.label !== "" && entry.point.lat !== 0);
+
+      if (viaGeocoding.length > 0) {
+        return viaGeocoding;
+      }
+      // Both Google products came back empty — fall through to OpenStreetMap
+      // rather than telling the shopper their town does not exist.
     }
 
     const response = await fetch(
@@ -240,6 +275,58 @@ export async function suggestPlaces(query: string): Promise<PlaceSuggestion[]> {
       .slice(0, 5);
   } catch (error) {
     console.error("[kandi-store] place search failed:", error);
+    return [];
+  }
+}
+
+/**
+ * Google Places Autocomplete, restricted to Uganda.
+ *
+ * The "New" Places API rather than the legacy one: the legacy autocomplete
+ * endpoint is closed to projects created after March 2025, so a shop setting
+ * this up today would find it refused and have no way to tell why.
+ *
+ * Returns labels with no coordinates on purpose — see `PlaceSuggestion.point`.
+ * Asking for coordinates here means a Place Details call per suggestion, which
+ * is a billed request for four places the shopper did not choose.
+ *
+ * Every failure returns an empty array rather than throwing: the caller treats
+ * that as "try the next provider", so a key without the Places API enabled
+ * degrades to Geocoding and then to OpenStreetMap instead of breaking the
+ * checkout's address field.
+ */
+async function googleAutocomplete(input: string, key: string): Promise<PlaceSuggestion[]> {
+  try {
+    const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        // Only the fields actually rendered. Places bills by the field set
+        // requested, so asking for the whole prediction object would cost more
+        // for data that is thrown away.
+        "X-Goog-FieldMask": "suggestions.placePrediction.text.text",
+      },
+      body: JSON.stringify({
+        input,
+        includedRegionCodes: ["ug"],
+        languageCode: "en",
+      }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as {
+      suggestions?: { placePrediction?: { text?: { text?: string } } }[];
+    };
+
+    return (data.suggestions ?? [])
+      .slice(0, 5)
+      .map((entry) => ({ label: tidyLabel(entry.placePrediction?.text?.text ?? "") }))
+      .filter((entry) => entry.label !== "");
+  } catch (error) {
+    console.error("[kandi-store] places autocomplete failed:", error);
     return [];
   }
 }

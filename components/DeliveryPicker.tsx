@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatPrice } from "@/lib/currency";
 import type { LatLng } from "@/lib/delivery";
+import type { PlaceSuggestion } from "@/lib/geocode";
 import {
   getAddressesSnapshot,
   getServerAddressesSnapshot,
@@ -79,7 +80,7 @@ export default function DeliveryPicker({
    * Showing the candidates makes the shopper choose, which is both faster and
    * the only way the fee can be right.
    */
-  const [places, setPlaces] = useState<{ label: string; point: LatLng }[]>([]);
+  const [places, setPlaces] = useState<PlaceSuggestion[]>([]);
   const [openList, setOpenList] = useState(false);
 
   /* Set when a suggestion is taken, so the effect below does not immediately
@@ -106,7 +107,7 @@ export default function DeliveryPicker({
       try {
         const response = await fetch(`/api/delivery/suggest?q=${encodeURIComponent(query)}`);
         if (!response.ok) return;
-        const data = (await response.json()) as { places?: { label: string; point: LatLng }[] };
+        const data = (await response.json()) as { places?: PlaceSuggestion[] };
         setPlaces(data.places ?? []);
         setOpenList(true);
       } catch {
@@ -119,13 +120,17 @@ export default function DeliveryPicker({
   }, [address]);
 
   /** Takes one suggestion: fills the field, closes the list, prices it. */
-  const choose = (place: { label: string; point: LatLng }) => {
+  const choose = (place: PlaceSuggestion) => {
     chosen.current = true;
     setAddress(place.label);
     setPlaces([]);
     setOpenList(false);
     setActiveSaved(null);
-    quote({ point: place.point });
+    /* A suggestion from Google Places carries no coordinates — see
+       PlaceSuggestion.point — so the label is geocoded here, at the one moment
+       the shopper has actually committed to a place. OpenStreetMap and the
+       Geocoding fallback both include a point, and those skip the extra call. */
+    quote(place.point ? { point: place.point } : { address: place.label });
   };
 
   // localStorage is state React does not own, so it is read through the hook
@@ -349,8 +354,12 @@ export default function DeliveryPicker({
                  bottom; a dropdown that slides under either is unusable. */
               className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-xl border border-shop-line bg-white shadow-lg"
             >
-              {places.map((place) => (
-                <li key={`${place.label}-${place.point.lat}`}>
+              {/* Keyed by label AND index: the label alone is not guaranteed
+                  unique — two Kyengeras in different districts tidy to the same
+                  name — and the coordinates, which would have been the better
+                  key, are not always present. A Places suggestion has none. */}
+              {places.map((place, index) => (
+                <li key={`${place.label}-${index}`}>
                   <button
                     type="button"
                     onClick={() => choose(place)}
