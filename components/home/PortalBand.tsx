@@ -213,7 +213,13 @@ export default function PortalBand({
             </span>
           </div>
 
-          <ul className="grid flex-1 grid-cols-4 gap-2.5">
+          {/* `flex-1` up to lg, none above it. The row of prices used to absorb
+              every spare pixel in this column, which is why a tall neighbour
+              left a hand's width of white between the products and the link
+              below. Above lg the banner takes that job; below lg the banner is
+              not drawn, so the grid keeps it and the panel closes up exactly as
+              it did before. */}
+          <ul className="grid flex-1 grid-cols-4 gap-2.5 lg:flex-none">
             {deals.slice(0, 4).map((product) => (
               <li key={product.id}>
                 <MiniProduct
@@ -223,6 +229,58 @@ export default function PortalBand({
               </li>
             ))}
           </ul>
+
+          {/* ---- The offer block, desktop only ----
+
+              This column is as tall as whatever stands beside it, and its own
+              contents are short, so on a wide screen it ended with an empty
+              third. Filling it with more products would have been the obvious
+              move and the wrong one — the four above are the deepest cuts in
+              the shop, and a fifth and sixth are by definition weaker offers
+              diluting the strongest thing on the page.
+
+              So it takes the terms instead, which are the shop's real argument
+              and are otherwise buried in the footer and on the product page.
+              Every figure here is read from wp-admin — nothing is invented, and
+              a shop that changes its free-delivery threshold changes this line
+              with it.
+
+              ---- On the colour ----
+
+              Purple to crimson, both straight out of the shelf tokens. The page
+              is orange from the masthead down and a warm block here would have
+              read as more of the same panel; this is the one element in the
+              band that is allowed to be loud, which only works if it is loud in
+              a direction nothing else on the page is going.
+
+              It is a message rather than a control: the panel already has one
+              link at its foot pointing at the same page, and a second sitting
+              directly above it reads as a mistake rather than as emphasis.
+
+              ---- And why it is hidden on a phone ----
+
+              There is no gap to fill down there. The column is full width, the
+              products and the link sit one under the other, and this would be
+              an extra screenful of chrome in front of a shopper who came to see
+              products — on the device where that costs the most. */}
+          <div className="relative mt-3 hidden flex-1 flex-col justify-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,var(--color-shop-panel-trending)_0%,var(--color-shop-panel-deals)_100%)] px-4 py-4 text-white lg:flex">
+            {/* The same soft disc the campaign panel uses, so the two loud
+                blocks on this band are recognisably the same family. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10"
+            />
+
+            <span className="relative text-[10.5px] font-bold uppercase tracking-[0.14em] text-white/85">
+              Pay on delivery
+            </span>
+            <span className="relative mt-1 text-[19px] font-extrabold leading-tight">
+              Free delivery over {formatPrice(settings.commerce.free_delivery_from)}
+            </span>
+            <span className="relative mt-1.5 text-[12.5px] font-medium text-white/90">
+              {settings.commerce.returns_days}-day returns · cash, MTN MoMo or Airtel Money
+            </span>
+          </div>
 
           <Link
             href="/sale"
