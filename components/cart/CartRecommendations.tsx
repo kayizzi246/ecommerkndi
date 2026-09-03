@@ -82,9 +82,9 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
   };
 
   return (
-    <section className="mt-10 border-t border-shop-line pt-8">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="section-title text-[18px] text-shop-ink">You may also like</h2>
+    <section className="mt-7 border-t border-shop-line pt-6">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="section-title text-[16px] text-shop-ink md:text-[17px]">You may also like</h2>
 
         {/* Arrows on the desktop grid would point at nothing, so they belong to
             the rail — and the rail only exists below md. */}
@@ -118,12 +118,27 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
           copy of each tile in the DOM, which matters because a ProductCard
           carries state (variant sheet, add-to-cart) that must not exist twice.
 
-          `-mx-4 px-4` lets the rail bleed to the edges of a phone screen while
+          `-mx-3 px-3` lets the rail bleed to the edges of a phone screen while
           the first tile still lines up with the cart lines above it; it is
-          cancelled from md, where the grid sits inside the column proper. */}
+          cancelled from md, where the grid sits inside the column proper.
+
+          ---- The bleed has to equal the page's gutter, exactly ----
+
+          This read `-mx-4 px-4` while the cart's container was `px-4`, which
+          cancelled. The container went to `px-3` in the spacing pass and this
+          did not, so the rail reached 4px past each edge of the window — and
+          the page sets `overflow-x: hidden`, so the surplus was not scrollable,
+          it was CLIPPED. Everything after it in the column inherited the wider
+          box: the order summary's right-aligned amounts and the checkout
+          button's centred label were drawn outside the window and simply could
+          not be seen.
+
+          A rail that bleeds is a rail that has to be told the gutter twice —
+          here and in the tile width below. Both are 12px now. If the cart's
+          container padding changes again, both change with it. */}
       <ul
         ref={trackRef}
-        className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth px-4 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:gap-x-3 md:gap-y-5 md:overflow-visible md:px-0 lg:grid-cols-4"
+        className="-mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-smooth px-3 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:gap-x-3 md:gap-y-5 md:overflow-visible md:px-0 lg:grid-cols-4"
       >
         {products.map((product) => (
           <li
@@ -138,14 +153,18 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
                screen and made the row look like one product with a sliver of
                a second.
 
-               `100vw` cannot be got wrong by an ancestor. The 52px is the
-               page's own gutter (16px each side) plus the two 10px gaps that
+               `100vw` cannot be got wrong by an ancestor. The 44px is the
+               page's own gutter (12px each side) plus the two 10px gaps that
                sit between two and a half tiles, so the arithmetic states the
                thing being asked for: two and a half cards, edge to edge.
 
+               It said 52px while the gutter was 16. That figure and the bleed
+               above are the same number written twice, and they have to move
+               together — see the note on the track.
+
                Above sm the percentage is fine again, because by then the
                column is a known width and the rail becomes a grid at md. */
-            className="w-[calc((100vw-52px)/2.5)] shrink-0 snap-start sm:w-[31%] md:w-auto md:shrink"
+            className="w-[calc((100vw-44px)/2.5)] shrink-0 snap-start sm:w-[31%] md:w-auto md:shrink"
           >
             <ProductCard
               product={product}

@@ -236,19 +236,19 @@ const GRID_SIZES =
   //   ≤640   2 cols  50vw
   //   ≤768   3       33vw
   //   ≤1024  4       25vw
-  //   ≤1720  5       20vw
-  //   above  5       324px, once the shell stops growing
+  //   ≤1536  5       20vw
+  //   ≤1720  6       17vw
+  //   above  6       275px, once the shell stops growing
   //
-  // The ramp tops out at five now — see the note in `lib/product-grid.ts` for
-  // why the sixth column went. Two bands went with it: 1280, which used to be
-  // the 5→6 step, and 1536, which had already been carrying the same count as
-  // the band above it. A breakpoint that changes nothing is a breakpoint that
-  // will be read as meaning something later.
+  // The 1280 band is gone: it used to be the 5→6 step and the step is at 1536
+  // now. A breakpoint that changes nothing is a breakpoint that will be read as
+  // meaning something later.
   //
-  // Five columns of a bounded 1720px shell is a 324px tile: (1720 − 64px of
-  // container padding − four 8px gutters) ÷ 5. That is the widest a tile has
-  // been in this shop, and it is the whole point of the column that went.
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1720px) 20vw, 324px";
+  // Six columns of a bounded 1720px shell is a 275px tile: (1720 − 64px of
+  // container padding − five 1px hairlines) ÷ 6. The gutters are hairlines
+  // rather than gaps now, so they no longer round to anything worth carrying
+  // through this arithmetic.
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 20vw, (max-width: 1720px) 17vw, 275px";
 
 export default function ProductCard({
   product,
@@ -735,7 +735,11 @@ export default function ProductCard({
                keeps the subject. Anything genuinely landscape loses a little at
                the edges, which is the trade; the alternative is letterboxing
                every portrait shot to suit a minority of the catalogue. */}
-          <div className="relative aspect-[8/9] w-full overflow-hidden rounded-[10px] bg-shop-photo">
+          {/* Square, with the tile. A 10px-rounded photograph inside a
+              square cell reads as a picture pasted onto the card rather than
+              as the card's own face — and the cell is the object now, not the
+              picture inside it. See `.tile-card` in globals.css. */}
+          <div className="relative aspect-[8/9] w-full overflow-hidden bg-shop-photo">
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +

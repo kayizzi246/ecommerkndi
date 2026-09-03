@@ -1941,7 +1941,18 @@ h6,
  */
 .tile-card {
   background: #fff;
-  border-radius: 14px;
+  /* ---- Square, everywhere ----
+   *
+   * It was 14px. A rounded tile is the right shape for a card that stands on a
+   * page on its own — a rail, a recommendation, a single product in a panel —
+   * and it is the wrong shape for a cell in a grid, which is where nearly every
+   * one of these actually lives. The corners are what forced the grid to keep
+   * gutters in the first place: two rounded boxes pushed together leave a white
+   * notch at each of the four corners they share.
+   *
+   * Square, the tiles can touch. That is the whole reason this and the flush
+   * grid rule are one change rather than two. */
+  border-radius: 0;
   box-shadow: inset 0 0 0 1px var(--color-shop-edge);
   transition:
     box-shadow 0.2s ease,
@@ -2091,39 +2102,62 @@ h6,
   }
 }
 
-/* ---------- The phone product grid, flush ----------
+/* ---------- The product grid, flush, at every width ----------
  *
- * Applied by `PRODUCT_GRID` (lib/product-grid.ts), which sets `gap-0` on a
- * phone. This is the other half of that: without it, two rounded cards pressed
- * together leave a notch at every corner and stack their two 1px rings into one
- * 2px line, and a grid of eight tiles shows both faults sixteen times.
+ * Applied by `PRODUCT_GRID` (lib/product-grid.ts). A tile in this grid is not a
+ * card, it is a cell: square corners, no ring, no gutter, and a single hairline
+ * between any two neighbours. That is the construction every marketplace grid
+ * actually uses, and it is why theirs read as one continuous sheet rather than
+ * as loose cards that happen to be touching.
  *
- * So on a phone a tile in this grid stops being a card and becomes a cell. The
- * corners square off, the ring goes, and each cell draws a hairline on its
- * right and bottom edges only — so between any two neighbours there is exactly
- * one line, not two. That is the construction every marketplace's phone grid
- * uses, and it is why theirs read as a continuous sheet rather than as loose
- * cards that happen to be touching.
+ * ---- It was a phone rule, and now it is the rule ----
  *
- * The last cell in each row drops its right-hand line, or the grid would end
- * with a rule floating inside the page's own padding. Two selectors because
- * `.tile-card` is sometimes the grid's direct child (the loading skeleton) and
- * sometimes wrapped in an `<li>` (every real grid).
+ * This applied below 639px only, on the argument that gutters were affordable
+ * once there was width for them. They are not affordable anywhere: 8px between
+ * columns is 8px not spent on the photograph, at every screen size, and a grid
+ * of rounded cards separated by gaps is a page of objects where a catalogue
+ * wants a page of merchandise.
  *
- * 639px, so this stops exactly where `sm:` takes over and the gutters come
- * back. Nothing above that breakpoint is touched. */
-@media (max-width: 639px) {
-  .product-grid-flush .tile-card {
-    border-radius: 0;
-    box-shadow: none;
-    border-right: 1px solid var(--color-shop-edge);
-    border-bottom: 1px solid var(--color-shop-edge);
-  }
+ * ---- The hairlines are the gap, rather than borders on the cells ----
+ *
+ * The old rule gave each cell a right and bottom border and then removed the
+ * right one from every second cell, so the grid did not end with a rule
+ * floating in the page's padding. That `nth-child(2n)` only worked because the
+ * grid was two columns wide; with a ramp of 2 → 3 → 4 → 5 → 6 it would need
+ * five media queries and five different multiples, all of which have to be
+ * remembered whenever a column is added or removed.
+ *
+ * A 1px grid gap over the edge colour does the same drawing with no arithmetic
+ * at all. The cells are opaque white, so the only place the ground shows
+ * through is between them — exactly one line between neighbours, never two, and
+ * nothing along the outside of the grid because there is no gap out there. Add
+ * a column, remove a column, change the breakpoints: this rule does not care.
+ *
+ * `gap` is set HERE rather than in the class string. One property, one owner —
+ * this rule is unlayered and a utility is not, so a `gap-*` beside it in the
+ * markup would lose silently and read as a live setting.
+ *
+ * `:where()` on the tile so the selector keeps zero specificity from this side,
+ * and a call site that genuinely needs a rounded tile can still say so with a
+ * utility. */
+.product-grid-flush {
+  gap: 1px;
+  background: var(--color-shop-edge);
+}
 
-  .product-grid-flush > :nth-child(2n) .tile-card,
-  .product-grid-flush > .tile-card:nth-child(2n) {
-    border-right: 0;
-  }
+.product-grid-flush :where(.tile-card) {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* The lift comes off inside a flush grid. A cell that rises 2px opens a 2px
+ * hole in the sheet and drags the hairline out of true with its neighbours,
+ * which is a far louder effect than the hover was ever meant to be. The ring is
+ * enough on its own here — it is drawn INSET, so it lands on the cell rather
+ * than in the gap, and the neighbours do not move. */
+.product-grid-flush .tile-card:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 106, 0, 0.32);
+  transform: none;
 }
 
 /* Safari still paints a disclosure triangle when list-style is none. */
