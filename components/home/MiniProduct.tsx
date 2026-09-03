@@ -74,9 +74,26 @@ export default function MiniProduct({
 
         {/* The cut, top left. Only ever drawn on a genuine reduction — a flag
             on every tile is a flag that means nothing, which is the rule the
-            full card is held to as well. */}
+            full card is held to as well.
+
+            ---- And it is red here ----
+
+            Brand orange on the flag is the right call in the product grid,
+            where the flag sits on a white tile among other white tiles and the
+            page needs the reduction to read as the shop's own language. It is
+            the wrong call inside the deals panel: four orange discs in a row,
+            two inches from an orange masthead and an orange campaign block,
+            and the number stops being a number and becomes texture.
+
+            Red is what a price coming down looks like everywhere else in this
+            shop — the struck-through original beneath this very thumbnail is
+            set in it. Same token, `--color-shop-price-was`, so the flag and
+            the old price it is explaining are now visibly the same statement.
+
+            White type rather than ink: this red is 5.5:1 against white, where
+            near-black on it is under 4. */}
         {discount > 0 && (
-          <span className="absolute left-1 top-1 rounded-full bg-shop-primary px-1.5 py-0.5 text-[10px] font-bold leading-tight text-shop-ink shadow-[0_3px_8px_-3px_rgba(255,106,0,0.9)]">
+          <span className="absolute left-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1 py-px text-[9px] font-bold leading-tight text-white shadow-[0_3px_8px_-3px_rgba(198,40,40,0.75)] sm:px-1.5 sm:py-0.5 sm:text-[10px]">
             -{discount}%
           </span>
         )}
@@ -122,9 +139,9 @@ export default function MiniProduct({
           or squeezing both numbers to the point of illegibility. One under the
           other, each gets the full width, and the strike still reads as the
           strike because it is directly beneath the number replacing it. */}
-      <span className="mt-1.5 flex max-w-full flex-col overflow-hidden">
+      <span className="mt-1 flex max-w-full flex-col overflow-hidden">
         <span
-          className={`price truncate text-[10.5px] leading-tight md:text-[11.5px] ${
+          className={`price truncate text-[10px] leading-tight sm:text-[10.5px] md:text-[11.5px] ${
             discount > 0
               ? "text-[color:var(--color-shop-price-was)]"
               : "text-shop-ink"
@@ -134,7 +151,7 @@ export default function MiniProduct({
         </span>
 
         {discount > 0 && (
-          <span className="was-price truncate text-[9px] leading-tight md:text-[10px]">
+          <span className="was-price truncate text-[8.5px] leading-tight sm:text-[9px] md:text-[10px]">
             {formatPrice(product.regular_price)}
           </span>
         )}

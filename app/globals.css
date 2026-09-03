@@ -1081,7 +1081,30 @@ h6,
  * tiles used to each pick their own (13px on a phone, 15px above it) and the
  * product page ran at 30px. Anything that genuinely needs a different size —
  * the PDP, where the price is the page rather than one of forty — overrides it
- * with a utility and says why. */
+ * with a utility and says why.
+ *
+ * ---- And that sentence was not true, for as long as it has been there ----
+ *
+ * `.price` and `.was-price` are declared in `@layer components` now, and the
+ * two rules that follow are the whole reason.
+ *
+ * Everything in this file after the `@import` was UNLAYERED, and an unlayered
+ * declaration beats a layered one outright — specificity never enters it. All
+ * of Tailwind's output, including every utility, lives in `@layer utilities`.
+ * So a single class selector here was quietly winning against every
+ * `text-[Npx]` written beside it, and had been at seventeen call sites: the
+ * product page asked for 30px and rendered at 14, the checkout bar asked for
+ * 22 and rendered at 14, the panel thumbnails asked for 10.5 and rendered at
+ * 14. Nothing looked broken — a price at 14px looks like a price — which is
+ * exactly why it survived this long.
+ *
+ * The layer restores the arrangement the paragraph above always described:
+ * these are the DEFAULT size and face for money, and a call site that has a
+ * reason may still say otherwise. Only the two money classes are moved, not
+ * the rest of the file — this is a bug in two rules, and taking the whole
+ * stylesheet down a layer to fix it would put a dozen unrelated components at
+ * the mercy of whatever utility happens to be sitting beside them. */
+@layer components {
 .price {
   /* ---- The UI face, not the display face ----
    *
@@ -1216,12 +1239,16 @@ h6,
     font-size: 14px;
   }
 }
+} /* @layer components */
 
 /* ---------- Old price — 400, 12px ----------
  * The struck-through original beside a discounted price. Deliberately the
  * lightest thing in the money row: it is context for the number next to it, and
  * a was-price set anywhere near the weight of the real one makes a shopper stop
- * to work out which is which. */
+ * to work out which is which.
+ *
+ * Layered for the same reason `.price` above is — see the long note there. */
+@layer components {
 .was-price {
   font-family: var(--font-ui);
   font-weight: 400;
@@ -1242,6 +1269,7 @@ h6,
     font-size: 11px;
   }
 }
+} /* @layer components */
 
 /* ---------- Reviews / sold — 400, 12px ----------
  * Ratings, review counts and "2.2K sold". The quietest row on a tile: it is
@@ -1646,11 +1674,13 @@ h6,
      copy sits on the page rather than on a surface, and the full-bleed white
      band is what tells a phone where one section ends. */
   margin-inline: -12px;
-  /* 12/10 rather than 14/12. The panel bleeds to both edges of a phone, so its
-     horizontal padding is subtracted from the same 360px the product grid is
-     trying to divide into two readable columns — every pixel here costs the
-     photographs twice over. */
-  padding: 12px 10px;
+  /* 10/8 rather than 12/10, which was itself 14/12 a pass ago. The panel bleeds
+     to both edges of a phone, so its horizontal padding is subtracted from the
+     same 360px the product grid is trying to divide into two readable columns
+     — every pixel here costs the photographs twice over. Vertically it is the
+     air between one shelf's last row and the next shelf's heading, and with a
+     dozen shelves on the homepage that air is measured in screenfuls. */
+  padding: 10px 8px;
   background: var(--color-shop-panel);
 }
 
@@ -1669,7 +1699,11 @@ h6,
       inset 0 0 0 1px var(--color-shop-edge),
       0 1px 2px rgba(120, 72, 30, 0.04),
       0 12px 28px -22px rgba(120, 72, 30, 0.35);
-    padding: 20px 24px;
+    /* 16/20, down from 20/24. Twelve shelves down a page, that is 96px of
+       scrolling returned without a single shelf getting visibly tighter — the
+       panel's job is to say where a section starts and stops, and it does that
+       with its ground and its hairline rather than with its margins. */
+    padding: 16px 20px;
   }
 }
 

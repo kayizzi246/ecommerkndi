@@ -23,22 +23,35 @@
  * right-and-bottom hairline — so the tiles become one continuous sheet divided
  * by 1px lines, which is what every marketplace's phone grid actually is.
  *
- * ---- Six across at the widest ----
+ * ---- Five across, and this time it stays ----
  *
- * This dropped to five for one pass, on the argument that the tile carries a
- * lot of text and each card would rather be wider. Six is what the shop wants,
- * and six is what a marketplace grid looks like — five reads as a boutique.
+ * The count has been five, then six, and is five again — asked for on the
+ * screen it is actually read on. Six columns of a 1720px shell is a 266px
+ * tile, and the tile carries a lot: two lines of name, a saving chip, a price
+ * pair, a stock line and a rating row. At 266px those wrap and truncate; at
+ * the 324px five columns give, they do not.
  *
- * The card still gets most of what that pass was after, because the width came
- * from two other places at the same time and both of them stayed: the gutters
- * are tighter than they were, and the card gave up a quarter of its own
- * padding. Those cost the picture nothing, where a column does.
+ * Six is only wider than five in the sense that it fits one more picture on
+ * the screen. It is narrower in the sense that matters — the picture itself,
+ * which is what a shopper is choosing from.
+ *
+ * ---- The gutters, tighter again ----
+ *
+ * 6/8px across, 8/10px down, from sm and md. Rows still get more air than
+ * columns, for the reason every grid discovers: a shopper scans downwards, so
+ * the join that has to stay legible is one tile's last line of text against
+ * the next tile's photograph, not two photographs side by side.
+ *
+ * `sizes` follows this ramp in two places — `GRID_SIZES` in `ProductCard`, and
+ * the spelled-out string on the category page, which is full-bleed and so does
+ * the arithmetic itself. All three move together or the shop downloads
+ * photographs the wrong size for the boxes they land in.
  */
 export const PRODUCT_GRID =
   "product-grid-flush grid grid-cols-2 gap-0 " +
-  "sm:grid-cols-3 sm:gap-x-2 sm:gap-y-2.5 " +
-  "md:grid-cols-4 md:gap-x-2.5 md:gap-y-3 " +
-  "lg:grid-cols-5 xl:grid-cols-6";
+  "sm:grid-cols-3 sm:gap-x-1.5 sm:gap-y-2 " +
+  "md:grid-cols-4 md:gap-x-2 md:gap-y-2.5 " +
+  "lg:grid-cols-5";
 
 /**
  * The same grid with one more column, for a single store's page.
@@ -50,12 +63,16 @@ export const PRODUCT_GRID =
  * dressed up as a rule, and it is the kind that works in development and lands
  * wrong once.
  *
- * Seven only from xl. The store page is full-width and its whole job is showing
+ * Six only from xl. The store page is full-width and its whole job is showing
  * everything one seller has, so the extra column earns its place there and
  * nowhere else — and below xl there is no spare width to take it from.
+ *
+ * It was seven while the shared grid was six. It steps down with it, so the
+ * store page stays exactly one column wider than the rest of the shop rather
+ * than drifting two ahead of it.
  */
 export const PRODUCT_GRID_WIDE =
   "product-grid-flush grid grid-cols-2 gap-0 " +
-  "sm:grid-cols-3 sm:gap-x-2 sm:gap-y-2.5 " +
-  "md:grid-cols-4 md:gap-x-2.5 md:gap-y-3 " +
-  "lg:grid-cols-5 xl:grid-cols-7";
+  "sm:grid-cols-3 sm:gap-x-1.5 sm:gap-y-2 " +
+  "md:grid-cols-4 md:gap-x-2 md:gap-y-2.5 " +
+  "lg:grid-cols-5 xl:grid-cols-6";

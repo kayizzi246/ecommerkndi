@@ -121,7 +121,7 @@ export default async function SalePage({
      rule; this is where it is explained. */
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-3 md:px-8 lg:pb-10">
       {/* The highest-converting page on the shop, and it carried no structured
           data at all — so the one page whose entire content is discounted stock
           was the page Google understood least. The breadcrumb places it, the
@@ -167,7 +167,7 @@ export default async function SalePage({
            announcement strip at the top of this very page. A fourth telling
            was spending the best space on the page on terms nobody came here
            to read. */}
-      <section className="mb-5 rounded-2xl bg-shop-panel px-4 py-4 shadow-[inset_0_0_0_1px_var(--color-shop-line)] md:px-6 md:py-5">
+      <section className="mb-4 rounded-2xl bg-shop-panel px-3.5 py-3.5 shadow-[inset_0_0_0_1px_var(--color-shop-line)] md:px-5 md:py-4">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
             <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-shop-flame">
@@ -193,7 +193,7 @@ export default async function SalePage({
       </section>
 
       {/* Result bar */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3.5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
         <p className="text-[14px] text-shop-muted">
           Showing <span className="font-semibold text-shop-ink">{sorted.length}</span> of {total}{" "}
           {total === 1 ? "deal" : "deals"}

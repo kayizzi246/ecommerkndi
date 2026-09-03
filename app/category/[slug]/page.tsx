@@ -225,7 +225,7 @@ export default async function CategoryPage({
     : [];
 
   return (
-    <main className="w-full px-3 pb-24 pt-4 md:px-8 lg:pb-12">
+    <main className="w-full px-3 pb-24 pt-3 md:px-8 lg:pb-10">
       {/* The same trail as the visible breadcrumbs below, in the form Google
           reads. It is what turns "kandiug.com › category › men" in a result
           into "Home › Men", and it tells a crawler where this page sits in the
@@ -251,7 +251,7 @@ export default async function CategoryPage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-5 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -259,7 +259,7 @@ export default async function CategoryPage({
         <span className="capitalize text-shop-ink">{title}</span>
       </nav>
 
-      <div className="flex flex-col gap-8 md:flex-row">
+      <div className="flex flex-col gap-5 md:flex-row md:gap-6">
         {/* Filter rail */}
         <div className="order-first w-full flex-none md:w-56 lg:w-64">
           <div className="hidden md:sticky md:top-32 md:block">
@@ -281,7 +281,7 @@ export default async function CategoryPage({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-4">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
               {/* ---- The `<h1>` says what the title tag says ----
 
@@ -304,11 +304,11 @@ export default async function CategoryPage({
                   country shouted at them, and Google reads the text either way.
                   `capitalize` stays on the name only, so "shoes" title-cases
                   and " in Uganda" is not turned into " In Uganda". */}
-              <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
+              <h1 className="section-title text-[18px] text-shop-ink md:text-[22px]">
                 <span className="capitalize">{title}</span>
                 <span className="font-normal text-shop-muted"> in Uganda</span>
               </h1>
-              <p className="section-sub mt-1 text-[14px]">
+              <p className="section-sub mt-0.5 text-[13px]">
                 {filtered
                   ? `${visible.length} of ${products.length} shown`
                   : `${total} ${total === 1 ? "item" : "items"}`}
@@ -390,8 +390,15 @@ export default async function CategoryPage({
 
                     These have to move if the column ramp, the rail width or
                     the gaps do. That is the standing cost of a grid that
-                    tracks the window instead of a fixed shell. */
-                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 356px) / 4), (max-width: 1279px) calc((100vw - 388px) / 4), (max-width: 1535px) calc((100vw - 412px) / 6), calc((100vw - 424px) / 7)"
+                    tracks the window instead of a fixed shell — and all three
+                    just did: the grid tops out at five columns, the rail sits
+                    24px from it rather than 32, and the gutters came in to
+                    8px. Which gives:
+
+                      md   4 cols  (100vw − 64px padding − 224px rail − 24px
+                                    gap − three 8px gutters) ÷ 4
+                      lg+  5 cols  (100vw − 64 − 256 − 24 − four 8px) ÷ 5 */
+                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 336px) / 4), calc((100vw - 376px) / 5)"
               />
 
               {/* Below the grid deliberately. A shopper who arrived knowing what

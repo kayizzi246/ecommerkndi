@@ -163,11 +163,25 @@ export default function Footer({
 
        Padding came down with it, everywhere: py-7 → py-5 on the promises,
        py-11 → py-8 on the grid, py-5 → py-3.5 on the legal bar, and the
-       `mt-14` above the whole thing → mt-10. */
-    <footer className="site-footer mt-10 bg-shop-footer text-shop-body">
+       `mt-14` above the whole thing → mt-10.
+
+       ---- And a second pass, on the type ----
+
+       Everything here is navigation of last resort. A footer link is not read,
+       it is scanned for by somebody who already knows the word they are
+       looking for — "returns", "contact" — so it wants to be findable rather
+       than legible at arm's length. 13px was the shop's body size, which put
+       forty links at the weight of a paragraph and made the footer the second
+       heaviest block on every page.
+
+       12.5px on the links, 11.5px on the column headings, 11.5 on the promises
+       and 12 on the legal bar, with the padding pulled in one step again at
+       each of the four bands. Nothing here drops below 11.5: these are still
+       links people tap on a phone, and the tap target is the line height. */
+    <footer className="site-footer mt-8 bg-shop-footer text-shop-body">
       {/* Service promises */}
       <div className="border-b border-shop-edge">
-        <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-4 px-4 py-5 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
+        <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-2 lg:grid-cols-4 md:px-8">
           {serviceStrip.map((item) => (
             <div key={item.title} className="flex items-start gap-2.5">
               <svg
@@ -183,8 +197,8 @@ export default function Footer({
                 <path d={item.icon} />
               </svg>
               <div className="min-w-0">
-                <p className="text-[13.5px] font-semibold leading-tight text-shop-ink">{item.title}</p>
-                <p className="mt-0.5 text-[12px] leading-tight text-shop-body">{item.copy}</p>
+                <p className="text-[12.5px] font-semibold leading-tight text-shop-ink">{item.title}</p>
+                <p className="mt-0.5 text-[11.5px] leading-tight text-shop-body">{item.copy}</p>
               </div>
             </div>
           ))}
@@ -192,13 +206,13 @@ export default function Footer({
       </div>
 
       {/* Link columns */}
-      <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-7 px-4 py-8 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
+      <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-5 px-4 py-6 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
         {shopDepartments.length > 0 && (
           <div>
-            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+            <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               Shop by department
             </h2>
-            <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
+            <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
               {shopDepartments.map((department) => (
                 <li key={department.id}>
                   <Link
@@ -228,10 +242,10 @@ export default function Footer({
 
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+            <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {column.title}
             </h2>
-            <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
+            <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
               {column.items.map((item) => (
                 <li key={item.name}>
                   <Link className="hover:text-shop-primary-ink hover:underline" href={item.href}>
@@ -244,10 +258,10 @@ export default function Footer({
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+          <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
             Talk to us
           </h2>
-          <ul className="space-y-1.5 text-[13px] leading-snug text-shop-body">
+          <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
             <li>
               <a className="hover:text-shop-primary-ink hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
                 {support.phone}
@@ -294,9 +308,9 @@ export default function Footer({
            Play, is a sentence explaining an icon — and the heading next to it
            already says which of the two states this is in. */}
       <div className="border-t border-shop-edge">
-        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
-            <h2 className="text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <h2 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {app.available ? "Get the app" : "App coming soon"}
             </h2>
             <AppStoreBadges app={app} />
@@ -304,7 +318,7 @@ export default function Footer({
 
           {socialLinks.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="mr-1 text-[12px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+              <h2 className="mr-1 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
                 Follow us
               </h2>
               {socialLinks.map(([network, url]) => (
@@ -317,7 +331,7 @@ export default function Footer({
                      token swap above cannot reach. A white pill on a black
                      ground is a hole; 6% white is the same lift the rest of the
                      dark surfaces use. */
-                  className="rounded-full border border-shop-edge bg-white/[0.06] px-3 py-1 text-[12.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
+                  className="rounded-full border border-shop-edge bg-white/[0.06] px-2.5 py-1 text-[11.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
                 >
                   {SOCIAL_LABELS[network] ?? network}
                 </a>
@@ -333,7 +347,7 @@ export default function Footer({
           footer is black the strip lifts a hair instead of dropping — see the
           token in `globals.css` — and the hairline above carries the join. */}
       <div className="border-t border-shop-edge bg-shop-footer-deep">
-        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2 px-4 py-3.5 text-[12.5px] text-shop-body md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-1.5 px-4 py-3 text-[12px] text-shop-body md:flex-row md:items-center md:justify-between md:px-8">
           {/* "KandiUg" here as well as on the homepage: a legal bar is on every
               page of the site, which is what turns one mention of the name
               people search into a site-wide one. */}

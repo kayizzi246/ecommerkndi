@@ -196,19 +196,42 @@ export default function PortalBand({
           than four discounts to show, so a shop running no sale gets a
           three-column band rather than an empty promise. */}
       {deals.length >= 4 && (
-        <div className="flex h-full flex-col rounded-2xl bg-white p-4 shadow-[0_12px_28px_-24px_rgba(120,72,30,0.5)] ring-1 ring-shop-edge md:col-span-2 xl:col-span-1">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[14px] font-bold leading-tight text-shop-ink">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-[0_12px_28px_-24px_rgba(120,72,30,0.5)] ring-1 ring-shop-edge md:col-span-2 md:p-3.5 xl:col-span-1">
+          {/* ---- The heading, a step quieter ----
+
+              This is a panel of prices. The line above them names the panel;
+              it is not the reason anybody stops here, and at 14px bold with a
+              second clause hanging off it, it was taking two lines on a phone
+              and pushing the products it introduces below the fold.
+
+              12/13px, and the qualifying clause drops away entirely under sm —
+              "the biggest reductions in the shop right now" is a restatement
+              of "deepest cuts", and a phone has no room for the same claim
+              twice. */}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[12px] font-bold leading-tight text-shop-ink sm:text-[13px]">
               Today&rsquo;s deepest cuts
-              <span className="ml-1.5 font-medium text-shop-muted">
+              <span className="ml-1.5 hidden font-medium text-shop-muted sm:inline">
                 — the biggest reductions in the shop right now
               </span>
             </p>
             {/* The clock runs to midnight on the READER'S own device rather than
                 to a fresh 24 hours from whenever they arrived. See the
                 component: the distinction is the whole honesty of it. */}
-            <span className="hidden shrink-0 items-center gap-1.5 rounded-lg bg-shop-primary-soft px-2 py-1 text-shop-primary-ink sm:flex">
-              <span className="text-[11.5px] font-semibold">Ends in</span>
+            {/* ---- The clock is red, and the chip around it is not ----
+
+                A countdown is the one element on this panel that is about to
+                stop being true, and red is the colour a shopper already reads
+                as "this expires". It is the same red the struck-through
+                original prices are set in — `--color-shop-price-was` — so the
+                panel spends one extra hue rather than two, and it spends it on
+                the two things that are actually about the reduction.
+
+                The chip lost its orange fill on the way. A red clock inside an
+                orange box is two accents fighting over a 90px object; the
+                digits carry the colour and the label beside them stays grey. */}
+            <span className="hidden shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-0.5 sm:flex">
+              <span className="text-[10.5px] font-semibold text-shop-muted">Ends in</span>
               <CountdownBlocks />
             </span>
           </div>
@@ -219,12 +242,26 @@ export default function PortalBand({
               below. Above lg the banner takes that job; below lg the banner is
               not drawn, so the grid keeps it and the panel closes up exactly as
               it did before. */}
-          <ul className="grid flex-1 grid-cols-4 gap-2.5 lg:flex-none">
-            {deals.slice(0, 4).map((product) => (
-              <li key={product.id}>
+          {/* ---- Three on a phone, four from sm ----
+
+              Four thumbnails across a 360px screen inside a panel that also
+              pays its own padding is about 78px each — smaller than the
+              product photograph on any other surface in the shop, and small
+              enough that the price under it had to be set at 10.5px to fit.
+              A panel whose whole argument is "look what these cost" cannot
+              afford to be the place where the price is hardest to read.
+
+              Three gives back roughly 30% of each cell. The fourth deal is
+              still fetched and still rendered — it is simply not drawn below
+              sm, because dropping it from the slice would change what the
+              panel shows depending on the viewport, and this way the markup is
+              one thing with one item hidden rather than two layouts. */}
+          <ul className="grid flex-1 grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 lg:flex-none">
+            {deals.slice(0, 4).map((product, index) => (
+              <li key={product.id} className={index === 3 ? "hidden sm:block" : undefined}>
                 <MiniProduct
                   product={product}
-                  sizes="(max-width: 768px) 24vw, (max-width: 1280px) 22vw, 120px"
+                  sizes="(max-width: 640px) 30vw, (max-width: 768px) 24vw, (max-width: 1280px) 22vw, 120px"
                 />
               </li>
             ))}
@@ -272,25 +309,25 @@ export default function PortalBand({
               products and the link sit one under the other, and this would be
               an extra screenful of chrome in front of a shopper who came to see
               products — on the device where that costs the most. */}
-          <div className="relative mt-3 hidden flex-1 flex-col justify-center overflow-hidden rounded-xl bg-[#1c1a18] px-4 py-4 text-white lg:flex">
-            <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#ff8a3d]">
+          <div className="relative mt-2.5 hidden flex-1 flex-col justify-center overflow-hidden rounded-xl bg-[#1c1a18] px-3.5 py-3 text-white lg:flex">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ff8a3d]">
               Pay on delivery
             </span>
-            <span className="mt-1 text-[19px] font-extrabold leading-tight">
+            <span className="mt-0.5 text-[16.5px] font-extrabold leading-tight">
               Free delivery over {formatPrice(settings.commerce.free_delivery_from)}
             </span>
             {/* `white/70` rather than a second colour. A supporting line wants to
                 recede, and on a dark ground that is a job for opacity — reaching
                 for another hue is how a two-colour block becomes a four-colour
                 one. */}
-            <span className="mt-1.5 text-[12.5px] font-medium text-white/70">
+            <span className="mt-1 text-[11.5px] font-medium text-white/70">
               {settings.commerce.returns_days}-day returns · cash, MTN MoMo or Airtel Money
             </span>
           </div>
 
           <Link
             href="/sale"
-            className="mt-3 block text-[12.5px] font-semibold text-shop-primary hover:underline"
+            className="mt-2.5 block text-[11.5px] font-semibold text-shop-primary hover:underline"
           >
             All deals →
           </Link>

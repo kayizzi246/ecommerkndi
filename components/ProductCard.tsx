@@ -236,23 +236,19 @@ const GRID_SIZES =
   //   ≤640   2 cols  50vw
   //   ≤768   3       33vw
   //   ≤1024  4       25vw
-  //   ≤1280  5       20vw   <- the step that was missing
-  //   ≤1720  6       17vw
-  //   above  6       266px, once the shell stops growing
+  //   ≤1720  5       20vw
+  //   above  5       324px, once the shell stops growing
   //
-  // Seven was the top of this ramp, and the grids kept it after this string
-  // gave it up — so the `sizes` here has been promising a six-column layout
-  // to a seven-column grid, which is the exact disagreement the note above
-  // warns about. The grids are six now and the two agree again.
+  // The ramp tops out at five now — see the note in `lib/product-grid.ts` for
+  // why the sixth column went. Two bands went with it: 1280, which used to be
+  // the 5→6 step, and 1536, which had already been carrying the same count as
+  // the band above it. A breakpoint that changes nothing is a breakpoint that
+  // will be read as meaning something later.
   //
-  // Six columns of a bounded 1720px shell is a 266px tile; seven is 226px,
-  // close to what a PHONE tile gets, on the screen with the most room to avoid
-  // that.
-  //
-  // The 1536 band is gone because it carried the same count as the one above
-  // it. A breakpoint that changes nothing is a breakpoint that will be read as
-  // meaning something later.
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1720px) 17vw, 266px";
+  // Five columns of a bounded 1720px shell is a 324px tile: (1720 − 64px of
+  // container padding − four 8px gutters) ÷ 5. That is the widest a tile has
+  // been in this shop, and it is the whole point of the column that went.
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1720px) 20vw, 324px";
 
 export default function ProductCard({
   product,

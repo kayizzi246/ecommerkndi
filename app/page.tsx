@@ -333,8 +333,15 @@ export default async function Home() {
           merchandise below the fold on every scroll. 12px and 10px keeps the
           shelves reading as separate objects — they each paint a white panel,
           which is what actually separates them — while giving the grid its
-          width back. Everything from md: up is unchanged. */}
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-2.5 py-2.5 md:gap-6 md:px-8 md:py-5">
+          width back.
+
+          The desktop step came down with it in the same pass that tightened
+          `.shop-panel`: 24px between shelves rather than 32, and 14px of
+          vertical page padding rather than 20. Twelve shelves at 8px saved
+          apiece is a screenful, and the panels each paint their own ground, so
+          what separates two sections is the seam between two white blocks
+          rather than the size of the gap between them. */}
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-2.5 py-2 md:gap-4 md:px-8 md:py-3.5">
         <PortalBand settings={settings} departments={departments} deals={deals} />
 
         <FeatureCards cards={cards} />

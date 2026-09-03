@@ -62,12 +62,37 @@ export default function CountdownBlocks() {
       aria-label="Time left on today's deals"
       className="flex items-center gap-1"
     >
+      {/* ---- Red, not brand orange ----
+
+          The blocks were filled with `shop-primary-ink`, which is the colour
+          every other promotional chip in the shop wears. That made the clock
+          one more orange object on a page that already has a masthead, a nav,
+          a discount flag and a call-to-action in the same hue — and a
+          countdown is the one thing here that is not merchandising. It is a
+          deadline.
+
+          `--color-shop-price-was` is the shop's one commercial red, already
+          carrying the struck-through original on every reduced price. Reusing
+          it means the panel spends no new hue: red is what is coming off the
+          price, and red is what says how long for. It clears 5.5:1 behind
+          white type at this size, which the note on the token records.
+
+          The colon between the blocks takes the same red rather than the ink
+          it inherited — an orange-free clock with two near-black colons in it
+          reads as three separate objects instead of one time. */}
       {parts.map((part, index) => (
-        <span key={index} className="flex items-center gap-1">
-          <span className="price rounded bg-shop-primary-ink px-1.5 py-0.5 text-[12px] leading-tight text-white tabular-nums">
+        <span key={index} className="flex items-center gap-0.5">
+          <span className="price rounded bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[11.5px] leading-tight text-white tabular-nums">
             {part}
           </span>
-          {index < 2 && <span aria-hidden className="text-[12px] font-bold">:</span>}
+          {index < 2 && (
+            <span
+              aria-hidden
+              className="text-[11.5px] font-bold text-[color:var(--color-shop-price-was)]"
+            >
+              :
+            </span>
+          )}
         </span>
       ))}
     </span>

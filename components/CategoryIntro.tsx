@@ -123,18 +123,30 @@ export default function CategoryIntro({
   const range = priceRange(products);
   const { free_delivery_from: freeFrom, returns_days: returnsDays } = settings.commerce;
 
+  /* ---- Set a step down from the shop ----
+   *
+   * This block is the last thing on a category page and the only prose on it,
+   * and it was set at the same 15px the shop uses for copy a shopper is being
+   * asked to act on. That is the wrong weighting: nobody arrives here to read
+   * six paragraphs about buying shoes. It is written for the reader who
+   * scrolled past forty products without buying, and for Google — and neither
+   * of those is served by the text being as loud as the grid.
+   *
+   * 13.5/14px, the heading down to 16/18, and the whole section on a tighter
+   * rhythm. It reads as a footnote to the page, which is what it is.
+   */
   return (
     <section
       aria-labelledby="category-about"
-      className="mt-12 border-t border-shop-line pt-8"
+      className="mt-8 border-t border-shop-line pt-6"
     >
       {/* An `<h2>`, never a second `<h1>`. The heading above the grid is the
           page's subject; this is a section of it. */}
-      <h2 id="category-about" className="heading-black text-[18px] text-shop-ink md:text-[20px]">
+      <h2 id="category-about" className="heading-black text-[16px] text-shop-ink md:text-[18px]">
         Buying {lower} in Uganda
       </h2>
 
-      <div className="mt-3 max-w-[70ch] space-y-3.5 text-[15px] leading-relaxed text-shop-body">
+      <div className="mt-2.5 max-w-[70ch] space-y-2.5 text-[13.5px] leading-[1.65] text-shop-body md:text-[14px]">
         <p>
           KandiUg lists{" "}
           <strong className="font-semibold text-shop-ink">
@@ -156,11 +168,13 @@ export default function CategoryIntro({
         </p>
       </div>
 
-      <dl className="mt-6 max-w-[70ch] space-y-4">
+      <dl className="mt-5 max-w-[70ch] space-y-3">
         {faqs.map((faq) => (
           <div key={faq.q}>
-            <dt className="text-[15px] font-semibold text-shop-ink">{faq.q}</dt>
-            <dd className="mt-1 text-[15px] leading-relaxed text-shop-body">{faq.a}</dd>
+            <dt className="text-[13.5px] font-semibold text-shop-ink md:text-[14px]">{faq.q}</dt>
+            <dd className="mt-0.5 text-[13.5px] leading-[1.65] text-shop-body md:text-[14px]">
+              {faq.a}
+            </dd>
           </div>
         ))}
       </dl>

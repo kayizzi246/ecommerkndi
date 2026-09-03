@@ -76,8 +76,8 @@ export default async function SearchPage({
   const filtered = visible.length !== products.length;
 
   return (
-    <main className="w-full px-3 pb-24 pt-4 md:px-8 lg:pb-12">
-      <nav className="mb-5 flex items-center gap-2 text-[13px] text-shop-muted">
+    <main className="w-full px-3 pb-24 pt-3 md:px-8 lg:pb-10">
+      <nav className="mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -85,7 +85,7 @@ export default async function SearchPage({
         <span className="text-shop-ink">Search results</span>
       </nav>
 
-      <div className="flex flex-col gap-8 md:flex-row">
+      <div className="flex flex-col gap-5 md:flex-row md:gap-6">
         {/* Filter rail */}
         <div className="order-first w-full flex-none md:w-56 lg:w-64">
           <div className="hidden md:sticky md:top-32 md:block">
@@ -106,7 +106,7 @@ export default async function SearchPage({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-4">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
               <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
                 {query ? `“${query}”` : "Search"}

@@ -91,7 +91,7 @@ export default async function CategoriesPage() {
     .filter((section) => section.products.length > 0);
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-4 md:px-8 lg:pb-16">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-3 md:px-8 lg:pb-12">
       {/* The department index, declared as a list of departments.
           Every child is included, not only the top-level ones — the whole point
           of this page for a crawler is that it is the one place the full tree is
@@ -170,7 +170,7 @@ export default async function CategoriesPage() {
           {sections.length > 2 && (
             <nav
               aria-label="Jump to a department"
-              className="-mx-3 mb-6 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:px-0"
+              className="-mx-3 mb-4 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:px-0"
             >
               {sections.map(({ department }) => (
                 <a
