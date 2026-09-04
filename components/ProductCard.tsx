@@ -233,8 +233,7 @@ const GRID_SIZES =
   // with it — a `sizes` string that disagrees with the grid is how a page
   // silently downloads tablet-width photographs for thumbnails.
   //
-  //   ≤640   2 cols  50vw
-  //   ≤768   3       33vw
+  //   ≤768   3 cols  33vw
   //   ≤1024  4       25vw
   //   ≤1536  5       20vw
   //   ≤1720  6       17vw
@@ -248,7 +247,7 @@ const GRID_SIZES =
   // container padding − five 1px hairlines) ÷ 6. The gutters are hairlines
   // rather than gaps now, so they no longer round to anything worth carrying
   // through this arithmetic.
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 20vw, (max-width: 1720px) 17vw, 275px";
+  "(max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 20vw, (max-width: 1720px) 17vw, 275px";
 
 export default function ProductCard({
   product,
@@ -631,7 +630,11 @@ export default function ProductCard({
        was eight pixels a side taken off the picture to produce a margin nobody
        was looking at — the card's hairline already does the separating. Two
        pixels back on each edge is four pixels of image across every tile. */
-    <article className="tile-card group relative flex h-full flex-col p-1.5">
+    /* `p-1` on a phone, where the grid is three across and a tile is about
+       120px: 6px of padding on each side is a tenth of the tile spent on air
+       around a photograph that is already small. Back to 6px from `sm` up,
+       where there is width to give it. */
+    <article className="tile-card group relative flex h-full flex-col p-1 sm:p-1.5">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -942,7 +945,13 @@ export default function ProductCard({
              back with the ground. That is the same trade the yellow round made
              in the opposite direction, and it is why a fill change here is
              never only a fill change. */
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)]">
+          /* Smaller and tighter into the corner on a phone. The grid runs three
+             across there, so a tile is about 120px on a 360px screen and the
+             flag was sized when it was 165px — at 11px with 8px of padding it
+             covered a fifth of the photograph. 9.5px in the corner says the
+             same number and leaves the picture visible, which on a tile this
+             small is the only thing doing any selling. */
+          <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[9.5px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)] sm:right-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[11px]">
             −{discount}%
           </span>
         )}

@@ -2293,24 +2293,17 @@ h6,
  * it clipped off by `overflow: hidden`, and an absent card leaves the page
  * colour rather than a grey hole.
  *
- * `--sheet-cols` is set from the number of cards that actually filled, so three
- * cards make three columns rather than three quarters of a row and a void. It
- * is a custom property rather than a `grid-cols-*` utility because the count is
- * only known at render time, and Tailwind cannot emit a class for a number it
- * has not seen.
+ * The column count stays fixed at two and four. Sizing the grid to the number
+ * of cards that filled was tried and reverted: it made ONE card into one
+ * column, stretched across the whole shell with two 800px thumbnails in it.
+ * `FeatureCards` carries that argument in full. With the grey gone, an empty
+ * cell is just empty, which is what it should always have been.
  */
 .feature-sheet {
   gap: 0;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--color-shop-edge);
-  grid-template-columns: repeat(var(--sheet-cols, 2), minmax(0, 1fr));
-}
-
-@media (min-width: 1024px) {
-  .feature-sheet {
-    grid-template-columns: repeat(var(--sheet-cols-lg, 4), minmax(0, 1fr));
-  }
 }
 
 .feature-sheet > * {
@@ -2421,7 +2414,11 @@ h6,
 @media (max-width: 639px) {
   .product-grid-flush {
     display: block !important;
-    columns: 2;
+    /* Three, in step with the `grid-cols-3` above the breakpoint. The two have
+       to agree or the grid changes column count at 640px for no reason a
+       shopper could name — and a masonry that re-flows on rotation is the one
+       way this layout draws attention to itself. */
+    columns: 3;
     column-gap: 1px;
     column-rule: 1px solid var(--color-shop-edge);
     background: transparent;

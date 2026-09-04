@@ -403,7 +403,7 @@ export default async function CategoryPage({
                                     gap − three 1px hairlines) ÷ 4
                       lg   5 cols  (100vw − 64 − 256 − 24 − four 1px) ÷ 5
                       2xl  6 cols  (100vw − 64 − 256 − 24 − five 1px) ÷ 6 */
-                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 315px) / 4), (max-width: 1535px) calc((100vw - 348px) / 5), calc((100vw - 349px) / 6)"
+                sizes="(max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 315px) / 4), (max-width: 1535px) calc((100vw - 348px) / 5), calc((100vw - 349px) / 6)"
               />
 
               {/* Below the grid deliberately. A shopper who arrived knowing what

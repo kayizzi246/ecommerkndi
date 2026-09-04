@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import MiniProduct from "@/components/home/MiniProduct";
 import type { Product } from "@/lib/woocommerce";
@@ -94,26 +93,32 @@ export default function FeatureCards({ cards }: { cards: FeatureCard[] }) {
           was folded into the band above. Four across from lg, which is where this
           row and the portal band above it settle onto the same four columns. */}
       <ul
-        className="feature-sheet grid"
-        /* The column count is the number of cards that FILLED, not four.
+        className="feature-sheet grid grid-cols-2 lg:grid-cols-4"
+        /* ---- The row keeps its columns even when a card is missing ----
 
            A card with fewer than two products is dropped a few lines up, and
            that is not a rare path: `Best sellers` needs stock that has actually
            sold and `New in` needs marketplace listings, so a young shop — or
            one render where the catalogue request timed out — legitimately
-           produces one, two or three cards. Held at four columns, the missing
-           ones left empty grid cells, and the sheet painted them grey: a
-           1200px slab across the middle of the homepage where three cards
-           should be. That is what this row looked like in production.
+           produces one, two or three cards.
 
-           Capped at the number that fits: never more than two across on a
-           phone, never more than four on a desktop. */
-        style={
-          {
-            "--sheet-cols": Math.min(filled.length, 2),
-            "--sheet-cols-lg": Math.min(filled.length, 4),
-          } as CSSProperties
-        }
+           Two attempts at this, and the second is the right one.
+
+           The first sized the grid to `filled.length`, so three cards made
+           three columns. That fixed the grey slab and introduced a worse
+           failure at the bottom of the range: ONE card became one column, a
+           single card stretched across the whole 1650px shell, and its two
+           thumbnails blew up to about 800px each — two enormous photographs
+           where a compact row of shelves belongs. A homepage that reflows into
+           a different design depending on how much stock is in it is not a
+           design.
+
+           So the columns are fixed at two and four, as they always were, and
+           the empty cells are simply empty. That only became survivable when
+           `.feature-sheet` stopped painting its background in the edge colour —
+           the missing cards now leave white page rather than a grey hole, which
+           is the actual bug this pair of changes was chasing. A four-column row
+           with one card in it reads as a row with one card in it. */
       >
         {filled.map((card) => (
           <li key={card.title}>

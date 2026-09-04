@@ -339,7 +339,11 @@ export default async function StorePage({ params }: Params) {
               <ProductCard
                 key={product.id}
                 product={product}
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 14vw"
+                /* 33vw on a phone, in step with the three-column grid. It read
+                   50vw, which was the old two-column count — the browser was
+                   fetching a file twice the width of the box it lands in on
+                   every tile of a page that is nothing but tiles. */
+                sizes="(max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 14vw"
               />
             ))}
           </div>
