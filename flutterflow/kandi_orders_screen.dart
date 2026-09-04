@@ -16,6 +16,9 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Navigation only.
+import '/custom_code/widgets/kandi_track_order_screen.dart';
+
 // ============================================================
 //  KANDI — ORDERS PAGE
 //
@@ -42,6 +45,8 @@ class _KColors {
   static const Color ink = Color(0xFF111827);
   static const Color body = Color(0xFF4B5563);
   static const Color muted = Color(0xFF6B7280);
+  static const Color line = Color(0xFFE5E7EB);
+  static const Color hairline = Color(0xFFF3F4F6);
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
@@ -311,8 +316,11 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-          child: CircularProgressIndicator(color: _KColors.primary));
+      // A skeleton of the right shape rather than a spinner. A spinner says
+      // "something is happening"; three order-shaped blocks say "your orders
+      // are arriving", and the list does not jump when they do. Same argument,
+      // same mechanism as the home screen's.
+      return const _Skeleton();
     }
 
     if (_signedOut) {
@@ -325,6 +333,16 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
         // Back rather than a push: this page is reached FROM the account page,
         // and pushing a second copy would leave two on the stack.
         onAction: () => Navigator.of(context).maybePop(),
+        // ---- The way out for most of this shop's customers ----
+        //
+        // Checkout does not require an account, so the majority of orders here
+        // were never tied to one and never will be. Offering only "sign in"
+        // tells those shoppers to create an account that still would not show
+        // the order they are looking for. Tracking takes the order number and
+        // the phone they ordered with, which they have.
+        secondaryLabel: 'Track an order instead',
+        onSecondary: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => const KandiTrackOrderScreen())),
       );
     }
 
@@ -437,6 +455,8 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
     required String message,
     required String actionLabel,
     required VoidCallback onAction,
+    String? secondaryLabel,
+    VoidCallback? onSecondary,
   }) {
     return Center(
       child: Padding(
@@ -478,6 +498,109 @@ class _KandiOrdersScreenState extends State<KandiOrdersScreen> {
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.w700)),
               ),
+            ),
+            if (secondaryLabel != null && onSecondary != null) ...[
+              const SizedBox(height: _KSpace.md),
+              // An outline, not a second filled button. Two filled buttons on
+              // one empty state is two primary actions, and a shopper reading a
+              // screen that has just told them something went wrong should not
+              // also have to work out which button the shop meant.
+              SizedBox(
+                width: 220,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: onSecondary,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _KColors.ink,
+                    side: const BorderSide(color: _KColors.line),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(_rPill)),
+                  ),
+                  child: Text(secondaryLabel,
+                      style: const TextStyle(
+                          fontSize: 14.5, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the screen shows before the first answer arrives.
+///
+/// A shimmering block of roughly the right shape rather than a spinner: a
+/// spinner says "something is happening", a skeleton says "a list of orders is
+/// arriving", and the second stops the layout jumping when it does. The same
+/// widget the home screen uses, sized for order cards rather than for tiles.
+class _Skeleton extends StatefulWidget {
+  const _Skeleton();
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _block(double width, double height, [double radius = 6]) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color:
+              Color.lerp(_KColors.hairline, _KColors.line, _controller.value),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(_KSpace.md),
+      itemCount: 3,
+      separatorBuilder: (_, __) => const SizedBox(height: _KSpace.md),
+      itemBuilder: (_, __) => Container(
+        padding: const EdgeInsets.all(_KSpace.lg),
+        decoration: BoxDecoration(
+          color: _KColors.panel,
+          borderRadius: BorderRadius.circular(_rPanel),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _block(120, 16),
+                const Spacer(),
+                _block(70, 18, 6),
+              ],
+            ),
+            const SizedBox(height: _KSpace.sm),
+            _block(90, 12),
+            const SizedBox(height: _KSpace.lg),
+            Row(
+              children: [
+                _block(60, 13),
+                const Spacer(),
+                _block(96, 18),
+              ],
             ),
           ],
         ),

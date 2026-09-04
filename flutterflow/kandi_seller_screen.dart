@@ -453,9 +453,9 @@ class _KandiSellerScreenState extends State<KandiSellerScreen> {
               ),
           ],
         ),
+        // A dashboard-shaped skeleton rather than a spinner — see `_Skeleton`.
         body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: _KColors.primary))
+            ? const _Skeleton()
             : (_token == null ? _buildSignIn() : _buildDashboard()),
       ),
     );
@@ -1146,6 +1146,108 @@ class _Field extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// What the Seller Centre shows before the shop answers.
+///
+/// Shaped like the dashboard rather than like a list: one wide block for the
+/// store header, then the stat grid. A trader opens this page to read four
+/// figures, and a spinner in the middle of an empty screen tells them nothing
+/// about whether those figures are two seconds away or gone. Same mechanism as
+/// the home screen's skeleton.
+class _Skeleton extends StatefulWidget {
+  const _Skeleton();
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _block(double width, double height, [double radius = 6]) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color:
+              Color.lerp(_KColors.hairline, _KColors.line, _controller.value),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+
+  Widget _panel({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(_KSpace.lg),
+      decoration: BoxDecoration(
+        color: _KColors.panel,
+        borderRadius: BorderRadius.circular(_rPanel),
+      ),
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(_KSpace.md),
+      children: [
+        _panel(
+          child: Row(
+            children: [
+              _block(46, 46, 10),
+              const SizedBox(width: _KSpace.md),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _block(120, 16),
+                  const SizedBox(height: 6),
+                  _block(80, 12),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: _KSpace.md),
+        for (int row = 0; row < 2; row++) ...[
+          Row(
+            children: [
+              for (int column = 0; column < 2; column++) ...[
+                Expanded(
+                  child: _panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _block(70, 12),
+                        const SizedBox(height: _KSpace.sm),
+                        _block(110, 20),
+                      ],
+                    ),
+                  ),
+                ),
+                if (column == 0) const SizedBox(width: _KSpace.md),
+              ],
+            ],
+          ),
+          const SizedBox(height: _KSpace.md),
+        ],
       ],
     );
   }

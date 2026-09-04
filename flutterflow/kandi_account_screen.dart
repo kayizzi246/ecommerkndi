@@ -25,6 +25,10 @@ import '/custom_code/widgets/kandi_wishlist_screen.dart';
 import '/custom_code/widgets/kandi_cart_screen.dart';
 import '/custom_code/widgets/kandi_seller_screen.dart';
 import '/custom_code/widgets/kandi_shop_screen.dart';
+import '/custom_code/widgets/kandi_categories_screen.dart';
+import '/custom_code/widgets/kandi_deals_screen.dart';
+import '/custom_code/widgets/kandi_stores_screen.dart';
+import '/custom_code/widgets/kandi_track_order_screen.dart';
 
 // ============================================================
 //  KANDI — ACCOUNT PAGE
@@ -522,34 +526,52 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
                 ),
               ),
               const SizedBox(height: _KSpace.md),
+              // Both flexible, both ellipsised.
+              //
+              // Two 13px labels fit a 334px row with room to spare at the
+              // system text size and do NOT fit it at the largest accessibility
+              // setting — which is a horizontal overflow, and a horizontal
+              // overflow is the one kind a shopper cannot scroll to see.
+              // Flexible costs nothing at the normal size.
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: () => _openWeb('/reset-password'),
-                    child: const Text('Forgot password',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            // The money colour, not the brand orange: #FF6A00
-                            // on white is 2.9:1 and fails AA at every size.
-                            color: _KColors.flame)),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => _openWeb('/reset-password'),
+                      child: const Text('Forgot password',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              // The money colour, not the brand orange:
+                              // #FF6A00 on white is 2.9:1 and fails AA at
+                              // every size.
+                              color: _KColors.flame)),
+                    ),
                   ),
-                  GestureDetector(
-                    onTap: () => _openWeb('/account'),
-                    child: const Text('Create account',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            // The money colour, not the brand orange: #FF6A00
-                            // on white is 2.9:1 and fails AA at every size.
-                            color: _KColors.flame)),
+                  const SizedBox(width: _KSpace.md),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => _openWeb('/account'),
+                      child: const Text('Create account',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: _KColors.flame)),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
         ),
+        const SizedBox(height: _KSpace.md),
+        _browse(),
         const SizedBox(height: _KSpace.md),
         _links(),
       ],
@@ -599,6 +621,8 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           ),
         ),
         const SizedBox(height: _KSpace.md),
+        _browse(),
+        const SizedBox(height: _KSpace.md),
         _links(signedIn: true),
         const SizedBox(height: _KSpace.md),
         SizedBox(
@@ -618,6 +642,66 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
         ),
         const SizedBox(height: _KSpace.xl),
       ],
+    );
+  }
+
+  /// ---- The ways into the rest of the shop ----
+  ///
+  /// Categories, deals, the store directory and order tracking are all real
+  /// screens in this app and none of them is a tab. This panel is how they are
+  /// reached, and it sits ABOVE the account rows on purpose: three of the four
+  /// are things a shopper does before they have bought anything, and one of
+  /// them — tracking — is the answer for the majority of this shop's customers,
+  /// who ordered without an account and cannot use My orders at all.
+  ///
+  /// The bottom bar was the obvious home for browse destinations and it is
+  /// full: five tabs is the most a phone bar carries legibly, and every one of
+  /// the five earns its place. A panel of rows costs one tap more and no
+  /// ambiguity.
+  Widget _browse() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _KColors.panel,
+        borderRadius: BorderRadius.circular(_rPanel),
+      ),
+      child: Column(
+        children: [
+          _Row(
+            icon: Icons.category_outlined,
+            label: 'All categories',
+            detail: 'Every department, shelf by shelf',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const KandiCategoriesScreen())),
+          ),
+          const Divider(height: 1, color: _KColors.hairline),
+          _Row(
+            icon: Icons.local_offer_outlined,
+            label: "Today's deals",
+            detail: 'Everything reduced, deepest first',
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const KandiDealsScreen())),
+          ),
+          const Divider(height: 1, color: _KColors.hairline),
+          _Row(
+            icon: Icons.storefront_outlined,
+            label: 'Shop by store',
+            detail: 'The traders selling on Kandi',
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const KandiStoresScreen())),
+          ),
+          const Divider(height: 1, color: _KColors.hairline),
+          _Row(
+            icon: Icons.local_shipping_outlined,
+            label: 'Track an order',
+            // Said out loud, because this is the row that rescues the shopper
+            // who is about to tap My orders, find a sign-in form, and conclude
+            // the shop has lost their parcel.
+            detail: 'No account needed',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const KandiTrackOrderScreen())),
+          ),
+        ],
+      ),
     );
   }
 

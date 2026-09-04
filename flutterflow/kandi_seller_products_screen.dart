@@ -388,10 +388,8 @@ class _KandiSellerProductsScreenState
   }
 
   Widget _buildBody(int outCount) {
-    if (_loading) {
-      return const Center(
-          child: CircularProgressIndicator(color: _KColors.primary));
-    }
+    // A skeleton of the right shape rather than a spinner — see `_Skeleton`.
+    if (_loading) return const _Skeleton();
 
     if (_signedOut) {
       return _message(
@@ -684,6 +682,91 @@ class _KandiSellerProductsScreenState
                     style: const TextStyle(
                         fontSize: 14.5, fontWeight: FontWeight.w700)),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the screen shows before the first answer arrives.
+///
+/// A shimmering block of roughly the right shape rather than a spinner: a
+/// spinner says "something is happening", a skeleton says "the rows are
+/// arriving", and the second stops the layout jumping when they do. The same
+/// widget the home screen uses, sized for cards rather than for product tiles.
+///
+/// It matters more on a seller's screen than anywhere else in the app. These
+/// pages are opened to check a figure — today's takings, what is payable, what
+/// is out of stock — and a full-screen spinner gives a trader nothing to read
+/// while the shop answers.
+class _Skeleton extends StatefulWidget {
+  const _Skeleton();
+
+  @override
+  State<_Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<_Skeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _block(double width, double height, [double radius = 6]) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color:
+              Color.lerp(_KColors.hairline, _KColors.line, _controller.value),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(_KSpace.md),
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: _KSpace.md),
+      itemBuilder: (_, __) => Container(
+        padding: const EdgeInsets.all(_KSpace.lg),
+        decoration: BoxDecoration(
+          color: _KColors.panel,
+          borderRadius: BorderRadius.circular(_rPanel),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _block(130, 16),
+                const Spacer(),
+                _block(64, 18, 6),
+              ],
+            ),
+            const SizedBox(height: _KSpace.sm),
+            _block(96, 12),
+            const SizedBox(height: _KSpace.lg),
+            Row(
+              children: [
+                _block(70, 13),
+                const Spacer(),
+                _block(88, 18),
+              ],
             ),
           ],
         ),

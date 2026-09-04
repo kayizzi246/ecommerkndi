@@ -1,6 +1,6 @@
 # Adding the app to FlutterFlow
 
-Thirteen custom widgets — one per page. **No parameters to declare on any of them.**
+Seventeen custom widgets — one per page. **No parameters to declare on any of them.**
 No pubspec changes needed.
 
 | Name it exactly | Paste this file |
@@ -18,6 +18,10 @@ No pubspec changes needed.
 | `KandiSellerOrdersScreen` | `kandi_seller_orders_screen.dart` |
 | `KandiSellerProductsScreen` | `kandi_seller_products_screen.dart` |
 | `KandiSellerPayoutsScreen` | `kandi_seller_payouts_screen.dart` |
+| `KandiCategoriesScreen` | `kandi_categories_screen.dart` |
+| `KandiDealsScreen` | `kandi_deals_screen.dart` |
+| `KandiStoresScreen` | `kandi_stores_screen.dart` |
+| `KandiTrackOrderScreen` | `kandi_track_order_screen.dart` |
 
 **Custom Code → Widgets → `+` → Widget**, then paste the whole file over
 whatever is in the editor.
@@ -36,7 +40,7 @@ file-private, so nothing depends on anything else being pasted first.
 The only cross-file imports are **navigation** — Home opens Product, Cart,
 Search, Shop, Saved and Account; Cart opens Checkout; Account opens Orders and
 the Seller Centre; Product opens Cart and, sideways, another Product. Dart
-resolves those once all thirteen exist, so the project compiles when the set is
+resolves those once all seventeen exist, so the project compiles when the set is
 complete and not before. Paste them in any order you like and compile at the
 end.
 
@@ -54,7 +58,7 @@ end.
    custom widget at once.
 3. Compile.
 
-There is no step for parameters. Leave the parameter list empty on all thirteen.
+There is no step for parameters. Leave the parameter list empty on all seventeen.
 
 **Never add an import above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.**
 FlutterFlow rewrites those first lines on save and silently drops anything you
@@ -117,7 +121,12 @@ Home ─┬─ tap a card ──────────→ Product ──→ Ca
       ├─ bottom bar: Shop ────→ Shop
       ├─ bottom bar: Saved ───→ Saved   ──→ Product
       ├─ bottom bar: Basket ──→ Cart
-      └─ bottom bar: Account ─→ Account ─┬→ Orders
+      └─ bottom bar: Account ─→ Account ─┬→ Categories ─→ Shop / Product
+                                         ├→ Today's deals ─→ Product
+                                         ├→ Shop by store ─┬→ Product
+                                         │                 └→ (store page, browser)
+                                         ├→ Track an order
+                                         ├→ Orders ─→ Track an order
                                          ├→ Seller Centre ─┬→ Seller Orders
                                          │                 ├→ Seller Products
                                          │                 └→ Commissions
@@ -125,6 +134,19 @@ Home ─┬─ tap a card ──────────→ Product ──→ Ca
 
 Product ──→ "You might also like" ──→ another Product (in place)
 ```
+
+### Why the four browse screens hang off Account
+
+Categories, deals, the store directory and order tracking are all reached from
+the Account page rather than from the bottom bar. That is not where they
+belong in the abstract — three of them are things a shopper does *before* they
+buy — but the bar is full at five tabs and every one of those five earns its
+place. A panel of rows at the top of Account costs one extra tap and no
+ambiguity; a sixth tab costs legibility on every screen in the app.
+
+They are also all reachable from FlutterFlow's own navigation, like everything
+else here, because nothing is passed between pages. If you would rather put
+Categories on the bar, wire it there and delete nothing.
 
 ### The bottom bar
 
@@ -221,6 +243,36 @@ number in any marketplace, so the working is shown rather than just the total,
 and none of it is computed on the phone — a second implementation disagreeing by
 one shilling would be worse than no figure.
 
+**Categories** — the browse screen, and the one the phone web build now serves
+too: a rail of departments down the left that never moves, the selected
+department's shelves as photographs on the right, and a dozen of its products
+under them. One request to `/api/app/categories`, switched between locally — a
+rail that costs a round trip per tap is not a rail. Two levels of shelf, so
+Sandals is visible without opening Shoes first. Shelf pictures are borrowed
+from the first product filed beneath them, because a WooCommerce category
+almost never has an image of its own and a photograph of real stock beats a
+designed icon anyway.
+
+**Today's deals** — `/api/app/products` with `sale=1` or a `min_discount`
+floor, ordered by discount and paged as the shopper scrolls. The depth chips
+are a floor, not a sort: "reduced at all" and "at least half price" are
+different promises. Shop answers "show me shoes"; this answers "show me what is
+cheap today", which is a different shopper with the same money.
+
+**Shop by store** — the trader directory off `/api/app/stores`, each row
+carrying four of that store's actual products because a list of store names is
+not a place to shop. The products open in the app; the store's own page opens
+in a browser, since it is a masthead, a policy block and a filtered grid the
+app already has.
+
+**Track an order** — an order number and the phone or email it was placed with,
+against `/api/track`, and the four steps back. It exists because checkout does
+not require an account, so most orders here are not tied to one and My orders
+can never show them. The four steps and their wording are copied from the
+website's tracking panel: one shopper checking one order in two places must not
+be told two different things. The signed-out state of My orders offers this as
+its second action for exactly that reason.
+
 ### What stays on the website
 
 Adding a product and store settings. The split is by whether the task is
@@ -235,7 +287,7 @@ number.
 
 Every page carries its own copy of the palette — nothing is shared, for the
 reason at the top of this file — so these values have to be kept in step by
-hand. If you change one, change all thirteen.
+hand. If you change one, change all seventeen.
 
 | Token | Value | What it is for |
 | --- | --- | --- |
@@ -287,16 +339,36 @@ Two rules that are easy to break:
 
 ## Verified
 
-All thirteen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
+All seventeen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
 throwaway package with the FlutterFlow-only imports stubbed out:
 
 ```
-flutter analyze  →  No issues found!
+flutter analyze  →  no errors
 ```
 
-The layout was checked too, which `analyze` cannot do: the same thirteen files
-were built for the web against the live `kandiug.com` feed and photographed at
-390x844. That pass has already found an app-bar gradient painting nothing, a
+The only warnings are `unused_import` on the four FlutterFlow header lines,
+which exist in the real project and cannot be removed from these files.
+
+Every screen is also **pumped in a widget test** at 390x844 with no network and
+empty preferences, and the test fails on any exception — including a
+`RenderFlex` overflow, which is the failure `analyze` is blindest to. Running
+without a network is deliberate: it drives each screen into its failure state,
+which is the path nobody exercises by hand. It has already caught a real
+horizontal overflow on the account page's "Forgot password / Create account"
+row at large text sizes.
+
+```
+flutter test  →  17 screens, all passed
+```
+
+One caveat on that test: `flutter_test` draws with a placeholder font where
+every glyph is one em wide, so text is far wider there than on a device. An
+overflow it reports on a row of text is worth measuring by hand before
+believing.
+
+The layout was checked in a browser too, which neither of those can do: the
+files were built for the web against the live `kandiug.com` feed and
+photographed at 390x844. That pass found an app-bar gradient painting nothing, a
 price ellipsising to "UGX 36,0…" on every tile, a hundred pixels of empty white
 under every card, and a department row running at about 2.3:1 on the gradient.
 None of those were visible in the source, and none of them failed `analyze`.

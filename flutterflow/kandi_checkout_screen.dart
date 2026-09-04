@@ -13,6 +13,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -87,6 +88,14 @@ class _KSpace {
 }
 
 const double _rPanel = 12;
+const double _rPhoto = 8;
+
+/// The `Accept` header every photograph in this app is fetched with. See the
+/// note in kandi_search_screen.dart — Dart's HTTP client sends none of its own,
+/// so without this the storefront's optimiser has to guess and sends JPEG.
+const Map<String, String> _kImageHeaders = <String, String>{
+  'Accept': 'image/webp,image/*;q=0.8',
+};
 const double _rChip = 8;
 
 /// The brand gradient: Kandi orange running into the deep red.
@@ -127,6 +136,7 @@ class _KLine {
     required this.name,
     required this.price,
     required this.quantity,
+    this.image = '',
     this.variantLabel,
   });
 
@@ -134,6 +144,14 @@ class _KLine {
   final String name;
   final num price;
   final int quantity;
+
+  /// The photograph, as the basket stored it.
+  ///
+  /// Every page that writes a line writes an image with it, so this costs no
+  /// request. It was being thrown away here, and a checkout summary set purely
+  /// in text is the one screen in the app where a shopper cannot see what they
+  /// are about to pay for — which is exactly the moment they want to check.
+  final String image;
   final String? variantLabel;
 
   num get lineTotal => price * quantity;
@@ -148,6 +166,7 @@ class _KLine {
       name: (json['name'] ?? '').toString(),
       price: json['price'] is num ? json['price'] as num : 0,
       quantity: quantity,
+      image: (json['image'] ?? '').toString(),
       variantLabel: json['variantLabel']?.toString(),
     );
   }
@@ -464,12 +483,59 @@ class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${line.quantity}×',
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _KColors.muted)),
-                      const SizedBox(width: _KSpace.sm),
+                      // The photograph, with the quantity riding its corner.
+                      // A separate "2×" column was costing a line of width on
+                      // every row to say something the badge says in the space
+                      // the picture was already taking.
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(_rPhoto),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              color: _KColors.hairline,
+                              child: line.image.isEmpty
+                                  ? const Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: 16,
+                                      color: _KColors.muted)
+                                  : CachedNetworkImage(
+                                      imageUrl: line.image,
+                                      httpHeaders: _kImageHeaders,
+                                      // Contain, never cover: a supplier
+                                      // photograph cropped to 44px loses the
+                                      // product and keeps its background.
+                                      fit: BoxFit.contain,
+                                      placeholder: (_, __) => const ColoredBox(
+                                          color: _KColors.hairline),
+                                      errorWidget: (_, __, ___) =>
+                                          const ColoredBox(
+                                              color: _KColors.hairline),
+                                    ),
+                            ),
+                          ),
+                          if (line.quantity > 1)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: _KColors.ink,
+                                  borderRadius: BorderRadius.circular(_rPill),
+                                ),
+                                child: Text('${line.quantity}',
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white)),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(width: _KSpace.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,11 +656,28 @@ class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: _KColors.ink)),
+          // The same heading the shelves on Home carry: a short bar of the
+          // brand gradient, then the title. It costs three pixels of width and
+          // it is what makes a panel on this page read as part of the same shop
+          // as the screen the shopper arrived from.
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 15,
+                decoration: BoxDecoration(
+                  gradient: _brandGradient,
+                  borderRadius: BorderRadius.circular(_rPill),
+                ),
+              ),
+              const SizedBox(width: _KSpace.sm),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: _KColors.ink)),
+            ],
+          ),
           const SizedBox(height: _KSpace.md),
           child,
         ],
