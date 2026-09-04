@@ -8,6 +8,7 @@ import {
 } from "@/lib/woocommerce";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 import CategoryShelves, { type Shelf } from "@/components/CategoryShelves";
+import CategoryBrowser, { type BrowseDepartment } from "@/components/CategoryBrowser";
 
 export const metadata: Metadata = {
   title: "All categories",
@@ -82,6 +83,39 @@ export default async function CategoriesPage() {
     )
   );
 
+  /**
+   * The phone's two-pane browser, built from the same two requests the rails
+   * are built from.
+   *
+   * Every department is offered here, including one whose feed came back empty
+   * — the rail is a table of contents and a department missing from it reads as
+   * a shop that does not stock the thing, which is a different and worse claim
+   * than a shelf that happens to be bare today. The rails below drop those; a
+   * rail with no products in it is nothing to look at.
+   *
+   * A shelf tile wants a picture and WooCommerce usually has none: category
+   * images are optional and almost nothing on this catalogue has one. So the
+   * fallback is the first product filed anywhere under that shelf, taken out of
+   * the feed the page already fetched — no extra request, and a shelf shows
+   * what is actually on it rather than a grey square.
+   */
+  const browse: BrowseDepartment[] = departments.map((department, index) => ({
+    id: department.id,
+    name: department.name,
+    slug: department.slug,
+    tiles: department.children.map((child) => {
+      const wanted = new Set(subtreeSlugs(child));
+      const hit = feeds[index].products.find((product) =>
+        product.categories.some((category) => wanted.has(category.slug))
+      );
+      return {
+        name: child.name,
+        slug: child.slug,
+        image: child.image || hit?.image || "",
+      };
+    }),
+  }));
+
   const sections = departments
     .map((department, index) => ({
       department,
@@ -122,7 +156,11 @@ export default async function CategoriesPage() {
         }}
       />
 
-      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[13px] text-shop-muted">
+      {/* The breadcrumb is desktop-only now. On a phone this page IS the
+          navigation — a bottom-nav tab leads to it, and the browser below puts
+          every department one tap away — so a row saying where the shopper is
+          is a line of text spent telling them what they can already see. */}
+      <nav className="phone-gutter mb-3 hidden items-center gap-2 text-[13px] text-shop-muted md:flex">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -141,11 +179,15 @@ export default async function CategoriesPage() {
           The h1 stays because the page needs one and it is what the tab and
           the search result are named after. The subtitle carries the counts
           the chips used to, in the one form that is worth saying out loud. */}
-      <header className="phone-gutter mb-5">
-        <h1 className="heading-black text-[26px] leading-tight text-shop-ink md:text-[32px]">
+      {/* One line on a phone. The h1 has to exist — it names the tab and the
+          search result — but the two-pane browser under it is self-explanatory
+          in a way a stack of rails was not, so the sentence of counts that
+          introduced them is desktop-only. */}
+      <header className="phone-gutter mb-3 md:mb-5">
+        <h1 className="heading-black text-[19px] leading-tight text-shop-ink md:text-[32px]">
           Browse the shop
         </h1>
-        <p className="section-sub mt-1 text-[14px]">
+        <p className="section-sub mt-1 hidden text-[14px] md:block">
           {departments.length > 0
             ? `${departments.length} ${departments.length === 1 ? "department" : "departments"}, shelf by shelf.`
             : "Categories are being set up. Everything on the shop is still one search away."}
@@ -163,6 +205,11 @@ export default async function CategoriesPage() {
         </div></div>
       ) : (
         <>
+          {/* The phone's version of everything below it. Rendered from the same
+              tree, shown below `md`, and the rails are hidden there — the two
+              are alternatives, not a layout that reflows. */}
+          <CategoryBrowser departments={browse} />
+
           {/* The jump row survives the redesign and matters more than it did.
               Each department is now a heading, a tab row and a rail rather
               than a card, so the page is taller than the one it replaced and
@@ -173,7 +220,7 @@ export default async function CategoriesPage() {
               /* The negative margin is gone with the page gutter it was
                  cancelling: this row has always been full-bleed on a phone, and
                  with the column at zero padding that is now simply what it is. */
-              className="mb-4 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:flex-wrap md:px-0"
+              className="mb-4 hidden gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:flex md:flex-wrap md:px-0"
             >
               {sections.map(({ department }) => (
                 <a
@@ -192,7 +239,7 @@ export default async function CategoriesPage() {
               stops — and a divider under one is a second full-width line
               directly beneath a line of tiles. Space separates them, which is
               what the homepage does with the same objects. */}
-          <div className="flex flex-col gap-10">
+          <div className="hidden flex-col gap-10 md:flex">
             {sections.map(({ department, shelves, products }, index) => (
               <CategoryShelves
                 key={department.id}

@@ -2207,10 +2207,11 @@ h6,
 /* ---------- The product grid, flush, at every width ----------
  *
  * Applied by `PRODUCT_GRID` (lib/product-grid.ts). A tile in this grid is not a
- * card, it is a cell: square corners, no ring, no gutter, and a single hairline
- * between any two neighbours. That is the construction every marketplace grid
- * actually uses, and it is why theirs read as one continuous sheet rather than
- * as loose cards that happen to be touching.
+ * card, it is a cell: square corners, no ring, no gutter and — since the seams
+ * came out, see the note on the rule itself — no divider either. That is the
+ * construction every marketplace grid actually uses, and it is why theirs read
+ * as one continuous sheet rather than as loose cards that happen to be
+ * touching.
  *
  * ---- It was a phone rule, and now it is the rule ----
  *
@@ -2242,9 +2243,29 @@ h6,
  * `:where()` on the tile so the selector keeps zero specificity from this side,
  * and a call site that genuinely needs a rounded tile can still say so with a
  * utility. */
+/* ---- The seams are gone ----
+ *
+ * The grid drew one hairline between any two neighbours: a 1px gap over the
+ * edge colour, with opaque cells, so the ground showed through only between
+ * them. It was asked for and then asked away again, and the note above is kept
+ * because the mechanism is still the one to reach for if a ruled sheet is ever
+ * wanted back — the argument for it was never wrong, it just is not what this
+ * shop wants to look like.
+ *
+ * What is left is the flush part: square corners, no ring, no gutter. The
+ * tiles still butt up against each other and the grid is still one sheet; it
+ * is simply undivided, so the only edges on the page are the edges of the
+ * photographs. The `gap` stays at zero rather than growing back into a gutter
+ * — the whole reason the seams could go is that nothing separates these tiles
+ * now, and 8px of air is a different decision that would have to be argued on
+ * its own.
+ *
+ * `background` is explicitly `transparent` rather than deleted: this rule is
+ * unlayered and the class is used on grids that sit on tinted shelves, so a
+ * stale paint here would show as a coloured slab behind the tiles. */
 .product-grid-flush {
-  gap: 1px;
-  background: var(--color-shop-edge);
+  gap: 0;
+  background: transparent;
 }
 
 .product-grid-flush :where(.tile-card) {
@@ -2413,13 +2434,13 @@ h6,
 }
 
 @media (max-width: 39.99rem) {
-  /* ---- The phone did NOT come down with the desktop ----
+  /* ---- The phone did not come down with the desktop, at first ----
    *
    * The base above went 8:9 → 15:16 to take height off the tile. That was
    * asked for on a big screen and explicitly not on a phone, and the split
    * falls out of how these rules are already arranged: the base governs from
-   * `sm` up, these three govern below it. So the desktop tile is shorter and
-   * the phone tile is exactly what it was.
+   * `sm` up, these three govern below it. So for one pass the desktop tile was
+   * shorter and the phone tile was exactly what it had been.
    *
    * There is a reason beyond it being what was asked for. A desktop grid shows
    * five or six tiles across and a whole row fits on screen, so height is spent
@@ -2432,14 +2453,32 @@ h6,
    * phone grid staggered rather than merely un-ruled: 1.33, 1.0 and 1.4 times
    * their own width. If these ever converge the masonry stops being a masonry
    * and becomes a grid with a ragged foot. */
+  /* ---- …and now it has ----
+   *
+   * The three came down about a tenth each: 1.33 / 1.00 / 1.40 times their own
+   * width, to 1.20 / 0.94 / 1.33. On a 390px screen that is roughly 25px off
+   * the average tile, paid back on every row a shopper scrolls past.
+   *
+   * The note above still holds on the floor — a phone photograph is around
+   * 190px wide and there is a depth below which a shopper cannot tell what
+   * they are looking at. These stay clear of it: the shortest is now slightly
+   * landscape, which is the one that had the most to give, and the tallest is
+   * still a third taller than it is wide, so a jacket or a duvet is not cropped
+   * to its middle.
+   *
+   * The spread is what makes this a masonry rather than a grid with a ragged
+   * foot, and it survives the trim — 1.20, 0.94 and 1.33 are as clearly
+   * different from each other as the three they replaced. Shortening these
+   * further has to keep that: three ratios that converge stop staggering
+   * anything. */
   .tile-frame-a {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 5 / 6;
   }
   .tile-frame-b {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 16 / 15;
   }
   .tile-frame-c {
-    aspect-ratio: 5 / 7;
+    aspect-ratio: 3 / 4;
   }
 }
 
@@ -2465,24 +2504,15 @@ h6,
  * masonry arrangement. `ProductCard` supplies the variation by picking one of
  * three frame ratios off the product id; see `.tile-frame` further down.
  *
- * The hairlines have to be redrawn for it. The grid version painted them with
- * a 1px `gap` over a coloured container — opaque cells, ground showing only
- * between them — and that trick does not survive the move: columns have no
- * rows, so there is no row gap to colour, and the columns end at different
- * depths, so the coloured container would paint a ragged grey block under the
- * shorter one.
- *
- * So the two lines are drawn by two different mechanisms on a phone. The
- * vertical one is `column-rule`, which is a line painted down the gap for the
- * full height of the block — exactly right here, because the ragged feet of
- * two unequal columns still want one continuous divider between them. The
- * horizontal ones are a bottom border on each cell.
- *
- * The last row's bottom border is the one line neither mechanism can avoid
- * drawing, and `margin-bottom: -1px` on the block pulls whatever follows up
- * over it. That is deliberately a vertical fix: the same trick horizontally
- * would make the block a pixel wider than the page and give a phone a
- * sideways scroll, which is a far worse bug than a hairline.
+ * There are no hairlines here any more, and that removal was most of the work.
+ * A phone masonry cannot draw them the way the grid did — columns have no
+ * rows, so there is no row gap to colour — so it drew them twice over instead:
+ * a `column-rule` down the middle, a bottom border on every cell, and a
+ * `margin-bottom: -1px` on the block to pull the following section up over the
+ * last row's border. All three are gone with the seams (see
+ * `.product-grid-flush` above), which is the rare kind of change that deletes
+ * a mechanism rather than adding one. If ruled tiles ever come back on a
+ * phone, that is the shape the answer has to take.
  *
  * `!important` on `display`, and only here: the layout mode is set by the
  * `grid` utility in the class string, which sits in a Tailwind layer that this
@@ -2497,10 +2527,8 @@ h6,
        shopper could name — and a masonry that re-flows on rotation is the one
        way this layout draws attention to itself. */
     columns: 2;
-    column-gap: 1px;
-    column-rule: 1px solid var(--color-shop-edge);
+    column-gap: 0;
     background: transparent;
-    margin-bottom: -1px;
   }
 
   /* Each cell is one unbreakable block in its column. Without `break-inside` a
@@ -2515,7 +2543,6 @@ h6,
   .product-grid-flush > * {
     break-inside: avoid;
     -webkit-column-break-inside: avoid;
-    border-bottom: 1px solid var(--color-shop-edge);
   }
 }
 
