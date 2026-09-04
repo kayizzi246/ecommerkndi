@@ -2440,11 +2440,11 @@ h6,
 @media (max-width: 639px) {
   .product-grid-flush {
     display: block !important;
-    /* Three, in step with the `grid-cols-3` above the breakpoint. The two have
-       to agree or the grid changes column count at 640px for no reason a
+    /* Two, matching the `grid-cols-2` that takes over at 640px. The two have to
+       agree or the grid changes column count at the breakpoint for no reason a
        shopper could name — and a masonry that re-flows on rotation is the one
        way this layout draws attention to itself. */
-    columns: 3;
+    columns: 2;
     column-gap: 1px;
     column-rule: 1px solid var(--color-shop-edge);
     background: transparent;

@@ -9,28 +9,30 @@
  * the columns the real tiles land in. A grid whose placeholder is a different
  * shape from its content re-lays-out the moment the data arrives.
  *
- * ---- Three across on a phone ----
+ * ---- Two across on a phone ----
  *
- * Two was the count for a long time, on the argument that a 360px screen split
- * three ways leaves a 120px photograph. It does, and three is still the right
- * answer: a marketplace phone grid is scanned, not read, and what a shopper is
- * doing on it is rejecting nine things quickly to find the tenth. Two across
- * shows four products on a screen; three shows nine, and the tile carries so
- * little text now — an 11px name at a normal weight, a price, a saving — that
- * the extra column costs the photograph rather than the words.
+ * This went to three for one build and came straight back. Three fits more on a
+ * screen and the arithmetic for it was sound — a phone grid is scanned rather
+ * than read, and nine products beat four at the rejecting stage. What it looked
+ * like is the thing that decided it: a 391px screen split three ways is a 128px
+ * tile, and at that width the photograph stops being a photograph. A shopper
+ * cannot reject nine things they cannot see.
  *
- * `sm` is gone from the ramp with it. It used to be the 2 → 3 step, and a
- * breakpoint that changes nothing is one that will be read as meaning something
- * later. The ramp is 3 → 4 → 5 → 6, stepping at md, lg and 2xl.
+ * So the phone keeps two, and the density work that came with the third column
+ * went back with it — the tile's padding and the corner discount flag were both
+ * shrunk to survive 120px and have no reason to be small at 195px.
+ *
+ * `sm` is back in the ramp as the 2 → 3 step: 2 → 3 → 4 → 5 → 6, at sm, md, lg
+ * and 2xl.
  *
  * ---- Staggered on a phone, ruled from `sm` up ----
  *
  * Below 640px this stops being a grid at all. `.product-grid-flush` (globals.css)
  * swaps `display: grid` for CSS multi-column, and `ProductCard` gives each
- * photograph one of three frame ratios picked off the product id — so the three
+ * photograph one of three frame ratios picked off the product id — so the two
  * phone columns pack independently and a tall tile pushes only its own column
  * down. That is the staggered/masonry arrangement the app uses, and a phone is
- * where it earns its place: columns of wildly different stock, and the
+ * where it earns its place: two columns of wildly different stock, and the
  * alternative is cropping every shot to one box.
  *
  * From `sm` up the class does nothing to `display` and the `grid-cols-*`
@@ -90,8 +92,8 @@
  * photographs the wrong size for the boxes they land in.
  */
 export const PRODUCT_GRID =
-  "product-grid-flush grid grid-cols-3 " +
-  "md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6";
+  "product-grid-flush grid grid-cols-2 " +
+  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6";
 
 /**
  * The same grid with one more column, for a single store's page.
@@ -112,5 +114,5 @@ export const PRODUCT_GRID =
  * ramp moves, this moves with it and stays exactly one ahead.
  */
 export const PRODUCT_GRID_WIDE =
-  "product-grid-flush grid grid-cols-3 " +
-  "md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
+  "product-grid-flush grid grid-cols-2 " +
+  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
