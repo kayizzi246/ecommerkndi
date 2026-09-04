@@ -18,6 +18,7 @@ import ProductViewPing from "@/components/ProductViewPing";
 import ReviewSection from "@/components/ReviewSection";
 import { getSiteSettings } from "@/lib/site-settings";
 import ExpandableContent from "@/components/ExpandableContent";
+import { autoDescription, hasOwnDescription } from "@/lib/product-copy";
 import ProductPurchase from "./ProductPurchase";
 import ProductTabs from "./ProductTabs";
 
@@ -375,15 +376,47 @@ export default async function ProductPage({
             id: "description",
             label: "Description",
             content: (
-              /* Collapsed at 200px rather than the component's 320px default.
-                 At 320 almost nothing on this catalogue overflowed, so the
-                 toggle never appeared and every imported description — spec
-                 tables, size charts, supplier boilerplate — ran at full height
-                 and pushed the related products and reviews off the screen.
-                 200px is about eight lines: enough to judge whether to read
-                 on, short enough that the rest of the page stays reachable. */
-              <ExpandableContent collapsedHeight={200}>
-                <ul className="list-disc pl-5 text-[15px] leading-7 text-shop-body">
+              /* ---- Open, where this used to start collapsed ----
+
+                 The collapse is still here and still capped at 200px — an
+                 imported description can be a spec table thousands of pixels
+                 tall, and the note that set that number is unchanged — but it
+                 no longer starts closed. A shopper who taps Description and is
+                 shown eight lines behind a fade has to act twice to read the
+                 one thing they asked for, and on the many listings whose whole
+                 description is four sentences the fade was appearing over
+                 nothing worth hiding. Open by default, `Show less` still
+                 offered: the long-description case keeps its escape hatch and
+                 the common case stops asking for a click.
+
+                 The trade is real and is worth stating: on a product with an
+                 imported 3,000px description the related products and the
+                 reviews now sit below all of it. That is the shopper's scroll
+                 to make, and it is the one they chose by opening the tab. */
+              <ExpandableContent collapsedHeight={200} defaultExpanded>
+                {/* ---- The written description, or one built from the record ----
+
+                    Two thirds of this catalogue has neither WooCommerce field
+                    filled, and this tab used to render exactly one bullet —
+                    "Style code: KD-1443" — under a heading that promises a
+                    description. `autoDescription` composes two to four
+                    sentences from what the listing already knows: its name, its
+                    placement in the shop, its own attributes, its price and its
+                    sales. Nothing in it is invented, and the reasoning for that
+                    constraint is in lib/product-copy.ts.
+
+                    It is a FLOOR, not a replacement. The moment a seller writes
+                    anything in wp-admin, `hasOwnDescription` sees it and the
+                    generated copy disappears — it never runs alongside real
+                    copy, and it never overrides it. */}
+                {!hasOwnDescription(product) && autoDescription(product).length > 0 && (
+                  <div className="max-w-3xl space-y-3 text-[15px] leading-7 text-shop-body">
+                    {autoDescription(product).map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                )}
+                <ul className="mt-4 list-disc pl-5 text-[15px] leading-7 text-shop-body">
                   <li>Style code: KD-{product.id}</li>
                   {product.short_description && <li>{product.short_description}</li>}
                 </ul>

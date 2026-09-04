@@ -38,6 +38,32 @@ export function toProductQuery(search: ProductFilters & { sort?: string }): Part
   if (search.min_price && Number.isFinite(min) && min > 0) query.min_price = min;
   if (search.max_price && Number.isFinite(max) && max > 0) query.max_price = max;
 
+  /* ---- The refinement goes to WordPress, where the pagination is ----
+   *
+   * `brand` is a category slug, and it used to be page-local: the products
+   * were fetched for the department, and `filterProducts` then dropped the ones
+   * without that category from whatever twenty-four rows had arrived. On a
+   * department of four hundred that is a filter that reports four results
+   * because four of page one matched, and then dribbles more in as the shopper
+   * scrolls — which reads as a filter that does not work, because for any
+   * purpose a shopper has, it does not.
+   *
+   * Sent as `category` it is the server's job, so the count, the ordering and
+   * the paging are all over the real result set. It deliberately REPLACES the
+   * department in the query rather than joining it: the WooCommerce REST
+   * `category` parameter is an OR across ids, so there is no way to ask it for
+   * two at once, and narrowing to the child is the correct answer anyway
+   * because the facet only ever offers descendants of the department the
+   * shopper is in. `FilterSidebar` enforces that, and the two have to stay in
+   * step — an option from outside the branch would silently move the shopper
+   * out of the department they are browsing.
+   *
+   * `filterProducts` still applies the same check client-side. It is redundant
+   * for anything this query returns and it is the guard for anything that
+   * arrives another way — a cached page from before the refinement, or a feed
+   * whose query prop was not updated with it. */
+  if (search.brand) query.category = search.brand;
+
   return query;
 }
 

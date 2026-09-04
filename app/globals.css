@@ -213,13 +213,31 @@
    * was-price — text that is decoration beside the real number, never
    * information a shopper has to read.
    */
-  --color-shop-ink: #111827; /* type, not fills */
-  --color-shop-body: #4b5563;
-  --color-shop-muted: #6b7280; /* ratings, sold counts, secondary labels */
-  --color-shop-title: #374151; /* product names — a step lighter than ink */
-  --color-shop-faint: #9ca3af; /* struck-through was-prices */
-  --color-shop-line: #e5e7eb;
-  --color-shop-hairline: #f3f4f6;
+/* ---- The ink went black, and the greys lost their blue ----
+   *
+   * Every rung on this ramp was a Tailwind slate: #111827 has a blue cast, and
+   * so did the four steps under it. Against an off-white page and the shop's
+   * orange chrome, a cool grey does not read as neutral — it reads as slightly
+   * blue, and it is the one hue on the page that nothing else agrees with.
+   *
+   * So the ramp is neutral now and the top of it is a real near-black rather
+   * than a dark slate. That is where "strong" comes from on a page that is
+   * mostly white panels: the contrast between ground, panel and type stated at
+   * full strength rather than at nine-tenths of it. #0b0b0b on white is 19.9:1
+   * against #111827's 16.1:1, and the whole ramp gains with it — which is what
+   * pays for the product name dropping to 11px at a normal weight.
+   *
+   * The rungs keep their jobs and their ORDER of contrast exactly as the note
+   * above describes them; only the hue and the top step have moved. `faint`
+   * still fails AA on purpose and still may only carry a struck-through
+   * was-price. */
+  --color-shop-ink: #0b0b0b; /* type, not fills */
+  --color-shop-body: #414346;
+  --color-shop-muted: #5d6066; /* ratings, sold counts, secondary labels */
+  --color-shop-title: #26282b; /* product names — a step lighter than ink */
+  --color-shop-faint: #8e9196; /* struck-through was-prices */
+  --color-shop-line: #e0e0e0;
+  --color-shop-hairline: #f2f2f2;
 
   /* ---- The homepage canvas, and the panels that stand on it ----
    *
@@ -426,9 +444,32 @@
    * The hairline goes neutral with it. A warm edge on a neutral ground is the
    * seam that gives a panel away as pasted on, which is the same argument the
    * ninth turn made in the opposite direction. */
-  --color-shop-canvas: #fafafa;
+/* ---- Eleventh turn: white, and the HAIRLINE takes the whole load ----
+   *
+   * Twelve rounds of white → off-white → cream → warm grey → warm cream →
+   * #fafafa end here, and this time the ground is not carrying anything. The
+   * page is #ffffff, the panels are #ffffff, and NOTHING is separated by a
+   * difference in ground colour any more.
+   *
+   * That is only survivable because the separation moved somewhere better
+   * first. The product grid is one flush sheet divided by hairlines, the four
+   * programme cards are another, the panels are ruled rather than tinted — the
+   * boundaries on this page are drawn now, where they used to be implied by a
+   * 2% step that half the phones in Uganda render as white anyway.
+   *
+   * So the EDGE is the token that matters, and it gets what the ground gave
+   * up. #dedede against the old #ececec is roughly twice the contrast on white
+   * — enough that a seam reads as a drawn line rather than as a compression
+   * artefact — and it costs the photography nothing, because a hairline is one
+   * pixel and a tint is a whole page.
+   *
+   * The one thing to know before touching this again: with the ground and the
+   * panels the same colour, `--color-shop-edge` is the only thing keeping a
+   * grid of forty products from reading as one undivided field. It cannot be
+   * lightened without giving the ground its step back. */
+  --color-shop-canvas: #ffffff;
   --color-shop-panel: #ffffff;
-  --color-shop-edge: #ececec;
+  --color-shop-edge: #dedede;
   --color-shop-photo: #fbf7f4;
 
 
@@ -654,7 +695,29 @@
    * still a price to somebody reading at low contrast, and it sits beside the
    * brand orange without the two arguing. Pure #ff0000 next to #ff6a00 is two
    * signals shouting the same thing in slightly different voices. */
+  /* ---- 2026-09-04: this is now the shop's ONE deal red ----
+   *
+   * The name is a leftover — it was minted for a struck-through was-price — and
+   * the token outgrew it. Every mark in the shop that says "reduced" resolves
+   * here now: the −x% corner flag on a grid tile, the same flag on a mini tile,
+   * the −x% on the product photograph, the "Save x%" chip beside the price, the
+   * Super Deal chip, and the reduced price itself in all three places it is
+   * drawn.
+   *
+   * That is deliberate consolidation rather than drift. The rounds recorded
+   * above moved the deal language through red → orange → yellow → orange, and
+   * what made each round necessary was that the marks were on DIFFERENT tokens,
+   * so retiring one silently changed some of them and not others. One token
+   * cannot do that.
+   *
+   * #c62828 is 5.5:1 with white on it, which is what the 9.5–13px labels that
+   * stand on it need. Read it as "the deal red"; rename it if the call sites
+   * are ever touched in bulk. */
   --color-shop-price-was: #c62828;
+  /* The palest step of the same red, for a chip that wants the hue without the
+     block — the Super Deal chip, which sits inside the first line of a product
+     name and cannot be the heaviest ink on the tile. #c62828 on it is 5.2:1. */
+  --color-shop-price-was-soft: #fdecec;
 
   /* ---- Red on a reduced price ----
    *
@@ -676,7 +739,10 @@
    * #dc2626 rather than #e53935 because a price is small text: 15px at 800
    * weight is not "large" under WCAG, #e53935 is 4.2:1 on white and this
    * clears 4.8:1. */
-  --color-shop-sale-price: #111827; /* a reduced price, and nothing else */
+  /* An alias, kept because the essays above cite it by name. Nothing renders
+     from it any more — every deal mark reads `--color-shop-price-was` directly,
+     which is the one token described at the top of this block. */
+  --color-shop-sale-price: var(--color-shop-price-was);
   --color-shop-success: #16a34a;
   /* ---- The saving on a tile ----
    *
@@ -1353,29 +1419,29 @@ h6,
   letter-spacing: 0;
 }
 
-/* ---------- Product names on a tile — 600, 13px ----------
+/* ---------- Product names on a tile — 400, 12px ----------
  * A grid tile's name and a product page's <h1> are the same string doing two
- * different jobs. They differ in size and now in weight.
+ * different jobs. They differ in size and in weight.
  *
- * This has been 600, then 400, and is 600 again. Both arguments are real and
- * the one that decides it is which of them the TILE is built for.
+ * This has been 600, then 400, then 600, and is 400 again — asked for directly
+ * this time, alongside a smaller size, so the note records what it settles.
  *
- * The case for 400, kept because it is still true of a one-line name: "a
- * shopper scanning a grid is matching pictures and prices; the name is what
- * they read to confirm the match, and confirming is reading, not scanning. At
- * 600 every name in the grid was competing with the price beside it and with
- * the forty other names on the screen."
+ * The argument for 400 is the one that has always been true of the SCAN: a
+ * shopper going down a grid is matching pictures and prices, and the name is
+ * what they read to confirm a match they have already made with their eyes. At
+ * 600 every name in the grid competed with the price beside it and with the
+ * forty other names on the screen, and the page had no quiet type on it at all.
  *
- * What changed under it is the name itself. The tile now gives the name TWO
- * lines rather than one clipped one (see `ProductCard`), and a two-line block
- * of 400 at 13px is a paragraph — it stops reading as a label and starts
- * reading as body copy that happens to sit under a photograph. At 600 the two
- * lines read as one object with a name, which is what a tile is.
+ * The argument for 600 was that a two-line block at 400 reads as a paragraph
+ * rather than as a label. That is answered by the size rather than by the
+ * weight: at 12px on 16px leading the two lines are a caption, which is the
+ * thing a paragraph is not. The tile's own edges — drawn around every cell by
+ * the flush sheet — carry the "one object" reading that the weight was
+ * carrying before.
  *
- * The competition with the price is answered by the price rather than by the
- * name: `.price` is 700 and a step larger, and it is the only coloured type in
- * the tile on a reduction. Two weights apart is enough separation; it does not
- * need three.
+ * The competition with the price is answered by the price: `.price` is 700 and
+ * several steps larger, and it is the only coloured type in the tile on a
+ * reduction. Three weights apart now, which on a page this dense is the point.
  *
  * Unlayered, like the h1–h6 rule it has to beat — a tile name is an <h3>, so
  * without this it would inherit the display face at 700. Being unlayered also
@@ -1383,7 +1449,7 @@ h6,
  * the only place the weight can be changed. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: 400;
   /* Undoes the heading tracking. A product name is body copy that happens to be
      marked up as a heading and should be spaced like the sentences around it. */
   letter-spacing: 0;
@@ -1673,7 +1739,13 @@ h6,
      cream canvas underneath, a shelf that paints nothing is a shelf whose
      copy sits on the page rather than on a surface, and the full-bleed white
      band is what tells a phone where one section ends. */
-  margin-inline: -12px;
+  /* Zero, where this was -12px pulling the panel back out through the page
+     column's own `px-3`. That column has no horizontal padding on a phone any
+     more — see `.phone-gutter` — so there is nothing left to pull back
+     through, and a negative margin against a zero gutter would hang the panel
+     12px off each side of the screen. Full bleed is now simply what a
+     zero-margin block does. */
+  margin-inline: 0;
   /* 10/8 rather than 12/10, which was itself 14/12 a pass ago. The panel bleeds
      to both edges of a phone, so its horizontal padding is subtracted from the
      same 360px the product grid is trying to divide into two readable columns
@@ -1861,8 +1933,12 @@ h6,
  * The negative margins pull the bar out to the section's own padding edge: full
  * width on a phone, and a cap on the white card from md up.
  */
+/* -10px/-8px is exactly `.shop-panel`'s own 10px/8px padding negated — the bar
+   has to reach the panel's edge, and the panel is full-bleed on a phone, so
+   those two figures are one figure. They were -14px/-12px against a 10/8
+   panel, which hung the bar four pixels past the screen on both sides. */
 .shop-panel-strong > .section-head {
-  margin: -14px -12px 12px;
+  margin: -10px -8px 12px;
   padding: 12px;
   background: var(--shelf);
 }
@@ -2148,6 +2224,192 @@ h6,
 .product-grid-flush :where(.tile-card) {
   border-radius: 0;
   box-shadow: none;
+}
+
+/* ---------- The phone has no page gutter ----------
+ *
+ * Every shopping screen used to carry 12–16px down each side of a 360px phone,
+ * which is 8% of the screen spent on nothing, taken out of the photographs the
+ * screen exists to show. The gutter is gone: the grids, the shelves and the
+ * feature sheet all run edge to edge on a phone and the page is capped and
+ * inset again from `md` up, where there is width to spare.
+ *
+ * Not everything on those pages can live at the edge, though. A breadcrumb, a
+ * heading, a result count or a filter disclosure sitting hard against the
+ * screen edge reads as a rendering fault rather than as a decision, because
+ * unlike a photograph they have no edge of their own — a product tile is a
+ * bounded object and a line of text is not.
+ *
+ * So the gutter moves from the page onto the handful of blocks that still
+ * need one, and this is that gutter. 10px, phone only, and it collapses to
+ * nothing from `md` where the page's own `md:px-8` takes over again.
+ *
+ * One class rather than `px-2.5 md:px-0` repeated forty times, so the number
+ * can be changed in one place and so a reader can tell "this block keeps its
+ * gutter" from "this block happens to have padding".
+ */
+.phone-gutter {
+  padding-inline: 10px;
+}
+
+@media (min-width: 768px) {
+  .phone-gutter {
+    padding-inline: 0;
+  }
+}
+
+/* ---------- The four programme cards, as one sheet ----------
+ *
+ * Super Deals, Best sellers, New in and Just landed. They were four rounded
+ * cards with 12px of air between them; they are four cells of one block now,
+ * divided by hairlines, for the reason the product grid gave up its gutters:
+ * the gap was not separating anything the edge was not already separating, and
+ * on a phone every pixel of it came out of a photograph.
+ *
+ * Same mechanism as `.product-grid-flush` — a 1px grid gap over the edge
+ * colour, with opaque cells — because it is the same problem and the shop
+ * should not have two answers to it. `gap` is owned here rather than in the
+ * class string: this rule is unlayered, so a `gap-*` utility beside it in the
+ * markup would lose silently and read as a live setting.
+ *
+ * Rounded on the outside only, so the block reads as one object rather than as
+ * a rectangle of cells. `overflow: hidden` is what actually does the rounding —
+ * the cells are square and get clipped by the corner — and it is why the radius
+ * lives on the container rather than on the four corner cells, which would
+ * otherwise have to know which corner they were in at three breakpoints.
+ */
+.feature-sheet {
+  gap: 1px;
+  background: var(--color-shop-edge);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--color-shop-edge);
+}
+
+@media (max-width: 767px) {
+  /* Square and full-bleed on a phone, with the panels either side of it. A
+     rounded block inset from both edges is a card floating on the page; the
+     phone layout has no gutters left for it to float in. */
+  .feature-sheet {
+    border-radius: 0;
+  }
+}
+
+/* ---- The four accents ----
+ *
+ * Saturated, not pastel, and each one is a colour the shop already owns: the
+ * Super Deals crimson and the Trending violet from the accent-shelf block
+ * above, and the men's blue and kids' green from the department grounds. Four
+ * NEW hues would be four more things to keep in step; these four already move
+ * with the rest of the palette.
+ *
+ * All four are used as a ground for white type — the badge — and as type on
+ * white — the title on hover. Contrast against white runs 5.5:1 to 7.4:1, so
+ * both directions clear AA at the sizes they are set in.
+ *
+ * Crimson goes to Super Deals deliberately: it is the same crimson as the
+ * Super Deals shelf and the Super Price Store header, so the three places the
+ * shop talks about a cut price are one colour rather than three.
+ */
+.feature-accent-deals {
+  --accent: var(--color-shop-panel-deals);
+}
+.feature-accent-best {
+  --accent: var(--color-shop-panel-trending);
+}
+.feature-accent-new {
+  --accent: #1e56bd;
+}
+.feature-accent-landed {
+  --accent: #0b7a43;
+}
+
+/* ---- The photograph's frame ----
+ *
+ * 8:9 everywhere the grid is a grid, which is the ratio the tile has always
+ * used: a shade taller than square, so a jacket or a duvet is not cropped to
+ * its middle, and about fifteen pixels shorter per row than a 1:1.
+ *
+ * The three variants are what makes the phone grid staggered rather than
+ * merely un-ruled. They only apply below `sm`, because a masonry column needs
+ * its cells to be different heights and a ruled grid needs them not to be —
+ * the same frame class therefore does opposite jobs either side of 640px,
+ * which is exactly what it should do.
+ *
+ * `ProductCard` picks between them with `id % 3`, so the choice is stable
+ * across a re-render and identical on the server and in the browser. Anything
+ * random here is a hydration mismatch that shows as the whole grid jumping. */
+.tile-frame {
+  aspect-ratio: 8 / 9;
+}
+
+@media (max-width: 639px) {
+  .tile-frame-a {
+    aspect-ratio: 3 / 4;
+  }
+  .tile-frame-b {
+    aspect-ratio: 1 / 1;
+  }
+  .tile-frame-c {
+    aspect-ratio: 5 / 7;
+  }
+}
+
+/* ---- The phone grid is staggered ----
+ *
+ * Below `sm` the sheet stops being a grid and becomes two CSS columns, so each
+ * column packs independently and the tiles can be different heights — the
+ * masonry arrangement. `ProductCard` supplies the variation by picking one of
+ * three frame ratios off the product id; see `.tile-frame` further down.
+ *
+ * The hairlines have to be redrawn for it. The grid version painted them with
+ * a 1px `gap` over a coloured container — opaque cells, ground showing only
+ * between them — and that trick does not survive the move: columns have no
+ * rows, so there is no row gap to colour, and the columns end at different
+ * depths, so the coloured container would paint a ragged grey block under the
+ * shorter one.
+ *
+ * So the two lines are drawn by two different mechanisms on a phone. The
+ * vertical one is `column-rule`, which is a line painted down the gap for the
+ * full height of the block — exactly right here, because the ragged feet of
+ * two unequal columns still want one continuous divider between them. The
+ * horizontal ones are a bottom border on each cell.
+ *
+ * The last row's bottom border is the one line neither mechanism can avoid
+ * drawing, and `margin-bottom: -1px` on the block pulls whatever follows up
+ * over it. That is deliberately a vertical fix: the same trick horizontally
+ * would make the block a pixel wider than the page and give a phone a
+ * sideways scroll, which is a far worse bug than a hairline.
+ *
+ * `!important` on `display`, and only here: the layout mode is set by the
+ * `grid` utility in the class string, which sits in a Tailwind layer that this
+ * unlayered rule already outranks — but `display` is the one property where
+ * losing silently would leave a two-column grid of unequal tiles rather than a
+ * visibly broken page, which is the failure that ships. */
+@media (max-width: 639px) {
+  .product-grid-flush {
+    display: block !important;
+    columns: 2;
+    column-gap: 1px;
+    column-rule: 1px solid var(--color-shop-edge);
+    background: transparent;
+    margin-bottom: -1px;
+  }
+
+  /* Each cell is one unbreakable block in its column. Without `break-inside` a
+     tile splits across the column boundary and its price ends up under a
+     different photograph, which is the one way this layout fails badly.
+
+     No `display` here, deliberately. The cells are sometimes an `<li>` and
+     sometimes `ProductCard`'s own `<article>`, which is a `flex h-full flex-col`
+     that bottom-pins its price — forcing them all to `block` would unpin it. A
+     multi-column child does not need a particular display to be laid out; it
+     needs `break-inside` so it is not sliced in half at a column boundary. */
+  .product-grid-flush > * {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    border-bottom: 1px solid var(--color-shop-edge);
+  }
 }
 
 /* The lift comes off inside a flush grid. A cell that rises 2px opens a 2px

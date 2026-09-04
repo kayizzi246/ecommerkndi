@@ -97,7 +97,7 @@ export default function CategoryShelves({
           where their things live. Same treatment as the homepage's department
           rails, deliberately: these are the same objects, and inventing a
           second style for them here would make one shop look like two. */}
-      <div className="flex items-end justify-between gap-4">
+      <div className="phone-gutter flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h2 id={`dept-${slug}-title`} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
             {name}
@@ -140,7 +140,12 @@ export default function CategoryShelves({
         <div
           role="tablist"
           aria-label={`${name} shelves`}
-          className="-mx-3 mt-3 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:px-0"
+          /* The negative margin has gone with the page gutter it was
+             cancelling — /categories runs at zero horizontal padding on a phone
+             now, so this row reaches the edge by simply not being inset. The
+             12px of `px-3` stays: it is what keeps the first pill lined up with
+             the heading above it rather than hard against the glass. */
+          className="mt-3 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:flex-wrap md:px-0"
         >
           <Tab
             label="All"

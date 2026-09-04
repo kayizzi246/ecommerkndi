@@ -121,7 +121,7 @@ export default async function SalePage({
      rule; this is where it is explained. */
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-3 md:px-8 lg:pb-10">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-3 md:px-8 lg:pb-10">
       {/* The highest-converting page on the shop, and it carried no structured
           data at all — so the one page whose entire content is discounted stock
           was the page Google understood least. The breadcrumb places it, the
@@ -140,7 +140,7 @@ export default async function SalePage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="phone-gutter mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -167,16 +167,35 @@ export default async function SalePage({
            announcement strip at the top of this very page. A fourth telling
            was spending the best space on the page on terms nobody came here
            to read. */}
-      <section className="mb-4 rounded-2xl bg-shop-panel px-3.5 py-3.5 shadow-[inset_0_0_0_1px_var(--color-shop-line)] md:px-5 md:py-4">
+      {/* ---- The header is the crimson now, not a white card ----
+
+           The slab came back, and this note is the argument for why it is
+           allowed to this time. The old one was a 250px BRAND gradient — a
+           decorative field behind a heading, on a page whose subject is the
+           products under it. This is the shelf colour: the same
+           `--color-shop-panel-deals` crimson as the Super Deals shelf on the
+           homepage and the Super Deals card in the feature row, so a shopper
+           who taps any of the three arrives somewhere that is obviously the
+           same place.
+
+           It is also the one page in the shop where a strong ground is the
+           honest thing to draw. Every product on it is reduced; the whole page
+           is the claim the colour is making.
+
+           White type on #b8123a is 7.4:1, so the eyebrow, the headline and the
+           copy all clear AA comfortably. The figure tiles keep a white ground
+           and dark type rather than being inverted — they are NUMBERS, and a
+           number is read rather than scanned. */}
+      <section className="mb-4 bg-[color:var(--color-shop-panel-deals)] px-3.5 py-4 md:rounded-2xl md:px-5 md:py-5">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-shop-flame">
+            <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-white/80">
               Super Price Store
             </p>
-            <h1 className="heading-black mt-1 text-[26px] leading-[1.08] text-shop-ink md:text-[34px]">
+            <h1 className="heading-black mt-1 text-[26px] leading-[1.08] text-white md:text-[34px]">
               {deepest > 0 ? `Up to ${deepest}% off` : "Every reduced price"}
             </h1>
-            <p className="mt-1.5 max-w-[54ch] text-[14px] leading-relaxed text-shop-body">
+            <p className="mt-1.5 max-w-[54ch] text-[14px] leading-relaxed text-white/85">
               {total > 0
                 ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day — what is here today may not be tomorrow.`
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
@@ -193,7 +212,7 @@ export default async function SalePage({
       </section>
 
       {/* Result bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
+      <div className="phone-gutter mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
         <p className="text-[14px] text-shop-muted">
           Showing <span className="font-semibold text-shop-ink">{sorted.length}</span> of {total}{" "}
           {total === 1 ? "deal" : "deals"}
@@ -234,7 +253,7 @@ export default async function SalePage({
  */
 function Figure({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl bg-shop-hairline px-4 py-2.5 text-center">
+    <div className="rounded-xl bg-white px-4 py-2.5 text-center">
       <p className="text-[11px] font-bold uppercase tracking-wide text-shop-muted">
         {label}
       </p>
@@ -245,7 +264,7 @@ function Figure({ label, value }: { label: string; value: ReactNode }) {
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-shop-line bg-white px-6 py-20 text-center">
+    <div className="phone-gutter"><div className="rounded-2xl border border-dashed border-shop-line bg-white px-6 py-20 text-center">
       <p className="text-[19px] font-extrabold text-shop-ink">{title}</p>
       <p className="mx-auto mt-2 max-w-[44ch] text-[15px] leading-relaxed text-shop-muted">{copy}</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -256,6 +275,6 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
           Back to the shop
         </Link>
       </div>
-    </div>
+    </div></div>
   );
 }

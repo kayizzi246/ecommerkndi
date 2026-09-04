@@ -225,7 +225,7 @@ export default async function CategoryPage({
     : [];
 
   return (
-    <main className="w-full px-3 pb-24 pt-3 md:px-8 lg:pb-10">
+    <main className="w-full px-0 pb-24 pt-3 md:px-8 lg:pb-10">
       {/* The same trail as the visible breadcrumbs below, in the form Google
           reads. It is what turns "kandiug.com › category › men" in a result
           into "Home › Men", and it tells a crawler where this page sits in the
@@ -251,7 +251,7 @@ export default async function CategoryPage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -261,9 +261,9 @@ export default async function CategoryPage({
 
       <div className="flex flex-col gap-5 md:flex-row md:gap-6">
         {/* Filter rail */}
-        <div className="order-first w-full flex-none md:w-56 lg:w-64">
+        <div className="phone-gutter order-first w-full flex-none md:w-56 lg:w-64">
           <div className="hidden md:sticky md:top-32 md:block">
-            <FilterSidebar brands={brands} />
+            <FilterSidebar brands={brands} categories={categories} currentSlug={slug} />
           </div>
 
           {/* Mobile: filters collapse into a disclosure. */}
@@ -275,13 +275,13 @@ export default async function CategoryPage({
               </svg>
             </summary>
             <div className="px-4 pb-4">
-              <FilterSidebar brands={brands} />
+              <FilterSidebar brands={brands} categories={categories} currentSlug={slug} />
             </div>
           </details>
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
+          <div className="phone-gutter mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
               {/* ---- The `<h1>` says what the title tag says ----
 
@@ -318,7 +318,7 @@ export default async function CategoryPage({
           </div>
 
           {visible.length === 0 ? (
-            <div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
+            <div className="phone-gutter"><div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
               <p className="text-[18px] font-semibold text-shop-ink">
                 {filtered || products.length > 0
                   ? "No products match these filters"
@@ -332,7 +332,7 @@ export default async function CategoryPage({
               <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[14px]">
                 Continue shopping
               </Link>
-            </div>
+            </div></div>
           ) : (
             <>
               {/* 8px between columns, 16px between rows, opening to 12/24 from
@@ -365,7 +365,11 @@ export default async function CategoryPage({
                 initialProducts={visible}
                 totalPages={total_pages}
                 startPage={page}
-                query={{ category: slug, sort }}
+                /* The refinement, when there is one, is the category the feed
+                   pages through — the same substitution `toProductQuery` makes
+                   for the server render above, and it has to be the same or
+                   page one and page two would be drawn from different queries. */
+                query={{ category: search.brand || slug, sort }}
                 filters={search}
                 sort={sort}
                 doneLabel={`That is everything in ${title}.`}
@@ -406,13 +410,15 @@ export default async function CategoryPage({
                   they want should meet products first; the text is for the one
                   who scrolled to the end without buying, and for Google. */}
               {showIntro && (
-                <CategoryIntro
-                  name={title}
-                  total={total}
-                  products={visible}
-                  settings={settings}
-                  faqs={faqs}
-                />
+                <div className="phone-gutter">
+                  <CategoryIntro
+                    name={title}
+                    total={total}
+                    products={visible}
+                    settings={settings}
+                    faqs={faqs}
+                  />
+                </div>
               )}
             </>
           )}

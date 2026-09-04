@@ -69,7 +69,11 @@ export default function PortalBand({
          roughly 1.05 : 1 — the campaign panel wants to be the widest thing on the
          row because it is the only artwork, and the price panel wants its four
          thumbnails to land above 100px each, which at this shell they do. */
-      className="grid gap-3 md:grid-cols-[205px_minmax(0,1fr)] xl:grid-cols-[205px_minmax(0,1.05fr)_minmax(0,1fr)_235px]"
+      /* `phone-gutter`: these are rounded cards with a shadow, and a rounded
+         card hard against the screen edge reads as a card that has been cut
+         off. The page column below has no gutter of its own any more — see
+         the note on that class in globals.css. */
+      className="phone-gutter grid gap-3 md:grid-cols-[205px_minmax(0,1fr)] xl:grid-cols-[205px_minmax(0,1.05fr)_minmax(0,1fr)_235px]"
     >
       <PortalCategories departments={departments} />
 

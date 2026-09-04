@@ -375,7 +375,13 @@ export default function ProductCard({
   const chip = product.featured
     ? { label: "Choice", className: "bg-pop-violet-soft text-pop-violet" }
     : discount >= 30
-      ? { label: "Super Deal", className: "bg-shop-primary-soft text-shop-primary-ink" }
+      ? /* Red, where this was the brand orange. It is the only one of the four
+           chips that is about the PRICE, and the price marks on this tile — the
+           corner percentage and the reduced figure — are red; an orange deal
+           chip beside a red percentage was the tile saying one thing in two
+           voices. The other three chips keep their own hues, which is what
+           stops the row of them collapsing into one colour again. */
+        { label: "Super Deal", className: "bg-shop-price-was-soft text-[color:var(--color-shop-price-was)]" }
       : /* New sits above "Top rated" and below the two deal chips: a shopper
            who has been here before is looking for what changed, and a new
            listing has no rating yet to win the slot on anyway. */
@@ -416,6 +422,23 @@ export default function ProductCard({
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
+
+  /* ---- Which shape this tile's photograph is cut to ----
+   *
+   * One of three frames, and it only means anything on a phone: below 640px
+   * the product grid is CSS columns rather than a grid, and a masonry column
+   * is only staggered if its cells are different heights. From `sm` up all
+   * three classes resolve to the same 8:9 and the grid is ruled again. See
+   * `.tile-frame` in globals.css and the note in lib/product-grid.ts.
+   *
+   * `id % 3` rather than anything random, and that is the whole reason this is
+   * a modulo of a number the product already has: the server and the browser
+   * have to choose the same frame or hydration mismatches and the entire grid
+   * re-lays-out on load. `Math.abs` because a Woo id is not guaranteed
+   * positive and `%` in JavaScript keeps the sign. */
+  const frame = ["tile-frame-a", "tile-frame-b", "tile-frame-c"][
+    Math.abs(product.id) % 3
+  ];
 
   /* ---- What used to be computed here, and where it went ----
    *
@@ -739,7 +762,9 @@ export default function ProductCard({
               square cell reads as a picture pasted onto the card rather than
               as the card's own face — and the cell is the object now, not the
               picture inside it. See `.tile-card` in globals.css. */}
-          <div className="relative aspect-[8/9] w-full overflow-hidden bg-shop-photo">
+          <div
+            className={`tile-frame ${frame} relative w-full overflow-hidden bg-shop-photo`}
+          >
             {product.image ? (
               <>
                 {/* The eager branch below is `loading="eager"` +
@@ -899,8 +924,25 @@ export default function ProductCard({
 
              The shape stays as the note above describes it: a pill, 800 weight,
              a hair of padding, and a warm shadow so it lifts off the photograph
-             rather than sitting flat on it. */
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-shop-primary px-2 py-1 text-[11px] font-extrabold leading-none text-shop-ink shadow-[0_4px_10px_-4px_rgba(255,106,0,0.9)]">
+             rather than sitting flat on it.
+
+             ---- 2026-09-04: red, and this time it is the last round ----
+
+             The shopkeeper's call again, and the history above is five rounds
+             of the same question — red, orange, yellow, orange — asked once per
+             mark. What ended it is not a better hue but a single token: every
+             percentage and every reduced price in the shop now resolves to
+             `--color-shop-price-was` (see its note in globals.css), so the
+             corner flag, the mini tile's flag, the −x% on the product
+             photograph, the "Save x%" chip and the price itself cannot drift
+             apart again the way they did each time one of them was repointed.
+
+             White type rather than the ink this carried on orange: white on
+             #c62828 is 5.5:1 where near-black is 3.9:1, so the polarity flips
+             back with the ground. That is the same trade the yellow round made
+             in the opposite direction, and it is why a fill change here is
+             never only a fill change. */
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)]">
             −{discount}%
           </span>
         )}
@@ -1131,7 +1173,26 @@ export default function ProductCard({
               from the leading rather than from the line count. 17px on 13px
               type is still a comfortable 1.31, and it is two pixels off every
               tile in the grid. */}
-          <h3 className="product-name line-clamp-2 min-h-[34px] text-[13px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary">
+          {/* ---- Small, and set at a normal weight ----
+
+              12px on 16px leading, down from 13/17, and `.product-name` now
+              carries `font-weight: 400` rather than 600. The name is the one
+              thing on this tile that is not a claim: the price, the saving and
+              the stock line are all set in bold or in colour because they are
+              the numbers a shopper is comparing, and a semibold name was
+              competing with all three at once for the same attention.
+
+              At 400 the name reads as the caption under the photograph, which
+              is what it is — the photograph says what the product looks like
+              and the name says which one it is. The weight that was carrying
+              "one object with a name" is now carried by the tile's own edges,
+              which the flush sheet draws around every cell.
+
+              `min-h-[32px]` is still 2 × the leading, and it is still
+              load-bearing for the same reason as before: `line-clamp-2` is a
+              ceiling rather than a height, so without it a one-line name would
+              land its price on a different row from its neighbours'. */}
+          <h3 className="product-name line-clamp-2 min-h-[32px] text-[12px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9.5px] font-bold leading-[14px] ${chip.className}`}

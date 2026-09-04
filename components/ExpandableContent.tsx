@@ -16,13 +16,23 @@ export default function ExpandableContent({
   collapsedHeight = 320,
   moreLabel = "Show more",
   lessLabel = "Show less",
+  defaultExpanded = false,
 }: {
   children: React.ReactNode;
   collapsedHeight?: number;
   moreLabel?: string;
   lessLabel?: string;
+  /**
+   * Start open, with `Show less` offered rather than `Show more`.
+   *
+   * For content a reader has already asked to see — a product description
+   * behind a tab they tapped — where the clamp is a guard against the rare
+   * enormous case rather than the expected state. It does not disable the
+   * toggle; it only chooses which side of it the reader starts on.
+   */
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [overflows, setOverflows] = useState(false);
 
   // A callback ref rather than an effect, so measurement happens as the node

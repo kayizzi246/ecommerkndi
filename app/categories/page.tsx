@@ -91,7 +91,7 @@ export default async function CategoriesPage() {
     .filter((section) => section.products.length > 0);
 
   return (
-    <main className="mx-auto w-full max-w-[var(--shell)] px-3 pb-24 pt-3 md:px-8 lg:pb-12">
+    <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-3 md:px-8 lg:pb-12">
       {/* The department index, declared as a list of departments.
           Every child is included, not only the top-level ones — the whole point
           of this page for a crawler is that it is the one place the full tree is
@@ -122,7 +122,7 @@ export default async function CategoriesPage() {
         }}
       />
 
-      <nav className="mb-3 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[13px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -141,7 +141,7 @@ export default async function CategoriesPage() {
           The h1 stays because the page needs one and it is what the tab and
           the search result are named after. The subtitle carries the counts
           the chips used to, in the one form that is worth saying out loud. */}
-      <header className="mb-5">
+      <header className="phone-gutter mb-5">
         <h1 className="heading-black text-[26px] leading-tight text-shop-ink md:text-[32px]">
           Browse the shop
         </h1>
@@ -153,14 +153,14 @@ export default async function CategoriesPage() {
       </header>
 
       {sections.length === 0 ? (
-        <div className="rounded-3xl border border-shop-line bg-white p-10 text-center">
+        <div className="phone-gutter"><div className="rounded-3xl border border-shop-line bg-white p-10 text-center">
           <p className="text-[15px] text-shop-muted">
             Nothing to browse yet. Have a look at everything on the shop instead.
           </p>
           <Link href="/search" className="btn-shop mt-5 inline-flex px-7 py-2.5 text-[15px]">
             Browse all products
           </Link>
-        </div>
+        </div></div>
       ) : (
         <>
           {/* The jump row survives the redesign and matters more than it did.
@@ -170,7 +170,10 @@ export default async function CategoriesPage() {
           {sections.length > 2 && (
             <nav
               aria-label="Jump to a department"
-              className="-mx-3 mb-4 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:mx-0 md:flex-wrap md:px-0"
+              /* The negative margin is gone with the page gutter it was
+                 cancelling: this row has always been full-bleed on a phone, and
+                 with the column at zero padding that is now simply what it is. */
+              className="mb-4 flex gap-2 overflow-x-auto px-3 pb-1 no-scrollbar md:flex-wrap md:px-0"
             >
               {sections.map(({ department }) => (
                 <a
@@ -223,7 +226,7 @@ export default async function CategoriesPage() {
  */
 function ShelfIndex({ departments }: { departments: CategoryNode[] }) {
   return (
-    <section aria-labelledby="shelf-index" className="mt-14 border-t border-shop-line pt-8">
+    <section aria-labelledby="shelf-index" className="phone-gutter mt-14 border-t border-shop-line pt-8">
       <h2 id="shelf-index" className="text-[15px] font-bold text-shop-ink">
         Every shelf
       </h2>

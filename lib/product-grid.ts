@@ -9,6 +9,26 @@
  * the columns the real tiles land in. A grid whose placeholder is a different
  * shape from its content re-lays-out the moment the data arrives.
  *
+ * ---- Staggered on a phone, ruled from `sm` up ----
+ *
+ * Below 640px this stops being a grid at all. `.product-grid-flush` (globals.css)
+ * swaps `display: grid` for CSS multi-column, and `ProductCard` gives each
+ * photograph one of three frame ratios picked off the product id — so the two
+ * phone columns pack independently and a tall tile pushes only its own column
+ * down. That is the staggered/masonry arrangement the app uses, and a phone is
+ * where it earns its place: two columns of wildly different stock, and the
+ * alternative is cropping every shot to one box.
+ *
+ * From `sm` up the class does nothing to `display` and the `grid-cols-*`
+ * utilities below govern as they always have — an even, ruled sheet. A
+ * six-column masonry on a monitor reads as a layout fault rather than as a
+ * catalogue, and the wider the screen the more the ragged column feet show.
+ *
+ * The trade on the phone half is reading order: multi-column fills column one
+ * top to bottom before column two, so the DOM order runs down the columns
+ * rather than across the rows. For a catalogue — an unordered set of products
+ * a shopper scans — that is the natural order anyway.
+ *
  * ---- No gutters at all, at any width ----
  *
  * The phone grid went 10/12px, then 6/8px, then none — every pixel of gutter on

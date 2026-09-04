@@ -65,7 +65,7 @@ export default function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-[4px] border border-shop-line bg-white text-sm text-shop-muted">
+      <div className="flex aspect-[4/5] w-full items-center justify-center rounded-[4px] border border-shop-line bg-white text-sm text-shop-muted">
         No image
       </div>
     );
@@ -133,8 +133,25 @@ export default function ImageGallery({
           </ul>
         )}
 
-        {/* Main frame */}
-        <div className="relative aspect-square min-w-0 flex-1 overflow-hidden rounded-[4px] border border-shop-line bg-white">
+        {/* ---- Main frame: 4:5, where this was square ----
+
+             The gallery column ends where the description begins, and with a
+             square frame it ended about 200px short of it — a band of white
+             down the left of the page between the photograph and the first
+             tab, on the one screen where the photograph is the argument.
+
+             Portrait rather than merely bigger. Most of this catalogue is
+             clothing, shoes and packaged goods shot upright, so 4:5 is the
+             shape the stock already is; a taller square would have added the
+             same height and then filled it with background. `object-contain`
+             means nothing is cropped either way — a genuinely landscape shot
+             letterboxes into the frame exactly as it did before.
+
+             The cap on the column moved with it (`ProductPurchase`, 560 → 640),
+             because height alone would have made the frame narrow and tall.
+             Both numbers are one decision: they are what puts the foot of the
+             gallery level with the description beside it. */}
+        <div className="relative aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-[4px] border border-shop-line bg-white">
         <button
           type="button"
           onClick={() => setLightbox(true)}
@@ -169,7 +186,13 @@ export default function ImageGallery({
             nobody can buy is an advert for a disappointment. */}
         <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
           {!soldOut && discount > 0 && (
-            <span className="rounded-full bg-shop-primary-ink px-3 py-1 text-[13px] font-semibold text-white">
+            /* Red, with every other percentage in the shop — the grid tile's
+               corner flag, the mini tile's, and the "Save x%" chip in the price
+               row below this picture. A shopper who saw −40% on the tile they
+               tapped should meet the same mark in the same colour here; it was
+               the brand's burnt orange, which made the product page the one
+               place the shop said "reduced" in a different voice. */
+            <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-3 py-1 text-[13px] font-bold text-white">
               −{discount}%
             </span>
           )}

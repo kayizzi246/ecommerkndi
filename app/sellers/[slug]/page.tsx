@@ -313,7 +313,23 @@ export default async function StorePage({ params }: Params) {
               bolted on: two classes setting the same property at the same
               breakpoint is decided by Tailwind's emit order, not by the class
               list. See the note in lib/product-grid.ts. */}
-          <div className={`px-3 md:px-8 ${PRODUCT_GRID_WIDE}`}>
+          {/* ---- No gutter at any width, and only on this grid ----
+
+              The store page is the one route in the shop that overrides
+              `--shell` to 100% (see `StoreChrome`), because its entire job is
+              "here is everything this seller has". The 32px it was keeping down
+              each side from `md` up was the last thing standing between that
+              intent and the window: a full-width page with an inset grid is a
+              page that is full-width in the header and a normal page in the
+              part a shopper is actually looking at.
+
+              The grid alone. Everything above it — the store banner, the
+              heading, the counts — keeps its `md:px-8`, because those are lines
+              of TEXT and text hard against the glass reads as broken. A product
+              tile is a bounded object with its own edge and loses nothing at
+              the screen edge, which is the same argument the phone gutter was
+              removed on. */}
+          <div className={PRODUCT_GRID_WIDE}>
             {products.map((product) => (
               /* `sizes` stated rather than defaulted. The card's default
                  describes the six-column grids elsewhere in the shop and ends

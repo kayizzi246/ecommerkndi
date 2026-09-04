@@ -70,7 +70,7 @@ export default function PickedForYou({
           six chips on two lines is a block of navigation sitting where the first
           row of products should be. The heading rides the row rather than
           sitting above it, which is what keeps the whole thing to one line. */}
-      <div className="no-scrollbar mb-3 flex items-center gap-2 overflow-x-auto border-b border-shop-line pb-2.5">
+      <div className="phone-gutter no-scrollbar mb-3 flex items-center gap-2 overflow-x-auto border-b border-shop-line pb-2.5">
         <h2
           id="picked-heading"
           className="mr-1 shrink-0 text-[15px] font-bold text-shop-ink md:text-[17px]"
@@ -124,7 +124,7 @@ export default function PickedForYou({
             ))}
           </ul>
 
-          <div className="mt-8 flex justify-center">
+          <div className="phone-gutter mt-8 flex justify-center">
             <Link
               href={department.slug ? `/category/${department.slug}` : "/categories"}
               className="rounded-lg border border-shop-line px-8 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"

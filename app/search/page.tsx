@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getProductsSafe } from "@/lib/woocommerce";
+import { getCategories, getProductsSafe } from "@/lib/woocommerce";
 
 /**
  * Search results are not content, and Google should not hold any.
@@ -71,13 +71,23 @@ export default async function SearchPage({
       })
     : { products: [], total: 0, total_pages: 0 };
 
+  /* The whole category list, for the browse section of the filter panel. A
+     search result has no department of its own, so the panel offers the shop's
+     departments — which is the one thing a shopper staring at a thin set of
+     results most often wants next.
+
+     `.catch(() => [])` for the same reason the category page uses it: this list
+     is a convenience on a page that works without it, and a WordPress outage
+     should cost the shopper the browse links rather than the search. */
+  const categories = await getCategories().catch(() => []);
+
   const brands = brandFacets(products);
   const visible = sortProducts(filterProducts(products, search), sort);
   const filtered = visible.length !== products.length;
 
   return (
-    <main className="w-full px-3 pb-24 pt-3 md:px-8 lg:pb-10">
-      <nav className="mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
+    <main className="w-full px-0 pb-24 pt-3 md:px-8 lg:pb-10">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -87,9 +97,9 @@ export default async function SearchPage({
 
       <div className="flex flex-col gap-5 md:flex-row md:gap-6">
         {/* Filter rail */}
-        <div className="order-first w-full flex-none md:w-56 lg:w-64">
+        <div className="phone-gutter order-first w-full flex-none md:w-56 lg:w-64">
           <div className="hidden md:sticky md:top-32 md:block">
-            <FilterSidebar brands={brands} />
+            <FilterSidebar brands={brands} categories={categories} currentSlug={scope} />
           </div>
 
           <details className="group rounded-lg border border-shop-line bg-white md:hidden">
@@ -100,13 +110,13 @@ export default async function SearchPage({
               </svg>
             </summary>
             <div className="px-4 pb-4">
-              <FilterSidebar brands={brands} />
+              <FilterSidebar brands={brands} categories={categories} currentSlug={scope} />
             </div>
           </details>
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
+          <div className="phone-gutter mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
               <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
                 {query ? `“${query}”` : "Search"}
@@ -121,7 +131,7 @@ export default async function SearchPage({
           </div>
 
           {visible.length === 0 ? (
-            <div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
+            <div className="phone-gutter"><div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
               <p className="text-[18px] font-semibold text-shop-ink">
                 {filtered
                   ? "No products match these filters"
@@ -139,7 +149,7 @@ export default async function SearchPage({
               <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[14px]">
                 Continue shopping
               </Link>
-            </div>
+            </div></div>
           ) : (
             /* ---- Endless, rather than numbered ----
 
@@ -160,7 +170,9 @@ export default async function SearchPage({
               initialProducts={visible}
               totalPages={total_pages}
               startPage={page}
-              query={{ q: query, category: scope, sort }}
+              /* The refinement narrows the category the feed pages through,
+                 exactly as it narrows the server query above. */
+              query={{ q: query, category: search.brand || scope, sort }}
               filters={search}
               sort={sort}
               gridClassName={PRODUCT_GRID}

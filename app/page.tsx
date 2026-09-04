@@ -227,9 +227,11 @@ export default async function Home() {
       title: "Super Deals",
       note: "Reduced from the regular price",
       badge: "Sale",
-      // The only coloured badge on the row, because it is the only one that
-      // states a fact about the price rather than a name for a shelf.
-      badgeTone: "bg-shop-primary-soft text-shop-primary-ink",
+      // Crimson, and the same crimson the Super Deals shelf and the Super Price
+      // Store header use. All four badges are filled now — see the `accent`
+      // note in `FeatureCards` for why the row went back to colour after the
+      // pastels were taken off it.
+      accent: "feature-accent-deals",
       href: "/sale",
       /* The deals the price panel did not take, which are the next deepest cuts
          in the shop rather than a different shelf. */
@@ -239,7 +241,7 @@ export default async function Home() {
       title: "Best sellers",
       note: "The ones other shoppers keep buying",
       badge: "Top",
-      badgeTone: "bg-shop-surface text-shop-body",
+      accent: "feature-accent-best",
       href: "/search?sort=popular",
       /* `total_sales > 0` is enforced rather than decorative: a "best seller"
          nobody has bought is the one claim on this page that would be a lie. */
@@ -254,7 +256,7 @@ export default async function Home() {
       title: "New in",
       note: "From independent Ugandan stores",
       badge: "Stores",
-      badgeTone: "bg-shop-surface text-shop-body",
+      accent: "feature-accent-new",
       href: "/sellers",
       /* Filtered on `product.seller`, so this is only ever marketplace stock —
          never the shop's own shelves. It is the one card that says Kandi is a
@@ -269,7 +271,7 @@ export default async function Home() {
       title: "Just landed",
       note: "The newest stock in the shop",
       badge: "New",
-      badgeTone: "bg-shop-surface text-shop-body",
+      accent: "feature-accent-landed",
       href: "/search?sort=newest",
       products: pick(newArrivals, [...latest].sort(newestFirst)),
     },
@@ -341,7 +343,7 @@ export default async function Home() {
           apiece is a screenful, and the panels each paint their own ground, so
           what separates two sections is the seam between two white blocks
           rather than the size of the gap between them. */}
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-2.5 py-2 md:gap-4 md:px-8 md:py-3.5">
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 py-2 md:gap-4 md:px-8 md:py-3.5">
         <PortalBand settings={settings} departments={departments} deals={deals} />
 
         <FeatureCards cards={cards} />

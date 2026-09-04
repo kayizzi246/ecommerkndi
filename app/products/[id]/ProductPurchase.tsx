@@ -185,23 +185,28 @@ export default function ProductPurchase({
            narrow enough that the title wraps like a title. */}
       <div className="mx-auto flex max-w-[1200px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8 lg:gap-y-6">
         {/* ---- Gallery ----
-             44% of the row, capped at 560px including the thumbnail rail — so
-             the frame itself lands near 480 square.
+             44% of the row, capped at 640px including the thumbnail rail — so
+             the frame itself lands near 560 × 700.
 
-             It was 52% and 720px, and this is the second time the cap has moved.
-             The first move made it BIGGER, to fix a photograph squeezed into a
-             narrow row; that was right at the time and is wrong now, because the
-             column no longer ends at the bottom of the picture. The description
-             sits under it, so the gallery is competing for the same space as the
-             copy that sells the thing rather than with white.
+             It was 52% and 720px, then 560, and now 640. The 720 → 560 move was
+             made on the argument that the gallery was "competing for the same
+             space as the copy that sells the thing rather than with white" —
+             which assumed the description started where the picture stopped.
 
-             480 square is still the largest object on the page and still bigger
-             than the thumbnails a shopper arrived from. Past roughly that size a
-             product photograph stops answering new questions — the shopper who
+             It does not. The description is a tabbed block further down the
+             column, and at 480 square the gallery ended roughly 200px above it:
+             the picture was not competing with the copy, it was leaving a band
+             of empty page between them. 640 with a 4:5 frame (see
+             `ImageGallery`) puts the foot of the photograph just above the
+             first tab, which is what the two numbers are for.
+
+             What the old note got right and this keeps: past roughly this size
+             a product photograph stops answering new questions. The shopper who
              wants a closer look taps it and gets the 900px lightbox, which is
-             where the detail actually lives. */}
+             where the detail actually lives — so the frame grows to fill its
+             column and stops there. */}
         <div className="w-full lg:col-start-1 lg:row-start-1">
-          <div className="mx-auto w-full max-w-[560px] lg:mx-0">
+          <div className="mx-auto w-full max-w-[640px] lg:mx-0">
             <ImageGallery
               images={images}
               productName={product.name}
@@ -362,7 +367,7 @@ export default function ProductPurchase({
                 soldOut
                   ? "text-shop-muted line-through"
                   : discount > 0
-                    ? "text-shop-primary-ink"
+                    ? "text-[color:var(--color-shop-price-was)]"
                     : "text-shop-ink"
               }`}
             >
@@ -386,7 +391,11 @@ export default function ProductPurchase({
                 <span className="text-[17px] text-shop-muted line-through">
                   {formatPrice(product.regular_price)}
                 </span>
-                <span className="rounded-full bg-shop-primary-ink px-2.5 py-1 text-[12px] font-semibold text-white">
+                {/* Red, and the same red as the price it is standing beside
+                    and as the −x% on the photograph. The three marks on this
+                    page that say "reduced" are one colour; everything else the
+                    page says — scarcity, backorder, the brand — stays orange. */}
+                <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-2.5 py-1 text-[12px] font-bold text-white">
                   Save {discount}%
                 </span>
               </>
