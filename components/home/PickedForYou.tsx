@@ -82,7 +82,7 @@ export default function PickedForYou({
           type="button"
           onClick={() => setActive(FOR_YOU)}
           aria-pressed={active === FOR_YOU}
-          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
             active === FOR_YOU
               ? "bg-shop-primary text-white"
               : "bg-shop-surface text-shop-body hover:bg-shop-primary-soft hover:text-shop-primary-ink"
@@ -97,7 +97,7 @@ export default function PickedForYou({
             type="button"
             onClick={() => setActive(tab.id)}
             aria-pressed={active === tab.id}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
               active === tab.id
                 ? "bg-shop-primary text-white"
                 : "bg-shop-surface text-shop-body hover:bg-shop-primary-soft hover:text-shop-primary-ink"

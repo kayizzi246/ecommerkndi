@@ -107,13 +107,13 @@ export default function FeePayment({
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[13.5px] font-medium text-shop-sale">
+        <p role="alert" className="mt-3 text-[13px] font-medium text-shop-sale">
           {error}
         </p>
       )}
 
       <details className="mt-5">
-        <summary className="cursor-pointer text-[13.5px] font-semibold text-shop-body hover:text-shop-primary">
+        <summary className="cursor-pointer text-[13px] font-semibold text-shop-body hover:text-shop-primary">
           Rather send the money yourself?
         </summary>
         <dl className="mt-3 space-y-2.5 text-[15px]">
@@ -129,7 +129,7 @@ export default function FeePayment({
           )}
           <Row label="Your reference" value={seller.fee_reference} mono />
         </dl>
-        <p className="mt-3 text-[13.5px] leading-relaxed text-shop-body">
+        <p className="mt-3 text-[13px] leading-relaxed text-shop-body">
           Quote that reference so we can match your payment to your store. We confirm it by email,
           usually the same day.
         </p>

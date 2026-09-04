@@ -170,12 +170,12 @@ export default function FeatureCards({ cards }: { cards: FeatureCard[] }) {
                     than a mark for the shelf; filled, it is the thing that tells
                     you which shelf you are looking at from the far side of the
                     row. Every accent below clears AA for white at this size. */}
-                <span className="shrink-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-white">
+                <span className="shrink-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-white">
                   {card.badge}
                 </span>
               </div>
 
-              <p className="mt-0.5 line-clamp-1 text-[11.5px] text-shop-muted">
+              <p className="mt-0.5 line-clamp-1 text-[11px] text-shop-muted">
                 {card.note}
               </p>
 

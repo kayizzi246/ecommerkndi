@@ -222,7 +222,7 @@ export default async function StorePage({ params }: Params) {
                   yellow is unreadable. */}
               <span
                 style={{ backgroundColor: veil(0.12), color: dark ? "#5fd08a" : ink }}
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-semibold"
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold"
               >
                 <svg aria-hidden className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
@@ -237,7 +237,7 @@ export default async function StorePage({ params }: Params) {
 
             <p
               style={{ color: veil(0.72) }}
-              className="mt-2 max-w-[52ch] text-[14.5px] leading-relaxed"
+              className="mt-2 max-w-[52ch] text-[14px] leading-relaxed"
             >
               Sold by {store.store_name}, dispatched and guaranteed through Kandi.
             </p>
@@ -258,7 +258,7 @@ export default async function StorePage({ params }: Params) {
                 >
                   <dt
                     style={{ color: veil(0.5) }}
-                    className="text-[10.5px] font-bold uppercase tracking-[0.12em]"
+                    className="text-[10px] font-bold uppercase tracking-[0.12em]"
                   >
                     {stat.label}
                   </dt>
@@ -285,7 +285,7 @@ export default async function StorePage({ params }: Params) {
         <>
           <h2 className="mb-4 mt-8 flex flex-wrap items-baseline gap-x-3 px-3 text-[19px] font-extrabold tracking-tight text-shop-ink md:px-8 md:text-[22px]">
             Everything from this store
-            <span className="text-[13.5px] font-medium tracking-normal text-shop-muted">
+            <span className="text-[13px] font-medium tracking-normal text-shop-muted">
               {products.length} {products.length === 1 ? "item" : "items"}
             </span>
           </h2>

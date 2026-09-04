@@ -84,7 +84,7 @@ export default function EarningsCalculator({
        same problem. Now the file says what the browser does. */
     <div className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04),0_12px_32px_-12px_rgba(17,24,39,0.12)] ring-1 ring-shop-ink/[0.06] md:p-6">
       <h3 className="text-[17px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
-      <p className="mt-1.5 text-[13.5px] leading-[1.55] text-shop-muted">
+      <p className="mt-1.5 text-[13px] leading-[1.55] text-shop-muted">
         Two numbers you already know. We take {commissionRate}% commission — nothing else is
         deducted.
       </p>
@@ -92,7 +92,7 @@ export default function EarningsCalculator({
       {/* Items a month */}
       <label className="mt-5 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[13.5px] font-semibold text-shop-body">Items sold a month</span>
+          <span className="text-[13px] font-semibold text-shop-body">Items sold a month</span>
           <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
             {units}
             {units === UNITS_MAX ? "+" : ""}
@@ -108,7 +108,7 @@ export default function EarningsCalculator({
           className="calc-range mt-3 w-full"
           aria-label="Items sold a month"
         />
-        <span className="mt-1 flex justify-between text-[11.5px] text-shop-muted">
+        <span className="mt-1 flex justify-between text-[11px] text-shop-muted">
           <span>{UNITS_MIN}</span>
           <span>{UNITS_MAX}+</span>
         </span>
@@ -117,7 +117,7 @@ export default function EarningsCalculator({
       {/* Average price */}
       <label className="mt-4 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[13.5px] font-semibold text-shop-body">Average selling price</span>
+          <span className="text-[13px] font-semibold text-shop-body">Average selling price</span>
           <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
             {formatPrice(price)}
           </span>
@@ -132,7 +132,7 @@ export default function EarningsCalculator({
           className="calc-range mt-3 w-full"
           aria-label="Average selling price in Ugandan shillings"
         />
-        <span className="mt-1 flex justify-between text-[11.5px] text-shop-muted">
+        <span className="mt-1 flex justify-between text-[11px] text-shop-muted">
           <span>{formatPrice(PRICE_MIN)}</span>
           <span>{formatPrice(PRICE_MAX)}</span>
         </span>
@@ -140,7 +140,7 @@ export default function EarningsCalculator({
 
       {/* Result */}
       <div className="mt-5 rounded-xl bg-pop-green-soft p-4">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-pop-green">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-pop-green">
           You keep, every month
         </p>
         <p className="mt-1.5 text-[24px] font-bold leading-none tracking-[-0.02em] text-pop-green tabular-nums">

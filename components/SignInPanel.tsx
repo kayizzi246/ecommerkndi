@@ -185,7 +185,7 @@ export default function SignInPanel({
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {mode === "register" && (
           <div>
-            <label htmlFor="kandi-name" className="mb-1.5 block text-[13.5px] font-semibold text-shop-body">
+            <label htmlFor="kandi-name" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
               Your name
             </label>
             <input
@@ -200,7 +200,7 @@ export default function SignInPanel({
         )}
 
         <div>
-          <label htmlFor="kandi-email" className="mb-1.5 block text-[13.5px] font-semibold text-shop-body">
+          <label htmlFor="kandi-email" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
             Email address
           </label>
           <input
@@ -232,7 +232,7 @@ export default function SignInPanel({
         {mode === "register" && (
           <div className="rounded-xl border border-shop-line bg-shop-surface px-3.5 py-3">
             {verified ? (
-              <p className="flex items-center gap-2 text-[13.5px] font-semibold text-shop-ink">
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-ink">
                 <span aria-hidden className="text-shop-success">
                   ✓
                 </span>
@@ -240,16 +240,16 @@ export default function SignInPanel({
               </p>
             ) : (
               <>
-                <p className="text-[13.5px] font-semibold text-shop-ink">
+                <p className="text-[13px] font-semibold text-shop-ink">
                   Verify your phone number
                 </p>
-                <p className="mt-0.5 text-[12.5px] leading-snug text-shop-muted">
+                <p className="mt-0.5 text-[12px] leading-snug text-shop-muted">
                   We send a 6-digit code. You can use your email instead.
                 </p>
                 <button
                   type="button"
                   onClick={() => setVerifying(true)}
-                  className="btn-shop-outline mt-2.5 w-full py-2 text-[13.5px]"
+                  className="btn-shop-outline mt-2.5 w-full py-2 text-[13px]"
                 >
                   Verify now
                 </button>
@@ -261,7 +261,7 @@ export default function SignInPanel({
         {mode !== "forgot" && (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label htmlFor="kandi-password" className="block text-[13.5px] font-semibold text-shop-body">
+              <label htmlFor="kandi-password" className="block text-[13px] font-semibold text-shop-body">
                 Password
               </label>
               {mode === "signin" && (
@@ -335,7 +335,7 @@ export default function SignInPanel({
         <>
           <div className="my-5 flex items-center gap-3">
             <span className="h-px flex-1 bg-shop-line" />
-            <span className="text-[12.5px] font-semibold uppercase tracking-wide text-shop-faint">
+            <span className="text-[12px] font-semibold uppercase tracking-wide text-shop-faint">
               or
             </span>
             <span className="h-px flex-1 bg-shop-line" />

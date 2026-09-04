@@ -45,7 +45,7 @@ export default function RatingSummary({
         <div className="mt-1.5 flex justify-center">
           <StarRating rating={average} size="sm" showCount={false} />
         </div>
-        <p className="mt-1 whitespace-nowrap text-[12.5px] text-shop-muted">
+        <p className="mt-1 whitespace-nowrap text-[12px] text-shop-muted">
           {count} {count === 1 ? "review" : "reviews"}
         </p>
       </div>

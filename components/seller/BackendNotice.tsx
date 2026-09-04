@@ -99,9 +99,9 @@ export default function BackendNotice() {
        `role="alert"` was wrong: this is information, not an interruption. */
     <div
       role="status"
-      className="mb-4 rounded-2xl bg-shop-primary-soft px-4 py-3.5 text-[13.5px] leading-relaxed text-shop-body ring-1 ring-shop-primary/20"
+      className="mb-4 rounded-2xl bg-shop-primary-soft px-4 py-3.5 text-[13px] leading-relaxed text-shop-body ring-1 ring-shop-primary/20"
     >
-      <p className="text-[14.5px] font-semibold text-shop-ink">
+      <p className="text-[14px] font-semibold text-shop-ink">
         Some seller tools are under maintenance
       </p>
       {/* Naming the parts is not a leak — a seller who is about to try signing

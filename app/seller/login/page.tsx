@@ -326,7 +326,7 @@ export default function SellerLoginPage() {
         />
       </div>
 
-      <div className="my-6 flex items-center gap-3 text-[11.5px] uppercase tracking-[0.1em] text-shop-muted">
+      <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.1em] text-shop-muted">
         <span className="h-px flex-1 bg-shop-line" />
         or with your password
         <span className="h-px flex-1 bg-shop-line" />
@@ -360,7 +360,7 @@ export default function SellerLoginPage() {
           <button
             type="button"
             onClick={() => setForgotOpen(true)}
-            className="mt-2 text-[13.5px] font-semibold text-shop-primary hover:underline"
+            className="mt-2 text-[13px] font-semibold text-shop-primary hover:underline"
           >
             Forgot your password?
           </button>

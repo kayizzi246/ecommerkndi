@@ -252,6 +252,89 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 
+	/* ---- POST /customers/otp-mail ----
+	 *
+	 * Emails a one-time code that the STOREFRONT generated.
+	 *
+	 * ---- Why WordPress sends it and not the storefront ----
+	 *
+	 * The storefront had no mailer of its own, so the first build reached for a
+	 * third-party API. That is a second sending domain to verify, a second
+	 * reputation to keep clean, a second bill, and a second place for a shop
+	 * owner to look when an email does not arrive. WordPress already sends every
+	 * order confirmation, every password reset and every seller notice from this
+	 * shop, through whatever SMTP the host has been set up with — so it is
+	 * already the thing that knows how to get mail to a Ugandan inbox, and
+	 * `kandi_send_mail()` already wraps it in the shop's own branding.
+	 *
+	 * ---- The caller cannot choose what is sent ----
+	 *
+	 * This route takes an address and six digits and composes the message here.
+	 * It deliberately does NOT accept a subject or a body: an endpoint that
+	 * emails arbitrary text to an arbitrary address is a spam relay the moment
+	 * the shared secret leaks, and it would be sending from the domain every
+	 * order confirmation goes out on. The worst this can be abused for is
+	 * sending somebody a number.
+	 *
+	 * ---- What it does not do ----
+	 *
+	 * It does not generate the code, store it, or check it. The storefront seals
+	 * the code into an encrypted challenge and verifies it there; WordPress
+	 * never sees a code twice and has nothing to keep in sync. This is a mail
+	 * transport and nothing else.
+	 */
+	register_rest_route( 'kandi/v1', '/customers/otp-mail', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_customer_auth_guard',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body  = (array) $request->get_json_params();
+			$email = sanitize_email( $body['email'] ?? '' );
+			$code  = preg_replace( '/\D/', '', (string) ( $body['code'] ?? '' ) );
+
+			if ( ! is_email( $email ) ) {
+				return new WP_Error( 'kandi_bad_email', 'Enter a valid email address.', array( 'status' => 400 ) );
+			}
+			if ( 6 !== strlen( $code ) ) {
+				return new WP_Error( 'kandi_bad_code', 'A verification code is six digits.', array( 'status' => 400 ) );
+			}
+
+			// Second ceiling, under the storefront's own. This one is here
+			// because it is the one an attacker cannot skip by calling
+			// WordPress directly with a leaked secret.
+			$limited = kandi_customer_guard_pair( 'otp_mail', $email, 5, 40, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			$heading = 'Your verification code';
+			$message =
+				'<p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:0 0 16px">'
+				. esc_html( $code ) . '</p>'
+				. '<p>Enter this code to finish what you were doing on Kandi. '
+				. 'It expires in 10 minutes.</p>'
+				. '<p>If you did not ask for it, you can ignore this email. '
+				. 'We will never ask you for this code.</p>';
+
+			$sent = function_exists( 'kandi_send_mail' )
+				? kandi_send_mail( $email, $code . ' is your Kandi verification code', $heading, $message, null, 'Your Kandi verification code' )
+				: wp_mail(
+					$email,
+					$code . ' is your Kandi verification code',
+					"{$code} is your Kandi verification code.\n\n"
+					. "It expires in 10 minutes. If you did not ask for it, ignore this email."
+				);
+
+			if ( ! $sent ) {
+				// Reported honestly rather than swallowed: the storefront offers
+				// the shopper the SMS route instead, which it cannot do if this
+				// claims to have sent something it did not.
+				return new WP_Error( 'kandi_mail_failed', 'The code could not be emailed.', array( 'status' => 502 ) );
+			}
+
+			return rest_ensure_response( array( 'ok' => true ) );
+		},
+	) );
+
 	/* ---- POST /customers/login ---- */
 	register_rest_route( 'kandi/v1', '/customers/login', array(
 		'methods'             => WP_REST_Server::CREATABLE,

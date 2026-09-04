@@ -1056,7 +1056,33 @@ body {
    * Pulling it in a fraction buys some of that width back without the type ever
    * looking cramped — there is a lot of room in this face to give up. */
   letter-spacing: 0;
-  -webkit-font-smoothing: antialiased;
+  /* ---- Subpixel rendering, where this forced greyscale ----
+   *
+   * `-webkit-font-smoothing: antialiased` was here, and it is the single
+   * biggest reason type on this shop read as soft. It does not mean "make text
+   * smooth" — it TURNS OFF subpixel antialiasing and renders every glyph in
+   * greyscale instead. On a standard-density Windows or Android display, which
+   * is most of this shop's traffic, subpixel rendering is the thing that makes
+   * a 12px stem look like a stem: it uses the three colour elements of a pixel
+   * as three separate samples, so an edge that falls between two pixels still
+   * lands somewhere. In greyscale that same edge is one grey pixel, and a page
+   * of 12px type is a page of grey smudges.
+   *
+   * The reason it is on so many sites is that on a Mac Retina display it makes
+   * text look a touch less heavy, and it was copied out of stylesheets written
+   * on those machines. The trade it makes is invisible there and expensive on
+   * a 1x screen — which is the screen this shop is read on.
+   *
+   * The half-pixel type sizes went with it in the same pass: 168 of them,
+   * `text-[13.5px]` and its family, all rounded down to whole pixels. A glyph
+   * asked to start at x=13.5 is a glyph the rasteriser has to split across two
+   * pixel columns, which is blur arriving by a second route entirely — and
+   * rounding down rather than up also gave the whole site the smaller type it
+   * was asked for.
+   *
+   * If type ever needs to look lighter, the lever is the WEIGHT, not this.
+   * Turning subpixel rendering off to simulate a lighter weight is paying for
+   * it in sharpness on every screen that does not need the effect. */
   /* The five Poppins weights loaded in `layout.tsx` are every weight this
      stylesheet and the components ask for, so a synthesised bold would only
      ever be the browser smearing a real one — turn it off and any weight that

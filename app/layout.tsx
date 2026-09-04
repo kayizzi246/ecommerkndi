@@ -273,7 +273,15 @@ export default async function RootLayout({
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
-      className={`${inter.variable} ${poppins.variable} h-full antialiased`}
+      /* No `antialiased`. Tailwind's class is `-webkit-font-smoothing:
+         antialiased`, which switches subpixel rendering OFF and draws every
+         glyph in greyscale — the single biggest cause of the soft type this
+         shop had, on the standard-density Windows and Android screens most of
+         its traffic arrives on. The full argument is in globals.css beside the
+         `letter-spacing` it used to sit under; the short version is that it
+         makes text a shade lighter on a Retina Mac and blurs it everywhere
+         else. */
+      className={`${inter.variable} ${poppins.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

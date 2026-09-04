@@ -951,7 +951,7 @@ export default function ProductCard({
              covered a fifth of the photograph. 9.5px in the corner says the
              same number and leaves the picture visible, which on a tile this
              small is the only thing doing any selling. */
-          <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[9.5px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)] sm:right-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[11px]">
+          <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)] sm:right-2 sm:top-2 sm:px-2 sm:py-1 sm:text-[11px]">
             −{discount}%
           </span>
         )}
@@ -1204,7 +1204,7 @@ export default function ProductCard({
           <h3 className="product-name line-clamp-2 min-h-[32px] text-[12px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
-                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9.5px] font-bold leading-[14px] ${chip.className}`}
+                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
               >
                 {chip.label}
               </span>
@@ -1307,7 +1307,7 @@ export default function ProductCard({
                 `overflow-hidden` to keep tile heights honest, and a third
                 figure inside it is what produced the sliced "−(" the
                 percentage was removed for. */}
-            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-[2px] text-[10.5px] font-bold leading-[15px] text-shop-save">
+            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-[2px] text-[10px] font-bold leading-[15px] text-shop-save">
               Save {formatPrice(saving)}
             </span>
           </p>

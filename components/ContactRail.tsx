@@ -211,7 +211,7 @@ function RailLabel({ children }: { children: React.ReactNode }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-shop-ink px-2.5 py-1.5 text-[12.5px] font-semibold text-white group-hover:block"
+      className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-shop-ink px-2.5 py-1.5 text-[12px] font-semibold text-white group-hover:block"
     >
       {children}
     </span>

@@ -141,7 +141,7 @@ export default function MiniProduct({
           strike because it is directly beneath the number replacing it. */}
       <span className="mt-1 flex max-w-full flex-col overflow-hidden">
         <span
-          className={`price truncate text-[10px] leading-tight sm:text-[10.5px] md:text-[11.5px] ${
+          className={`price truncate text-[10px] leading-tight sm:text-[10px] md:text-[11px] ${
             discount > 0
               ? "text-[color:var(--color-shop-price-was)]"
               : "text-shop-ink"
@@ -151,7 +151,7 @@ export default function MiniProduct({
         </span>
 
         {discount > 0 && (
-          <span className="was-price truncate text-[8.5px] leading-tight sm:text-[9px] md:text-[10px]">
+          <span className="was-price truncate text-[8px] leading-tight sm:text-[9px] md:text-[10px]">
             {formatPrice(product.regular_price)}
           </span>
         )}

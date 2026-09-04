@@ -175,14 +175,14 @@ export default function GettingStarted({
                 {step.title}
               </p>
               {!step.done && (
-                <p className="mt-0.5 text-[13.5px] leading-[1.5] text-shop-muted">{step.copy}</p>
+                <p className="mt-0.5 text-[13px] leading-[1.5] text-shop-muted">{step.copy}</p>
               )}
             </div>
 
             {!step.done && step.href && step.action && (
               <Link
                 href={step.href}
-                className="shrink-0 rounded-lg bg-shop-ink px-3.5 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90"
+                className="shrink-0 rounded-lg bg-shop-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
               >
                 {step.action}
               </Link>

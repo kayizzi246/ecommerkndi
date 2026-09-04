@@ -302,7 +302,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                 only 2.9:1 (see the palette note in globals.css); dimming it
                 further to look "secondary" would have put the smallest text on
                 the page at the worst contrast on the page. */}
-            <span className="block text-[11.5px] font-medium text-white">
+            <span className="block text-[11px] font-medium text-white">
               Fastest delivery: 1 business day
             </span>
           </button>

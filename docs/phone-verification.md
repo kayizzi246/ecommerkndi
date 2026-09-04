@@ -57,13 +57,20 @@ type, so a message containing a quote cannot break the body it is pasted into.
 
 ### Email
 
-```
-KANDI_MAIL_API_KEY=re_...                   # Resend
-KANDI_MAIL_FROM=verify@kandiug.com          # must be on a verified domain
-```
+**Nothing to configure.** Email codes go through WordPress's own mailer —
+`POST kandi/v1/customers/otp-mail`, added to `kandi-customer-auth.php` — so they
+arrive from the same address as every order confirmation, through whatever SMTP
+the host is already set up with, and they need no second sending domain, no
+second reputation to keep clean and no second bill.
 
-An unverified sender domain is accepted by the API and then silently not
-delivered — that is the failure that looks like the code never arriving.
+The route takes an address and six digits and composes the message itself. It
+deliberately does not accept a subject or a body: an endpoint that emails
+arbitrary text to an arbitrary address is a spam relay the moment the shared
+secret leaks, and it would be sending from the domain every order confirmation
+goes out on.
+
+If codes do not arrive by email, the fault is the site's mail configuration —
+the same one that would stop password resets — not this feature.
 
 ### Sealing
 

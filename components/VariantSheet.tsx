@@ -159,7 +159,7 @@ export default function VariantSheet({
             <p className="price text-[19px] leading-none text-shop-flame">
               {formatPrice(product.price)}
             </p>
-            <p className="mt-1 line-clamp-2 text-[13.5px] text-shop-title">{product.name}</p>
+            <p className="mt-1 line-clamp-2 text-[13px] text-shop-title">{product.name}</p>
           </div>
         </div>
 

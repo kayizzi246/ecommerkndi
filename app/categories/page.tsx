@@ -179,7 +179,7 @@ export default async function CategoriesPage() {
                 <a
                   key={department.id}
                   href={`#dept-${department.slug}`}
-                  className="shrink-0 rounded-full border border-shop-line bg-white px-4 py-2 text-[13.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+                  className="shrink-0 rounded-full border border-shop-line bg-white px-4 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
                 >
                   {department.name}
                 </a>
@@ -233,7 +233,7 @@ function ShelfIndex({ departments }: { departments: CategoryNode[] }) {
       <div className="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
         {departments.map((department) => (
           <div key={department.id} className="min-w-0">
-            <h3 className="text-[13.5px] font-bold uppercase tracking-[0.06em] text-shop-body">
+            <h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-shop-body">
               <Link href={`/category/${department.slug}`} className="hover:text-shop-primary">
                 {department.name}
               </Link>
@@ -243,12 +243,12 @@ function ShelfIndex({ departments }: { departments: CategoryNode[] }) {
                 <li key={child.id}>
                   <Link
                     href={`/category/${child.slug}`}
-                    className="text-[13.5px] font-semibold text-shop-ink hover:text-shop-primary"
+                    className="text-[13px] font-semibold text-shop-ink hover:text-shop-primary"
                   >
                     {child.name}
                   </Link>
                   {child.children.length > 0 && (
-                    <p className="mt-0.5 text-[12.5px] leading-5 text-shop-muted">
+                    <p className="mt-0.5 text-[12px] leading-5 text-shop-muted">
                       {child.children.map((grandchild, index) => (
                         <span key={grandchild.id}>
                           {index > 0 && <span aria-hidden> · </span>}

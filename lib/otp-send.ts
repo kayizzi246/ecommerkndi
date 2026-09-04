@@ -1,3 +1,4 @@
+import { callKandiApi } from "@/lib/customer-server";
 import type { Destination } from "@/lib/otp";
 
 /**
@@ -34,11 +35,15 @@ import type { Destination } from "@/lib/otp";
  *
  * ---- And why email is offered beside it ----
  *
- * Because it costs nothing. Every SMS is a real UGX 25–40 off the shop's
- * margin, and a shopper who would rather use email is a shopper verifying for
- * free. It is the second option rather than the first because the phone number
- * is the thing the RIDER needs, and a shopper who proves an email has proved
- * something the delivery does not depend on — see the note in `lib/otp.ts`.
+ * Because it costs nothing, and because it needs no account at all: the email
+ * half goes through WordPress's own mailer (see `sendEmail` below), which this
+ * shop already relies on for every order confirmation it sends. Every SMS is a
+ * real UGX 25–40 off the margin; a shopper who would rather use email is a
+ * shopper verifying for free.
+ *
+ * It is the second option rather than the first because the phone number is the
+ * thing the RIDER needs, and a shopper who proves an email has proved something
+ * the delivery does not depend on — see the note in `lib/otp.ts`.
  *
  * ---- The failure mode that matters ----
  *
@@ -167,41 +172,51 @@ async function sendViaGeneric(to: string, code: string): Promise<SendResult> {
  * ====================================================================== */
 
 /**
- * Resend — `POST https://api.resend.com/emails`.
+ * WordPress sends it — `POST kandi/v1/customers/otp-mail`.
  *
- * One HTTP call, no SDK, and a free tier that comfortably covers a shop of this
- * size. `KANDI_MAIL_FROM` must be an address on a domain verified with the
- * provider; an unverified sender is accepted by the API and then silently not
- * delivered, which is the failure that looks like the code never arriving.
+ * ---- Why not a mail API ----
+ *
+ * This was Resend for one build: one HTTP call, a generous free tier, no SDK.
+ * What it also was is a second sending domain to verify, a second reputation to
+ * keep clean, a second bill, and a second place for the shop owner to look when
+ * a code does not arrive.
+ *
+ * WordPress already sends every order confirmation, every password reset and
+ * every seller notice this shop produces, through whatever SMTP the host is set
+ * up with. It is already the thing that knows how to get mail into a Ugandan
+ * inbox, and `kandi_send_mail()` already wraps a message in the shop's own
+ * branding. Routing the code through it means the verification email arrives
+ * from the same address, looks like the same shop, and fails — when it fails —
+ * for the same reason and in the same place as every other email here.
+ *
+ * ---- What crosses the wire ----
+ *
+ * The address and six digits. WordPress composes the subject and the body
+ * itself and accepts nothing else, deliberately: an endpoint that emails
+ * arbitrary text to an arbitrary address is a spam relay the moment the shared
+ * secret leaks, and it would be sending from the domain every order
+ * confirmation goes out on.
+ *
+ * No configuration. `callKandiApi` carries `KANDI_API_SECRET`, which every
+ * deployment already has — so the email channel works the moment this ships,
+ * where the API version needed two new environment variables set correctly
+ * before a single code could be sent.
  */
 async function sendEmail(to: string, code: string): Promise<SendResult> {
-  const apiKey = process.env.KANDI_MAIL_API_KEY;
-  const from = process.env.KANDI_MAIL_FROM;
-  if (!apiKey || !from) return { ok: false, reason: "email-not-configured" };
+  const { status } = await callKandiApi("/customers/otp-mail", {
+    method: "POST",
+    // No shopper session is involved: this runs before anybody is signed in,
+    // and the shared secret is the whole authorisation.
+    authenticated: false,
+    body: { email: to, code },
+  });
 
-  try {
-    const response = await fetch(process.env.KANDI_MAIL_URL || "https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject: `${code} is your KandiUg verification code`,
-        // The code in the subject line as well as the body, so a shopper on a
-        // phone can read it from the notification without opening anything.
-        text: `${code} is your KandiUg verification code.\n\nIt expires in 10 minutes. If you did not ask for it, you can ignore this message — we will never ask you for this code.`,
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
-    });
+  if (status === 200) return { ok: true };
 
-    return response.ok ? { ok: true } : { ok: false, reason: `email-http-${response.status}` };
-  } catch {
-    return { ok: false, reason: "email-unreachable" };
-  }
+  /* 502 is WordPress telling us `wp_mail` returned false — the host's SMTP is
+     misconfigured or refusing. Distinguished from "not configured" so the route
+     above does not print a development code in production on a mail failure. */
+  return { ok: false, reason: `email-http-${status}` };
 }
 
 /* =========================================================================
@@ -213,13 +228,18 @@ async function sendEmail(to: string, code: string): Promise<SendResult> {
  *
  * ---- Development ----
  *
- * With no gateway configured, the code is logged to the server console and the
- * send reports success. That is what lets the whole flow — the modal, the
+ * With no SMS gateway configured, the code is logged to the server console and
+ * the send reports success. That is what lets the whole flow — the modal, the
  * challenge, the verified cookie, the checkout gate — be built and tested
- * before anybody has an SMS account, and it is guarded on `NODE_ENV` so it can
- * never behave that way in production. In production an unconfigured gateway is
- * a failure, loudly, because the alternative is a live shop letting every
- * shopper past a check that is not running.
+ * before anybody has an EgoSMS account, and it is guarded on `NODE_ENV` so it
+ * can never behave that way in production. In production an unconfigured
+ * gateway is a failure, loudly, because the alternative is a live shop letting
+ * every shopper past a check that is not running.
+ *
+ * The escape hatch is scoped to "not configured" and nothing else, which is why
+ * the email path cannot reach it: WordPress needs no configuration here — it
+ * either sends or it reports that it could not — so an email failure is a real
+ * failure at every stage, including on a developer's machine.
  */
 export async function sendCode(destination: Destination, code: string): Promise<SendResult> {
   const provider = (process.env.KANDI_SMS_PROVIDER || "egosms").toLowerCase();

@@ -277,7 +277,7 @@ export default function ProductPurchase({
                Every figure is from WooCommerce and each half disappears when
                there is nothing behind it. */}
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] text-shop-muted">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-shop-muted">
               {product.total_sales > 0 && (
                 <span className="font-semibold text-shop-body">
                   {product.total_sales} sold
@@ -350,7 +350,7 @@ export default function ProductPurchase({
                does not rank its catalogue, and inventing "#10" would be a claim
                with nothing behind it. */}
           {brand && product.rating_count >= 10 && product.average_rating >= 4.5 && (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-[4px] bg-shop-successbg px-2 py-1 text-[12.5px] font-semibold text-shop-success">
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-[4px] bg-shop-successbg px-2 py-1 text-[12px] font-semibold text-shop-success">
               Top rated
               <span className="font-normal text-shop-body">in {brand.name}</span>
             </p>
@@ -508,14 +508,14 @@ export default function ProductPurchase({
                not persuasion, it is a taunt. */}
           {soldOut ? (
             <div className="mt-3 rounded-lg border border-shop-line bg-shop-surface px-3.5 py-3">
-              <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-ink">
+              <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-ink">
                 <svg aria-hidden className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" />
                   <path strokeLinecap="round" d="M9 12h6" />
                 </svg>
                 Out of stock
               </p>
-              <p className="mt-1 text-[13.5px] leading-snug text-shop-body">
+              <p className="mt-1 text-[13px] leading-snug text-shop-body">
                 This item has sold out. We restock popular lines regularly — check
                 back, or{" "}
                 {brand ? (
@@ -591,7 +591,7 @@ export default function ProductPurchase({
                despatch detail a shopper checks once they have decided. */}
           {!soldOut && (
             <div className="mt-3.5 border-t border-shop-hairline pt-3.5">
-              <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-success">
+              <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-success">
                 <svg aria-hidden className="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
                 </svg>
@@ -614,7 +614,7 @@ export default function ProductPurchase({
                nothing in this panel is a claim the business has not made
                elsewhere. */}
           <div className="mt-3.5 rounded-lg border border-shop-line bg-white p-3.5">
-            <p className="flex items-center gap-2 text-[14.5px] font-semibold text-shop-ink">
+            <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-ink">
               <svg aria-hidden className="h-[18px] w-[18px] shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
@@ -626,7 +626,7 @@ export default function ProductPurchase({
                 <p className="text-[13px] font-semibold text-shop-body">
                   Payment &amp; privacy
                 </p>
-                <ul className="mt-1 space-y-1 text-[12.5px] text-shop-body">
+                <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
                   <li className="flex items-start gap-1.5">
                     <Tick /> Cash on delivery in selected areas
                   </li>
@@ -639,7 +639,7 @@ export default function ProductPurchase({
                 <p className="text-[13px] font-semibold text-shop-body">
                   Delivery guarantee
                 </p>
-                <ul className="mt-1 space-y-1 text-[12.5px] text-shop-body">
+                <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
                   <li className="flex items-start gap-1.5">
                     <Tick /> Refund if the item arrives damaged
                   </li>

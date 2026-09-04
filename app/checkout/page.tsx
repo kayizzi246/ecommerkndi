@@ -16,10 +16,10 @@ import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
-const labelClass = "mb-1 block text-[13.5px] font-semibold text-shop-ink";
+const labelClass = "mb-1 block text-[13px] font-semibold text-shop-ink";
 
 /** The grey line under a field that says what to put in it. */
-const hintClass = "mt-1 text-[12.5px] leading-4 text-shop-muted";
+const hintClass = "mt-1 text-[12px] leading-4 text-shop-muted";
 
 /**
  * A field that failed, in red, under the field that failed.
@@ -31,7 +31,7 @@ const hintClass = "mt-1 text-[12.5px] leading-4 text-shop-muted";
  */
 function FieldError({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-1 flex items-start gap-1 text-[12.5px] font-medium leading-4 text-shop-sale">
+    <p className="mt-1 flex items-start gap-1 text-[12px] font-medium leading-4 text-shop-sale">
       <span aria-hidden>!</span>
       <span>{children}</span>
     </p>
@@ -51,7 +51,7 @@ function StepHeading({ step, title, sub }: { step: number; title: string; sub?: 
         </span>
         {title}
       </h2>
-      {sub && <p className="mt-1.5 text-[13.5px] leading-5 text-shop-muted">{sub}</p>}
+      {sub && <p className="mt-1.5 text-[13px] leading-5 text-shop-muted">{sub}</p>}
     </div>
   );
 }
@@ -548,7 +548,7 @@ export default function CheckoutPage() {
       {showFreeDeliveryNudge && (
         <Link
           href="/cart"
-          className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-shop-successbg px-3.5 py-2.5 text-[13.5px] leading-snug text-shop-body transition-colors hover:bg-shop-surface"
+          className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-shop-successbg px-3.5 py-2.5 text-[13px] leading-snug text-shop-body transition-colors hover:bg-shop-surface"
         >
           <span>
             Add{" "}
@@ -964,7 +964,7 @@ export default function CheckoutPage() {
               {submitting ? "Placing order…" : `Pay ${formatPrice(total)}`}
             </button>
 
-            <p className="mt-6 text-[12.5px] text-shop-muted">
+            <p className="mt-6 text-[12px] text-shop-muted">
               By placing this order you agree to our terms of sale.
             </p>
           </section>

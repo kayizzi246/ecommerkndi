@@ -197,8 +197,8 @@ export default function Footer({
                 <path d={item.icon} />
               </svg>
               <div className="min-w-0">
-                <p className="text-[12.5px] font-semibold leading-tight text-shop-ink">{item.title}</p>
-                <p className="mt-0.5 text-[11.5px] leading-tight text-shop-body">{item.copy}</p>
+                <p className="text-[12px] font-semibold leading-tight text-shop-ink">{item.title}</p>
+                <p className="mt-0.5 text-[11px] leading-tight text-shop-body">{item.copy}</p>
               </div>
             </div>
           ))}
@@ -209,10 +209,10 @@ export default function Footer({
       <div className="mx-auto grid max-w-[var(--shell)] gap-x-6 gap-y-5 px-4 py-6 sm:grid-cols-2 lg:grid-cols-5 md:px-8">
         {shopDepartments.length > 0 && (
           <div>
-            <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               Shop by department
             </h2>
-            <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
+            <ul className="space-y-1 text-[12px] leading-snug text-shop-body">
               {shopDepartments.map((department) => (
                 <li key={department.id}>
                   <Link
@@ -242,10 +242,10 @@ export default function Footer({
 
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {column.title}
             </h2>
-            <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
+            <ul className="space-y-1 text-[12px] leading-snug text-shop-body">
               {column.items.map((item) => (
                 <li key={item.name}>
                   <Link className="hover:text-shop-primary-ink hover:underline" href={item.href}>
@@ -258,10 +258,10 @@ export default function Footer({
         ))}
 
         <div id="kandi-app">
-          <h2 className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+          <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-shop-ink">
             Talk to us
           </h2>
-          <ul className="space-y-1 text-[12.5px] leading-snug text-shop-body">
+          <ul className="space-y-1 text-[12px] leading-snug text-shop-body">
             <li>
               <a className="hover:text-shop-primary-ink hover:underline" href={`tel:${support.phone.replace(/\s/g, "")}`}>
                 {support.phone}
@@ -310,7 +310,7 @@ export default function Footer({
       <div className="border-t border-shop-edge">
         <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <h2 className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.1em] text-shop-ink">
               {app.available ? "Get the app" : "App coming soon"}
             </h2>
             <AppStoreBadges app={app} />
@@ -318,7 +318,7 @@ export default function Footer({
 
           {socialLinks.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="mr-1 text-[11.5px] font-bold uppercase tracking-[0.1em] text-shop-ink">
+              <h2 className="mr-1 text-[11px] font-bold uppercase tracking-[0.1em] text-shop-ink">
                 Follow us
               </h2>
               {socialLinks.map(([network, url]) => (
@@ -331,7 +331,7 @@ export default function Footer({
                      token swap above cannot reach. A white pill on a black
                      ground is a hole; 6% white is the same lift the rest of the
                      dark surfaces use. */
-                  className="rounded-full border border-shop-edge bg-white/[0.06] px-2.5 py-1 text-[11.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
+                  className="rounded-full border border-shop-edge bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary-ink"
                 >
                   {SOCIAL_LABELS[network] ?? network}
                 </a>

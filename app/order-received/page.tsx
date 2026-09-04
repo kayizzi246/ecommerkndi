@@ -129,8 +129,8 @@ export default async function OrderReceivedPage({
                 {index + 1}
               </span>
               <div>
-                <p className="text-[14.5px] font-semibold text-shop-ink">{entry.title}</p>
-                <p className="mt-0.5 text-[13.5px] leading-relaxed text-shop-muted">{entry.body}</p>
+                <p className="text-[14px] font-semibold text-shop-ink">{entry.title}</p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-shop-muted">{entry.body}</p>
               </div>
             </li>
           ))}

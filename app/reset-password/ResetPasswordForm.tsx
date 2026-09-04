@@ -91,14 +91,14 @@ export default function ResetPasswordForm() {
       <h1 className="text-center text-[21px] font-extrabold text-shop-ink">
         Choose a new password
       </h1>
-      <p className="mx-auto mt-2 max-w-sm text-center text-[14.5px] leading-relaxed text-shop-muted">
+      <p className="mx-auto mt-2 max-w-sm text-center text-[14px] leading-relaxed text-shop-muted">
         Pick something you have not used on another site. You will be signed in straight
         afterwards.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
         <div>
-          <label htmlFor="new-password" className="mb-1.5 block text-[13.5px] font-semibold text-shop-body">
+          <label htmlFor="new-password" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
             New password
           </label>
           <div className="relative">
@@ -124,7 +124,7 @@ export default function ResetPasswordForm() {
         </div>
 
         <div>
-          <label htmlFor="confirm-password" className="mb-1.5 block text-[13.5px] font-semibold text-shop-body">
+          <label htmlFor="confirm-password" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
             Type it again
           </label>
           <input

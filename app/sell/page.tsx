@@ -352,7 +352,7 @@ export default async function SellPage() {
                 <br className="hidden sm:block" /> to the whole of Uganda.
               </h1>
 
-              <p className="mt-4 max-w-[50ch] text-[15.5px] leading-[1.6] text-shop-body md:text-[16px]">
+              <p className="mt-4 max-w-[50ch] text-[15px] leading-[1.6] text-shop-body md:text-[16px]">
                 Open a store on {brand.name} and list what you have. We run the storefront, take
                 the payments and deliver the parcel — you pack it. There is nothing to build and
                 nothing to host.
@@ -374,7 +374,7 @@ export default async function SellPage() {
                 </Link>
               </div>
 
-              <p className="mt-5 text-[13.5px] leading-relaxed text-shop-muted">
+              <p className="mt-5 text-[13px] leading-relaxed text-shop-muted">
                 Already selling with us?{" "}
                 <Link
                   href="/seller/login"
@@ -412,7 +412,7 @@ export default async function SellPage() {
           <dl className="mx-auto grid max-w-[1200px] grid-cols-2 divide-shop-line px-4 md:grid-cols-4 md:divide-x md:px-8">
             {terms.map((term) => (
               <div key={term.label} className="py-5 md:px-6 md:py-6 md:first:pl-0 md:last:pr-0">
-                <dt className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-shop-muted">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-shop-muted">
                   {term.label}
                 </dt>
                 {/* 22px, down from 30. These are still the largest figures on
@@ -423,7 +423,7 @@ export default async function SellPage() {
                 <dd className="mt-1.5 text-[19px] font-bold leading-none tracking-[-0.02em] text-shop-ink tabular-nums md:text-[22px]">
                   {term.value}
                 </dd>
-                <dd className="mt-2 max-w-[26ch] text-[12.5px] leading-snug text-shop-muted">
+                <dd className="mt-2 max-w-[26ch] text-[12px] leading-snug text-shop-muted">
                   {term.detail}
                 </dd>
               </div>
@@ -635,7 +635,7 @@ export default async function SellPage() {
             <div className="divide-y divide-shop-line border-y border-shop-line">
               {faqs.map((faq) => (
                 <details key={faq.q} className="group py-4">
-                  <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-[14.5px] font-semibold leading-snug text-shop-ink">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-[14px] font-semibold leading-snug text-shop-ink">
                     {faq.q}
                     <span
                       aria-hidden
@@ -681,7 +681,7 @@ export default async function SellPage() {
               <h2 className="text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-white md:text-[26px]">
                 Set your store up today
               </h2>
-              <p className="mt-2.5 max-w-[46ch] text-[14.5px] leading-relaxed text-white/70">
+              <p className="mt-2.5 max-w-[46ch] text-[14px] leading-relaxed text-white/70">
                 Three minutes to apply, {formatPrice(seller.registration_fee)} for the first month,
                 and most applications are reviewed the same day.
               </p>
@@ -692,7 +692,7 @@ export default async function SellPage() {
                 Start selling
               </Link>
               {support.phone && (
-                <p className="text-[13.5px] text-white/60">
+                <p className="text-[13px] text-white/60">
                   Or talk to someone first:{" "}
                   <a
                     href={`tel:${support.phone.replace(/\s+/g, "")}`}

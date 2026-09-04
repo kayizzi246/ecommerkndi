@@ -95,7 +95,7 @@ function ResetForm() {
 
       <form onSubmit={submit} className="mt-7 space-y-4">
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-[13.5px] font-semibold text-shop-ink">
+          <label htmlFor="password" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
             New password
           </label>
           <input
@@ -108,11 +108,11 @@ function ResetForm() {
             onChange={(event) => setPassword(event.target.value)}
             className="field-shop"
           />
-          <p className="mt-1 text-[12.5px] text-shop-muted">At least 8 characters.</p>
+          <p className="mt-1 text-[12px] text-shop-muted">At least 8 characters.</p>
         </div>
 
         <div>
-          <label htmlFor="confirm" className="mb-1.5 block text-[13.5px] font-semibold text-shop-ink">
+          <label htmlFor="confirm" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
             Type it again
           </label>
           <input

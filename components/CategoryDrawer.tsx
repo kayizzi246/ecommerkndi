@@ -131,7 +131,7 @@ export default function CategoryDrawer({
           </span>
           <Link href="/account" onClick={close} className="min-w-0 flex-1">
             <span className="block text-[15px] font-bold leading-tight">My account</span>
-            <span className="block truncate text-[12.5px] leading-tight text-white/80">
+            <span className="block truncate text-[12px] leading-tight text-white/80">
               Orders, wishlist and settings
             </span>
           </Link>
@@ -159,7 +159,7 @@ export default function CategoryDrawer({
 
           <Band title="Our categories" seeAll="/categories" onClose={close}>
             {departments.length === 0 ? (
-              <p className="px-4 py-4 text-[13.5px] text-shop-muted">
+              <p className="px-4 py-4 text-[13px] text-shop-muted">
                 No departments yet — add product categories in WordPress and they
                 appear here.
               </p>
@@ -269,14 +269,14 @@ function Band({
   return (
     <section className="border-t border-shop-line first:border-t-0">
       <div className="flex items-center justify-between gap-3 px-4 pb-1 pt-4">
-        <h2 className="text-[11.5px] font-bold uppercase tracking-[0.06em] text-shop-muted">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-shop-muted">
           {title}
         </h2>
         {seeAll && (
           <Link
             href={seeAll}
             onClick={onClose}
-            className="shrink-0 text-[12.5px] font-bold text-shop-primary"
+            className="shrink-0 text-[12px] font-bold text-shop-primary"
           >
             See all
           </Link>
@@ -309,7 +309,7 @@ function Row({
     <Link
       href={href}
       onClick={onClose}
-      className="flex min-w-0 flex-1 items-center gap-3.5 px-4 py-3 text-[14.5px] text-shop-ink transition-colors hover:text-shop-primary"
+      className="flex min-w-0 flex-1 items-center gap-3.5 px-4 py-3 text-[14px] text-shop-ink transition-colors hover:text-shop-primary"
     >
       <span className="shrink-0 text-shop-body">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>

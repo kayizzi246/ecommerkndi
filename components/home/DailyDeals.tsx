@@ -105,7 +105,7 @@ export default function DailyDeals({
             >
               Daily Deals
             </h2>
-            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-shop-primary-ink">
+            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-shop-primary-ink">
               {best > 0 ? `Up to ${best}% off` : "Lowest today"}
             </span>
           </div>
@@ -120,7 +120,7 @@ export default function DailyDeals({
             deadline rather than a link. One 24-hour cycle, resetting at
             midnight on the viewer's clock. */}
         <span className="flex shrink-0 items-center gap-2 rounded-full bg-shop-ink px-3 py-2 text-white">
-          <span className="hidden text-[11.5px] font-semibold sm:inline">Ends in</span>
+          <span className="hidden text-[11px] font-semibold sm:inline">Ends in</span>
           <CountdownBlocks />
         </span>
       </div>

@@ -137,10 +137,10 @@ export default function PortalBand({
             <span className="hero-display relative mt-1.5 max-w-[15ch] text-[30px] leading-[1.08] tracking-[-0.02em] md:text-[38px]">
               {settings.banner.headline}
             </span>
-            <span className="relative mt-2 max-w-[34ch] text-[13.5px] leading-snug text-shop-body">
+            <span className="relative mt-2 max-w-[34ch] text-[13px] leading-snug text-shop-body">
               {`Free delivery over ${formatPrice(settings.commerce.free_delivery_from)} · pay on delivery · ${settings.commerce.returns_days}-day returns`}
             </span>
-            <span className="relative mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2 text-[13.5px] font-bold text-shop-primary-ink shadow-[0_8px_18px_-8px_rgba(120,72,30,0.55)] ring-1 ring-shop-primary/20 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
+            <span className="relative mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-5 py-2 text-[13px] font-bold text-shop-primary-ink shadow-[0_8px_18px_-8px_rgba(120,72,30,0.55)] ring-1 ring-shop-primary/20 transition-transform duration-200 ease-out group-hover:translate-x-0.5">
               {settings.banner.cta_label}
               <svg
                 className="h-4 w-4"
@@ -169,11 +169,11 @@ export default function PortalBand({
                   className="flex h-full flex-col justify-center rounded-xl bg-white px-3 py-2.5 ring-1 ring-shop-edge transition-colors hover:ring-shop-primary"
                 >
                   {offer.badge && (
-                    <span className="mb-1 w-fit rounded bg-shop-primary-soft px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-shop-primary-ink">
+                    <span className="mb-1 w-fit rounded bg-shop-primary-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-shop-primary-ink">
                       {offer.badge}
                     </span>
                   )}
-                  <span className="truncate text-[12.5px] font-bold text-shop-ink">
+                  <span className="truncate text-[12px] font-bold text-shop-ink">
                     {offer.headline}
                   </span>
                   {/* The qualifying half of an offer. "Extra 20% off" is the
@@ -235,7 +235,7 @@ export default function PortalBand({
                 orange box is two accents fighting over a 90px object; the
                 digits carry the colour and the label beside them stays grey. */}
             <span className="hidden shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-0.5 sm:flex">
-              <span className="text-[10.5px] font-semibold text-shop-muted">Ends in</span>
+              <span className="text-[10px] font-semibold text-shop-muted">Ends in</span>
               <CountdownBlocks />
             </span>
           </div>
@@ -317,21 +317,21 @@ export default function PortalBand({
             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ff8a3d]">
               Pay on delivery
             </span>
-            <span className="mt-0.5 text-[16.5px] font-extrabold leading-tight">
+            <span className="mt-0.5 text-[16px] font-extrabold leading-tight">
               Free delivery over {formatPrice(settings.commerce.free_delivery_from)}
             </span>
             {/* `white/70` rather than a second colour. A supporting line wants to
                 recede, and on a dark ground that is a job for opacity — reaching
                 for another hue is how a two-colour block becomes a four-colour
                 one. */}
-            <span className="mt-1 text-[11.5px] font-medium text-white/70">
+            <span className="mt-1 text-[11px] font-medium text-white/70">
               {settings.commerce.returns_days}-day returns · cash, MTN MoMo or Airtel Money
             </span>
           </div>
 
           <Link
             href="/sale"
-            className="mt-2.5 block text-[11.5px] font-semibold text-shop-primary hover:underline"
+            className="mt-2.5 block text-[11px] font-semibold text-shop-primary hover:underline"
           >
             All deals →
           </Link>

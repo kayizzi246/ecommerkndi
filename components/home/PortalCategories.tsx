@@ -133,7 +133,7 @@ export default function PortalCategories({
               href={`/category/${row.slug}`}
               className="flex items-center gap-1.5 rounded-lg px-2 py-[5.5px] transition-colors group-hover:bg-shop-primary-soft"
             >
-              <span className="min-w-0 flex-1 truncate text-[12.5px] leading-tight">
+              <span className="min-w-0 flex-1 truncate text-[12px] leading-tight">
                 <span className="font-semibold text-shop-ink transition-colors group-hover:text-shop-primary">
                   {row.name}
                 </span>
@@ -190,7 +190,7 @@ export default function PortalCategories({
                       <li key={child.id}>
                         <Link
                           href={`/category/${child.slug}`}
-                          className="block truncate text-[12.5px] text-shop-body transition-colors hover:text-shop-primary"
+                          className="block truncate text-[12px] text-shop-body transition-colors hover:text-shop-primary"
                         >
                           {child.name}
                         </Link>
@@ -199,7 +199,7 @@ export default function PortalCategories({
                   </ul>
                   <Link
                     href={`/category/${row.slug}`}
-                    className="mt-3 inline-block text-[12.5px] font-semibold text-shop-primary hover:underline"
+                    className="mt-3 inline-block text-[12px] font-semibold text-shop-primary hover:underline"
                   >
                     Everything in {row.name} →
                   </Link>
@@ -212,7 +212,7 @@ export default function PortalCategories({
 
       <Link
         href="/categories"
-        className="mt-1.5 block rounded-lg px-2 py-1.5 text-[12.5px] font-semibold text-shop-primary transition-colors hover:bg-shop-primary-soft"
+        className="mt-1.5 block rounded-lg px-2 py-1.5 text-[12px] font-semibold text-shop-primary transition-colors hover:bg-shop-primary-soft"
       >
         All departments →
       </Link>

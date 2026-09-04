@@ -224,7 +224,7 @@ function Callout({
 }) {
   return (
     <p
-      className={`rounded-xl px-4 py-3 text-[14.5px] leading-relaxed ${
+      className={`rounded-xl px-4 py-3 text-[14px] leading-relaxed ${
         tone === "warning"
           ? "bg-pop-red-soft text-pop-red"
           : "bg-shop-primary-soft text-shop-primary-ink"

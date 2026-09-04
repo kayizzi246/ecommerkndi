@@ -218,7 +218,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
             >
               {store.store_name}
             </Link>
-            <p className="mt-0.5 text-[13.5px] text-shop-muted">
+            <p className="mt-0.5 text-[13px] text-shop-muted">
               {empty
                 ? "Setting up"
                 : `${store.product_count} ${store.product_count === 1 ? "product" : "products"}`}

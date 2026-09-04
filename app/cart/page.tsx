@@ -211,7 +211,7 @@ export default function CartPage() {
                     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                       <Link
                         href={`/products/${item.productId}`}
-                        className="line-clamp-2 text-[13.5px] font-medium leading-snug text-shop-ink hover:underline sm:line-clamp-none sm:text-[15.5px]"
+                        className="line-clamp-2 text-[13px] font-medium leading-snug text-shop-ink hover:underline sm:line-clamp-none sm:text-[15px]"
                       >
                         {item.name}
                       </Link>
@@ -246,7 +246,7 @@ export default function CartPage() {
                         >
                           −
                         </button>
-                        <span className="w-7 text-center text-[13.5px] font-semibold text-shop-ink sm:text-[14px]">
+                        <span className="w-7 text-center text-[13px] font-semibold text-shop-ink sm:text-[14px]">
                           {item.quantity}
                         </span>
                         <button
@@ -287,7 +287,7 @@ export default function CartPage() {
         <aside className="shop-panel lg:sticky lg:top-32">
           <h2 className="text-[16px] font-extrabold text-shop-ink md:text-[17px]">Order summary</h2>
 
-          <dl className="mt-3.5 space-y-2.5 text-[13.5px] md:text-[14px]">
+          <dl className="mt-3.5 space-y-2.5 text-[13px] md:text-[14px]">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-shop-muted">
                 Subtotal · {selectedCount} {selectedCount === 1 ? "item" : "items"}
@@ -300,7 +300,7 @@ export default function CartPage() {
                 className={
                   qualifiesFree
                     ? "font-medium text-shop-success"
-                    : "text-right text-[12.5px] text-shop-muted"
+                    : "text-right text-[12px] text-shop-muted"
                 }
               >
                 {qualifiesFree ? "Free" : "Calculated at checkout"}
@@ -327,12 +327,12 @@ export default function CartPage() {
               <span className="price block text-[24px] text-shop-ink md:text-[26px]">
                 {formatPrice(total)}
               </span>
-              <span className="text-[11.5px] text-shop-muted">Incl. VAT</span>
+              <span className="text-[11px] text-shop-muted">Incl. VAT</span>
             </div>
           </div>
 
           {qualifiesFree && (
-            <p className="mt-3 rounded-lg bg-shop-successbg px-3 py-2 text-[12.5px] text-shop-success">
+            <p className="mt-3 rounded-lg bg-shop-successbg px-3 py-2 text-[12px] text-shop-success">
               This order qualifies for free delivery.
             </p>
           )}
@@ -340,7 +340,7 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`mt-4 block rounded-[10px] py-3.5 text-center text-[14.5px] font-bold ${
+            className={`mt-4 block rounded-[10px] py-3.5 text-center text-[14px] font-bold ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop w-full"
@@ -353,7 +353,7 @@ export default function CartPage() {
             Coupons and vouchers are applied at payment.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-shop-line pt-4 text-[11.5px] text-shop-muted">
+          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-shop-line pt-4 text-[11px] text-shop-muted">
             {["Cash", "MTN MoMo", "Airtel Money", "Visa", "Mastercard"].map((label) => (
               <span key={label} className="rounded-md border border-shop-line px-2 py-1">
                 {label}
@@ -392,7 +392,7 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`shrink-0 rounded-[10px] px-7 py-3 text-center text-[14.5px] font-bold ${
+            className={`shrink-0 rounded-[10px] px-7 py-3 text-center text-[14px] font-bold ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop"

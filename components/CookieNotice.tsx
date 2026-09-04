@@ -70,7 +70,7 @@ export default function CookieNotice() {
       className="banner-up fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-[440px] rounded-xl border border-shop-line bg-white p-4 shadow-xl lg:inset-x-auto lg:left-5 lg:bottom-5 lg:mx-0"
     >
       <p className="text-[14px] font-bold text-shop-ink">Cookies on Kandi</p>
-      <p className="mt-1 text-[13.5px] leading-[1.5] text-shop-body">
+      <p className="mt-1 text-[13px] leading-[1.5] text-shop-body">
         We only use what the shop needs to work — keeping you signed in and
         remembering your basket. No advertising cookies, no third-party
         trackers, nothing sold to anyone.
@@ -86,7 +86,7 @@ export default function CookieNotice() {
         <Link
           href="/privacy#cookies"
           onClick={acknowledge}
-          className="text-[13.5px] font-semibold text-shop-primary hover:underline"
+          className="text-[13px] font-semibold text-shop-primary hover:underline"
         >
           Read more
         </Link>

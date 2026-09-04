@@ -117,7 +117,7 @@ export default function CategoryShelves({
             department would undo the one choice they just made. */}
         <Link
           href={`/category/${shownSlug}`}
-          className="shrink-0 rounded-full bg-shop-primary px-3.5 py-2 text-[12.5px] font-bold text-white transition-colors hover:bg-shop-primary-dark"
+          className="shrink-0 rounded-full bg-shop-primary px-3.5 py-2 text-[12px] font-bold text-white transition-colors hover:bg-shop-primary-dark"
         >
           Shop all
         </Link>

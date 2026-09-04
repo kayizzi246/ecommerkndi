@@ -161,7 +161,7 @@ export default function StorefrontCard({
             <p className="truncate text-[17px] font-extrabold leading-tight">
               {seller.store_name}
             </p>
-            <p className="mt-0.5 text-[12.5px]" style={{ color: veil(0.7) }}>
+            <p className="mt-0.5 text-[12px]" style={{ color: veil(0.7) }}>
               Sold and delivered through Kandi
             </p>
           </div>
@@ -196,7 +196,7 @@ export default function StorefrontCard({
           Your store link
         </label>
         <div className="flex items-center overflow-hidden rounded border border-bfl-line focus-within:border-black">
-          <span className="shrink-0 border-r border-bfl-line bg-bfl-surface px-2.5 py-2.5 text-[13.5px] text-bfl-grey">
+          <span className="shrink-0 border-r border-bfl-line bg-bfl-surface px-2.5 py-2.5 text-[13px] text-bfl-grey">
             {origin.replace(/^https?:\/\//, "") || "kandiug.com"}/
           </span>
           <input

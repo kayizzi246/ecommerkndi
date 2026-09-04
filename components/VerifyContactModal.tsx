@@ -259,7 +259,7 @@ export default function VerifyContactModal({
 
         {step === "destination" ? (
           <form onSubmit={send} className="mt-2">
-            <p className="text-[13.5px] leading-relaxed text-shop-body">{intro}</p>
+            <p className="text-[13px] leading-relaxed text-shop-body">{intro}</p>
 
             {channel === "sms" ? (
               <>
@@ -351,7 +351,7 @@ export default function VerifyContactModal({
                     setTo("");
                     setError("");
                   }}
-                  className="mt-3 w-full text-[13.5px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
+                  className="mt-3 w-full text-[13px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
                 >
                   {channel === "sms"
                     ? "Use my email address instead"
@@ -362,7 +362,7 @@ export default function VerifyContactModal({
           </form>
         ) : (
           <form onSubmit={verify} className="mt-2">
-            <p className="text-[13.5px] leading-relaxed text-shop-body">
+            <p className="text-[13px] leading-relaxed text-shop-body">
               We sent a 6-digit code to{" "}
               <span className="font-semibold text-shop-ink">{sentTo}</span>. It expires in 10
               minutes.
@@ -437,7 +437,7 @@ export default function VerifyContactModal({
         <button
           type="button"
           onClick={onCancel}
-          className="mt-4 w-full rounded-lg py-2 text-[13.5px] font-semibold text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
+          className="mt-4 w-full rounded-lg py-2 text-[13px] font-semibold text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
         >
           Cancel
         </button>

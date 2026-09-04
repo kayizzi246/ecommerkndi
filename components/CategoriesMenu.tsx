@@ -162,7 +162,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
         /* Matched to the department links beside it — 13.5px at 400, colour
            rather than weight for the open state. The two are one row and a
            half-pixel of disagreement between them reads as a mistake. */
-        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[12.5px] font-normal transition-colors ${
+        className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[12px] font-normal transition-colors ${
           open ? "text-shop-flame" : "text-shop-ink hover:text-shop-flame"
         }`}
       >
@@ -236,12 +236,12 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
                         <Link
                           href={`/category/${group.slug}`}
                           onClick={() => setOpen(false)}
-                          className="block border-b border-shop-line pb-2 text-[13.5px] font-bold tracking-[-0.01em] text-shop-ink transition-colors hover:text-shop-flame"
+                          className="block border-b border-shop-line pb-2 text-[13px] font-bold tracking-[-0.01em] text-shop-ink transition-colors hover:text-shop-flame"
                         >
                           {group.name}
                         </Link>
                       ) : (
-                        <p className="block border-b border-shop-line pb-2 text-[13.5px] font-bold tracking-[-0.01em] text-shop-ink">
+                        <p className="block border-b border-shop-line pb-2 text-[13px] font-bold tracking-[-0.01em] text-shop-ink">
                           {group.name}
                         </p>
                       )}

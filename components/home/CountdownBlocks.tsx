@@ -82,13 +82,13 @@ export default function CountdownBlocks() {
           reads as three separate objects instead of one time. */}
       {parts.map((part, index) => (
         <span key={index} className="flex items-center gap-0.5">
-          <span className="price rounded bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[11.5px] leading-tight text-white tabular-nums">
+          <span className="price rounded bg-[color:var(--color-shop-price-was)] px-1.5 py-0.5 text-[11px] leading-tight text-white tabular-nums">
             {part}
           </span>
           {index < 2 && (
             <span
               aria-hidden
-              className="text-[11.5px] font-bold text-[color:var(--color-shop-price-was)]"
+              className="text-[11px] font-bold text-[color:var(--color-shop-price-was)]"
             >
               :
             </span>

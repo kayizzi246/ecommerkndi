@@ -110,7 +110,7 @@ export default function LogoUploader({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="rounded border border-black bg-black px-4 py-2 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+            className="rounded border border-black bg-black px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
           >
             {busy ? "Uploading…" : value ? "Change picture" : "Upload a picture"}
           </button>
@@ -119,7 +119,7 @@ export default function LogoUploader({
             <button
               type="button"
               onClick={() => onChange("")}
-              className="rounded border border-bfl-line px-3 py-2 text-[13.5px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+              className="rounded border border-bfl-line px-3 py-2 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
             >
               Remove
             </button>

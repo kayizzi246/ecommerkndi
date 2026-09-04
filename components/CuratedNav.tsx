@@ -225,7 +225,7 @@ export default function CuratedNav({
                share with the Categories pill and the seller link. Four pixels
                a side across ten links is the 40px that turns a bar with 20px
                of slack into one with 60. */
-            className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2.5 text-[12.5px] font-normal transition-colors 2xl:px-3 ${
+            className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2.5 text-[12px] font-normal transition-colors 2xl:px-3 ${
                 entry.hot
                   ? "font-medium text-shop-primary-ink"
                   : isOpen
@@ -333,7 +333,7 @@ function MegaPanel({
                 <Link
                   href={`/category/${child.slug}`}
                   onClick={onNavigate}
-                  className="block border-b border-shop-hairline pb-1.5 text-[13.5px] font-bold text-shop-ink transition-colors hover:text-shop-flame"
+                  className="block border-b border-shop-hairline pb-1.5 text-[13px] font-bold text-shop-ink transition-colors hover:text-shop-flame"
                 >
                   {child.name}
                 </Link>

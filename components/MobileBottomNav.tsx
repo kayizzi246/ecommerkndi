@@ -99,7 +99,7 @@ export default function MobileBottomNav() {
               aria-current={isActive ? "page" : undefined}
               target={item.href.startsWith("http") ? "_blank" : undefined}
               rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className={`relative flex w-full flex-col items-center justify-center gap-0.5 pt-1 text-[10.5px] font-semibold transition-colors ${
+              className={`relative flex w-full flex-col items-center justify-center gap-0.5 pt-1 text-[10px] font-semibold transition-colors ${
                 isActive
                   ? "font-bold text-shop-primary"
                   : "font-medium text-shop-muted active:text-shop-ink"
@@ -125,7 +125,7 @@ export default function MobileBottomNav() {
               >
                 {item.icon(isActive)}
                 {item.label === "Cart" && count > 0 && (
-                  <span className="absolute right-1.5 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-shop-ember px-1 text-[9.5px] font-bold text-white ring-2 ring-white">
+                  <span className="absolute right-1.5 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-shop-ember px-1 text-[9px] font-bold text-white ring-2 ring-white">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}

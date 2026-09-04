@@ -251,7 +251,7 @@ export default async function CategoryPage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>

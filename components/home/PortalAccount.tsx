@@ -110,7 +110,7 @@ export default function PortalAccount({
       {customer ? (
         <Link
           href="/account"
-          className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13.5px]"
+          className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13px]"
         >
           My account
         </Link>
@@ -118,7 +118,7 @@ export default function PortalAccount({
         <>
           <Link
             href="/account"
-            className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13.5px]"
+            className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13px]"
           >
             Sign in
           </Link>

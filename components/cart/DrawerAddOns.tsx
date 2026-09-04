@@ -192,10 +192,10 @@ export default function DrawerAddOns({
                 produce cards of the same height — without it the row's prices
                 and Add buttons sat at three different heights. */}
             <div className="p-2">
-              <p className="line-clamp-2 min-h-[28px] text-[11.5px] leading-[14px] text-shop-ink">
+              <p className="line-clamp-2 min-h-[28px] text-[11px] leading-[14px] text-shop-ink">
                 {product.name}
               </p>
-              <p className="price mt-1 text-[12.5px] font-extrabold text-shop-ink">
+              <p className="price mt-1 text-[12px] font-extrabold text-shop-ink">
                 {formatPrice(product.price)}
               </p>
 

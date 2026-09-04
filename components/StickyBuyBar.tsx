@@ -124,7 +124,7 @@ export default function StickyBuyBar({
             product; spending half the bar telling them what it is costs the
             buttons the room they need to be tappable. */}
         <div className="hidden min-w-0 flex-1 sm:block">
-          <p className="line-clamp-1 text-[13.5px] text-shop-title">{product.name}</p>
+          <p className="line-clamp-1 text-[13px] text-shop-title">{product.name}</p>
           <p className="price text-[17px] leading-none text-shop-flame">
             {formatPrice(product.price)}
           </p>

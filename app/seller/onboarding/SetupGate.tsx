@@ -151,7 +151,7 @@ export default function SetupGate({
             <legend className="text-[14px] font-semibold text-shop-ink">
               Is the business formally registered?
             </legend>
-            <p className="mt-1 text-[13.5px] text-shop-muted">
+            <p className="mt-1 text-[13px] text-shop-muted">
               Registered with URSB, or holding a trading licence or TIN.
             </p>
             <div className="mt-3 grid gap-2.5 sm:grid-cols-2">

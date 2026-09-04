@@ -293,7 +293,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
               <Link
                 href="/seller/guide"
                 onClick={() => setDrawerOpen(false)}
-                className="mt-3 block text-[13.5px] font-semibold text-shop-primary hover:underline"
+                className="mt-3 block text-[13px] font-semibold text-shop-primary hover:underline"
               >
                 How selling works ›
               </Link>

@@ -87,7 +87,7 @@ export default async function SearchPage({
 
   return (
     <main className="w-full px-0 pb-24 pt-3 md:px-8 lg:pb-10">
-      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12.5px] text-shop-muted">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>

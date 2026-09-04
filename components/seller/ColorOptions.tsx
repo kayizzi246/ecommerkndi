@@ -179,7 +179,7 @@ export default function ColorOptions({
       <button
         type="button"
         onClick={() => update([...rows, emptyColorRow()])}
-        className="rounded-lg border border-shop-line px-3.5 py-2 text-[13.5px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+        className="rounded-lg border border-shop-line px-3.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
       >
         + Add a colour
       </button>

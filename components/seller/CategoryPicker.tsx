@@ -152,7 +152,7 @@ export default function CategoryPicker({
                     onClick={() => choose(branch, depth)}
                     disabled={disabled}
                     aria-pressed={active}
-                    className={`rounded-full border px-3.5 py-1.5 text-[13.5px] font-semibold transition-colors disabled:opacity-50 ${
+                    className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
                       active
                         ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
                         : "border-shop-line bg-white text-shop-body hover:border-shop-primary hover:text-shop-primary"

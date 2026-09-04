@@ -371,7 +371,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
               : "Fastest — and signing back in later is one tap."}
           </p>
 
-          <div className="my-6 flex items-center gap-3 text-[11.5px] uppercase tracking-[0.1em] text-shop-muted">
+          <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.1em] text-shop-muted">
             <span className="h-px flex-1 bg-shop-line" />
             or
             <span className="h-px flex-1 bg-shop-line" />
@@ -680,7 +680,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                         type="button"
                         onClick={() => setVerifyingPhone(true)}
                         disabled={!normaliseUgPhone(form.phone)}
-                        className="btn-shop-outline mt-2 w-full py-2 text-[13.5px] disabled:opacity-50"
+                        className="btn-shop-outline mt-2 w-full py-2 text-[13px] disabled:opacity-50"
                       >
                         Send me a code
                       </button>

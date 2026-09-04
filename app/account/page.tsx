@@ -170,7 +170,7 @@ export default function AccountOverview() {
                       {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[13.5px] text-shop-muted">
+                  <p className="mt-0.5 text-[13px] text-shop-muted">
                     {formatOrderDate(order.date)}
                   </p>
                 </div>

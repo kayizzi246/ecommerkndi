@@ -257,7 +257,7 @@ export default function FilterSidebar({
           <h4 className="mb-1 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
             {browse.current ? "Shop by category" : "Departments"}
           </h4>
-          <p className="mb-3 text-[12.5px] leading-snug text-shop-muted">
+          <p className="mb-3 text-[12px] leading-snug text-shop-muted">
             {browse.current
               ? `Everything in ${browse.current.name}, shelf by shelf.`
               : "Jump straight to a department."}
@@ -270,7 +270,7 @@ export default function FilterSidebar({
           {browse.parent && (
             <Link
               href={`/category/${browse.parent.slug}`}
-              className="mb-2 flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold text-shop-body transition-colors hover:bg-shop-surface hover:text-shop-ink"
+              className="mb-2 flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:bg-shop-surface hover:text-shop-ink"
             >
               <span aria-hidden>←</span>
               All {browse.parent.name}
@@ -430,7 +430,7 @@ export default function FilterSidebar({
                     type="button"
                     onClick={() => applyFilters({ brand: active ? undefined : brand.slug })}
                     aria-pressed={active}
-                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-colors ${
                       active
                         ? "bg-shop-primary-soft font-semibold text-shop-primary-ink"
                         : "text-shop-body hover:bg-shop-surface"

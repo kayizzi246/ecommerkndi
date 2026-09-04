@@ -92,7 +92,7 @@ export default function AccountOrders() {
                       {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </span>
                   </div>
-                  <span className="mt-0.5 block text-[13.5px] text-shop-muted">
+                  <span className="mt-0.5 block text-[13px] text-shop-muted">
                     {formatOrderDate(order.date)}
                   </span>
                 </div>

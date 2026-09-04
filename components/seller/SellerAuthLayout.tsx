@@ -83,7 +83,7 @@ export default function SellerAuthLayout({
             <h2 className="heading-black text-[34px] font-extrabold leading-[1.15] tracking-tight xl:text-[40px]">
               Your shop, in front of the whole country.
             </h2>
-            <p className="mt-4 text-[15.5px] leading-relaxed text-white/70">
+            <p className="mt-4 text-[15px] leading-relaxed text-white/70">
               List what you already sell, take orders from anywhere in Uganda,
               and get paid to the number you already use.
             </p>

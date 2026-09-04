@@ -189,7 +189,7 @@ export default async function SalePage({
       <section className="mb-4 bg-[color:var(--color-shop-panel-deals)] px-3.5 py-4 md:rounded-2xl md:px-5 md:py-5">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <p className="text-[11.5px] font-bold uppercase tracking-[0.18em] text-white/80">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
               Super Price Store
             </p>
             <h1 className="heading-black mt-1 text-[26px] leading-[1.08] text-white md:text-[34px]">
