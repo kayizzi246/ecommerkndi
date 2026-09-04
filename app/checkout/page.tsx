@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/currency";
 import PesapalModal from "@/components/PesapalModal";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import DeliveryPicker, { type DeliveryResult } from "@/components/DeliveryPicker";
+import CheckoutVerifyGate from "@/components/CheckoutVerifyGate";
 import { saveAddress } from "@/lib/saved-addresses";
 import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/PaymentMarks";
 import { codZoneFor } from "@/lib/cod-zones";
@@ -87,6 +88,9 @@ export default function CheckoutPage() {
   const { items, count, subtotal, clearCart, removeItem } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  /* Raised when the order is refused for an expired verification, so the gate
+     can reopen instead of the page printing an error. */
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentValue>("mobile");
   /** Pesapal's payment URL while the modal is open. */
@@ -337,6 +341,15 @@ export default function CheckoutPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
+        /* The verified-contact cookie expired between opening the page and
+           submitting it — ninety days is long, but somebody who left a tab open
+           over a weekend can land here. Reopening the dialog is one code away
+           from finishing; an error message would be a filled-in checkout with
+           no way forward. */
+        if (data?.code === "verification_required") {
+          setNeedsVerification(true);
+          return;
+        }
         setError(data?.error ?? "Something went wrong. Please try again.");
         return;
       }
@@ -562,6 +575,24 @@ export default function CheckoutPage() {
 
   return (
     <form onSubmit={handleSubmit} className="lg:grid lg:min-h-screen lg:grid-cols-2">
+      {/* ---- The gate, mounted at the destination rather than on the buttons ----
+
+           Every route into this page passes through here — the cart's two
+           buttons, the cart drawer, "Buy now" on a product page, the sticky buy
+           bar, a bookmark, the browser's history. See the note in the component
+           for why that is the only place it can go and still be a gate.
+
+           A verified phone pre-fills the number field. The shopper has just
+           typed it and proved it holds; asking for it again two fields later
+           would make the check feel like an obstacle rather than a step. */}
+      <CheckoutVerifyGate
+        reopen={needsVerification}
+        onVerified={(contact) => {
+          setNeedsVerification(false);
+          if (contact.channel === "sms") setField("phone")(contact.value);
+        }}
+      />
+
       {/* ---- The mobile summary, pinned ----
 
            It was a disclosure at the top of the document, which meant it

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { quoteDelivery } from "@/lib/delivery";
 import { codZoneFor } from "@/lib/cod-zones";
+import { cookies } from "next/headers";
 import { normaliseUgPhone } from "@/lib/phone";
+import { readVerified, VERIFIED_COOKIE } from "@/lib/otp";
 import { getDeliveryRates } from "@/lib/site-settings";
 import { getProduct } from "@/lib/woocommerce";
 import { APP_WRITE_CORS_HEADERS, appPreflight } from "@/lib/app-api";
@@ -241,6 +243,62 @@ async function placeOrder(request: Request): Promise<Response> {
     );
   }
   customer.phone = phone;
+
+  /* ---- The server half of the checkout verification gate ----
+   *
+   * `CheckoutVerifyGate` puts a one-time-code dialog in front of this page for
+   * any browser that has never proved a contact. This is the half that a
+   * shopper cannot delete from the DOM.
+   *
+   * ---- Why it is scoped to same-origin requests ----
+   *
+   * This endpoint has two callers. One is the storefront, which is a browser on
+   * this domain and carries the sealed cookie. The other is the Kandi phone
+   * app, which is cross-origin — that is what `APP_WRITE_CORS_HEADERS` exists
+   * for — and has no cookie jar at all. Requiring the cookie unconditionally
+   * would take every app order down the moment this shipped.
+   *
+   * `Sec-Fetch-Site` is the discriminator. It is a forbidden header name, so a
+   * page script cannot set or remove it: on a request from our own storefront
+   * the browser writes `same-origin` and no amount of tampering in the console
+   * changes that. The app's request does not carry it.
+   *
+   * ---- What this does and does not stop ----
+   *
+   * It stops the realistic bypass, which is a person who opens dev tools,
+   * deletes the modal and submits the form underneath it. It does NOT stop a
+   * script posting straight to this URL with no `Sec-Fetch-Site` header, and
+   * pretending otherwise would be worse than the gap: anything that wants to
+   * place unverified orders from outside a browser still can, and the controls
+   * that actually bound that are the rate limiter above, the Turnstile check,
+   * and the fact that an order still has to survive a rider ringing the number.
+   *
+   * The escape hatch is deliberate and it is for one situation: a shop whose
+   * SMS gateway is down and which would rather take unverified orders than take
+   * none. It defaults to enforcing.
+   */
+  const enforceVerification =
+    process.env.KANDI_REQUIRE_VERIFIED_CHECKOUT !== "0" &&
+    request.headers.get("sec-fetch-site") === "same-origin";
+
+  if (enforceVerification) {
+    const proved = await readVerified((await cookies()).get(VERIFIED_COOKIE)?.value);
+    if (!proved) {
+      return NextResponse.json(
+        {
+          error:
+            "Please verify your phone number before placing this order. " +
+            "Reload the page and enter the 6-digit code we send you.",
+          /* A code the browser can act on rather than only a sentence. The
+             checkout catches it and reopens the dialog, so a shopper whose
+             cookie expired mid-order is one code away from finishing rather
+             than reading an error and leaving. */
+          code: "verification_required",
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   /* ---- Cash on delivery is a place, not a preference ----
    *

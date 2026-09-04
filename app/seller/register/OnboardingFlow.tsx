@@ -9,6 +9,8 @@ import GoogleSignInButton from "@/components/GoogleSignInButton";
 import SellerAuthLayout from "@/components/seller/SellerAuthLayout";
 import { takeGoogleCredential } from "@/lib/seller-google-handoff";
 import { useSellerSession } from "@/lib/seller-session";
+import VerifyContactModal from "@/components/VerifyContactModal";
+import { formatUgPhone, normaliseUgPhone } from "@/lib/phone";
 
 const CATEGORIES = [
   "Shoes & footwear",
@@ -123,6 +125,36 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
   const [form, setForm] = useState<Form>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  /* The number this browser has proved, in +2567XXXXXXXX form. Compared against
+     the field rather than replacing it, so a seller who verifies one number and
+     then edits the box is asked again — the case a single "verified" boolean
+     would silently get wrong. */
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
+
+  const phoneVerified =
+    verifiedPhone !== null && normaliseUgPhone(form.phone) === verifiedPhone;
+
+  useEffect(() => {
+    /* A seller who verified at a checkout on this browser has already proved a
+       number; if it is the one they are typing, this step is already done. */
+    let live = true;
+    fetch("/api/otp/status", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { verified?: boolean; channel?: string; contact?: string } | null) => {
+        if (live && data?.verified && data.channel === "sms" && data.contact) {
+          setVerifiedPhone(data.contact);
+        }
+      })
+      .catch(() => {
+        /* Left unproved. The button below is the way through, and the server
+           refuses the registration regardless. */
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
   const [created, setCreated] = useState<Seller | null>(null);
   /**
    * The account exists but its email address is still unproven, so the code
@@ -151,7 +183,15 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
       if (!viaGoogle && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
         return "Enter a valid email address.";
       }
-      if (form.phone.replace(/\D/g, "").length < 9) return "Enter a phone number we can call.";
+      if (!normaliseUgPhone(form.phone)) {
+        return "Enter a Ugandan mobile number we can call, like 0772 123 456.";
+      }
+      /* The step cannot be left unproved. Checked here rather than only at
+         submit so the seller meets it beside the field it is about, three
+         screens before the store is created — being told at the end that a
+         number typed at the start needs verifying is how a sign-up is
+         abandoned. */
+      if (!phoneVerified) return "Verify your phone number to continue.";
       return null;
     }
     if (current === "password") {
@@ -616,6 +656,35 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       autoComplete="tel"
                       className="field-shop text-[16px]"
                     />
+
+                    {/* ---- Proved, not just typed ----
+
+                        The hint above this field says what the number is for:
+                        somebody at the shop rings it to confirm the
+                        application. A mistyped number is two failed calls and a
+                        rejected store, for a reason that was a slipped finger.
+
+                        The row re-arms itself when the field is edited, because
+                        `phoneVerified` compares the proved number with what is
+                        in the box rather than holding a boolean. Verify 0772…,
+                        change the last digit, and this goes back to asking. */}
+                    {phoneVerified ? (
+                      <p className="mt-2 flex items-center gap-1.5 text-[13px] font-semibold text-shop-ink">
+                        <span aria-hidden className="text-shop-success">
+                          ✓
+                        </span>
+                        {formatUgPhone(form.phone)} verified
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setVerifyingPhone(true)}
+                        disabled={!normaliseUgPhone(form.phone)}
+                        className="btn-shop-outline mt-2 w-full py-2 text-[13.5px] disabled:opacity-50"
+                      >
+                        Send me a code
+                      </button>
+                    )}
                   </Field>
                 </div>
               )}
@@ -687,6 +756,27 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
           </div>
         </div>
       </div>
+
+      {/* Cancelling leaves the seller on the "you" step with the row still
+          asking, rather than sending them anywhere. Unlike the checkout gate
+          there is nothing unusable behind this dialog — they can go back a
+          step, change the number, or leave. `validate()` is what actually holds
+          the step, and the server refuses the registration regardless. */}
+      <VerifyContactModal
+        open={verifyingPhone}
+        title="Verify your phone number"
+        intro="We send a 6-digit code to the number we will call to confirm your application."
+        /* No email alternative here: the phone is the whole point of the step.
+           And seeded from the field, so the seller does not type it twice. */
+        smsOnly
+        initialValue={form.phone}
+        onVerified={(contact) => {
+          if (contact.channel === "sms") setVerifiedPhone(contact.value);
+          setVerifyingPhone(false);
+          setError(null);
+        }}
+        onCancel={() => setVerifyingPhone(false)}
+      />
     </div>
   );
 }

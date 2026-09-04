@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import { callSellerApi, setSellerCookie, clearSellerCookie } from "@/lib/seller-server";
 import { privateJson } from "@/lib/private-json";
 import { verifyGoogleIdToken, GoogleAuthError } from "@/lib/google-verify";
+import { readVerified, VERIFIED_COOKIE } from "@/lib/otp";
+import { normaliseUgPhone } from "@/lib/phone";
 
 /** Always required, however the seller signed up. */
 const REQUIRED = ["store_name", "owner_name", "phone"] as const;
@@ -70,6 +73,47 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  /* ---- The phone on a seller account is proved, not typed ----
+   *
+   * This route already demanded a phone number, and the copy beside the field
+   * says what it is for: "We call this number to confirm your application." A
+   * number nobody answers is an application that cannot be confirmed, and it is
+   * a real cost — someone at the shop rings it, twice, before the account is
+   * rejected for a reason that was a typo.
+   *
+   * It matters more here than on a shopper account. A seller sets prices,
+   * publishes listings and requests payouts; the phone number is the only
+   * channel the shop has for "is this really you" once the account is live.
+   *
+   * Taken from the sealed cookie rather than the body, for the same reason the
+   * Google path takes the email from the token rather than the form: a value
+   * the caller typed proves nothing about who typed it. What the form sends is
+   * used only to check the two agree — a seller who verified one number and
+   * then edited the field is asked to verify the one they actually want.
+   */
+  const proved = await readVerified((await cookies()).get(VERIFIED_COOKIE)?.value);
+  if (!proved || proved.channel !== "sms") {
+    return privateJson(
+      {
+        message: "Verify your phone number before creating the store.",
+        code: "verification_required",
+      },
+      { status: 403 }
+    );
+  }
+
+  const claimed = normaliseUgPhone(String(body.phone ?? ""));
+  if (claimed && claimed !== proved.value) {
+    return privateJson(
+      {
+        message: "That is not the number you verified. Verify the new one, or change it back.",
+        code: "verification_required",
+      },
+      { status: 403 }
+    );
+  }
+  payload.phone = proved.value;
 
   const { status, data } = await callSellerApi("/register", {
     method: "POST",
