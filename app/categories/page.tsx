@@ -9,6 +9,7 @@ import {
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 import CategoryShelves, { type Shelf } from "@/components/CategoryShelves";
 import CategoryBrowser, { type BrowseDepartment } from "@/components/CategoryBrowser";
+import ProductCard from "@/components/ProductCard";
 
 export const metadata: Metadata = {
   title: "All categories",
@@ -49,14 +50,23 @@ const PER_DEPARTMENT = 48;
  * standstill — which is the thing a list of links could never do, and the
  * reason the links were not worth keeping as the primary content.
  *
- * ---- The link index at the foot, which is not decoration ----
+ * ---- The link index at the foot is gone ----
  *
- * The tabs are buttons, and buttons are invisible to a crawler. This page is
- * the one place on the site where the full three-level tree is reachable
- * without hovering a menu, and that is most of why it ranks at all — so the
- * tree stays, moved to the bottom and set quietly, where it serves the crawler
- * and the shopper who genuinely wants the whole list without being the first
- * thing either of them has to read.
+ * "Every shelf" — the whole tree as small text links under the rails — was
+ * asked off the page. It was there because the shelf tabs are buttons and a
+ * crawler cannot press one, so it was the page's only crawlable path into the
+ * tree.
+ *
+ * What replaced it is not nothing. The phone browser's tiles are real `<a>`s
+ * and now carry two levels — every shelf and every sub-shelf under it — so the
+ * same slugs are still linked from this page's markup; they are simply
+ * pictures instead of a list. The `ItemList` JSON-LD below still declares the
+ * whole three-level tree either way.
+ *
+ * The thing genuinely lost is the desktop half: above `md` the browser is
+ * hidden, so a crawler rendering a wide viewport sees tabs and rails only. If
+ * category indexing ever softens, that is the first place to look, and the fix
+ * is to make the tabs links rather than to bring the footer list back.
  *
  * ---- Cost ----
  *
@@ -103,18 +113,60 @@ export default async function CategoriesPage() {
     id: department.id,
     name: department.name,
     slug: department.slug,
-    tiles: department.children.map((child) => {
-      const wanted = new Set(subtreeSlugs(child));
+    /* Two levels of shelf, not one.
+     *
+     * This offered the department's direct children only — four or five tiles
+     * for Women, where the tree underneath it holds thirty. The grandchildren
+     * are where a shopper's actual words live: nobody is looking for "Shoes",
+     * they are looking for Sandals, or Heels, or Running Shoes, and a browser
+     * that stops one level short makes them tap through to find out whether
+     * the shop even files things that way.
+     *
+     * A shelf is followed immediately by its own sub-shelves, so the grid
+     * still reads in groups rather than as one alphabetical soup — the parent
+     * is simply the first tile of its own run. Deeper than this is not
+     * flattened: three levels is the whole tree, and a fourth would be a list
+     * rather than a browser. */
+    tiles: [
+      ...department.children.flatMap((child) => [child, ...child.children]),
+    ].map((shelf) => {
+      const wanted = new Set(subtreeSlugs(shelf));
       const hit = feeds[index].products.find((product) =>
         product.categories.some((category) => wanted.has(category.slug))
       );
       return {
-        name: child.name,
-        slug: child.slug,
-        image: child.image || hit?.image || "",
+        name: shelf.name,
+        slug: shelf.slug,
+        image: shelf.image || hit?.image || "",
       };
     }),
   }));
+
+  /**
+   * The products under each department's tiles, rendered on the server.
+   *
+   * `ProductCard` is a server component, so the client browser cannot import
+   * it — the grids are built here and handed down as nodes, one per
+   * department, and the browser picks the one whose rail row is selected. All
+   * of them are in the payload either way; the selection is which one is
+   * mounted, not which one was fetched.
+   *
+   * Twelve, not the forty-eight the rails get. This grid is the tail of a
+   * screen whose job is navigation: it is there so the department is a place
+   * with goods in it rather than a page of labels, and a shopper who wants the
+   * rest taps "Shop all", which is directly above it.
+   */
+  const browseGrids = browse.map((department, index) => {
+    const products = feeds[index].products.slice(0, 12);
+    if (products.length === 0) return null;
+    return (
+      <div key={department.id} className="product-grid-flush grid grid-cols-2">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} sizes="45vw" />
+        ))}
+      </div>
+    );
+  });
 
   const sections = departments
     .map((department, index) => ({
@@ -208,7 +260,7 @@ export default async function CategoriesPage() {
           {/* The phone's version of everything below it. Rendered from the same
               tree, shown below `md`, and the rails are hidden there — the two
               are alternatives, not a layout that reflows. */}
-          <CategoryBrowser departments={browse} />
+          <CategoryBrowser departments={browse} grids={browseGrids} />
 
           {/* The jump row survives the redesign and matters more than it did.
               Each department is now a heading, a tab row and a rail rather
@@ -254,70 +306,11 @@ export default async function CategoriesPage() {
         </>
       )}
 
-      {departments.length > 0 && <ShelfIndex departments={departments} />}
+
     </main>
   );
 }
 
-/**
- * The full tree as links, at the foot of the page.
- *
- * Set deliberately quiet — small type, no cards, no counts. It is not
- * competing with the rails above it; it is the fallback for the shopper who
- * wants the whole list, and the only way a crawler can see past the tab
- * buttons. Dropping it to make the page purely visual would have cost this
- * page the thing it is actually good at.
- *
- * Every level is a real `<a>`, including the grandchildren, which is the level
- * the old card grid rendered as plain text rather than as links.
- */
-function ShelfIndex({ departments }: { departments: CategoryNode[] }) {
-  return (
-    <section aria-labelledby="shelf-index" className="phone-gutter mt-14 border-t border-shop-line pt-8">
-      <h2 id="shelf-index" className="text-[15px] font-bold text-shop-ink">
-        Every shelf
-      </h2>
-      <div className="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-        {departments.map((department) => (
-          <div key={department.id} className="min-w-0">
-            <h3 className="text-[13px] font-bold uppercase tracking-[0.06em] text-shop-body">
-              <Link href={`/category/${department.slug}`} className="hover:text-shop-primary">
-                {department.name}
-              </Link>
-            </h3>
-            <ul className="mt-2 space-y-2">
-              {department.children.map((child) => (
-                <li key={child.id}>
-                  <Link
-                    href={`/category/${child.slug}`}
-                    className="text-[13px] font-semibold text-shop-ink hover:text-shop-primary"
-                  >
-                    {child.name}
-                  </Link>
-                  {child.children.length > 0 && (
-                    <p className="mt-0.5 text-[12px] leading-5 text-shop-muted">
-                      {child.children.map((grandchild, index) => (
-                        <span key={grandchild.id}>
-                          {index > 0 && <span aria-hidden> · </span>}
-                          <Link
-                            href={`/category/${grandchild.slug}`}
-                            className="hover:text-shop-primary"
-                          >
-                            {grandchild.name}
-                          </Link>
-                        </span>
-                      ))}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 /**
  * A shelf and every slug beneath it, flattened for the client.

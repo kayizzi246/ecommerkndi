@@ -215,10 +215,42 @@ export default function CategoryDrawer({
                           <Link
                             href={`/category/${child.slug}`}
                             onClick={close}
-                            className="block truncate py-2.5 pl-[54px] pr-4 text-[14px] text-shop-body transition-colors hover:text-shop-primary"
+                            className="block truncate py-2.5 pl-[54px] pr-4 text-[14px] font-semibold text-shop-ink transition-colors hover:text-shop-primary"
                           >
                             {child.name}
                           </Link>
+
+                          {/* ---- The third level, which was being thrown away
+                              ----
+
+                              An open department listed its shelves and stopped
+                              there, so "Shoes" was a row and Sandals, Heels and
+                              Running Shoes — the words a shopper actually
+                              arrives with — were reachable only by loading the
+                              Shoes page and looking at what came back.
+
+                              They are rows now, one indent deeper and a size
+                              down, with the shelf above them promoted to
+                              semibold ink so the two levels are told apart by
+                              weight rather than by counting pixels of indent.
+                              It makes an open department longer; that is the
+                              point, and it is a list that is only open because
+                              somebody asked for it. */}
+                          {child.children.length > 0 && (
+                            <ul>
+                              {child.children.map((grandchild) => (
+                                <li key={grandchild.id}>
+                                  <Link
+                                    href={`/category/${grandchild.slug}`}
+                                    onClick={close}
+                                    className="block truncate py-2 pl-[68px] pr-4 text-[13px] text-shop-body transition-colors hover:text-shop-primary"
+                                  >
+                                    {grandchild.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </li>
                       ))}
                     </ul>

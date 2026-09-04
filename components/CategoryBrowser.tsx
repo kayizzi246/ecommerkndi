@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 /**
  * One tile in the right-hand pane: a shelf, drawn as a picture and a name.
@@ -60,11 +60,22 @@ export type BrowseDepartment = {
  */
 export default function CategoryBrowser({
   departments,
+  grids,
 }: {
   departments: BrowseDepartment[];
+  /**
+   * One product grid per department, by index, server-rendered.
+   *
+   * `ProductCard` is a server component and this file is not, so the tiles
+   * cannot be built here — they arrive as nodes. An entry is `null` where the
+   * department's feed came back empty, which is the same case the rail
+   * deliberately still lists.
+   */
+  grids: ReactNode[];
 }) {
   const [active, setActive] = useState(0);
   const current = departments[active] ?? departments[0];
+  const grid = grids[active] ?? null;
 
   if (!current) return null;
 
@@ -175,6 +186,34 @@ export default function CategoryBrowser({
               </li>
             ))}
           </ul>
+        )}
+
+        {/* ---- The goods, under the shelves ----
+
+            The tiles above answer "what is filed here"; this answers "is any
+            of it worth my time", which is the question the shelf names cannot
+            and the reason a browse screen of pure navigation always felt like
+            a table of contents.
+
+            The grid is pulled out to the pane's edges — `-mx-3` against the
+            `px-3` on the pane — because `.product-grid-flush` tiles butt up
+            against each other and a photograph that stops 12px short of the
+            screen reads as a card that has been inset by mistake. The rail
+            still holds the left side, so this is edge-to-edge for the pane
+            rather than for the page. */}
+        {grid && (
+          <div className="mt-6">
+            <h3 className="mb-2 text-[14px] font-bold text-shop-ink">
+              Popular in {current.name}
+            </h3>
+            <div className="-mx-3">{grid}</div>
+            <Link
+              href={`/category/${current.slug}`}
+              className="mt-4 flex items-center justify-center rounded-full border border-shop-line py-2.5 text-[13px] font-bold text-shop-body"
+            >
+              See all {current.name}
+            </Link>
+          </div>
         )}
       </div>
     </div>
