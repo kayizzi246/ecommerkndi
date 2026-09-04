@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import MiniProduct from "@/components/home/MiniProduct";
 import type { Product } from "@/lib/woocommerce";
@@ -92,7 +93,28 @@ export default function FeatureCards({ cards }: { cards: FeatureCard[] }) {
           invitation — the same argument the savings band was held to before it
           was folded into the band above. Four across from lg, which is where this
           row and the portal band above it settle onto the same four columns. */}
-      <ul className="feature-sheet grid grid-cols-2 lg:grid-cols-4">
+      <ul
+        className="feature-sheet grid"
+        /* The column count is the number of cards that FILLED, not four.
+
+           A card with fewer than two products is dropped a few lines up, and
+           that is not a rare path: `Best sellers` needs stock that has actually
+           sold and `New in` needs marketplace listings, so a young shop — or
+           one render where the catalogue request timed out — legitimately
+           produces one, two or three cards. Held at four columns, the missing
+           ones left empty grid cells, and the sheet painted them grey: a
+           1200px slab across the middle of the homepage where three cards
+           should be. That is what this row looked like in production.
+
+           Capped at the number that fits: never more than two across on a
+           phone, never more than four on a desktop. */
+        style={
+          {
+            "--sheet-cols": Math.min(filled.length, 2),
+            "--sheet-cols-lg": Math.min(filled.length, 4),
+          } as CSSProperties
+        }
+      >
         {filled.map((card) => (
           <li key={card.title}>
             <div

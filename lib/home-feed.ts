@@ -481,7 +481,42 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * row of items nobody has bought is the kind of small lie that teaches
    * shoppers to distrust the rest of the page.
    */
-  const newArrivals = [...latest.products]
+  /* ---- The catalogue, or the best stand-in the feed already has ----
+   *
+   * ---- The failure this exists to stop ----
+   *
+   * Nine of this page's shelves are sorted out of ONE request — the 48-row
+   * catalogue page below. `getProductsSafe` answers an unreachable WordPress
+   * with an empty list, so a single timed-out request did not degrade the
+   * homepage, it emptied it: no For-you grid, no Best sellers, no New in, no
+   * Just landed, and `trending` falling back to the same empty array. Next then
+   * cached that render and served a shop with nothing in it to everybody until
+   * the revalidate window expired.
+   *
+   * `getProductsSafe` retries now, which fixes the common case. This is the
+   * second half: even when the retry also fails, the feed has already paid for
+   * three other pools — the sale list, the featured list and every department —
+   * and every one of them is full of products from the same catalogue. Falling
+   * back to them costs no extra request and turns a blank page into a slightly
+   * repetitive one, which is an enormously better failure.
+   *
+   * Deduplicated by id, because a product is routinely in the sale list AND in
+   * its department's pool, and a grid that shows the same shoe four times reads
+   * as broken in its own right.
+   *
+   * When `latest` succeeded this is `latest.products` unchanged and the whole
+   * block costs one `length` check.
+   */
+  const catalogue =
+    latest.products.length > 0
+      ? latest.products
+      : [...onSale.products, ...featured.products, ...departmentPools.flatMap((d) => d.products)]
+          .filter(
+            (product, index, all) =>
+              all.findIndex((other) => other.id === product.id) === index
+          );
+
+  const newArrivals = [...catalogue]
     .filter((product) => product.date_created)
     .sort(
       (a, b) =>
@@ -489,7 +524,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     )
     .slice(0, 12);
 
-  const bestSellers = [...latest.products]
+  const bestSellers = [...catalogue]
     .filter((product) => product.total_sales > 0)
     .sort((a, b) => b.total_sales - a.total_sales)
     .slice(0, 12);
@@ -515,7 +550,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
    * created rather than when its stock last changed, so a seller editing an old
    * product cannot push it back to the top of the page.
    */
-  const sellerArrivals = [...latest.products]
+  const sellerArrivals = [...catalogue]
     .filter((product) => product.seller && product.date_created)
     .sort(
       (a, b) =>
@@ -525,7 +560,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
 
   // Trending is the shop's own picks where any are flagged, newest otherwise.
   const trendingPool =
-    featured.products.length > 0 ? featured.products : latest.products;
+    featured.products.length > 0 ? featured.products : catalogue;
 
   /**
    * Rails are filled in the order they appear on the page, not the order this
@@ -705,7 +740,10 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
      * after rail on the way down; meeting it once more in the full catalogue at
      * the bottom is what a catalogue is for.
      */
-    latest: latest.products,
+    /* The stand-in when the catalogue request failed — see the note on
+       `catalogue` above. The endless grid is the one shelf a shopper can tell
+       is empty at a glance, so it is the last place a blank list should reach. */
+    latest: catalogue,
     latestTotalPages: latest.total_pages,
     departmentMinimum: DEPARTMENT_MINIMUM,
     /* Summed over every pool the feed already fetched — the general catalogue,

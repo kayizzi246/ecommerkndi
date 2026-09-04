@@ -648,17 +648,59 @@ export async function getProducts(
   }
 }
 
-/** Same as getProducts but returns an empty list instead of throwing, so the
- * homepage still renders while WordPress is unreachable or not yet configured. */
+/**
+ * Same as `getProducts`, but an unreachable WordPress becomes an empty list
+ * rather than an exception — so a page still renders while the backend is down
+ * or not yet configured.
+ *
+ * ---- Why this now retries, and why that is not belt-and-braces ----
+ *
+ * "Renders" was doing a lot of work in that sentence. The homepage builds nine
+ * shelves out of ONE call to this function (`per_page: 48`), so a single failed
+ * request does not degrade the page — it empties it: no For-you grid, no Best
+ * sellers, no New in, no Just landed, and a `trending` pool that falls back to
+ * the same empty array. The shop renders a working masthead over a page with
+ * nothing to buy on it.
+ *
+ * Then Next caches that. The page is ISR with a revalidate window, so one
+ * timeout during one regeneration is served to every visitor until the window
+ * expires. That is the failure this shop actually had, and from the outside it
+ * looks exactly like the catalogue having been deleted.
+ *
+ * The plugin's own notes say `/products?per_page=24` has taken between 47 and
+ * 117 seconds on this host. A request that slow fails often, and the biggest
+ * request on the page is the one most likely to be the one that fails.
+ *
+ * So: one retry, after a short pause. It costs nothing on the happy path — the
+ * overwhelming majority of calls succeed first time — and it turns the common
+ * failure (one slow request in a burst of six) back into a working page.
+ *
+ * It is deliberately ONE retry rather than a loop with backoff. If WordPress is
+ * genuinely down, hammering it while it is trying to recover is the wrong
+ * thing, and the caller already has an empty-list contract to honour.
+ */
 export async function getProductsSafe(
   query: ProductQuery = {}
 ): Promise<ProductListResponse> {
-  try {
-    return await getProducts(query);
-  } catch (error) {
-    console.error("[kandi-store] getProducts failed:", error);
-    return { products: [], total: 0, total_pages: 0 };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const result = await getProducts(query);
+
+      /* An empty list is not automatically a failure — `on_sale` legitimately
+         returns nothing on a shop with no sale running — so the retry is on the
+         first attempt only, and a second empty answer is taken as the truth. */
+      if (result.products.length > 0 || attempt > 0) return result;
+    } catch (error) {
+      console.error(`[kandi-store] getProducts failed (attempt ${attempt + 1}):`, error);
+      if (attempt > 0) return { products: [], total: 0, total_pages: 0 };
+    }
+
+    // Long enough for a transient blip to clear, short enough that a shopper
+    // waiting on a cold render does not notice it.
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
+
+  return { products: [], total: 0, total_pages: 0 };
 }
 
 /**

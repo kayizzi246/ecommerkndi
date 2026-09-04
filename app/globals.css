@@ -2278,12 +2278,44 @@ h6,
  * lives on the container rather than on the four corner cells, which would
  * otherwise have to know which corner they were in at three breakpoints.
  */
+/* ---- The seams are on the cells, not behind them ----
+ *
+ * This painted the container in the edge colour and let a 1px `gap` show it
+ * through, the same trick the product grid uses. It has one failure mode and
+ * the shop hit it live: a card with fewer than two products is DROPPED (see
+ * `FeatureCards`), so on a render where the catalogue request failed there was
+ * one card in a four-column grid — and the three empty cells painted a 1200px
+ * slab of grey across the middle of the homepage.
+ *
+ * A gap over a coloured ground can only work when every cell is filled. These
+ * cells are not guaranteed to be, so the colour moves onto the cards
+ * themselves: each draws its own right-hand seam, the last one in each row has
+ * it clipped off by `overflow: hidden`, and an absent card leaves the page
+ * colour rather than a grey hole.
+ *
+ * `--sheet-cols` is set from the number of cards that actually filled, so three
+ * cards make three columns rather than three quarters of a row and a void. It
+ * is a custom property rather than a `grid-cols-*` utility because the count is
+ * only known at render time, and Tailwind cannot emit a class for a number it
+ * has not seen.
+ */
 .feature-sheet {
-  gap: 1px;
-  background: var(--color-shop-edge);
+  gap: 0;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px var(--color-shop-edge);
+  grid-template-columns: repeat(var(--sheet-cols, 2), minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .feature-sheet {
+    grid-template-columns: repeat(var(--sheet-cols-lg, 4), minmax(0, 1fr));
+  }
+}
+
+.feature-sheet > * {
+  border-right: 1px solid var(--color-shop-edge);
+  border-bottom: 1px solid var(--color-shop-edge);
 }
 
 @media (max-width: 767px) {

@@ -119,7 +119,7 @@ here than on sign-in because every send is real money.
 
 Seller and shopper **sign-in** still require an email address. Signing in with a
 phone needs WordPress to look an account up by phone and issue a token for it —
-`kandi/v1/sellers/login` and `kandi/v1/customers/login` both take an email only.
+`kandi/v1/seller/login` and `kandi/v1/customers/login` both take an email only.
 The storefront cannot add that on its own. When the plugin grows a
 `login_by_phone` endpoint, the OTP half of it is already here: verify, then post
 the proved number instead of the email.
