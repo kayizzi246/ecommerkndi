@@ -1118,13 +1118,15 @@ export default function ProductCard({
            They are `py-px` and `pt-px` now, and the block leans on the rows'
            own `leading-*` for its rhythm instead. Leading is per-row and
            uniform by construction; padding stacked on top of it is not. */}
-      {/* `pt-2`, up from `pt-1`. The photograph gained a hover lift and a
-          12px corner and lost the card that used to box it, so the gap between
-          it and the first line of the name is now the only thing separating the
-          picture from the copy — at 4px the name read as a caption stuck to the
-          bottom edge of the image. 8px is the figure the rest of the page uses
-          between an object and its label. */}
-      <div className="flex flex-1 flex-col gap-0 pt-1.5">
+      {/* 4px between the photograph and the first line of the name, down from
+          6px. The note this replaces argued its way up from 4px to 8px on the
+          grounds that the picture had lost the card that boxed it and needed
+          the air to stop the name reading as a caption stuck to its bottom
+          edge — but the tile has a real card again and draws its own edge, so
+          the separation is being made twice. Taking one of them back is the
+          cheapest height on the tile: it is paid once per row, on every row of
+          every screen a shopper scrolls. */}
+      <div className="flex flex-1 flex-col gap-0 pt-1">
         <Link href={href} className="block">
           {/* ---- Two lines, plain weight, and a fixed box ----
 
@@ -1188,11 +1190,14 @@ export default function ProductCard({
               "one object with a name" is now carried by the tile's own edges,
               which the flush sheet draws around every cell.
 
-              `min-h-[32px]` is still 2 × the leading, and it is still
+              `min-h-[30px]` is still exactly 2 × the leading, and it is still
               load-bearing for the same reason as before: `line-clamp-2` is a
               ceiling rather than a height, so without it a one-line name would
-              land its price on a different row from its neighbours'. */}
-          <h3 className="product-name line-clamp-2 min-h-[32px] text-[12px] leading-[16px] text-shop-ink transition-colors hover:text-shop-primary">
+              land its price on a different row from its neighbours'. The two
+              numbers move together or that guarantee quietly stops holding —
+              15px leading with a 32px box leaves two pixels of slack that a
+              one-line name would collect and a two-line name would not. */}
+          <h3 className="product-name line-clamp-2 min-h-[30px] text-[12px] leading-[15px] text-shop-ink transition-colors hover:text-shop-primary">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
@@ -1298,7 +1303,7 @@ export default function ProductCard({
                 `overflow-hidden` to keep tile heights honest, and a third
                 figure inside it is what produced the sliced "−(" the
                 percentage was removed for. */}
-            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-[2px] text-[10px] font-bold leading-[15px] text-shop-save">
+            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-px text-[10px] font-bold leading-[14px] text-shop-save">
               Save {formatPrice(saving)}
             </span>
           </p>
@@ -1399,7 +1404,7 @@ export default function ProductCard({
 
         {/* The stock warning, on the products that have one and nowhere else. */}
         {(soldOut || lowStock) && (
-          <p className="truncate text-[11px] font-medium leading-[15px] text-shop-body">
+          <p className="truncate text-[11px] font-medium leading-[14px] text-shop-body">
             {soldOut ? (
               "Back in stock soon"
             ) : (
