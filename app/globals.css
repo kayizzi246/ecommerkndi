@@ -2390,34 +2390,33 @@ h6,
  * `ProductCard` picks between them with `id % 3`, so the choice is stable
  * across a re-render and identical on the server and in the browser. Anything
  * random here is a hydration mismatch that shows as the whole grid jumping. */
-/* 4:5, where this was 8:9.
+/* 8:9, and it has been 4:5 in between.
  *
- * A step taller, asked for directly. It is the ratio most of this catalogue is
- * actually shot in — clothing, shoes and packaged goods photographed upright —
- * so the frame is being fitted to the stock rather than the stock cropped to
- * the frame. `object-cover` still crops the sides on a genuinely landscape
- * shot, which is the trade; the alternative is letterboxing every portrait
- * photograph to suit a minority of the catalogue.
+ * Taller was asked for, tried, and taken straight back out. 4:5 is the ratio
+ * most of this catalogue is shot in, so nothing was being cropped that was not
+ * cropped before — but on a two-column phone grid it added roughly 22px per
+ * row, and a shopper scrolling a catalogue meets that on every row of every
+ * screen. What it bought was a slightly larger photograph; what it cost was
+ * fewer products between one thumb-swipe and the next.
  *
- * It costs about 22px of height per row on a two-column phone grid. That is
- * real and it is what the extra height buys: the photograph is the only thing
- * on a tile doing any selling. */
+ * 8:9 is a shade taller than square: enough that a jacket or a duvet is not
+ * cropped to its middle, short enough that the grid stays a catalogue. */
 .tile-frame {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 8 / 9;
 }
 
 @media (max-width: 39.99rem) {
-  /* Each a step taller than it was, in step with the 8:9 → 4:5 base above, and
-     still three clearly different heights — which is the only thing that makes
-     the phone grid staggered rather than merely un-ruled. */
+  /* Back down with the 8:9 base above, and still three clearly different
+     heights — which is the only thing that makes the phone grid staggered
+     rather than merely un-ruled. */
   .tile-frame-a {
-    aspect-ratio: 2 / 3;
+    aspect-ratio: 3 / 4;
   }
   .tile-frame-b {
-    aspect-ratio: 8 / 9;
+    aspect-ratio: 1 / 1;
   }
   .tile-frame-c {
-    aspect-ratio: 5 / 8;
+    aspect-ratio: 5 / 7;
   }
 }
 

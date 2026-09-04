@@ -128,6 +128,18 @@ export default function CheckoutPage() {
     first_name: "",
     last_name: "",
     phone: "",
+    /**
+     * Controlled like the rest, and it did not used to be.
+     *
+     * It was an uncontrolled input, which was fine while nothing but the
+     * shopper could write to it. Two things write to it now: verifying by
+     * email fills it with the address that was just proved, and picking a
+     * saved address fills it with the one that took the last receipt. An
+     * uncontrolled input cannot be written to from outside, so a shopper who
+     * proved an address in the dialog would have watched it not appear in the
+     * box directly behind it.
+     */
+    email: "",
     address_1: "",
     city: "",
   });
@@ -366,6 +378,11 @@ export default function CheckoutPage() {
         first_name: customer.first_name,
         last_name: customer.last_name,
         phone: customer.phone,
+        // Saved with the rest of the contact details, so the next order fills
+        // it in rather than asking again. It is the field a shopper on a phone
+        // is most likely to skip rather than retype, and a missing address is
+        // an order with no receipt and no tracking link.
+        email: customer.email,
       });
 
       if (!viaPesapal) {
@@ -605,7 +622,17 @@ export default function CheckoutPage() {
         reopen={needsVerification}
         onVerified={(contact) => {
           setNeedsVerification(false);
-          if (contact.channel === "sms") setField("phone")(contact.value);
+          /* Whichever was proved goes into its own box. A shopper who verified
+             by email had just typed the address into the dialog and then met
+             an empty Email field two lines behind it, which reads as the shop
+             not having listened. Only ever FILLS a blank: a shopper who typed
+             something else into the form since is not overruled by a value
+             they proved a minute ago. */
+          setAddressFields((current) =>
+            contact.channel === "sms"
+              ? { ...current, phone: current.phone || contact.value }
+              : { ...current, email: current.email || contact.value }
+          );
         }}
       />
 
@@ -699,6 +726,8 @@ export default function CheckoutPage() {
                   autoComplete="email"
                   placeholder="you@example.com"
                   aria-describedby="email-hint"
+                  value={addressFields.email}
+                  onChange={(event) => setField("email")(event.target.value)}
                   className="field-shop"
                 />
                 <p id="email-hint" className={hintClass}>
@@ -733,6 +762,7 @@ export default function CheckoutPage() {
                     first_name: parts.first_name || current.first_name,
                     last_name: parts.last_name || current.last_name,
                     phone: parts.phone || current.phone,
+                    email: parts.email || current.email,
                   }))
                 }
               />

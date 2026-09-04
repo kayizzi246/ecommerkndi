@@ -263,6 +263,20 @@ export default function VerifyContactModal({
       /* No `onClick` on the backdrop. See the note at the top — this is the
          whole difference between a gate and a suggestion. */
       role="presentation"
+      /* ---- The marker every outside-click handler has to respect ----
+       *
+       * This dialog is portalled to `document.body`, so as far as any panel
+       * that closes itself on an outside click is concerned, EVERY click in
+       * here happens outside it. The account dropdown did exactly that: open
+       * the menu, tap "Verify now", tap "Use my email address instead", and
+       * the dropdown decided you had clicked away, unmounted `SignInPanel`,
+       * and took this dialog down with it. It looked like the dialog crashing.
+       *
+       * `useIsOutsideClick` in lib/outside-click.ts checks for this attribute,
+       * so the rule lives in one place and a panel added later gets it by
+       * using the hook. Any future portalled layer should carry the same
+       * attribute rather than teaching every menu about itself. */
+      data-portal-layer="verify-contact"
     >
       <div
         ref={panel}

@@ -34,6 +34,16 @@ export type SavedAddress = {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  /**
+   * The address the receipt goes to.
+   *
+   * Stored with the rest of the contact details rather than left out because
+   * it is "optional" on the form: a shopper who typed it once has told us
+   * where they want their receipt, and asking again on the next order is the
+   * shop forgetting something it was told. It is also the field a shopper is
+   * most likely to abandon rather than retype on a phone.
+   */
+  email?: string;
   savedAt: number;
 };
 

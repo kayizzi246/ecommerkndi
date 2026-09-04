@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useOutsideClick } from "@/lib/outside-click";
 import { storeHref } from "@/lib/store-routes";
 import { formatPrice } from "@/lib/currency";
 
@@ -160,17 +161,16 @@ export default function SearchBar({
     return () => clearTimeout(timer);
   }, [term]);
 
-  // Close on outside click.
-  useEffect(() => {
-    function onClick(event: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(event.target as Node)) {
-        setOpen(false);
-        setCursor(-1);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+  /* Close on outside click, through the shared hook.
+     Nothing portalled opens from the search panel today, but this and the
+     account menu were the same four lines and only one of them was fixed —
+     which is how the next portalled layer would have broken this one instead.
+     See lib/outside-click.ts. */
+  const closeSuggestions = useCallback(() => {
+    setOpen(false);
+    setCursor(-1);
   }, []);
+  useOutsideClick(boxRef, true, closeSuggestions);
 
   // ---- The keyboard walks ONE list, even though the panel shows two ----
   //

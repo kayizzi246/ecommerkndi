@@ -63,6 +63,7 @@ export default function DeliveryPicker({
     first_name?: string;
     last_name?: string;
     phone?: string;
+    email?: string;
   }) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -187,6 +188,7 @@ export default function DeliveryPicker({
       first_name: entry.first_name,
       last_name: entry.last_name,
       phone: entry.phone,
+      email: entry.email,
     });
     // Re-quoted rather than trusting the fee stored with it: rates change, and
     // the free-delivery threshold depends on this order's subtotal.

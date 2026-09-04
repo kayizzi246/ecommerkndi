@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
+import { useOutsideClick } from "@/lib/outside-click";
 import SignInPanel from "@/components/SignInPanel";
 
 const SIGNED_IN_LINKS = [
@@ -21,14 +22,11 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (event: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
+  /* Through the shared hook, because this menu opens a dialog that is portalled
+     out of it. The four inline lines this replaces closed the dropdown on every
+     click inside that dialog — see lib/outside-click.ts. */
+  const close = useCallback(() => setOpen(false), []);
+  useOutsideClick(boxRef, open, close);
 
   const onSignedIn = useCallback(async () => {
     await refresh();
