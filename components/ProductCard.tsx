@@ -1190,14 +1190,21 @@ export default function ProductCard({
               "one object with a name" is now carried by the tile's own edges,
               which the flush sheet draws around every cell.
 
-              `min-h-[30px]` is still exactly 2 × the leading, and it is still
-              load-bearing for the same reason as before: `line-clamp-2` is a
-              ceiling rather than a height, so without it a one-line name would
-              land its price on a different row from its neighbours'. The two
-              numbers move together or that guarantee quietly stops holding —
-              15px leading with a 32px box leaves two pixels of slack that a
-              one-line name would collect and a two-line name would not. */}
-          <h3 className="product-name line-clamp-2 min-h-[30px] text-[12px] leading-[15px] text-shop-ink transition-colors hover:text-shop-primary">
+              `min-h` is exactly 2 × the leading at BOTH sizes — 30/15 on a
+              phone, 28/14 from `sm` up — and that pairing is load-bearing:
+              `line-clamp-2` is a ceiling rather than a height, so any slack in
+              the box is slack a one-line name collects and a two-line name does
+              not, and the prices across a row stop landing on the same line.
+              The two numbers in each pair move together or that guarantee
+              quietly stops holding.
+
+              The tighter pair is desktop-only because the height saving was
+              asked for on a big screen and explicitly not on a phone. 14px on
+              12px type is 1.17, which is tight; it is affordable on a clamped
+              two-line label rather than prose, and it is the floor — a step
+              further and the descenders on one line start touching the caps on
+              the next. */}
+          <h3 className="product-name line-clamp-2 min-h-[30px] text-[12px] leading-[15px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[28px] sm:leading-[14px]">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
@@ -1453,7 +1460,7 @@ export default function ProductCard({
         {lowStock && product.stock_quantity !== null && (
           <span
             aria-hidden
-            className="mt-1 block h-[3px] w-full max-w-[90px] overflow-hidden rounded-full bg-shop-hairline"
+            className="mt-1 block h-[3px] w-full max-w-[90px] overflow-hidden rounded-full bg-shop-hairline sm:mt-0.5"
           >
             <span
               className="block h-full bg-shop-primary"

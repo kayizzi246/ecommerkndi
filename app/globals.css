@@ -2390,25 +2390,48 @@ h6,
  * `ProductCard` picks between them with `id % 3`, so the choice is stable
  * across a re-render and identical on the server and in the browser. Anything
  * random here is a hydration mismatch that shows as the whole grid jumping. */
-/* 8:9, and it has been 4:5 in between.
+/* 15:16 — very slightly taller than square, where this was 8:9.
  *
- * Taller was asked for, tried, and taken straight back out. 4:5 is the ratio
- * most of this catalogue is shot in, so nothing was being cropped that was not
- * cropped before — but on a two-column phone grid it added roughly 22px per
- * row, and a shopper scrolling a catalogue meets that on every row of every
- * screen. What it bought was a slightly larger photograph; what it cost was
- * fewer products between one thumb-swipe and the next.
+ * The full history is worth one line because it has swung both ways: 8:9, then
+ * 4:5 for a single build, then back, and now a step SHORTER than 8:9 ever was.
+ * What settles it is that height on a tile is paid once per row on every row a
+ * shopper scrolls, and the photograph stops answering new questions long before
+ * it stops costing them scrolling — anybody who wants a closer look taps it.
  *
- * 8:9 is a shade taller than square: enough that a jacket or a duvet is not
- * cropped to its middle, short enough that the grid stays a catalogue. */
+ * At 8:9 the frame stood 1.125 times its own width; at 15:16 it stands 1.067.
+ * It is still not square: a jacket or a duvet is not cropped to its middle,
+ * which is the one thing this ratio has to protect. Square would take twice as
+ * much and would start doing exactly that.
+ *
+ * This governs `sm` and up ONLY. Below it the three `.tile-frame-*` variants
+ * take over, and they deliberately did not come down with it — see the note on
+ * them. A desktop row fits on one screen, so height there is spent purely on
+ * scrolling; a phone shows two tiles and the photograph is already near the
+ * size below which a shopper cannot tell what they are looking at. */
 .tile-frame {
-  aspect-ratio: 8 / 9;
+  aspect-ratio: 15 / 16;
 }
 
 @media (max-width: 39.99rem) {
-  /* Back down with the 8:9 base above, and still three clearly different
-     heights — which is the only thing that makes the phone grid staggered
-     rather than merely un-ruled. */
+  /* ---- The phone did NOT come down with the desktop ----
+   *
+   * The base above went 8:9 → 15:16 to take height off the tile. That was
+   * asked for on a big screen and explicitly not on a phone, and the split
+   * falls out of how these rules are already arranged: the base governs from
+   * `sm` up, these three govern below it. So the desktop tile is shorter and
+   * the phone tile is exactly what it was.
+   *
+   * There is a reason beyond it being what was asked for. A desktop grid shows
+   * five or six tiles across and a whole row fits on screen, so height is spent
+   * on scrolling and nothing else. A phone shows two, and the photograph is
+   * already down to about 190px — the point where taking height off stops
+   * saving a scroll and starts costing the shopper the ability to see what the
+   * thing is.
+   *
+   * Three clearly different heights, which is the only thing that makes the
+   * phone grid staggered rather than merely un-ruled: 1.33, 1.0 and 1.4 times
+   * their own width. If these ever converge the masonry stops being a masonry
+   * and becomes a grid with a ragged foot. */
   .tile-frame-a {
     aspect-ratio: 3 / 4;
   }
