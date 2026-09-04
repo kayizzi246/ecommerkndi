@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatUgPhone } from "@/lib/phone";
 
 /**
@@ -80,6 +81,7 @@ export default function VerifyContactModal({
 
   const panel = useRef<HTMLDivElement>(null);
   const firstField = useRef<HTMLInputElement>(null);
+
 
   /* ---- Resetting on open and close, without an effect ----
 
@@ -226,9 +228,36 @@ export default function VerifyContactModal({
     }
   }
 
-  if (!open) return null;
+  /* `typeof document` rather than a `mounted` flag set from an effect. The
+     dialog is only ever open in response to a click, so `open` is false on
+     every server render and this second test costs nothing — but it is what
+     makes that guarantee explicit rather than something a future caller could
+     break by passing `open` from server-rendered state. */
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  /* ---- Portalled to <body>, and this is not a nicety ----
+   *
+   * The masthead carries `transition-transform` and `translate-y-0` so it can
+   * slide away on scroll, and ANY transform other than `none` makes that
+   * element the containing block for `position: fixed` descendants. This dialog
+   * is opened from `SignInPanel`, which lives inside the account dropdown,
+   * which lives inside the masthead — so `fixed inset-0` stopped meaning "the
+   * viewport" and started meaning "the masthead". The box rendered against the
+   * top of the header, clipped, and nowhere near centred.
+   *
+   * `CategoryDrawer` hit exactly this and was moved out of the header to fix
+   * it; the note there ends "anything fixed that is added here later has to
+   * stay out here too". A portal is how a component that does not know where it
+   * will be mounted honours that on its own, which matters because this one is
+   * also opened from the seller onboarding — inside a step animation that is
+   * likewise a transform.
+   *
+   * `mounted` gates the first render. `document` does not exist while this is
+   * being rendered on the server, and a portal that only appears after
+   * hydration is the standard shape for one — the dialog is never part of the
+   * initial HTML anyway, because it opens in response to a click.
+   */
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4"
       /* No `onClick` on the backdrop. See the note at the top — this is the
@@ -442,6 +471,7 @@ export default function VerifyContactModal({
           Cancel
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

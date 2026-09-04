@@ -2390,23 +2390,53 @@ h6,
  * `ProductCard` picks between them with `id % 3`, so the choice is stable
  * across a re-render and identical on the server and in the browser. Anything
  * random here is a hydration mismatch that shows as the whole grid jumping. */
+/* 4:5, where this was 8:9.
+ *
+ * A step taller, asked for directly. It is the ratio most of this catalogue is
+ * actually shot in — clothing, shoes and packaged goods photographed upright —
+ * so the frame is being fitted to the stock rather than the stock cropped to
+ * the frame. `object-cover` still crops the sides on a genuinely landscape
+ * shot, which is the trade; the alternative is letterboxing every portrait
+ * photograph to suit a minority of the catalogue.
+ *
+ * It costs about 22px of height per row on a two-column phone grid. That is
+ * real and it is what the extra height buys: the photograph is the only thing
+ * on a tile doing any selling. */
 .tile-frame {
-  aspect-ratio: 8 / 9;
+  aspect-ratio: 4 / 5;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 39.99rem) {
+  /* Each a step taller than it was, in step with the 8:9 → 4:5 base above, and
+     still three clearly different heights — which is the only thing that makes
+     the phone grid staggered rather than merely un-ruled. */
   .tile-frame-a {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 2 / 3;
   }
   .tile-frame-b {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 8 / 9;
   }
   .tile-frame-c {
-    aspect-ratio: 5 / 7;
+    aspect-ratio: 5 / 8;
   }
 }
 
 /* ---- The phone grid is staggered ----
+ *
+ * ---- The breakpoint is in `rem`, and that is not a style choice ----
+ *
+ * This read `max-width: 639px` and Tailwind's `sm` is `min-width: 40rem`. Those
+ * are the same boundary only while the root font size is exactly 16px, and it
+ * often is not: iOS and Android both let a reader raise the default text size,
+ * and a browser's own zoom moves it too. At a 20px root, `sm` starts at 800px
+ * while this rule stopped at 639, leaving a 161px band where the masonry had
+ * switched off and the three-column grid had not switched on — a band a
+ * shopper reaches by changing an accessibility setting, which is the last
+ * place a layout should behave differently.
+ *
+ * 39.99rem is the exact complement of `min-width: 40rem`: whatever the root
+ * size, one of the two matches and never both. If the `sm` breakpoint is ever
+ * retuned, this moves with it.
  *
  * Below `sm` the sheet stops being a grid and becomes two CSS columns, so each
  * column packs independently and the tiles can be different heights — the
@@ -2437,7 +2467,7 @@ h6,
  * unlayered rule already outranks — but `display` is the one property where
  * losing silently would leave a two-column grid of unequal tiles rather than a
  * visibly broken page, which is the failure that ships. */
-@media (max-width: 639px) {
+@media (max-width: 39.99rem) {
   .product-grid-flush {
     display: block !important;
     /* Two, matching the `grid-cols-2` that takes over at 640px. The two have to

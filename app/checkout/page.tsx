@@ -584,7 +584,23 @@ export default function CheckoutPage() {
 
            A verified phone pre-fills the number field. The shopper has just
            typed it and proved it holds; asking for it again two fields later
-           would make the check feel like an obstacle rather than a step. */}
+           would make the check feel like an obstacle rather than a step.
+
+           ---- This sits inside a <form>, and that broke it ----
+
+           The dialog has a form of its own, and a form inside a form is invalid
+           HTML: the browser repairs it by dropping the inner tag. So the
+           dialog's email box became a field of the CHECKOUT form, "Send code"
+           became a submit button for the CHECKOUT form, and pressing it
+           navigated to `/checkout?email=...` instead of sending anything. The
+           code step could never appear, because the page had gone.
+
+           `VerifyContactModal` portals itself into `document.body` now, which
+           takes its markup out of this form entirely and fixes the nesting at
+           the only place that can fix it for every caller. If that portal is
+           ever removed, this mount has to move outside the `<form>` in the same
+           change — or this bug comes straight back, and it comes back looking
+           like the verification service being broken rather than like markup. */}
       <CheckoutVerifyGate
         reopen={needsVerification}
         onVerified={(contact) => {
