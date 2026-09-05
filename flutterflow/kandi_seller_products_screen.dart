@@ -44,14 +44,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF5F5F5);
+  static const Color canvas = Color(0xFFFFFFFF);
   static const Color panel = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF111827);
-  static const Color body = Color(0xFF4B5563);
-  static const Color muted = Color(0xFF6B7280);
-  static const Color faint = Color(0xFF9CA3AF);
-  static const Color line = Color(0xFFE5E7EB);
-  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color ink = Color(0xFF0B0B0B);
+  static const Color body = Color(0xFF414346);
+  static const Color muted = Color(0xFF5D6066);
+  static const Color faint = Color(0xFF8E9196);
+  static const Color line = Color(0xFFE0E0E0);
+  static const Color hairline = Color(0xFFF2F2F2);
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color save = Color(0xFF15803D);
@@ -74,6 +74,24 @@ class _KColors {
   /// other, never both.
   static const Color flame = Color(0xFFD62200);
   static const Color flameSoft = Color(0xFFFFF1ED);
+
+  /// ---- The edge that makes a white card visible on a white page ----
+  ///
+  /// The app used to stand its tiles on #F5F5F5 and let the contrast do the
+  /// separating. The site does not: its canvas is #ffffff, the same as the
+  /// panel, so the tile is drawn by a 1px ring and nothing else. Matching the
+  /// ground without matching the ring would have produced a grid of tiles with
+  /// no edges at all.
+  static const Color edge = Color(0xFFDEDEDE);
+
+  /// The ground behind a product photograph.
+  ///
+  /// Warm rather than neutral, and that is the point: most of this catalogue is
+  /// shot on white, so the box behind it has to be a shade the white sits ON.
+  /// A grey would read as a grey rectangle behind the product; #FBF7F4 reads as
+  /// paper. It is \`--color-shop-photo\` on the site.
+  static const Color photo = Color(0xFFFBF7F4);
+
 }
 
 class _KSpace {
@@ -535,6 +553,7 @@ class _KandiSellerProductsScreenState
       decoration: BoxDecoration(
         color: _KColors.panel,
         borderRadius: BorderRadius.circular(_rPanel),
+        border: Border.all(color: _KColors.edge),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,7 +565,7 @@ class _KandiSellerProductsScreenState
               height: 72,
               child: product.image.isEmpty
                   ? const ColoredBox(
-                      color: _KColors.hairline,
+                      color: _KColors.photo,
                       child: Icon(Icons.image_not_supported_outlined,
                           size: 20, color: _KColors.faint))
                   : CachedNetworkImage(
@@ -554,9 +573,9 @@ class _KandiSellerProductsScreenState
                       imageUrl: product.image,
                       fit: BoxFit.contain,
                       placeholder: (_, __) =>
-                          const ColoredBox(color: _KColors.hairline),
+                          const ColoredBox(color: _KColors.photo),
                       errorWidget: (_, __, ___) =>
-                          const ColoredBox(color: _KColors.hairline),
+                          const ColoredBox(color: _KColors.photo),
                     ),
             ),
           ),
@@ -747,6 +766,7 @@ class _SkeletonState extends State<_Skeleton>
         decoration: BoxDecoration(
           color: _KColors.panel,
           borderRadius: BorderRadius.circular(_rPanel),
+          border: Border.all(color: _KColors.edge),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

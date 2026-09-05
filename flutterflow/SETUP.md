@@ -362,10 +362,21 @@ Every page carries its own copy of the palette — nothing is shared, for the
 reason at the top of this file — so these values have to be kept in step by
 hand. If you change one, change all seventeen.
 
+**Every neutral here is the storefront's own**, read out of the `:root` block
+in `app/globals.css` rather than chosen. That is the point: the app used a
+Tailwind slate ramp and the site uses a warm one, and two greys a shade apart
+is exactly the difference a shopper cannot name and does notice. If a value
+moves on the web, follow it here.
+
 | Token | Value | What it is for |
 | --- | --- | --- |
-| `canvas` | `#F5F5F5` | The page ground. Neutral, not the blue-cast grey it was: the chrome is warm now and a cool ground fights it. |
+| `canvas` | `#FFFFFF` | The page ground, and it is **white** — it was `#F5F5F5`. The site stands its tiles on white and draws them with a ring; a tinted ground was the app's own invention. |
 | `panel` | `#FFFFFF` | Cards, bars, sheets. |
+| `edge` | `#DEDEDE` | The 1px ring on every white panel. Load-bearing now: with the canvas white, this is the only thing separating a card from the page. |
+| `photo` | `#FBF7F4` | The ground behind a product photograph. Warm on purpose — this catalogue is shot on white, and white sits on warm paper and floats on cool grey. |
+| `priceWas` | `#C62828` | A reduced price, and the corner flag. Kept apart from `flame`, which is a button ground picked for white-on contrast. |
+| `ink` / `body` / `muted` / `faint` | `#0B0B0B` / `#414346` / `#5D6066` / `#8E9196` | The type ramp, warm rather than slate. |
+| `line` / `hairline` | `#E0E0E0` / `#F2F2F2` | Dividers, and the ground under a shimmer. |
 | `primary` | `#FF6A00` | Brand orange. The **top** of every gradient, and small graphics — the scarcity dot, a spinner, a focus ring. Never a large flat ground with white text on it: it is 2.9:1 and fails AA at every size. |
 | `flame` | `#D62200` | The money colour. Every price, every filled button, the active tab, every text link. White on it is 5.1:1 and it is 5.1:1 on white, so the one value works as a ground **and** as text. |
 | `flameSoft` | `#FFF1ED` | The tint behind a selected chip, and the product page's price band. |
@@ -384,18 +395,25 @@ showing the same product two different ways.
 
 Top to bottom:
 
+**It is the website's mobile tile**, matched row by row against
+`components/ProductCard.tsx` and the `.tile-card` / `.tile-frame` /
+`.product-name` / `.price` rules in `app/globals.css`. Where the two now
+differ, they differ on purpose and the code says why.
+
 | Row | Rule |
 | --- | --- |
-| Photograph | 1:1, never cropped (`BoxFit.contain`). The corners are on the **Stack**, not the picture — the deal strip is a sibling, and clipping only the picture leaves the strip with square ends. |
-| Heart, top left | On a white disc with a drawn ring. Straight on the photograph it vanishes against anything dark. |
-| Discount flag, top right | Black on `express` yellow. Doubles as the sold-out mark. |
-| Deal strip, across the foot | `SAVE <amount>`, plus `FREE DELIVERY` when the item clears the threshold. This is where the shilling saving lives — it does not fit beside the old price, and it is the figure a Ugandan shopper actually weighs. |
+| The card | **Square corners and a 1px `edge` ring.** Both changed: it was a 12px rounded card with no border, floating on grey. The site squares its corners so tiles can touch in a flush grid without a white notch at every shared corner, and draws the ring because its page is white. `p-1.5` — 6px, where this was 8. |
+| Photograph | 1:1, never cropped (`BoxFit.contain`), on the warm `photo` ground, **10px corners** to match `.tile-frame`. The corners are on the **Stack**, not the picture — the deal strip is a sibling, and clipping only the picture leaves the strip with square ends. |
+| Heart, top left | On a white disc with a `black/5` ring. **The site shows this on hover only**; a hover state on a touch screen is a control that does not exist, so it stays visible here. |
+| Discount flag, top right | **White on `priceWas` red, fully rounded** — it was ink on yellow with an 8px corner. The same red the reduced price below is set in, so the flag and the figure agree. |
+| Sold out, top right | The site's white pill with `body` type and a `line` ring, not the black chip this drew. It is top-**left** on the site; the heart holds that corner here. |
+| Deal strip, across the foot | `SAVE <amount>`, plus `FREE DELIVERY` when the item clears the threshold. **The site puts both below the name**, as a green chip and a row — two rows of tile height for two facts. On a 165px tile that is the difference between the price landing on the first screen and under the fold, so they ride the photograph here. |
 | Basket button, bottom right | A white disc with a ring, floating over the strip's end. Opens the product instead when it `hasOptions`. |
-| Name | Two lines, with the programme chip riding the same text run via `WidgetSpan` so it costs no height. One chip at most: Super Deal at −30%, else New. |
-| `N sold │ ★★★★½ 4.5 (16)` | **Above** the price. A shopper decides whether a tile is worth reading from the crowd, then reads the price. Stars are drawn to the half and never appear without a real review count. |
-| Price | Currency set at 0.66× the figure and run together. **Red only when reduced** — every price in red is the same as none of them in it. |
-| Old price | Struck through, on its own line. It is what substantiates the flag. |
-| `Only N left` + bar | Only when stock is tracked and ≤ 5. The bar's full width is that threshold, so it can never claim "nearly gone" about a full shelf. |
+| Name | **12px on 15px leading at weight 300**, in a box fixed at two lines. All three are `.product-name` on a phone. The weight is the one to leave alone: the name is the only thing on the tile that is not a claim, and at 400 it competed with the price, the saving and the stock line at once. |
+| Price | **12px at weight 800**, down from 17 — `.price`, which steps to 14 at `sm`. It is **bottom-pinned** (`mt-auto` on the site) so the prices in a grid row land on one baseline whatever the names above them did. Red only when reduced. |
+| Old price | **Not drawn on a phone.** `.was-price` is `hidden sm:inline`: the tile has room for one figure. Nothing is lost — the corner flag carries the percentage and the deal strip the shillings. |
+| `Only N left` | Only when stock is tracked and ≤ 5. |
+| `N sold  ★★★★½ 4.5` | **Below** the price, which is the site's order and the reverse of what this drew. The name says which product it is and the price says whether it is worth a second look; the crowd is corroboration, read once those two have passed. |
 
 Two rules that are easy to break:
 
@@ -403,10 +421,16 @@ Two rules that are easy to break:
   which only takes a flat colour — and it needs a `SizedBox.expand` child. A
   childless `DecoratedBox` has no size, and `AppBar` lays `flexibleSpace` out
   under loose constraints, so it paints nothing at all.
-- **A tile is 300px tall** on a 390-wide phone (`childAspectRatio: 0.57`, rails
-  `height: 302`). That is the fullest card added up row by row, not a guess.
-  Add a row to the card and this has to move with it, or the bottom one is
-  clipped.
+- **A tile is 285px tall** on a 390-wide phone (`childAspectRatio: 0.62`, rails
+  `height: 278`). It was 300/302, and it came down because the price dropped
+  to 12px and the struck original came off the phone. That is the fullest card
+  added up row by row, not a guess — measured at 272px, so there are 13px of
+  slack for a raised text size. Add a row and this has to move with it, or the
+  bottom one is clipped.
+- **The leftover height goes above the price, not below it.** The price is
+  bottom-pinned, so a sparse tile shows its air between the name and the
+  figure. That is deliberate: before the card had a border, slack at the foot
+  was invisible; now it would be an empty strip inside a drawn edge.
 
 ---
 

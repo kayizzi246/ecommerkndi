@@ -69,12 +69,11 @@ import '/custom_code/widgets/kandi_search_screen.dart';
 class _KColors {
   const _KColors._();
   static const Color panel = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF111827);
-  static const Color body = Color(0xFF4B5563);
-  static const Color muted = Color(0xFF6B7280);
-  static const Color faint = Color(0xFF9CA3AF);
-  static const Color line = Color(0xFFE5E7EB);
-  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color ink = Color(0xFF0B0B0B);
+  static const Color body = Color(0xFF414346);
+  static const Color muted = Color(0xFF5D6066);
+  static const Color faint = Color(0xFF8E9196);
+  static const Color line = Color(0xFFE0E0E0);
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3EA);
 
@@ -94,6 +93,16 @@ class _KColors {
   /// list. That is the whole trick of this layout — if the rail and the pane
   /// were the same colour there would be nothing to cut.
   static const Color rail = Color(0xFFF7F7F7);
+
+
+  /// The ground behind a product photograph.
+  ///
+  /// Warm rather than neutral, and that is the point: most of this catalogue is
+  /// shot on white, so the box behind it has to be a shade the white sits ON.
+  /// A grey would read as a grey rectangle behind the product; #FBF7F4 reads as
+  /// paper. It is \`--color-shop-photo\` on the site.
+  static const Color photo = Color(0xFFFBF7F4);
+
 }
 
 class _KSpace {
@@ -779,7 +788,7 @@ class _Photo extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(_rPhoto),
       child: Container(
-        color: _KColors.hairline,
+        color: _KColors.photo,
         child: url.isEmpty
             ? Center(
                 child: Text(letter.toUpperCase(),
@@ -794,7 +803,7 @@ class _Photo extends StatelessWidget {
                 fit: BoxFit.contain,
                 fadeInDuration: const Duration(milliseconds: 150),
                 placeholder: (_, __) => const ColoredBox(
-                  color: _KColors.hairline,
+                  color: _KColors.photo,
                   child: SizedBox.expand(),
                 ),
                 errorWidget: (_, __, ___) => Center(

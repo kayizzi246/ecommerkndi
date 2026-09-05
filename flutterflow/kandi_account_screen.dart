@@ -82,13 +82,13 @@ import '/custom_code/widgets/kandi_track_order_screen.dart';
 
 class _KColors {
   const _KColors._();
-  static const Color canvas = Color(0xFFF5F5F5);
+  static const Color canvas = Color(0xFFFFFFFF);
   static const Color panel = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF111827);
-  static const Color body = Color(0xFF4B5563);
-  static const Color muted = Color(0xFF6B7280);
-  static const Color line = Color(0xFFE5E7EB);
-  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color ink = Color(0xFF0B0B0B);
+  static const Color body = Color(0xFF414346);
+  static const Color muted = Color(0xFF5D6066);
+  static const Color line = Color(0xFFE0E0E0);
+  static const Color hairline = Color(0xFFF2F2F2);
   static const Color primary = Color(0xFFFF6A00);
   static const Color primarySoft = Color(0xFFFFF3E8);
   static const Color warn = Color(0xFFB45309);
@@ -106,6 +106,17 @@ class _KColors {
   /// the 11px a card's price line runs at. The brighter reds do one or the
   /// other, never both.
   static const Color flame = Color(0xFFD62200);
+
+  /// ---- The edge that makes a white card visible on a white page ----
+  ///
+  /// The app used to stand its tiles on #F5F5F5 and let the contrast do the
+  /// separating. The site does not: its canvas is #ffffff, the same as the
+  /// panel, so the tile is drawn by a 1px ring and nothing else. Matching the
+  /// ground without matching the ring would have produced a grid of tiles with
+  /// no edges at all.
+  static const Color edge = Color(0xFFDEDEDE);
+
+
 }
 
 class _KSpace {
@@ -439,6 +450,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           decoration: BoxDecoration(
             color: _KColors.panel,
             borderRadius: BorderRadius.circular(_rPanel),
+            border: Border.all(color: _KColors.edge),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,6 +581,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           decoration: BoxDecoration(
             color: _KColors.panel,
             borderRadius: BorderRadius.circular(_rPanel),
+            border: Border.all(color: _KColors.edge),
           ),
           child: Row(
             children: [
@@ -645,6 +658,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
       decoration: BoxDecoration(
         color: _KColors.panel,
         borderRadius: BorderRadius.circular(_rPanel),
+        border: Border.all(color: _KColors.edge),
       ),
       child: Column(
         children: [
@@ -692,6 +706,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
       decoration: BoxDecoration(
         color: _KColors.panel,
         borderRadius: BorderRadius.circular(_rPanel),
+        border: Border.all(color: _KColors.edge),
       ),
       child: Column(
         children: [

@@ -101,16 +101,16 @@ class _KColors {
   const _KColors._();
 
   /// The page ground.
-  static const Color canvas = Color(0xFFF5F5F5);
+  static const Color canvas = Color(0xFFFFFFFF);
   static const Color panel = Color(0xFFFFFFFF);
 
-  static const Color ink = Color(0xFF111827);
-  static const Color body = Color(0xFF4B5563);
-  static const Color muted = Color(0xFF6B7280);
-  static const Color faint = Color(0xFF9CA3AF);
+  static const Color ink = Color(0xFF0B0B0B);
+  static const Color body = Color(0xFF414346);
+  static const Color muted = Color(0xFF5D6066);
+  static const Color faint = Color(0xFF8E9196);
 
-  static const Color line = Color(0xFFE5E7EB);
-  static const Color hairline = Color(0xFFF3F4F6);
+  static const Color line = Color(0xFFE0E0E0);
+  static const Color hairline = Color(0xFFF2F2F2);
 
   /// Brand orange is spent on marks that sit ON things and never as a large
   /// ground: white on #ff6a00 is 2.9:1 and fails AA at label sizes.
@@ -154,6 +154,31 @@ class _KColors {
   /// the 11px a card's price line runs at. The brighter reds do one or the
   /// other, never both.
   static const Color flame = Color(0xFFD62200);
+
+  /// ---- The edge that makes a white card visible on a white page ----
+  ///
+  /// The app used to stand its tiles on #F5F5F5 and let the contrast do the
+  /// separating. The site does not: its canvas is #ffffff, the same as the
+  /// panel, so the tile is drawn by a 1px ring and nothing else. Matching the
+  /// ground without matching the ring would have produced a grid of tiles with
+  /// no edges at all.
+  static const Color edge = Color(0xFFDEDEDE);
+
+  /// The ground behind a product photograph.
+  ///
+  /// Warm rather than neutral, and that is the point: most of this catalogue is
+  /// shot on white, so the box behind it has to be a shade the white sits ON.
+  /// A grey would read as a grey rectangle behind the product; #FBF7F4 reads as
+  /// paper. It is `--color-shop-photo` on the site.
+  static const Color photo = Color(0xFFFBF7F4);
+
+  /// The red a reduced price is set in, and the ground of the corner flag.
+  ///
+  /// Kept apart from `flame` deliberately. `flame` is a BUTTON ground and was
+  /// picked for 5.1:1 against white text; this is TYPE on white and is the
+  /// site's `--color-shop-price-was`. Collapsing the two would either dull the
+  /// price or fail the buttons.
+  static const Color priceWas = Color(0xFFC62828);
 }
 
 class _KSpace {
@@ -166,8 +191,6 @@ class _KSpace {
 }
 
 const double _rPanel = 12;
-const double _rPhoto = 8;
-const double _rChip = 8;
 
 /// The `Accept` header every photograph in this app is fetched with.
 ///
@@ -915,7 +938,22 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
                     // up rather than guessed: at 390 wide a tile is 171px, and
                     // 171 / 0.50 is the 342 the fullest card needs. The old
                     // 0.46 left about 90px of empty white under most of them.
-                    childAspectRatio: 0.57,
+                    // ---- 0.62, where this was 0.57 ----
+                    //
+                    // The tile got shorter and this is the figure that has to
+                    // follow it: the price dropped from 17px to the site's 12,
+                    // the struck original came off the phone entirely, and the
+                    // sold-and-stars row moved below the price rather than
+                    // adding a row above it. Left at 0.57 every cell would carry
+                    // about forty pixels of empty white BELOW the price and
+                    // inside the tile's new border, which is dead space a
+                    // borderless tile could hide and a bordered one cannot.
+                    //
+                    // Slack rather than a tight fit, deliberately. The rows grow
+                    // with the reader's text size and the price is bottom-pinned,
+                    // so what is left over collects above the price as air —
+                    // whereas a cell one pixel too short clips the bottom row.
+                    childAspectRatio: 0.62,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -1495,7 +1533,12 @@ class _RailSection extends StatelessWidget {
           // Taller than it was: the card gained the scarcity line and its bar,
           // and a horizontal list has no height of its own to measure — an
           // under-sized box clips the bottom row rather than scrolling it.
-          height: 302,
+          // 278, down from 302, for the reason on `childAspectRatio`
+          // above: the shorter tile. A rail card is 168 wide, so its
+          // photograph is 154 and the four rows under it come to about 78 —
+          // 278 leaves the same slack the grid does, which the bottom-pinned
+          // price turns into air above the figure rather than a gap below it.
+          height: 278,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: _KSpace.md),
@@ -1580,11 +1623,22 @@ class _Card extends StatelessWidget {
       product.stockQuantity != null &&
       product.stockQuantity! <= _lowStockAt;
 
+  /// Whether this item alone clears the free-delivery threshold.
+  ///
+  /// Derived rather than sent: the API has no per-product delivery field, and
+  /// the threshold here is the figure checkout actually applies.
+  bool get _freeDelivery =>
+      freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
+
   /// The chip that rides the name line.
   ///
-  /// One at most, in the site's order of usefulness to a shopper who has not
-  /// decided: a deep cut, then a new listing. A chip on every card is a chip
-  /// that means nothing, which is why there is no fallback.
+  /// One at most, in order of usefulness to a shopper who has not decided: a
+  /// deep cut, then a new listing. A chip on every card is a chip that means
+  /// nothing, which is why there is no fallback.
+  ///
+  /// 3px corners and 9px bold, which is what `ProductCard.tsx` sets on the same
+  /// chip — it is a `WidgetSpan` here and an inline `<span>` there, so the name
+  /// wraps around it rather than under it in both.
   ({String label, Color background, Color foreground})? get _chip {
     if (product.discountPercent >= 30) {
       return (
@@ -1594,26 +1648,30 @@ class _Card extends StatelessWidget {
       );
     }
     if (product.isNew) {
-      return (
-        label: 'New',
-        background: _KColors.save,
-        foreground: Colors.white
-      );
+      return (label: 'New', background: _KColors.save, foreground: Colors.white);
     }
     return null;
   }
 
-
   /// The strip across the bottom of the photograph.
   ///
-  /// This is where the shilling saving went. It would not fit beside the old
-  /// price — "UGX 55,000  Save UGX 19,000" is about 170px of text in a 154px
-  /// card — and it is the figure a Ugandan shopper actually weighs, more than
-  /// a percentage. On the photograph it costs the card no height at all.
+  /// ---- One of two places this tile deliberately differs from the site ----
+  ///
+  /// The website puts the shilling saving in a green chip BELOW the name and
+  /// the free-delivery promise in a row below that — two rows of tile height
+  /// for two facts. On a phone tile roughly 165px wide those two rows are the
+  /// difference between the price landing on the first screen and landing
+  /// under the fold, so they ride the photograph here instead, where they cost
+  /// no height at all.
+  ///
+  /// The other difference is the heart, which the site shows on hover only. A
+  /// hover state on a touch screen is a control that does not exist, so it
+  /// stays visible here. Both deviations are additions rather than departures:
+  /// nothing the site shows is missing, it is only placed where a thumb can
+  /// reach it.
   ///
   /// Suppressed when the product is out of stock: a saving on something that
-  /// cannot be bought is noise, and the corner is needed for the sold-out
-  /// mark instead.
+  /// cannot be bought is noise, and the corner is needed for the sold-out mark.
   String? get _ribbon {
     if (!product.inStock) return null;
     final parts = <String>[
@@ -1622,14 +1680,6 @@ class _Card extends StatelessWidget {
     ];
     return parts.isEmpty ? null : parts.join(' · ');
   }
-
-  /// Whether this item alone clears the free-delivery threshold.
-  ///
-  /// Derived rather than sent: the API has no per-product delivery field, and
-  /// this is the same arithmetic the website's tile does. Honest because the
-  /// threshold is the figure checkout actually applies.
-  bool get _freeDelivery =>
-      freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -1646,287 +1696,352 @@ class _Card extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: _KColors.panel,
-            borderRadius: BorderRadius.circular(_rPanel),
+            // ---- Square, with a drawn edge ----
+            //
+            // Both halves come from `.tile-card` in globals.css and both are a
+            // change from what this app drew. The corners were 12px and are
+            // now 0: the site squared them so that tiles could touch in a
+            // flush grid without leaving a white notch at each of the four
+            // corners they share, and a tile that is square there and rounded
+            // here is the single most obvious way the two stop looking like
+            // one shop.
+            //
+            // The 1px ring is what replaces the grey page. The app stood its
+            // cards on #F5F5F5 and let the contrast draw them; the site stands
+            // them on white and draws them with `inset 0 0 0 1px` in
+            // `--color-shop-edge`. Taking the tint away without adding the ring
+            // would have left a grid with no tiles in it.
+            border: Border.all(color: _KColors.edge),
           ),
-          padding: const EdgeInsets.all(_KSpace.sm),
+          // 6px, where this was 8. It is `p-1.5` on the site, and on a 177px
+          // tile the two pixels a side are four pixels of photograph.
+          padding: const EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
               AspectRatio(
                 aspectRatio: 1,
                 child: ClipRRect(
-                  // The corners move OUT here, onto the Stack. The deal strip
-                  // is a sibling of the picture, and clipping only the picture
-                  // would leave the strip with square ends hanging off a
-                  // rounded photograph.
-                  borderRadius: BorderRadius.circular(_rPhoto),
+                  // 10px, matching `.tile-frame`. The corners are on the Stack
+                  // rather than on the picture: the deal strip is a sibling of
+                  // the photograph, and clipping only the photograph would
+                  // leave the strip with square ends hanging off a rounded one.
+                  borderRadius: BorderRadius.circular(10),
                   child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _Photo(url: product.image),
-                    // Top LEFT: the heart, where the badge used to be.
-                    Positioned(
-                      top: 4,
-                      left: 4,
-                      child: GestureDetector(
-                        onTap: onSave,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          // The same white disc the basket button gets. Drawn
-                          // straight on the photograph the outline vanished
-                          // against anything dark, and a control that is only
-                          // sometimes visible is not a control.
-                          decoration: BoxDecoration(
-                            color: const Color(0xF2FFFFFF),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _KColors.line),
-                          ),
-                          child: Icon(
-                            saved
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            size: 17,
-                            color: saved ? _KColors.flame : _KColors.body,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Top RIGHT: the discount, exactly as the site draws it.
-                    if (product.inStock && product.discountPercent > 0)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _KColors.express,
-                            borderRadius: BorderRadius.circular(_rChip),
-                          ),
-                          child: Text('-${product.discountPercent}%',
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  height: 1,
-                                  fontWeight: FontWeight.w800,
-                                  color: _KColors.ink)),
-                        ),
-                      ),
-                    if (!product.inStock)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _KColors.ink,
-                            borderRadius: BorderRadius.circular(_rChip),
-                          ),
-                          child: const Text('Sold out',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  height: 1,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
-                        ),
-                      ),
-                    // ---- The deal strip ----
-                    //
-                    // Full width across the foot of the photograph, the way
-                    // the reference draws it. The right padding clears the
-                    // basket button, which floats over the strip's end rather
-                    // than being pushed off the tile by it.
-                    if (_ribbon != null)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(7, 3.5, 44, 3.5),
-                          decoration:
-                              const BoxDecoration(gradient: _brandGradient),
-                          child: Text(_ribbon!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 9.5,
-                                  height: 1.25,
-                                  letterSpacing: 0.2,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
-                        ),
-                      ),
-                    if (product.inStock)
-                      Positioned(
-                        bottom: 4,
-                        right: 4,
-                        child: _AddButton(
-                          // A product with options cannot be added from a card
-                          // — it opens instead, where the picker is.
-                          onTap: product.hasOptions ? onOpen : onAdd,
-                          icon: product.hasOptions
-                              ? Icons.tune_rounded
-                              : Icons.add_shopping_cart_rounded,
-                        ),
-                      ),
-                  ],
-                ),
-                ),
-              ),
-              const SizedBox(height: _KSpace.sm),
+                    fit: StackFit.expand,
+                    children: [
+                      _Photo(url: product.image),
 
-              // The programme chip rides the name rather than sitting on the
-              // photograph, so it costs the card no height. `WidgetSpan` puts
-              // it in the same run as the text, which is what makes the name
-              // wrap around it instead of under it.
-              RichText(
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  style: const TextStyle(
-                      fontSize: 12.5, height: 1.35, color: _KColors.ink),
-                  children: [
-                    if (chip != null)
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 4),
+                      // Top LEFT: the heart, on its own white disc. See the
+                      // note on `_ribbon` for why it is visible at rest here
+                      // and only on hover on the site.
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: GestureDetector(
+                          onTap: onSave,
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: const Color(0xF2FFFFFF),
+                              shape: BoxShape.circle,
+                              // `ring-1 ring-black/5` on the site. A white disc
+                              // on a photograph shot on white has no edge
+                              // without it, and most of this catalogue is shot
+                              // on white.
+                              border: Border.all(color: const Color(0x0D000000)),
+                            ),
+                            child: Icon(
+                              saved
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 17,
+                              color: saved ? _KColors.priceWas : _KColors.body,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // ---- Top RIGHT: the cut ----
+                      //
+                      // Red ground, white type, fully rounded — which is a
+                      // change on all three counts. This was a yellow chip with
+                      // ink type and an 8px corner; the site draws
+                      // `bg-[--color-shop-price-was] text-white rounded-full`,
+                      // and the red is the same red the reduced price below is
+                      // set in, so the flag and the figure agree.
+                      if (product.inStock && product.discountPercent > 0)
+                        Positioned(
+                          top: 6,
+                          right: 6,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1.5),
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: chip.background,
-                              borderRadius: BorderRadius.circular(3),
+                              color: _KColors.priceWas,
+                              borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text(chip.label,
-                                style: TextStyle(
-                                    fontSize: 9.5,
-                                    height: 1.2,
+                            child: Text('-${product.discountPercent}%',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    height: 1,
                                     fontWeight: FontWeight.w800,
-                                    color: chip.foreground)),
+                                    color: Colors.white)),
                           ),
                         ),
-                      ),
-                    TextSpan(text: product.name),
-                  ],
+
+                      // Sold out, in the site's white pill rather than the
+                      // black one this used to draw. It sits top-right where
+                      // the site puts it top-left, because the heart holds that
+                      // corner here — see the note on `_ribbon`.
+                      if (!product.inStock)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xF2FFFFFF),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: _KColors.line),
+                            ),
+                            child: const Text('Sold out',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    height: 1,
+                                    fontWeight: FontWeight.w700,
+                                    color: _KColors.body)),
+                          ),
+                        ),
+
+                      // The deal strip. Full width across the foot of the
+                      // photograph; the right padding clears the basket button,
+                      // which floats over the strip's end rather than being
+                      // pushed off the tile by it.
+                      if (_ribbon != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(7, 3.5, 44, 3.5),
+                            decoration:
+                                const BoxDecoration(gradient: _brandGradient),
+                            child: Text(_ribbon!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 9.5,
+                                    height: 1.25,
+                                    letterSpacing: 0.2,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
+                          ),
+                        ),
+
+                      if (product.inStock)
+                        Positioned(
+                          bottom: 6,
+                          right: 6,
+                          child: GestureDetector(
+                            // A product with options cannot be added from a
+                            // card — it opens instead, where the picker is.
+                            onTap: product.hasOptions ? onOpen : onAdd,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: const Color(0xF2FFFFFF),
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: const Color(0x0D000000)),
+                              ),
+                              child: Icon(
+                                  product.hasOptions
+                                      ? Icons.tune_rounded
+                                      : Icons.add_shopping_cart_rounded,
+                                  size: 18,
+                                  color: _KColors.body),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 5),
 
-              // ---- What other people did, ABOVE what it costs ----
+              // 8px, which is `pt-2` on the site: the one piece of vertical
+              // space in this block that is not simply a row's own leading.
+              const SizedBox(height: 8),
+
+              // ---- The name: 12/15 at weight 300 ----
               //
-              // The reference's order, and it is the right one. A shopper
-              // scanning a grid decides whether a tile is worth reading at all
-              // from the sold count and the stars, and only then reads the
-              // price. This card had the price first and the crowd last, which
-              // is the order the shop cares about, not the order they read in.
+              // All three numbers are the site's, and the weight is the one
+              // worth pausing on. It is 300 on a phone and 400 from `sm` up —
+              // see the `.product-name` media query in globals.css. The
+              // argument there is that the name is the only thing on a tile
+              // that is not a claim: the price, the saving and the stock line
+              // are all set in weight or colour because they are what a shopper
+              // compares, and a name competing with all three reads as a fourth
+              // claim rather than as the caption it is.
               //
-              // Drawn only when there is a number to carry. A row that renders
-              // empty on most tiles is a row of debris at forty different
-              // heights down the grid.
+              // The height is fixed at two lines rather than clamped to two, so
+              // a one-line name does not shorten its tile and land the prices
+              // in a row on two different baselines.
+              SizedBox(
+                height: 30,
+                child: RichText(
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: const TextStyle(
+                        fontSize: 12,
+                        height: 15 / 12,
+                        fontWeight: FontWeight.w300,
+                        color: _KColors.ink),
+                    children: [
+                      if (chip != null)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: chip.background,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(chip.label,
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      height: 1.2,
+                                      fontWeight: FontWeight.w700,
+                                      color: chip.foreground)),
+                            ),
+                          ),
+                        ),
+                      TextSpan(text: product.name),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ---- The price, and what happened to it ----
+              //
+              // 12px at weight 800, down from 17. That is `.price` on a phone
+              // (it steps up to 14 at `sm`), and it is the largest single
+              // difference between the two tiles. A 17px price on a 165px tile
+              // is most of a row's width for one figure; the site spends that
+              // width on the photograph instead and lets weight, not size, do
+              // the work of making the number findable.
+              //
+              // Red when it is a reduction, ink when it is just the price —
+              // the oldest price-tag convention there is, and the same red as
+              // the corner flag above.
+              // ---- The price is pinned to the foot of the tile ----
+              //
+              // `mt-auto` on the site, and it is what makes a grid ROW
+              // readable: the cells in a row are stretched to a common height,
+              // so a two-line name beside a one-line name would otherwise land
+              // their prices on different baselines and the eye has to hunt
+              // down the page for each figure.
+              //
+              // It also settles where the leftover height goes now that the
+              // tile draws its own border. Any slack between the grid cell and
+              // the card's content used to collect at the bottom, inside the
+              // edge, as a visible empty strip; it collects here instead,
+              // between the name and the price, where it reads as air.
+              const Spacer(),
+              Text(
+                product.priceLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                  color: product.discountPercent > 0
+                      ? _KColors.priceWas
+                      : _KColors.ink,
+                ),
+              ),
+
+              // ---- The struck original is NOT drawn on a phone ----
+              //
+              // `.was-price` is `hidden ... sm:inline` on the site: a 165px
+              // tile has room for one price and nothing else, and the two
+              // figures side by side is what produced a sliced number. Nothing
+              // is lost — the corner flag carries the percentage and the deal
+              // strip carries the shillings.
+
+              // The stock warning, on the products that have one and nowhere
+              // else. A row that renders empty on most tiles is a row of debris
+              // at forty different heights down the grid.
+              if (_lowStock) ...[
+                const SizedBox(height: 2),
+                Text('Only ${product.stockQuantity} left',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        height: 14 / 11,
+                        fontWeight: FontWeight.w500,
+                        color: _KColors.body)),
+              ],
+
+              // ---- What other people did, BELOW what it costs ----
+              //
+              // The site's order, and this tile had it the other way round.
+              // The name says which product it is and the price says whether it
+              // is worth a second look; the sold count and the stars are the
+              // corroboration a shopper reads only once those two have passed.
+              // Putting them above the price made the tile ask for attention
+              // before it had said anything.
               if (product.totalSales > 0 || product.ratingCount > 0) ...[
+                const SizedBox(height: 2),
                 Row(
                   children: [
+                    // Flexible, and it is not decoration. The stars are icons
+                    // at a fixed 11px and do not scale with the reader's text
+                    // size, so at a raised setting the two TEXTS have to give
+                    // way or the row overflows to the right — which is the one
+                    // kind of overflow a shopper cannot scroll to see. Found by
+                    // pumping this tile at a 1.3 text scale, where an
+                    // unbounded '340 sold' ran 20px past the tile's edge.
                     if (product.totalSales > 0)
-                      Text('${product.totalSales} sold',
-                          style: const TextStyle(
-                              fontSize: 11, color: _KColors.muted)),
-                    if (product.totalSales > 0 && product.ratingCount > 0)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 5),
-                        child: Text('|',
-                            style:
-                                TextStyle(fontSize: 11, color: _KColors.line)),
-                      ),
-                    if (product.ratingCount > 0) ...[
-                      _Stars(rating: product.rating, size: 11),
-                      const SizedBox(width: 3),
-                      Text(product.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _KColors.ink)),
-                      const SizedBox(width: 2),
                       Flexible(
-                        child: Text('(${product.ratingCount})',
+                        child: Text('${product.totalSales} sold',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 11, color: _KColors.muted)),
+                                fontSize: 11,
+                                height: 1.3,
+                                color: _KColors.muted)),
+                      ),
+                    if (product.totalSales > 0 && product.ratingCount > 0)
+                      const SizedBox(width: 8),
+                    if (product.ratingCount > 0) ...[
+                      _Stars(rating: product.rating, size: 11),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(product.rating.toStringAsFixed(1),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                height: 1.3,
+                                color: _KColors.body)),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
-              ],
-
-              _Price(
-                label: product.priceLabel,
-                reduced: product.discountPercent > 0,
-                size: 17,
-              ),
-              if (product.wasPriceLabel != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(product.wasPriceLabel!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: _KColors.faint,
-                          decoration: TextDecoration.lineThrough)),
-                ),
-
-              // ---- The scarcity line, and the bar under it ----
-              //
-              // The same fact drawn twice, on purpose: "Only 2 left" is a
-              // number a shopper weighs against nothing, and a bar two-fifths
-              // full is a quantity they read without stopping.
-              //
-              // The bar's full width is the low-stock threshold, not an
-              // invented starting stock — it begins the moment the product
-              // becomes scarce and empties from there, so it can never claim
-              // "nearly gone" about a product with plenty in the back.
-              if (_lowStock) ...[
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                          color: _KColors.primary, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 5),
-                    Text('Only ${product.stockQuantity} left',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _KColors.body)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: SizedBox(
-                    width: 78,
-                    height: 3,
-                    child: LinearProgressIndicator(
-                      value: (product.stockQuantity! / _lowStockAt)
-                          .clamp(0.12, 1.0)
-                          .toDouble(),
-                      backgroundColor: _KColors.hairline,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(_KColors.primary),
-                    ),
-                  ),
-                ),
               ],
             ],
-
           ),
         ),
       ),
@@ -1972,82 +2087,6 @@ class _Stars extends StatelessWidget {
   }
 }
 
-/// A price, with the currency set smaller than the figure.
-///
-/// The API sends one string — "UGX 36,000" — and this splits it at the first
-/// space, then closes the gap. The unit is the part a Ugandan shopper already
-/// knows; the number is what they came for, and setting both at the same size
-/// makes the number harder to find.
-///
-/// ---- Red means REDUCED ----
-///
-/// Not "red means price". Every price in the money colour is the same as none
-/// of them in it — the colour stops carrying anything. A full price is set in
-/// ink and a cut one in red, which puts the colour in agreement with the
-/// yellow flag on the photograph instead of shouting over it.
-class _Price extends StatelessWidget {
-  const _Price({required this.label, required this.reduced, this.size = 17});
-
-  final String label;
-  final bool reduced;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final space = label.indexOf(' ');
-    final unit = space > 0 ? label.substring(0, space) : '';
-    final figure = space > 0 ? label.substring(space + 1) : label;
-    final colour = reduced ? _KColors.flame : _KColors.ink;
-
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: TextStyle(
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.3,
-          height: 1.15,
-          color: colour,
-        ),
-        children: [
-          if (unit.isNotEmpty)
-            TextSpan(text: unit, style: TextStyle(fontSize: size * 0.66)),
-          TextSpan(text: figure, style: TextStyle(fontSize: size)),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onTap, required this.icon});
-
-  final VoidCallback onTap;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      // A circle with a drawn ring rather than a rounded square with a border.
-      // This floats over a product photograph, which can be any colour
-      // including white — most of this catalogue is shot on it — so the ring is
-      // what keeps the control findable on a good half of the grid. It is the
-      // same device the website's tile uses, for the same reason.
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: _KColors.panel,
-          shape: BoxShape.circle,
-          border: Border.all(color: _KColors.line),
-        ),
-        child: Icon(icon, size: 18, color: _KColors.ink),
-      ),
-    );
-  }
-}
 
 /// A network image with the three states a photograph actually has.
 ///
@@ -2064,7 +2103,7 @@ class _Photo extends StatelessWidget {
   Widget build(BuildContext context) {
     if (url.isEmpty) {
       return const ColoredBox(
-        color: _KColors.hairline,
+        color: _KColors.photo,
         child: Center(
             child: Icon(Icons.image_not_supported_outlined,
                 size: 22, color: _KColors.faint)),
@@ -2077,9 +2116,9 @@ class _Photo extends StatelessWidget {
       // cover crop slices it. The card gives it a square well to sit in.
       fit: BoxFit.contain,
       fadeInDuration: const Duration(milliseconds: 160),
-      placeholder: (_, __) => const ColoredBox(color: _KColors.hairline),
+      placeholder: (_, __) => const ColoredBox(color: _KColors.photo),
       errorWidget: (_, __, ___) => const ColoredBox(
-        color: _KColors.hairline,
+        color: _KColors.photo,
         child: Center(
             child: Icon(Icons.image_not_supported_outlined,
                 size: 22, color: _KColors.faint)),
@@ -2137,7 +2176,10 @@ class _SkeletonState extends State<_Skeleton>
           _block(160, 20, 6),
           const SizedBox(height: _KSpace.md),
           SizedBox(
-            height: 300,
+            // In step with the real rail above. A placeholder at the wrong
+            // height makes the row visibly re-draw itself when the products
+            // land, which is the one thing a skeleton exists to prevent.
+            height: 278,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 3,
