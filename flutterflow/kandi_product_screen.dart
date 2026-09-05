@@ -148,19 +148,37 @@ const Map<String, String> _kImageHeaders = <String, String>{
 
 /// Panel and photograph corners. This page had neither until it grew a price
 /// card and a grid of tiles; both match the rest of the app.
-const double _rPanel = 12;
+/// ---- Panel corners: 16, where this was 12 ----
+///
+/// This governs the CHROME only - sheets, the shelf grounds, the terms
+/// strip, the panels on the account, checkout and seller pages. It does not
+/// reach the product tile, which has square corners and a drawn ring copied
+/// row by row off the website's `.tile-card` and must stay that way: the
+/// site squares its tiles so they can touch in a flush grid, and a tile
+/// rounded here and square there is the most obvious way the two clients
+/// stop looking like one shop.
+///
+/// So the app now draws two corner radii on purpose - a square catalogue on
+/// softened furniture - and that is the distinction rather than an
+/// inconsistency. 12 sat between the two and read as neither.
+const double _rPanel = 16;
 
 /// The brand gradient: Kandi orange running into the deep red.
 ///
 /// It carries the chrome — app bars, the home band, the primary buttons — so
-/// that every screen is recognisably one shop. Horizontal rather than vertical
-/// because an app bar is a wide, short box: a vertical ramp across 56px reads
-/// as a flat muddy colour, where a horizontal one across the whole width
-/// actually travels.
+/// that every screen is recognisably one shop.
+///
+/// Three stops on a diagonal, where this was two across the horizontal: a
+/// two-stop ramp between two colours half a hue apart is a flat wash with a
+/// slight lean, and the corner-to-corner run gives it the bar's diagonal to
+/// travel rather than its width. The dark end also went down to #A81100, so
+/// that white type on it clears 8:1 over most of the bar instead of the 2.9:1
+/// brand orange gives.
 const LinearGradient _brandGradient = LinearGradient(
-  begin: Alignment.centerLeft,
-  end: Alignment.centerRight,
-  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFE03400), Color(0xFFA81100)],
+  stops: [0.0, 0.52, 1.0],
 );
 
 /// Fully rounded. The primary calls to action are pills, which is what tells
@@ -1246,17 +1264,17 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: _KSpace.md,
               crossAxisSpacing: _KSpace.md,
-              // ---- 0.64, where this was 0.62 ----
+              // ---- 0.646, where this was 0.655 ----
               //
               // The tile lost the Spacer that held the price at the foot of the cell, so
               // what is left over now shows as a gap BELOW the last row rather than as a
               // hole in the middle of the card — which means the cell wants to sit as
               // close to the content as it safely can.
               //
-              // Added up at 177px wide: 2 of border, 12 of padding, a 163 photograph, 8 to
-              // the name, a 30 name box, 3, a 13 price, 16 for the reserved sold-and-stars
-              // row, and 16 more for the stock line when there is one. That is 247 at rest
-              // and 263 at its fullest, in a 276 cell.
+              // Added up at 177px wide: 2 of border, 12 of padding, a 163 photograph, 4 to
+              // the name, a 34 name box, 1, a 13 price, 16 for the reserved sold-and-stars
+              // row, and 16 more for the stock line when there is one. That is 245 at rest
+              // and 261 at its fullest, in a 274 cell.
               //
               // The 13px on top of the fullest tile is not spare — it is what the rows
               // grow by at a 1.3 text scale, which is as far as this has been measured.
@@ -1265,7 +1283,7 @@ class _KandiProductScreenState extends State<KandiProductScreen> {
               // Reserving the meta row is what keeps the resting and fullest numbers only
               // 16 apart. If it goes back to being conditional, this has to rise again or
               // sparse tiles reopen the gap.
-              childAspectRatio: 0.64,
+              childAspectRatio: 0.646,
             ),
             itemCount: _related.length,
             itemBuilder: (context, index) {
@@ -1756,59 +1774,98 @@ class _Card extends StatelessWidget {
                 ),
               ),
 
-              // 8px, which is `pt-2` on the site: the one piece of vertical
-              // space in this block that is not simply a row's own leading.
-              const SizedBox(height: 8),
-
-              // ---- The name: 12/15 at weight 300 ----
+              // ---- 4px, because that is what the site sets ----
               //
-              // All three numbers are the site's, and the weight is the one
-              // worth pausing on. It is 300 on a phone and 400 from `sm` up —
-              // see the `.product-name` media query in globals.css. The
-              // argument there is that the name is the only thing on a tile
-              // that is not a claim: the price, the saving and the stock line
-              // are all set in weight or colour because they are what a shopper
-              // compares, and a name competing with all three reads as a fourth
-              // claim rather than as the caption it is.
+              // This was 8, and the comment claimed `pt-2` on the site. The
+              // site sets `pt-1` on the text column - half of it. The comment
+              // and the code had drifted from the stylesheet together, so the
+              // tile carried four pixels the website does not.
+              const SizedBox(height: 4),
+
+              // ---- The name: 13/17 at weight 500 ----
+              //
+              // All three numbers are the site's. This was 12/15 at weight
+              // 300, and it moved because the site's did: `.product-name` is
+              // 500 now with no phone override, and the tile sets 13/17 on a
+              // phone and 14/18 from `sm` up.
+              //
+              // The old argument was that the name is the only thing on a tile
+              // that is not a claim — the price, the saving and the stock line
+              // are set in weight or colour because they are what a shopper
+              // compares. That still holds and the hierarchy still has room:
+              // the price is w800 and red on a reduction, three steps above
+              // this. What it missed is that a name nobody can comfortably
+              // read is not quiet, it is absent, and 300 at 12px is the
+              // lightest step of the face at the smallest size on the card.
+              //
+              // The app takes the phone value at every width. It has no `sm`.
               //
               // The height is fixed at two lines rather than clamped to two, so
               // a one-line name does not shorten its tile and land the prices
               // in a row on two different baselines.
+              //
+              // ---- ...and the name sits at the BOTTOM of that box ----
+              //
+              // The box is two lines tall whatever the name does, which is
+              // `min-h-[30px]` on the site. What the site never has to answer
+              // is where a ONE-line name sits inside it, because its phone
+              // grid is a masonry and the question does not arise. Here it
+              // does, and top-aligned - the default, and what this drew - a
+              // short name left fifteen pixels of white between itself and the
+              // price. Most names in this catalogue are one line, so most
+              // tiles had the gap.
+              //
+              // Bottom-aligned, the name always rests on the price and the
+              // slack moves above it, against the photograph, where it reads
+              // as the margin it already is. Prices still land on one baseline
+              // across a grid row - which is the whole reason this box is a
+              // fixed height - because the box has not moved. Only the text
+              // inside it has.
               SizedBox(
-                height: 30,
-                child: RichText(
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    style: const TextStyle(
-                        fontSize: 12,
-                        height: 15 / 12,
-                        fontWeight: FontWeight.w300,
-                        color: _KColors.ink),
-                    children: [
-                      if (chip != null)
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: chip.background,
-                                borderRadius: BorderRadius.circular(3),
+                // 34 = 2 x 17, and that arithmetic is load-bearing. The box is
+                // a fixed height so a one-line name does not shorten its tile
+                // and land the prices in a grid row on two baselines; if the
+                // leading moves and this does not, a two-line name is clipped
+                // and a one-line name reopens the gap under it. It is
+                // `min-h-[34px]` against `leading-[17px]` on the site, and the
+                // pair moves together there for the same reason.
+                height: 34,
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: RichText(
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: const TextStyle(
+                          fontSize: 13,
+                          height: 17 / 13,
+                          fontWeight: FontWeight.w500,
+                          color: _KColors.ink),
+                      children: [
+                        if (chip != null)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: chip.background,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(chip.label,
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        height: 1.2,
+                                        fontWeight: FontWeight.w700,
+                                        color: chip.foreground)),
                               ),
-                              child: Text(chip.label,
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      height: 1.2,
-                                      fontWeight: FontWeight.w700,
-                                      color: chip.foreground)),
                             ),
                           ),
-                        ),
-                      TextSpan(text: product.name),
-                    ],
+                        TextSpan(text: product.name),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1842,7 +1899,12 @@ class _Card extends StatelessWidget {
               // whether the name filled one line or two. That is why the name
               // box is a SizedBox rather than a clamp, and it is load-bearing
               // now rather than tidy.
-              const SizedBox(height: 3),
+              //
+              // 1px, where this was 3. The site's price row is `pt-px`, and
+              // with the name bottom-aligned above it these two rows are now
+              // as close as the stylesheet has them - which on a tile whose
+              // name is one line is the whole of the gap that was there.
+              const SizedBox(height: 1),
               Text(
                 product.priceLabel,
                 maxLines: 1,

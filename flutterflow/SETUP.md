@@ -1,6 +1,6 @@
 # Adding the app to FlutterFlow
 
-Seventeen custom widgets — one per page. **No parameters to declare on any of them.**
+Eighteen custom widgets — one per page. **No parameters to declare on any of them.**
 **One pubspec change:** add `webview_flutter` under Custom Code →
 Dependencies.
 
@@ -21,6 +21,7 @@ target of 12.0, which FlutterFlow already sets.
 | `KandiHomeScreen` | `kandi_home_screen.dart` |
 | `KandiProductScreen` | `kandi_product_screen.dart` |
 | `KandiCartScreen` | `kandi_cart_screen.dart` |
+| `KandiVerifyScreen` | `kandi_verify_screen.dart` |
 | `KandiCheckoutScreen` | `kandi_checkout_screen.dart` |
 | `KandiSearchScreen` | `kandi_search_screen.dart` |
 | `KandiShopScreen` | `kandi_shop_screen.dart` |
@@ -51,9 +52,10 @@ Any. Each page carries its own palette, HTTP client and product model, all
 file-private, so nothing depends on anything else being pasted first.
 
 The only cross-file imports are **navigation** — Home opens Product, Cart,
-Search, Shop, Saved and Account; Cart opens Checkout; Account opens Orders and
+Search, Shop, Saved and Account; Cart opens **Verify or Checkout**,
+whichever the device needs; Verify opens Checkout; Account opens Orders and
 the Seller Centre; Product opens Cart and, sideways, another Product. Dart
-resolves those once all seventeen exist, so the project compiles when the set is
+resolves those once all eighteen exist, so the project compiles when the set is
 complete and not before. Paste them in any order you like and compile at the
 end.
 
@@ -71,7 +73,7 @@ end.
    custom widget at once.
 3. Compile.
 
-There is no step for parameters. Leave the parameter list empty on all seventeen.
+There is no step for parameters. Leave the parameter list empty on all eighteen.
 
 **Never add an import above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.**
 FlutterFlow rewrites those first lines on save and silently drops anything you
@@ -112,7 +114,7 @@ at once.**
 | `kandi-wishlist-v1` | Saved items: id, name, image, price |
 | `kandi-checkout-v1` | Delivery details, refilled next visit |
 | `kandi-auth-v1` | The shopper's bearer token |
-| `kandi-verified-phone` | The number this device proved, as `+2567XXXXXXXX` |
+| `kandi-verified-phone` | The number this device proved, as `+2567XXXXXXXX`. With `kandi-auth-v1`, this is the whole of the checkout gate |
 | `kandi-auth-name` | The name shown in the greeting |
 | `kandi-seller-auth-v1` | The **seller's** token — a different account |
 | `kandi-seller-name` | The store name shown in the Seller Centre |
@@ -129,7 +131,8 @@ stays two lines rather than merging into one with a size missing.
 ## How the pages connect
 
 ```
-Home ─┬─ tap a card ──────────→ Product ──→ Cart ──→ Checkout ──→ (website payment)
+Home ─┬─ tap a card ──────────→ Product ──→ Cart ─┬─ Verify ─→ Checkout ─→ (pay)
+      │                                            └─ Checkout ─────────→ (pay)
       ├─ search bar ──────────→ Search  ──→ Product
       ├─ a department pill ───→ Shop    ──→ Product
       ├─ bottom bar: Shop ────→ Shop
@@ -200,9 +203,42 @@ here, where the picker is.
 and shows any price that moved or item that sold out. Quantity, remove-with-undo,
 and a free-delivery meter.
 
+**Verify** — the step between the basket and the checkout, and the only screen
+in the app a shopper is meant to see exactly once. A number, six digits back,
+and it is done: the token goes into `kandi-auth-v1` and the proved number into
+`kandi-verified-phone`, and from then on the basket's Checkout button opens the
+checkout directly.
+
+> **The gate used to be inside the checkout, and that was the wrong place.**
+> `_placeOrder` verified the phone as its first step, which meant the sheet
+> appeared *after* the shopper had filled in a name, a town and an address and
+> pressed the button that says how much they are about to pay. That is the
+> worst moment in the flow to stop somebody. Asked at the basket, it costs a
+> first-time shopper one screen at the point where they have decided to buy
+> and not yet committed to a form, and it costs a returning shopper nothing.
+>
+> **The basket decides, by reading two keys and asking nothing.** Both
+> `kandi-auth-v1` and `kandi-verified-phone` present means registered and
+> reachable, and the gate is skipped. The token is opaque to the app, so a
+> round trip could only report what those two already say — and it would put a
+> spinner on the one button in the app that must never hesitate.
+>
+> **A dead session still reappears, and by the right route.** When the shop
+> stops accepting a token, `/api/checkout` answers 401, the checkout clears
+> both keys, and the next trip through the basket lands on the gate. Nothing
+> polls for it.
+>
+> **The gate takes a phone, where the account page takes either.** An email
+> address is not something a rider can ring from outside a gate. A shopper who
+> signed in by email comes through here once; the code lands on the same
+> WordPress customer, because `/customers/otp-session` matches an existing
+> account on `billing_phone` and updates it.
+
 **Checkout** — collects name, phone, town and address, saves them for next
-time, chooses mobile money or a card, verifies the phone, and takes the
-payment without leaving the app.
+time, chooses mobile money or a card, and takes the payment without leaving the
+app. It keeps its own copy of the verification check: it can be reached from a
+FlutterFlow action or a deep link that never passed through the basket, and it
+is the screen that finds out when a token has gone stale.
 
 > **Payment used to happen on the website, and no longer does.** The argument
 > for the old way was real — the site is where Pesapal is wired and where the
@@ -360,7 +396,35 @@ basket and details attached. Mobile money and cards stay in the app.
 
 Every page carries its own copy of the palette — nothing is shared, for the
 reason at the top of this file — so these values have to be kept in step by
-hand. If you change one, change all seventeen.
+hand. If you change one, change all eighteen.
+
+### The bottom bar marks its tab with a capsule
+
+The active tab used to be signalled by colour alone — the icon and label went
+from grey to flame and nothing else moved. That is one channel, it is the
+channel a colour-deficient shopper does not have, and at 22px on a white bar it
+is weak with normal vision too. A gradient-filled capsule behind the icon adds
+shape and ground to the same fact.
+
+**The bar's height is measured, not assumed.** It was a flat 58, which was the
+height of its contents at the default text size and stayed 58 when a reader
+raised theirs: at a 1.3 scale the label was clipped by 7px on all five tabbed
+screens. It is now added up from a 30 capsule, a 2 gap and one scaled line of
+label, plus 12. That failure is invisible to `flutter analyze` and only a
+pumped widget test catches it — which is why the test below now runs every
+screen at two text scales rather than one.
+
+### Buttons come in two heights, on purpose
+
+The **gradient pill** is the money action — checkout, confirm, place the order —
+and there is at most one on a screen. Everything else is a page's own main
+action, and those are solid `flame` pills. Both are lifted on a shadow washed
+in the button's own dark end (`#A81100` at 20–35%) rather than in black: black
+under a saturated colour greys the pixels it falls on and reads as dirt, where
+the same hue reads as colour bleeding onto paper. The solid ones sit lower than
+the gradient one, which is the distinction that was always meant and was
+previously not drawn at all — they were flat on a white page with nothing under
+them.
 
 **Every neutral here is the storefront's own**, read out of the `:root` block
 in `app/globals.css` rather than chosen. That is the point: the app used a
@@ -382,16 +446,19 @@ moves on the web, follow it here.
 | `flameSoft` | `#FFF1ED` | The tint behind a selected chip, and the product page's price band. |
 | `save` / `saveSoft` | `#15803D` / `#ECFDF3` | A saving, a guarantee — money coming back. |
 | `express` | `#FFE000` | The discount flag and the delivery badge. Black on it is 11:1, the most legible pairing in the palette at 9px. |
-| `_brandGradient` | `#FF6A00 → #D62200` | Left to right. Carries every app bar, the home band, and the primary buttons. |
-| `_rPanel` / `_rPhoto` | `12` / `8` | Card and photograph corners. |
+| `_brandGradient` | `#FF6A00 → #E03400 → #A81100` | **Corner to corner, three stops**, and both changed. A two-stop ramp between two colours half a hue apart is a flat wash with a lean, and on a 56px bar it read as one muddy orange; the diagonal gives it the bar's longest run and the middle stop stops the ends averaging. The dark end went from `#D62200` to `#A81100` for contrast, not taste — every app bar sets white type on this, and white on `#FF6A00` is 2.9:1. On `#A81100` it is 8.1:1, and the bright end is now a corner rather than half the bar. |
+| `_BrandSurface` | gradient + white radial at 18% | The gradient with a light on it. A LinearGradient can only ramp along a line; a highlight that falls off in a circle is what makes a coloured surface read as lit rather than filled. White rather than a paler orange, because a paler orange puts the bar back in the 2.9:1 band. **It sizes to its child** — the gradients are `Positioned.fill` — which is what lets the same widget serve an app bar's `flexibleSpace` and the home masthead, where the height constraint is unbounded. |
+| `_rPanel` / `_rPhoto` | `16` / `8` | Panel and photograph corners. `_rPanel` was 12. **It governs the chrome only** — sheets, shelf grounds, the terms strip, the panels on account, checkout and the seller pages — and deliberately not the product tile, which is square with a drawn ring because the website's `.tile-card` is. The app draws two radii on purpose now: a square catalogue on softened furniture. 12 sat between the two and read as neither. |
 | `_rPill` | `999` | Every button and every filter chip. The pill is what separates a control from the panels it sits on. |
 
 ### The product tile
 
-The same tile is drawn in **four** places — Home's rails, Home's grid, Shop,
-Search — and a fifth copy sits at the foot of the product page. Each file has
-its own source for it, so a change has to be made five times or the shop starts
-showing the same product two different ways.
+The same tile is drawn in **five** places — Home's rails, Home's grid, Shop,
+Search and Today's deals — and a sixth copy sits at the foot of the product
+page, in five files. Each file has its own source for it, so a change has to be
+made five times or the shop starts showing the same product two different ways.
+(This said "four places" and five files, which was already one short: the deals
+screen has drawn the tile since it was added.)
 
 Top to bottom:
 
@@ -409,8 +476,8 @@ differ, they differ on purpose and the code says why.
 | Sold out, top right | The site's white pill with `body` type and a `line` ring, not the black chip this drew. It is top-**left** on the site; the heart holds that corner here. |
 | Deal strip, across the foot | `SAVE <amount>`, plus `FREE DELIVERY` when the item clears the threshold. **The site puts both below the name**, as a green chip and a row — two rows of tile height for two facts. On a 165px tile that is the difference between the price landing on the first screen and under the fold, so they ride the photograph here. |
 | Basket button, bottom right | A white disc with a ring, floating over the strip's end. Opens the product instead when it `hasOptions`. |
-| Name | **12px on 15px leading at weight 300**, in a box fixed at two lines. All three are `.product-name` on a phone. The weight is the one to leave alone: the name is the only thing on the tile that is not a claim, and at 400 it competed with the price, the saving and the stock line at once. |
-| Price | **12px at weight 800**, down from 17 — `.price`, which steps to 14 at `sm`. It is **bottom-pinned** (`mt-auto` on the site) so the prices in a grid row land on one baseline whatever the names above them did. Red only when reduced. |
+| Name | **13px on 17px leading at weight 500**, in a box fixed at two lines (34px — exactly 2 × the leading, and the pair moves together or a one-line name reopens the gap under it), **4px under the photograph** (`pt-1` on the site — this was 8, and the comment beside it claimed a `pt-2` the stylesheet does not have). All three type values are `.product-name` on a phone. They were 12/15 at 300 and moved when the site's did: `.product-name` is 500 now with the phone override removed, and the site's tile runs 13/17 on a phone and 14/18 from `sm` up. The app has no `sm` and takes the phone pair everywhere. The old note said the weight was the one to leave alone, on the argument that the name is the only thing on the tile that is not a claim. That argument measured the name's rank and not whether it could be READ: 300 at 12px is the lightest step of the face at the smallest size on the card, holding a supplier's keyword-stuffed title in a two-line clamp. The hierarchy still has room at 500 — the price is 800 and red on a reduction, three steps clear. **The text sits at the BOTTOM of its box.** The box is two lines tall whatever the name does, which is `min-h-[30px]` on the site; what the site never has to answer is where a one-line name sits inside it, because its phone grid is a masonry. Top-aligned — the default, and what this drew — a short name left 15px of white above the price, and most names in this catalogue are one line. |
+| Price | **12px at weight 800**, down from 17 — `.price`, which steps to 14 at `sm`. **1px under the name**, which is the site's `pt-px`; it was 3. Prices still land on one baseline across a grid row, because everything above them is a fixed height — a square photograph, a 4px gap, a two-line box — rather than because the price is pinned to the foot of the cell. Red only when reduced. |
 | Old price | **Not drawn on a phone.** `.was-price` is `hidden sm:inline`: the tile has room for one figure. Nothing is lost — the corner flag carries the percentage and the deal strip the shillings. |
 | `Only N left` | Only when stock is tracked and ≤ 5. |
 | `N sold  ★★★★½ 4.5` | **Below** the price, which is the site's order and the reverse of what this drew. The name says which product it is and the price says whether it is worth a second look; the crowd is corroboration, read once those two have passed. |
@@ -418,47 +485,62 @@ differ, they differ on purpose and the code says why.
 Two rules that are easy to break:
 
 - **An app bar's gradient goes in `flexibleSpace`,** not `backgroundColor`,
-  which only takes a flat colour — and it needs a `SizedBox.expand` child. A
-  childless `DecoratedBox` has no size, and `AppBar` lays `flexibleSpace` out
-  under loose constraints, so it paints nothing at all.
-- **A tile is 285px tall** on a 390-wide phone (`childAspectRatio: 0.62`, rails
-  `height: 278`). It was 300/302, and it came down because the price dropped
-  to 12px and the struck original came off the phone. That is the fullest card
-  added up row by row, not a guess — measured at 272px, so there are 13px of
-  slack for a raised text size. Add a row and this has to move with it, or the
-  bottom one is clipped.
-- **The leftover height goes above the price, not below it.** The price is
-  bottom-pinned, so a sparse tile shows its air between the name and the
-  figure. That is deliberate: before the card had a border, slack at the foot
-  was invisible; now it would be an empty strip inside a drawn edge.
+  which only takes a flat colour — and whatever goes in there needs a sized
+  child. A childless `DecoratedBox` has no size, and `AppBar` lays
+  `flexibleSpace` out under loose constraints, so it paints nothing at all.
+  Every bar now passes `const _BrandSurface(child: SizedBox.expand())`, which
+  is that rule and the light bloom in one place.
+- **A tile is 274px tall** on a 390-wide phone (`childAspectRatio: 0.646`,
+  rails `height: 266`). Added up at 177px wide rather than guessed: 2 of
+  border, 12 of padding, a 163 photograph, 4 to the name, a 34 name box, 1, a
+  13 price, 16 for the reserved sold-and-stars row, and 16 more for the stock
+  line when there is one. That is 245 at rest and 261 at its fullest. The 13px
+  on top is not spare — it is what the rows grow by at a 1.3 text scale, which
+  is as far as this has been measured. Add a row and this has to move with it,
+  or the bottom one is clipped.
+- **The leftover height collects above the name, not between the name and the
+  price.** The two used to be separated by whatever a short name left behind
+  inside its fixed box; bottom-aligning the name moved that slack up against
+  the photograph, where it reads as the margin it already is. Anything left
+  over after that sits below the last row, inside the drawn edge, which is why
+  the cell is measured as tightly as it is.
 
 ---
 
 ## Verified
 
-All seventeen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
+All eighteen files were type-checked against **Flutter 3.35 / Dart 3.9** in a
 throwaway package with the FlutterFlow-only imports stubbed out:
 
 ```
 flutter analyze  →  no errors
 ```
 
-Re-run after the sign-in and payment changes, with `webview_flutter 4.13` in
+Re-run after the checkout gate and the design pass, with `webview_flutter` in
 the throwaway package: still no errors.
 
 The only warnings are `unused_import` on the four FlutterFlow header lines,
 which exist in the real project and cannot be removed from these files.
 
 Every screen is also **pumped in a widget test** at 390x844 with no network and
-empty preferences, and the test fails on any exception — including a
-`RenderFlex` overflow, which is the failure `analyze` is blindest to. Running
-without a network is deliberate: it drives each screen into its failure state,
-which is the path nobody exercises by hand. It has already caught a real
-horizontal overflow on the account page's "Forgot password / Create account"
-row at large text sizes.
+empty preferences, **at a 1.0 and a 1.3 text scale**, and the test fails on any
+exception — including a `RenderFlex` overflow, which is the failure `analyze`
+is blindest to. Running without a network is deliberate: it drives each screen
+into its failure state, which is the path nobody exercises by hand.
+
+Adding the second text scale immediately found two real overflows that the
+single-scale run had never reported: the bottom bar clipped its label by 7px on
+all five tabbed screens, and the basket's "Delivery at checkout · N-day
+returns" line was unflexed in a Row. Both are fixed. **If you add a screen, add
+it to both scales** — one of those had been shipping since the bar was written.
+
+The gate has its own test, because "shown once and never again" is behaviour
+rather than layout: an unverified device is sent to the verify page, a device
+with a token but no proved number is too, and a device with both goes straight
+to the checkout.
 
 ```
-flutter test  →  17 screens, all passed
+flutter test  →  18 screens at two text scales, plus the gate: all passed
 ```
 
 One caveat on that test: `flutter_test` draws with a placeholder font where

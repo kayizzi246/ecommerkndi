@@ -117,7 +117,20 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 12;
+/// ---- Panel corners: 16, where this was 12 ----
+///
+/// This governs the CHROME only - sheets, the shelf grounds, the terms
+/// strip, the panels on the account, checkout and seller pages. It does not
+/// reach the product tile, which has square corners and a drawn ring copied
+/// row by row off the website's `.tile-card` and must stay that way: the
+/// site squares its tiles so they can touch in a flush grid, and a tile
+/// rounded here and square there is the most obvious way the two clients
+/// stop looking like one shop.
+///
+/// So the app now draws two corner radii on purpose - a square catalogue on
+/// softened furniture - and that is the distinction rather than an
+/// inconsistency. 12 sat between the two and read as neither.
+const double _rPanel = 16;
 
 /// The `Accept` header every photograph in this app is fetched with.
 ///
@@ -145,18 +158,92 @@ const Map<String, String> _kImageHeaders = <String, String>{
 };
 
 
-/// The brand gradient: Kandi orange running into the deep red.
+/// ---- The brand gradient ----
 ///
 /// It carries the chrome — app bars, the home band, the primary buttons — so
-/// that every screen is recognisably one shop. Horizontal rather than vertical
-/// because an app bar is a wide, short box: a vertical ramp across 56px reads
-/// as a flat muddy colour, where a horizontal one across the whole width
-/// actually travels.
+/// that every screen is recognisably one shop.
+///
+/// Three stops on a diagonal, where this was two across the horizontal. Both
+/// changes are the same change: a two-stop ramp between two colours half a hue
+/// apart is a flat wash with a slight lean, and on a 56px app bar it reads as
+/// one muddy orange. Running it corner to corner gives the ramp the bar's
+/// diagonal to travel rather than its width, and the middle stop is what stops
+/// the two ends averaging into the middle.
+///
+/// The dark end went DOWN, from #D62200 to #A81100, and that is a legibility
+/// change rather than a taste one. Every app bar in this app sets white type
+/// on this gradient; white on #FF6A00 is 2.9:1, which is why the palette note
+/// says brand orange is never a large ground under white text. It is one here
+/// whatever the note says, so the answer is to make most of the ground darker:
+/// white on #A81100 is 8.1:1, and the bright end is now a corner rather than
+/// half the bar.
 const LinearGradient _brandGradient = LinearGradient(
-  begin: Alignment.centerLeft,
-  end: Alignment.centerRight,
-  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFE03400), Color(0xFFA81100)],
+  stops: [0.0, 0.52, 1.0],
 );
+
+/// The brand gradient with a light bloom over it.
+///
+/// ---- Why the bloom is a second layer ----
+///
+/// A LinearGradient can only ramp along a line, and what makes a coloured
+/// surface look LIT rather than filled is a highlight that falls off in a
+/// circle. Painting a soft white radial over the top-left corner is the whole
+/// of it: the bar stops being a coloured rectangle and starts having a light
+/// source, which is the cheapest thing that separates a designed surface from
+/// a filled one.
+///
+/// White rather than a lighter orange, on purpose. A lighter orange moves the
+/// hue and puts the bar back in the 2.9:1 band the gradient above just climbed
+/// out of; white at 18% lifts the value and leaves the hue alone, and the
+/// corner it lifts is the corner that was already brightest.
+///
+/// ---- It takes its size from its child ----
+///
+/// The gradients are `Positioned.fill` and the child is not, so the Stack
+/// measures the child and the paint stretches to it. That is the only
+/// arrangement that works in both places this is used: an AppBar's
+/// `flexibleSpace`, which hands down a finite height, and the home page's
+/// masthead, which sits in a Column inside a sliver where the height
+/// constraint is unbounded.
+///
+/// Written the obvious way - a `SizedBox.expand` in each gradient layer -
+/// the bar is correct and the masthead throws, because an expand under an
+/// unbounded constraint asks for infinity. The rule the old DecoratedBox
+/// followed still holds underneath: a decoration with nothing in it has no
+/// size and paints nothing at all, which is why the child is required.
+class _BrandSurface extends StatelessWidget {
+  const _BrandSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+          ),
+        ),
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-0.75, -1.1),
+                radius: 1.5,
+                colors: [Color(0x2EFFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+}
 
 /// Fully rounded. The primary calls to action are pills, which is what tells
 /// them apart from the square panels they sit on.
@@ -599,7 +686,22 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 58,
+          // ---- Measured, where this was a flat 58 ----
+          //
+          // 58 was the height of the contents at the default text size, and
+          // it stayed 58 when a reader raised theirs: at a 1.3 scale the
+          // label was clipped by 7px on all five tabbed screens. That is a
+          // failure `flutter analyze` cannot see and only a pumped widget
+          // test catches.
+          //
+          // Added up instead: a 30 capsule, a 2 gap, and one line of a 10.5
+          // label at 1.25 leading, scaled - plus 12 of breathing room. The
+          // scaler is the reader's own setting, so the bar grows with the
+          // type rather than around it.
+          height: 30 +
+              2 +
+              MediaQuery.textScalerOf(context).scale(10.5) * 1.25 +
+              12,
           child: Row(
             children: [
               _NavItem(
@@ -730,10 +832,7 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
           // no size, and AppBar puts flexibleSpace in a Stack under loose
           // constraints — so the gradient painted nothing at all and every
           // sub-page had a white title on a white bar.
-          flexibleSpace: const DecoratedBox(
-            decoration: BoxDecoration(gradient: _brandGradient),
-            child: SizedBox.expand(),
-          ),
+          flexibleSpace: const _BrandSurface(child: SizedBox.expand()),
           systemOverlayStyle: SystemUiOverlayStyle.light,
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(_title,
@@ -778,7 +877,20 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
               const SizedBox(height: _KSpace.lg),
               FilledButton(
                 onPressed: _load,
-                style: FilledButton.styleFrom(backgroundColor: _KColors.flame),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _KColors.flame,
+                  // A pill, like every other button in the app. This one was
+                  // left at Material's default rounded rectangle, which is a
+                  // shape nothing else here uses.
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(_rPill)),
+                  // Lifted on a wash of its own dark end rather than on
+                  // black. Black under a saturated colour greys the pixels
+                  // it falls on and reads as dirt; the same hue reads as
+                  // the colour bleeding onto the paper.
+                  elevation: 6,
+                  shadowColor: const Color(0x59A81100),
+                ),
                 child: const Text('Try again'),
               ),
             ],
@@ -857,7 +969,7 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
                   crossAxisCount: 2,
                   mainAxisSpacing: _KSpace.md,
                   crossAxisSpacing: _KSpace.md,
-                  // ---- 0.64, where this was 0.62 ----
+                  // ---- 0.646, where this was 0.655 ----
                   //
                   // The tile lost the Spacer that held the price at the foot of the cell, so
                   // what is left over now shows as a gap BELOW the last row rather than as a
@@ -876,7 +988,7 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
                   // Reserving the meta row is what keeps the resting and fullest numbers only
                   // 16 apart. If it goes back to being conditional, this has to rise again or
                   // sparse tiles reopen the gap.
-                  childAspectRatio: 0.64,
+                  childAspectRatio: 0.646,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -1214,59 +1326,98 @@ class _Card extends StatelessWidget {
                 ),
               ),
 
-              // 8px, which is `pt-2` on the site: the one piece of vertical
-              // space in this block that is not simply a row's own leading.
-              const SizedBox(height: 8),
-
-              // ---- The name: 12/15 at weight 300 ----
+              // ---- 4px, because that is what the site sets ----
               //
-              // All three numbers are the site's, and the weight is the one
-              // worth pausing on. It is 300 on a phone and 400 from `sm` up —
-              // see the `.product-name` media query in globals.css. The
-              // argument there is that the name is the only thing on a tile
-              // that is not a claim: the price, the saving and the stock line
-              // are all set in weight or colour because they are what a shopper
-              // compares, and a name competing with all three reads as a fourth
-              // claim rather than as the caption it is.
+              // This was 8, and the comment claimed `pt-2` on the site. The
+              // site sets `pt-1` on the text column - half of it. The comment
+              // and the code had drifted from the stylesheet together, so the
+              // tile carried four pixels the website does not.
+              const SizedBox(height: 4),
+
+              // ---- The name: 13/17 at weight 500 ----
+              //
+              // All three numbers are the site's. This was 12/15 at weight
+              // 300, and it moved because the site's did: `.product-name` is
+              // 500 now with no phone override, and the tile sets 13/17 on a
+              // phone and 14/18 from `sm` up.
+              //
+              // The old argument was that the name is the only thing on a tile
+              // that is not a claim — the price, the saving and the stock line
+              // are set in weight or colour because they are what a shopper
+              // compares. That still holds and the hierarchy still has room:
+              // the price is w800 and red on a reduction, three steps above
+              // this. What it missed is that a name nobody can comfortably
+              // read is not quiet, it is absent, and 300 at 12px is the
+              // lightest step of the face at the smallest size on the card.
+              //
+              // The app takes the phone value at every width. It has no `sm`.
               //
               // The height is fixed at two lines rather than clamped to two, so
               // a one-line name does not shorten its tile and land the prices
               // in a row on two different baselines.
+              //
+              // ---- ...and the name sits at the BOTTOM of that box ----
+              //
+              // The box is two lines tall whatever the name does, which is
+              // `min-h-[30px]` on the site. What the site never has to answer
+              // is where a ONE-line name sits inside it, because its phone
+              // grid is a masonry and the question does not arise. Here it
+              // does, and top-aligned - the default, and what this drew - a
+              // short name left fifteen pixels of white between itself and the
+              // price. Most names in this catalogue are one line, so most
+              // tiles had the gap.
+              //
+              // Bottom-aligned, the name always rests on the price and the
+              // slack moves above it, against the photograph, where it reads
+              // as the margin it already is. Prices still land on one baseline
+              // across a grid row - which is the whole reason this box is a
+              // fixed height - because the box has not moved. Only the text
+              // inside it has.
               SizedBox(
-                height: 30,
-                child: RichText(
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    style: const TextStyle(
-                        fontSize: 12,
-                        height: 15 / 12,
-                        fontWeight: FontWeight.w300,
-                        color: _KColors.ink),
-                    children: [
-                      if (chip != null)
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: chip.background,
-                                borderRadius: BorderRadius.circular(3),
+                // 34 = 2 x 17, and that arithmetic is load-bearing. The box is
+                // a fixed height so a one-line name does not shorten its tile
+                // and land the prices in a grid row on two baselines; if the
+                // leading moves and this does not, a two-line name is clipped
+                // and a one-line name reopens the gap under it. It is
+                // `min-h-[34px]` against `leading-[17px]` on the site, and the
+                // pair moves together there for the same reason.
+                height: 34,
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: RichText(
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: const TextStyle(
+                          fontSize: 13,
+                          height: 17 / 13,
+                          fontWeight: FontWeight.w500,
+                          color: _KColors.ink),
+                      children: [
+                        if (chip != null)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: chip.background,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(chip.label,
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        height: 1.2,
+                                        fontWeight: FontWeight.w700,
+                                        color: chip.foreground)),
                               ),
-                              child: Text(chip.label,
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      height: 1.2,
-                                      fontWeight: FontWeight.w700,
-                                      color: chip.foreground)),
                             ),
                           ),
-                        ),
-                      TextSpan(text: product.name),
-                    ],
+                        TextSpan(text: product.name),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1300,7 +1451,12 @@ class _Card extends StatelessWidget {
               // whether the name filled one line or two. That is why the name
               // box is a SizedBox rather than a clamp, and it is load-bearing
               // now rather than tidy.
-              const SizedBox(height: 3),
+              //
+              // 1px, where this was 3. The site's price row is `pt-px`, and
+              // with the name bottom-aligned above it these two rows are now
+              // as close as the stylesheet has them - which on a tile whose
+              // name is one line is the whole of the gap that was there.
+              const SizedBox(height: 1),
               Text(
                 product.priceLabel,
                 maxLines: 1,
@@ -1498,19 +1654,59 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colour = active ? _KColors.flame : _KColors.muted;
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
+        // The ripple used to be a rectangle the full height of the bar,
+        // which on a five-across row is a grey slab with no relationship to
+        // the mark it is acknowledging. Bounded to the capsule, it lands
+        // where the finger did.
+        borderRadius: BorderRadius.circular(_rPill),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // ---- The capsule is what marks the tab you are on ----
+            //
+            // The active tab used to be signalled by colour alone: the icon
+            // and its label turned from grey to flame and nothing else
+            // moved. That is one channel, it is the channel a
+            // colour-deficient shopper does not have, and at 22px on a white
+            // bar it is a weak signal even with normal vision.
+            //
+            // A filled capsule behind the icon adds shape and ground to the
+            // same fact, which is the standard answer and also the one that
+            // makes the bar look drawn rather than defaulted. It carries the
+            // brand gradient rather than a flat fill because every other
+            // primary surface in the app now does.
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(icon, size: 22, color: colour),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  width: 46,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    gradient: active ? _brandGradient : null,
+                    borderRadius: BorderRadius.circular(_rPill),
+                    boxShadow: active
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x33D62200),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(icon,
+                      size: 20, color: active ? Colors.white : colour),
+                ),
                 if (badge > 0)
                   Positioned(
-                    right: -7,
+                    right: -4,
                     top: -5,
                     child: Container(
                       padding:
@@ -1519,7 +1715,8 @@ class _NavItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _KColors.flame,
                         borderRadius: BorderRadius.circular(8),
-                        // A white ring keeps the badge legible over the icon.
+                        // A white ring keeps the badge legible over the icon,
+                        // and over the capsule when the tab is the live one.
                         border: Border.all(color: Colors.white, width: 1.4),
                       ),
                       child: Text(
@@ -1535,10 +1732,21 @@ class _NavItem extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 3),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10.5, fontWeight: FontWeight.w600, color: colour)),
+            const SizedBox(height: 2),
+            // One line, ellipsised, and never wider than its fifth of the
+            // bar. 'Account' at a raised text size is what used to push the
+            // row wide enough to clip.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 10.5,
+                      height: 1.25,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: colour)),
+            ),
           ],
         ),
       ),

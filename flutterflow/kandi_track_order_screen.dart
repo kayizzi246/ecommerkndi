@@ -100,7 +100,20 @@ class _KSpace {
   static const double xl = 24;
 }
 
-const double _rPanel = 12;
+/// ---- Panel corners: 16, where this was 12 ----
+///
+/// This governs the CHROME only - sheets, the shelf grounds, the terms
+/// strip, the panels on the account, checkout and seller pages. It does not
+/// reach the product tile, which has square corners and a drawn ring copied
+/// row by row off the website's `.tile-card` and must stay that way: the
+/// site squares its tiles so they can touch in a flush grid, and a tile
+/// rounded here and square there is the most obvious way the two clients
+/// stop looking like one shop.
+///
+/// So the app now draws two corner radii on purpose - a square catalogue on
+/// softened furniture - and that is the distinction rather than an
+/// inconsistency. 12 sat between the two and read as neither.
+const double _rPanel = 16;
 const double _rPhoto = 8;
 
 /// The `Accept` header every photograph in this app is fetched with. See the
@@ -112,10 +125,72 @@ const Map<String, String> _kImageHeaders = <String, String>{
 
 /// The brand gradient: Kandi orange running into the deep red.
 const LinearGradient _brandGradient = LinearGradient(
-  begin: Alignment.centerLeft,
-  end: Alignment.centerRight,
-  colors: [Color(0xFFFF6A00), Color(0xFFD62200)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFF6A00), Color(0xFFE03400), Color(0xFFA81100)],
+  stops: [0.0, 0.52, 1.0],
 );
+
+/// The brand gradient with a light bloom over it.
+///
+/// ---- Why the bloom is a second layer ----
+///
+/// A LinearGradient can only ramp along a line, and what makes a coloured
+/// surface look LIT rather than filled is a highlight that falls off in a
+/// circle. Painting a soft white radial over the top-left corner is the whole
+/// of it: the bar stops being a coloured rectangle and starts having a light
+/// source, which is the cheapest thing that separates a designed surface from
+/// a filled one.
+///
+/// White rather than a lighter orange, on purpose. A lighter orange moves the
+/// hue and puts the bar back in the 2.9:1 band the gradient just climbed out
+/// of; white at 18% lifts the value and leaves the hue alone, and the corner
+/// it lifts is the corner that was already brightest.
+///
+/// ---- It takes its size from its child ----
+///
+/// The gradients are `Positioned.fill` and the child is not, so the Stack
+/// measures the child and the paint stretches to it. That is the only
+/// arrangement that works in both places this is used: an AppBar's
+/// `flexibleSpace`, which hands down a finite height, and the home page's
+/// masthead, which sits in a Column inside a sliver where the height
+/// constraint is unbounded.
+///
+/// Written the obvious way - a `SizedBox.expand` in each gradient layer -
+/// the bar is correct and the masthead throws, because an expand under an
+/// unbounded constraint asks for infinity. The rule the old DecoratedBox
+/// followed still holds underneath: a decoration with nothing in it has no
+/// size and paints nothing at all, which is why the child is required.
+class _BrandSurface extends StatelessWidget {
+  const _BrandSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(gradient: _brandGradient),
+          ),
+        ),
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-0.75, -1.1),
+                radius: 1.5,
+                colors: [Color(0x2EFFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+}
 
 /// Fully rounded. The primary calls to action are pills, which is what tells
 /// them apart from the square panels they sit on.
@@ -391,10 +466,7 @@ class _KandiTrackOrderScreenState extends State<KandiTrackOrderScreen> {
           // no size, and AppBar puts flexibleSpace in a Stack under loose
           // constraints — so the gradient painted nothing at all and every
           // sub-page had a white title on a white bar.
-          flexibleSpace: const DecoratedBox(
-            decoration: BoxDecoration(gradient: _brandGradient),
-            child: SizedBox.expand(),
-          ),
+          flexibleSpace: const _BrandSurface(child: SizedBox.expand()),
           systemOverlayStyle: SystemUiOverlayStyle.light,
           iconTheme: const IconThemeData(color: Colors.white),
           title: const Text('Track an order',
