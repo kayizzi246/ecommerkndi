@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { readShopperPreferences } from "@/components/ShopperOnboarding";
+import {
+  ARRIVES_BY,
+  ORDER_BEFORE,
+  formatDeliveryDayLong,
+  nextDeliveryDate,
+} from "@/lib/delivery-eta";
 
 const CITIES = ["Kampala", "Entebbe", "Jinja", "Mbarara", "Gulu", "Mbale"];
 
@@ -24,11 +30,11 @@ export default function DeliveryPromise({ className = "" }: { className?: string
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved?.city && CITIES.includes(saved.city)) setCity(saved.city);
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setDay(
-      tomorrow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })
-    );
+    // The date comes from `lib/delivery-eta` rather than being computed here,
+    // because every grid tile now prints the same promise and the two must not
+    // be able to disagree. A shopper reads the date on a tile and again on the
+    // page it opens; two answers on one visit is not a promise.
+    setDay(formatDeliveryDayLong(nextDeliveryDate()));
   }, []);
 
   return (
@@ -42,9 +48,9 @@ export default function DeliveryPromise({ className = "" }: { className?: string
           <circle cx="17" cy="18" r="1.4" />
         </svg>
         <span className="font-semibold text-shop-ink">
-          Get it {day ? day : "tomorrow"} by 10:00 PM
+          Get it {day ? day : "tomorrow"} by {ARRIVES_BY}
         </span>
-        <span>· order before 12 AM</span>
+        <span>· order before {ORDER_BEFORE}</span>
         <button
           type="button"
           onClick={() => setPicking((open) => !open)}

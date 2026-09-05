@@ -196,8 +196,8 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      a two-line clamp under it. Every other tile on the site puts
                      the name first and lets the price be the line the eye lands
                      on last and hardest, and the hierarchy is carried by weight
-                     and size rather than by order: `.product-name` is 600,
-                     `.price` is 700 and a step larger.
+                     and size rather than by order: `.product-name` is 500,
+                     `.price` is 800 and a step larger.
 
                      `truncate` rather than `line-clamp-2`, and this is now a
                      deliberate DIVERGENCE from `ProductCard` rather than a match
@@ -207,7 +207,9 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      already opened — they know what these are — so the name is
                      a reminder rather than an identification, and one line
                      keeps every tile in the row the same height. */}
-                <h3 className="product-name mt-2 truncate text-[12px] leading-[17px] text-shop-ink transition-colors group-hover:text-shop-primary">
+                {/* 13px, following the grid tile up from 12. One line here
+                    rather than two, so the leading already had the room. */}
+                <h3 className="product-name mt-2 truncate text-[13px] leading-[17px] text-shop-ink transition-colors group-hover:text-shop-primary">
                   {item.name}
                 </h3>
                 <p className="price mt-1 whitespace-nowrap">{formatPrice(item.price)}</p>

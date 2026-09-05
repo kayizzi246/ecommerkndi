@@ -5,6 +5,7 @@ import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileCartButton from "@/components/TileCartButton";
 import TileFreeDelivery from "@/components/TileFreeDelivery";
+import TileDeliveryEta from "@/components/TileDeliveryEta";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
@@ -1175,36 +1176,43 @@ export default function ProductCard({
               from the leading rather than from the line count. 17px on 13px
               type is still a comfortable 1.31, and it is two pixels off every
               tile in the grid. */}
-          {/* ---- Small, and set at a normal weight ----
+          {/* ---- 13/17 on a phone, 14/18 from `sm` up, at weight 500 ----
 
-              12px on 16px leading, down from 13/17, and `.product-name` now
-              carries `font-weight: 400` rather than 600. The name is the one
-              thing on this tile that is not a claim: the price, the saving and
-              the stock line are all set in bold or in colour because they are
-              the numbers a shopper is comparing, and a semibold name was
-              competing with all three at once for the same attention.
+              Up from 12/15 and 12/14 at weight 400 — 300 on a phone. The long
+              note above argued the name down to that, and the half of it that
+              is still true is kept: on the scan the name is not a claim, and it
+              should not compete with the price, the saving and the stock line.
 
-              At 400 the name reads as the caption under the photograph, which
-              is what it is — the photograph says what the product looks like
-              and the name says which one it is. The weight that was carrying
-              "one object with a name" is now carried by the tile's own edges,
-              which the flush sheet draws around every cell.
+              What the note measured was the name's weight in the hierarchy.
+              What it did not measure was whether the name could be read at all.
+              At 12px in the lightest step of a variable face, on the smallest
+              tile in the grid, inside a two-line clamp holding a supplier's
+              keyword-stuffed title, the row that says WHICH product this is was
+              the hardest thing on the card to take in. That is not quiet; the
+              information is simply not getting through, and a shopper who
+              cannot tell two duvet sets apart does not buy either.
 
-              `min-h` is exactly 2 × the leading at BOTH sizes — 30/15 on a
-              phone, 28/14 from `sm` up — and that pairing is load-bearing:
+              The hierarchy still holds at the new values. `.price` is 800 and
+              red on a reduction, the saving is a green chip, and the name is
+              500 — three steps down and the only uncoloured row in the block.
+
+              `min-h` is exactly 2 × the leading at BOTH sizes — 34/17 on a
+              phone, 36/18 from `sm` up — and that pairing is load-bearing:
               `line-clamp-2` is a ceiling rather than a height, so any slack in
               the box is slack a one-line name collects and a two-line name does
               not, and the prices across a row stop landing on the same line.
               The two numbers in each pair move together or that guarantee
-              quietly stops holding.
+              quietly stops holding. It is the first thing to check if a grid
+              row ever looks ragged again.
 
-              The tighter pair is desktop-only because the height saving was
-              asked for on a big screen and explicitly not on a phone. 14px on
-              12px type is 1.17, which is tight; it is affordable on a clamped
-              two-line label rather than prose, and it is the floor — a step
-              further and the descenders on one line start touching the caps on
-              the next. */}
-          <h3 className="product-name line-clamp-2 min-h-[30px] text-[12px] leading-[15px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[28px] sm:leading-[14px]">
+              The desktop pair is now the LOOSER of the two, where it used to be
+              the tighter one. That inversion is deliberate: the old 14px
+              leading on 12px type was 1.17, which was described here as the
+              floor, and it was bought to save height on a big screen — the one
+              place there is height to spare. 18 on 14 is 1.29, the same ratio
+              the phone runs at, so a name now reads the same way at every
+              width. */}
+          <h3 className="product-name line-clamp-2 min-h-[34px] text-[13px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[14px] sm:leading-[18px]">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
@@ -1406,6 +1414,20 @@ export default function ProductCard({
             </span>
           )}
         </p>
+
+        {/* ---- When it arrives, directly under what it costs ----
+
+            The two facts a shopper weighs against each other are the price and
+            the wait, so they sit together and in that order. Everything below
+            this — the stock warning, the sold count, the rating — is
+            corroboration, read only once those two have passed.
+
+            It is a client component because the date is the viewer's clock and
+            these pages are statically generated: a date rendered on the server
+            is wrong by the next morning. It holds its own height while it
+            waits, so the grid does not jump on hydration. See the note in
+            `TileDeliveryEta`. */}
+        <TileDeliveryEta stockStatus={product.stock_status} />
 
         {/* The corroboration, under the two lines that matter. */}
 

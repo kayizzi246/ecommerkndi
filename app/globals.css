@@ -1473,36 +1473,45 @@ h6,
  * without this it would inherit the display face at 700. Being unlayered also
  * means it beats a Tailwind `font-*` utility at the call site, so this rule is
  * the only place the weight can be changed. */
-.product-name {
-  font-family: var(--font-ui);
-  font-weight: 400;
-  /* Undoes the heading tracking. A product name is body copy that happens to be
-     marked up as a heading and should be spaced like the sentences around it. */
-  letter-spacing: 0;
-}
-
-/* ---- 300 on a phone ----
+/* ---- 500, and the same 500 on a phone ----
  *
- * The whole argument above — the name is what a shopper reads to CONFIRM a
- * match their eyes have already made with the picture and the price — bites
- * hardest on a phone, where two tiles share 390px and the name, the price, the
- * saving chip and the delivery line are stacked inside about 90px of height.
- * One step lighter is what keeps that stack from reading as four competing
- * claims.
+ * Asked for directly, and the note above is kept because the reasoning in it is
+ * still sound about the thing it was measuring — it just measured one thing and
+ * not the other.
+ *
+ * What it got right: on the SCAN, the name is not a claim. The price, the
+ * saving and the stock line are set in weight and colour because they are what
+ * a shopper compares, and a name at 600 competed with all three.
+ *
+ * What it missed: a name a shopper cannot comfortably READ is not quiet, it is
+ * absent. At 12px/300 on a phone tile — the lightest step of a variable face,
+ * at the smallest size in the tile, in a two-line clamp full of a supplier's
+ * keyword-stuffed title — the row that tells you WHICH product this is was the
+ * hardest thing on the card to take in. The quiet was bought by making the
+ * information unavailable, which is not a trade the scan argument ever asked
+ * for.
+ *
+ * 500 is a middle step and it is deliberately not 600. It reads as a label
+ * rather than a paragraph, and it stays clear of the price — `.price` is 800
+ * and set in red on a reduction, so there are still three steps between them.
+ * The size went up with it (see `ProductCard.tsx`), and the two move together:
+ * weight alone at 12px would have been a heavier version of the same squint.
+ *
+ * The phone override is GONE rather than retuned. It existed to take the name
+ * one step lighter than the desktop, and a phone is exactly where the extra
+ * weight is worth most: it is the smallest tile, the lowest contrast in
+ * daylight, and the screen this shop is mostly used on.
  *
  * Free, because Inter is loaded as its VARIABLE file (no `weight` array in
  * `app/layout.tsx`), so every step of 100–900 is already in the one download.
  * Do not repeat this with anything set in Poppins — that face is two static
- * instances and a third weight is a third file.
- *
- * `max-width: 39.99rem` rather than `639px`, in `rem` for the same reason every
- * other phone query in this file is: at a raised root font size a `px`
- * breakpoint and Tailwind's `sm` stop being the same boundary, and leave a band
- * where neither rule applies. */
-@media (max-width: 39.99rem) {
-  .product-name {
-    font-weight: 300;
-  }
+ * instances and a third weight is a third file. */
+.product-name {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  /* Undoes the heading tracking. A product name is body copy that happens to be
+     marked up as a heading and should be spaced like the sentences around it. */
+  letter-spacing: 0;
 }
 
 /* ---------- Section titles ----------
