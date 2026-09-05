@@ -102,19 +102,25 @@ through.
 | Place | Behaviour |
 | --- | --- |
 | `/checkout` | `CheckoutVerifyGate` opens the dialog on arrival, by whichever route — cart, cart drawer, Buy now, sticky buy bar, a bookmark. Cancel returns to `/cart`. |
-| `POST /api/checkout` | 403 `verification_required` for same-origin requests with no proved contact. |
+| `POST /api/checkout` | 403 `verification_required` with no proof. A browser proves it with the sealed cookie; the phone app proves it with a bearer token from `/api/app/auth/otp`, checked against WordPress on every order. |
 | `POST /api/auth/register` | 403 without a proved contact. The phone is read from the sealed cookie, never from the body. |
+| `POST /api/app/auth/otp` | The app's only sign-in. Opens the challenge itself, then asks WordPress for a session for the proved contact. There is no password route for shoppers any more. |
 | `POST /api/seller/register` | 403 without a proved **phone**, and refuses if the form's number differs from the proved one. |
 
 ## What this does not do
 
 The checkout gate is a page-level control: it stops a person, not a script.
-Server-side enforcement is scoped to requests carrying
-`Sec-Fetch-Site: same-origin`, because the mobile app posts to the same
-endpoint cross-origin with no cookie jar and would otherwise break. A script
-posting straight to `/api/checkout` with no such header is not stopped here —
-what bounds that is the rate limiter, the Turnstile check, and the fact that an
-order still has to survive a rider ringing the number.
+Both callers are now enforced server-side — a browser by the sealed cookie
+(discriminated by `Sec-Fetch-Site: same-origin`, a forbidden header name that
+page script cannot set or remove), the app by a bearer token that only a code
+can mint. That closes the hole this section used to describe, where every
+cross-origin request was waved through because the app had no way to verify
+anybody.
+
+What is still not stopped is a script that first obtains a real session — which
+costs an SMS to a phone somebody actually holds — and then posts orders with
+it. What bounds that is the rate limiter and the fact that an order still has
+to survive a rider ringing the number.
 
 Sealed challenges cannot count their own attempts, so brute-force resistance
 comes from the rate limiter: 10 verify attempts per 10 minutes per source and

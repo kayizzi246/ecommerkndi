@@ -38,8 +38,9 @@ import '/custom_code/widgets/kandi_seller_payouts_screen.dart';
 //  load-bearing rather than tidy.
 //
 //  They are different accounts on different endpoints: a seller
-//  signs in at `/api/app/seller/login` and a shopper at
-//  `/api/app/auth/login`, and the tokens are not
+//  signs in at `/api/app/seller/login` with an email and a
+//  password, and a shopper at `/api/app/auth/otp` with a code
+//  texted or emailed to them. The tokens are not
 //  interchangeable. Sharing one key would mean signing in as a
 //  seller silently signed you out as a shopper — and worse,
 //  would send a seller token to the customer orders endpoint,

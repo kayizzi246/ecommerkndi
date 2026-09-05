@@ -17,9 +17,16 @@ import { clientIp, rateLimit, LIMITS } from "@/lib/rate-limit";
  * and be forgotten before the next request.
  *
  * So this one hands the token back in the body, exactly as
- * `/api/app/auth/login` already does for shoppers — one convention for the app,
- * one for the web, and `callSellerApi` shared underneath so the two cannot
- * drift apart in how they talk to WordPress.
+ * `/api/app/auth/otp` does for shoppers — one convention for the app, one for
+ * the web, and `callSellerApi` shared underneath so the two cannot drift apart
+ * in how they talk to WordPress.
+ *
+ * A seller still signs in with a password where a shopper no longer does, and
+ * that asymmetry is deliberate rather than unfinished: a trader has a Seller
+ * Centre on the web with a password already set, uses it from a desktop as
+ * often as a phone, and is a much smaller population to support. The shopper
+ * flow was changed because the shopper population is the one that could not
+ * remember a password; neither of those things is true here.
  */
 export const dynamic = "force-dynamic";
 

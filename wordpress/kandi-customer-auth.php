@@ -335,6 +335,157 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 
+	/* ---- POST /customers/otp-session ----
+	 *
+	 * A session for a shopper who has proved a phone number or an email
+	 * address, and who has no password at all.
+	 *
+	 * ---- Why this route exists ----
+	 *
+	 * The Kandi app used to sign shoppers in with `/customers/login` — an
+	 * address and a password typed on a phone keyboard. That is the wrong
+	 * credential for this shop's customers: most of them arrive from a phone,
+	 * a good number have no email they check, and the password they would set
+	 * at checkout is one they will have forgotten by their second order. The
+	 * app now verifies a CONTACT instead, over SMS or email, and this is what
+	 * turns that proof into a session.
+	 *
+	 * ---- What is trusted, and by whom ----
+	 *
+	 * This route does NOT see a code and does not check one. The storefront
+	 * seals the six digits into an encrypted challenge, verifies them itself
+	 * (see `openChallenge` in the storefront's lib/otp.ts) and only then calls
+	 * here, over the shared secret, saying "this contact is proved". So the
+	 * trust boundary is exactly the one every other route in this file uses:
+	 * `kandi_customer_auth_guard` and `X-Kandi-Secret`.
+	 *
+	 * That is worth stating plainly because of what it means if the secret
+	 * leaks: whoever holds it can mint a session for any address. That was
+	 * ALREADY true — the secret is what lets `/customers/register` create an
+	 * account and hand back a token — so this route widens no boundary. It is
+	 * still the reason the secret is the one value in this system that must
+	 * never be in a client.
+	 *
+	 * ---- Find, or create ----
+	 *
+	 * An SMS shopper usually has no WordPress user, because nothing in this
+	 * shop has ever needed one for them. Creating it here is what makes the
+	 * order history work at all, and it is the same account guest checkout
+	 * would have made for them later.
+	 *
+	 * A phone number is matched on `billing_phone`, which is where WooCommerce
+	 * keeps it and where every order this shop writes has already put it. It is
+	 * matched EXACTLY: the storefront normalises to +2567XXXXXXXX before it
+	 * seals the challenge, so both sides are comparing the same shape. Do not
+	 * relax this to a LIKE — a partial match on a phone number is a way into
+	 * somebody else's order history.
+	 *
+	 * The synthetic address for a phone-only shopper is deliberately on an
+	 * unroutable domain. WordPress requires an email on every user, so there
+	 * has to be one; making it obviously undeliverable is what stops an order
+	 * confirmation being sent into the void and counted as sent.
+	 */
+	register_rest_route( 'kandi/v1', '/customers/otp-session', array(
+		'methods'             => WP_REST_Server::CREATABLE,
+		'permission_callback' => 'kandi_customer_auth_guard',
+		'callback'            => function ( WP_REST_Request $request ) {
+			$body    = (array) $request->get_json_params();
+			$channel = (string) ( $body['channel'] ?? '' );
+			$contact = trim( (string) ( $body['contact'] ?? '' ) );
+			$name    = sanitize_text_field( $body['name'] ?? '' );
+
+			if ( 'sms' !== $channel && 'email' !== $channel ) {
+				return new WP_Error( 'kandi_bad_channel', 'Unknown verification channel.', array( 'status' => 400 ) );
+			}
+
+			// A ceiling under the storefront's own, for the same reason
+			// /customers/otp-mail carries one: this is the copy an attacker
+			// holding a leaked secret cannot skip by calling WordPress direct.
+			$limited = kandi_customer_guard_pair( 'otp_session', $contact, 10, 60, 15 * MINUTE_IN_SECONDS );
+			if ( is_wp_error( $limited ) ) {
+				return $limited;
+			}
+
+			$user = null;
+
+			if ( 'email' === $channel ) {
+				$contact = sanitize_email( $contact );
+				if ( ! is_email( $contact ) ) {
+					return new WP_Error( 'kandi_bad_email', 'Enter a valid email address.', array( 'status' => 400 ) );
+				}
+				$user = get_user_by( 'email', $contact );
+			} else {
+				// +2567XXXXXXXX, which is what the storefront normalises to
+				// before it seals the challenge. Anything else is not a shape
+				// this shop stores, so there is nothing it could match.
+				if ( ! preg_match( '/^\+256\d{9}$/', $contact ) ) {
+					return new WP_Error( 'kandi_bad_phone', 'Enter a Ugandan mobile number.', array( 'status' => 400 ) );
+				}
+
+				$found = get_users( array(
+					'meta_key'    => 'billing_phone',
+					'meta_value'  => $contact,
+					'number'      => 1,
+					'fields'      => 'ID',
+					'count_total' => false,
+				) );
+
+				if ( ! empty( $found ) ) {
+					$user = get_user_by( 'id', (int) $found[0] );
+				}
+			}
+
+			if ( ! $user ) {
+				$seed     = 'email' === $channel ? strtok( $contact, '@' ) : substr( $contact, 1 );
+				$username = sanitize_user( 'kandi_' . $seed, true );
+				$base     = $username;
+				$suffix   = 1;
+				while ( username_exists( $username ) ) {
+					$username = $base . $suffix++;
+				}
+
+				$email = 'email' === $channel
+					? $contact
+					: substr( $contact, 1 ) . '@phone.kandi.invalid';
+
+				// A long random password nobody is ever told. The account is
+				// reachable only by proving the contact again, which is the
+				// point — leaving the field empty would let wp_signon() in
+				// with a blank password on some configurations.
+				$user_id = wp_insert_user( array(
+					'user_login'   => $username,
+					'user_email'   => $email,
+					'user_pass'    => wp_generate_password( 32, true, true ),
+					'display_name' => $name ?: $username,
+					'role'         => 'customer',
+				) );
+
+				if ( is_wp_error( $user_id ) ) {
+					return $user_id;
+				}
+
+				if ( 'sms' === $channel ) {
+					update_user_meta( $user_id, 'billing_phone', $contact );
+				}
+				if ( '' !== $name ) {
+					update_user_meta( $user_id, 'billing_first_name', $name );
+				}
+
+				$user = get_user_by( 'id', $user_id );
+			} elseif ( 'sms' === $channel ) {
+				// Found by phone already, so this is a no-op in the common
+				// case. It matters for an account created by email that is now
+				// verifying a number: without it the number is proved and then
+				// forgotten, and the next sign-in makes a SECOND account.
+				update_user_meta( $user->ID, 'billing_phone', $contact );
+			}
+
+			kandi_customer_rate_clear( 'otp_session', $contact );
+
+			return rest_ensure_response( kandi_customer_session_payload( $user->ID ) );
+		},
+	) );
+
 	/* ---- POST /customers/login ---- */
 	register_rest_route( 'kandi/v1', '/customers/login', array(
 		'methods'             => WP_REST_Server::CREATABLE,

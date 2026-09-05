@@ -11,6 +11,8 @@ import { clientIp, enforceRateLimit, MONEY_LIMITS } from "@/lib/rate-limit";
 import { claim, idempotencyKey, remember, replayOf } from "@/lib/idempotency";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { mintPaymentToken, PAYMENT_TOKEN_COOKIE } from "@/lib/checkout-token";
+import { appBearerToken } from "@/lib/app-auth";
+import { callCustomerApi } from "@/lib/customer-server";
 
 type IncomingItem = {
   productId: number;
@@ -153,6 +155,50 @@ async function placeOrder(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
+  /* ---- Who is asking: the storefront, or the app ----
+   *
+   * `Sec-Fetch-Site` is the discriminator, and it is chosen because it is a
+   * forbidden header name: a page script can neither set nor delete it, so on a
+   * request from our own storefront the browser writes `same-origin` and no
+   * amount of tampering in the console changes that. The app's request does not
+   * carry it at all.
+   *
+   * The two callers prove they are entitled to check out in different ways —
+   * the browser with a sealed cookie, the app with a bearer token — so this
+   * answer is needed twice below, for the bot check and for the verification
+   * gate. It is worked out once here rather than re-derived at each. */
+  const fromStorefront = request.headers.get("sec-fetch-site") === "same-origin";
+
+  /* ---- The app's proof that a contact was verified ----
+   *
+   * The only thing that mints one of these is `/api/app/auth/otp`, and the only
+   * thing that satisfies THAT is a six-digit code read off an SMS or an email.
+   * So a valid token here is, transitively, a verified phone number or address
+   * — which is exactly what the gate further down is asking for.
+   *
+   * It is checked against WordPress rather than merely parsed. The token is
+   * opaque to this storefront; a shape test would accept any string of the
+   * right length, which is not a check at all. One round trip on the order path
+   * is the price, and it is paid only for app orders.
+   *
+   * A 5xx from WordPress is NOT treated as a valid session. This is the one
+   * place in this file that fails closed on an outage: the alternative is that
+   * a backend wobble quietly turns the verification gate off. */
+  async function appSessionHolds(): Promise<boolean> {
+    const token = appBearerToken(request);
+    if (!token) return false;
+
+    try {
+      const { status } = await callCustomerApi("/me", { token });
+      return status === 200;
+    } catch (error) {
+      console.error("[kandi-store] checkout could not check the app session:", error);
+      return false;
+    }
+  }
+
+  const appVerified = fromStorefront ? false : await appSessionHolds();
+
   /* ---- Is there a person behind this ----
    *
    * Inert unless the shop has set `TURNSTILE_SECRET_KEY`; see `lib/turnstile.ts`
@@ -160,7 +206,14 @@ async function placeOrder(request: Request): Promise<Response> {
    * unreachable. Checked after the rate limit and before any work, because a
    * bot check that runs after the expensive part has already happened protects
    * nothing. */
-  const human = await verifyTurnstile(body.turnstile_token, ip);
+  /* An app that has just proved a contact over SMS is not the traffic this
+     check is for, and it has no way to solve a Turnstile widget — there is no
+     page to render one in. The signed-in-ness IS the proof of a person here,
+     and it is a stronger one than a browser challenge: it cost an SMS and a
+     phone somebody actually holds. */
+  const human = appVerified
+    ? { ok: true as const }
+    : await verifyTurnstile(body.turnstile_token, ip);
   if (!human.ok) {
     console.warn("[kandi-store] checkout turnstile rejected:", human.reason);
     return NextResponse.json(
@@ -250,49 +303,60 @@ async function placeOrder(request: Request): Promise<Response> {
    * any browser that has never proved a contact. This is the half that a
    * shopper cannot delete from the DOM.
    *
-   * ---- Why it is scoped to same-origin requests ----
+   * ---- Two callers, two proofs, one gate ----
    *
-   * This endpoint has two callers. One is the storefront, which is a browser on
-   * this domain and carries the sealed cookie. The other is the Kandi phone
-   * app, which is cross-origin — that is what `APP_WRITE_CORS_HEADERS` exists
-   * for — and has no cookie jar at all. Requiring the cookie unconditionally
-   * would take every app order down the moment this shipped.
+   * This endpoint has two callers and they hold their proof in different
+   * places. The storefront is a browser on this domain, so it carries the
+   * sealed `kandi_verified_contact` cookie. The Kandi phone app is
+   * cross-origin — that is what `APP_WRITE_CORS_HEADERS` exists for — and has
+   * no cookie jar at all; it carries a bearer token instead, and the only
+   * thing that mints one is `/api/app/auth/otp`, which will not answer without
+   * a six-digit code read off an SMS or an email. `appVerified` above is that
+   * token, checked against WordPress.
    *
-   * `Sec-Fetch-Site` is the discriminator. It is a forbidden header name, so a
-   * page script cannot set or remove it: on a request from our own storefront
-   * the browser writes `same-origin` and no amount of tampering in the console
-   * changes that. The app's request does not carry it.
+   * So both callers are now gated. That is a change: this used to be scoped to
+   * same-origin requests and let every app order through unverified, because
+   * when it was written the app had no way to verify anybody. It does now, and
+   * a gate that exempts the caller that cannot be inspected is not a gate.
    *
    * ---- What this does and does not stop ----
    *
-   * It stops the realistic bypass, which is a person who opens dev tools,
-   * deletes the modal and submits the form underneath it. It does NOT stop a
-   * script posting straight to this URL with no `Sec-Fetch-Site` header, and
-   * pretending otherwise would be worse than the gap: anything that wants to
-   * place unverified orders from outside a browser still can, and the controls
-   * that actually bound that are the rate limiter above, the Turnstile check,
-   * and the fact that an order still has to survive a rider ringing the number.
+   * It stops the realistic bypass on the web, which is a person who opens dev
+   * tools, deletes the modal and submits the form underneath it. It does NOT
+   * stop a script posting straight to this URL, and pretending otherwise would
+   * be worse than the gap — but such a script now has to hold a real session
+   * token, which costs an SMS to a phone somebody actually holds. The rest of
+   * the bound is the rate limiter above, the Turnstile check, and the fact that
+   * an order still has to survive a rider ringing the number.
    *
    * The escape hatch is deliberate and it is for one situation: a shop whose
    * SMS gateway is down and which would rather take unverified orders than take
    * none. It defaults to enforcing.
    */
-  const enforceVerification =
-    process.env.KANDI_REQUIRE_VERIFIED_CHECKOUT !== "0" &&
-    request.headers.get("sec-fetch-site") === "same-origin";
+  const enforceVerification = process.env.KANDI_REQUIRE_VERIFIED_CHECKOUT !== "0";
 
   if (enforceVerification) {
-    const proved = await readVerified((await cookies()).get(VERIFIED_COOKIE)?.value);
+    const proved = fromStorefront
+      ? (await readVerified((await cookies()).get(VERIFIED_COOKIE)?.value)) !== null
+      : appVerified;
+
     if (!proved) {
       return NextResponse.json(
         {
-          error:
-            "Please verify your phone number before placing this order. " +
-            "Reload the page and enter the 6-digit code we send you.",
-          /* A code the browser can act on rather than only a sentence. The
-             checkout catches it and reopens the dialog, so a shopper whose
-             cookie expired mid-order is one code away from finishing rather
-             than reading an error and leaving. */
+          /* Two sentences, because the second one is an instruction and the
+             instruction differs: a browser reloads the page, an app taps the
+             button again to be re-asked. One wording that covered both would
+             have to be vague enough to help neither. */
+          error: fromStorefront
+            ? "Please verify your phone number before placing this order. " +
+              "Reload the page and enter the 6-digit code we send you."
+            : "Please verify your phone number before placing this order. " +
+              "Tap Pay again and we will send you a 6-digit code.",
+          /* A code the caller can act on rather than only a sentence. The web
+             checkout catches it and reopens the dialog; the app catches it and
+             reopens its sheet. Either way a shopper whose proof expired
+             mid-order is one code away from finishing rather than reading an
+             error and leaving. */
           code: "verification_required",
         },
         { status: 403 }

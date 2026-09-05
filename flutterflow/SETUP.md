@@ -1,7 +1,20 @@
 # Adding the app to FlutterFlow
 
 Seventeen custom widgets — one per page. **No parameters to declare on any of them.**
-No pubspec changes needed.
+**One pubspec change:** add `webview_flutter` under Custom Code →
+Dependencies.
+
+```yaml
+webview_flutter: ^4.7.0
+```
+
+Nothing else. It is used by one widget — the Pesapal sheet on the checkout
+screen — and this file said "no pubspec changes needed" for a long time
+before that sheet existed, so the line is worth reading twice if you are
+following an older copy of these instructions.
+
+Android needs nothing extra. On iOS the plugin requires a minimum deployment
+target of 12.0, which FlutterFlow already sets.
 
 | Name it exactly | Paste this file |
 |---|---|
@@ -99,6 +112,7 @@ at once.**
 | `kandi-wishlist-v1` | Saved items: id, name, image, price |
 | `kandi-checkout-v1` | Delivery details, refilled next visit |
 | `kandi-auth-v1` | The shopper's bearer token |
+| `kandi-verified-phone` | The number this device proved, as `+2567XXXXXXXX` |
 | `kandi-auth-name` | The name shown in the greeting |
 | `kandi-seller-auth-v1` | The **seller's** token — a different account |
 | `kandi-seller-name` | The store name shown in the Seller Centre |
@@ -186,15 +200,19 @@ here, where the picker is.
 and shows any price that moved or item that sold out. Quantity, remove-with-undo,
 and a free-delivery meter.
 
-**Checkout** — collects name, phone, town and address, saves them for next time,
-then hands the shopper to the website's checkout with the basket on the URL.
+**Checkout** — collects name, phone, town and address, saves them for next
+time, chooses mobile money or a card, verifies the phone, and takes the
+payment without leaving the app.
 
-> **Payment happens on the website, on purpose.** The site is where Pesapal is
-> wired, where the IPN lands, where delivery is quoted from the address and where
-> the order is written to WooCommerce. Rebuilding that in the app would be a
-> second implementation of the one thing that must never be subtly wrong. The
-> page says so before the shopper taps, so being handed to a browser is not a
-> surprise.
+> **Payment used to happen on the website, and no longer does.** The argument
+> for the old way was real — the site is where Pesapal is wired and where the
+> order is written — but what it cost was the order: being thrown into a
+> browser at the moment of payment is where app checkouts are abandoned. The
+> drift it was avoiding is avoided a different way instead. Nothing about the
+> payment is reimplemented here: the same `/api/checkout` writes the order,
+> the same `/api/payments/pesapal/start` opens the session, and the page the
+> shopper types into is Pesapal's own, on Pesapal's domain. The screen
+> contributes a WebView and a poll. See **Signing in, and paying** below.
 
 **Search** — 400ms debounce, two-character minimum, and a generation counter so a
 slow answer for `sho` cannot overwrite a fast one for `shoes`.
@@ -207,8 +225,13 @@ each product to draw a tile, so it opens instantly and works with no signal.
 
 **Account** — sign in, and the links out. Browsing, the basket and saved items
 all work signed out; the only thing an account buys is order history, and the
-page says that rather than blocking the app behind a form. Registration and
-password resets link to the website.
+page says that rather than blocking the app behind a form.
+
+> **There is no password.** A phone number or an email address, six digits
+> back, and that is the whole of it. The old form asked for an email and a
+> password and mostly sent people to a browser to reset one — a sign-in flow
+> that did not sign anybody in. A first sign-in is also the registration, so
+> "Create account" and "Forgot password" are both gone rather than moved.
 
 **Orders** — the one page that needs a shopper account. With no token it says so
 and sends you to Account. A 401 clears the stored token, because a token the shop
@@ -273,6 +296,49 @@ website's tracking panel: one shopper checking one order in two places must not
 be told two different things. The signed-out state of My orders offers this as
 its second action for exactly that reason.
 
+### Signing in, and paying
+
+Both changed together, because they are the same fact seen twice: the app
+now proves a contact, and the thing it proves is what lets it take money.
+
+**There is no password.** The account page asks for a phone number or an
+email address, `POST /api/otp/start` sends six digits, and
+`POST /api/app/auth/otp` trades those digits for the bearer token that goes
+into `kandi-auth-v1`. WordPress finds the customer behind that contact or
+creates one — `/customers/otp-session` in `wordpress/kandi-customer-auth.php`.
+A first sign-in **is** the registration, so there is no "Create account" link
+and nothing to forget.
+
+**The checkout takes a phone only**, where the account page takes either. The
+number on an order is what a rider rings from the gate; an email is not. A
+shopper who signed in by email is asked once for a number at checkout, which
+lands on the same account — WordPress matches `billing_phone` and updates it.
+
+**Payment happens in the app.** Four steps, in `_placeOrder`:
+
+1. Verify the phone if it is not already.
+2. `POST /api/checkout` with the bearer token. WooCommerce writes the order
+   `awaiting_payment` and returns its id and a one-shot `payment_token`.
+   Nothing has been charged yet.
+3. `POST /api/payments/pesapal/start` with that token, which returns a URL.
+4. That URL opens in a WebView sheet. When it navigates to
+   `/payment/callback`, the sheet asks `POST /api/app/payment/status` what
+   actually happened.
+
+Step 4 is the one to leave alone. The callback URL says the trip is over and
+nothing about whether money moved; believing it is a free-order bug one proxy
+away. Only the server's answer clears the basket.
+
+Ids and quantities are all that is posted. Prices are the server's — a figure
+sent from a phone is one the shop would have to either trust or ignore.
+
+Closing the payment sheet early is safe at any point: if the money has left,
+Pesapal's IPN settles the order server-side whatever the sheet does. An order
+that exists but is not paid for keeps its number, and the basket is left
+alone so trying again costs nothing.
+
+---
+
 ### What stays on the website
 
 Adding a product and store settings. The split is by whether the task is
@@ -280,6 +346,13 @@ Adding a product and store settings. The split is by whether the task is
 picker, a variations table, a payout account — and a cramped version of either
 on a phone is how a seller publishes at the wrong price or types the wrong MoMo
 number.
+
+**Cash on delivery**, too, and for a different reason. It is priced from a
+point on a map — `codZoneFor` on the storefront decides whether an address is
+in a zone the riders collect from — and the checkout screen collects a town
+and a landmark. The app is missing an address picker, not a payment flow, so
+the COD line on the payment panel opens the website's checkout with the
+basket and details attached. Mobile money and cards stay in the app.
 
 ---
 
@@ -345,6 +418,9 @@ throwaway package with the FlutterFlow-only imports stubbed out:
 ```
 flutter analyze  →  no errors
 ```
+
+Re-run after the sign-in and payment changes, with `webview_flutter 4.13` in
+the throwaway package: still no errors.
 
 The only warnings are `unused_import` on the four FlutterFlow header lines,
 which exist in the real project and cannot be removed from these files.
