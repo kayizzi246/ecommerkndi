@@ -1481,6 +1481,30 @@ h6,
   letter-spacing: 0;
 }
 
+/* ---- 300 on a phone ----
+ *
+ * The whole argument above — the name is what a shopper reads to CONFIRM a
+ * match their eyes have already made with the picture and the price — bites
+ * hardest on a phone, where two tiles share 390px and the name, the price, the
+ * saving chip and the delivery line are stacked inside about 90px of height.
+ * One step lighter is what keeps that stack from reading as four competing
+ * claims.
+ *
+ * Free, because Inter is loaded as its VARIABLE file (no `weight` array in
+ * `app/layout.tsx`), so every step of 100–900 is already in the one download.
+ * Do not repeat this with anything set in Poppins — that face is two static
+ * instances and a third weight is a third file.
+ *
+ * `max-width: 39.99rem` rather than `639px`, in `rem` for the same reason every
+ * other phone query in this file is: at a raised root font size a `px`
+ * breakpoint and Tailwind's `sm` stop being the same boundary, and leave a band
+ * where neither rule applies. */
+@media (max-width: 39.99rem) {
+  .product-name {
+    font-weight: 300;
+  }
+}
+
 /* ---------- Section titles ----------
  * Bold and tight, but sentence case and not shouted — the marketplace idiom
  * rather than the fashion-poster one. On a page that is mostly product
@@ -2429,8 +2453,26 @@ h6,
  * them. A desktop row fits on one screen, so height there is spent purely on
  * scrolling; a phone shows two tiles and the photograph is already near the
  * size below which a shopper cannot tell what they are looking at. */
+/* ---- 10px corners on the photograph ----
+ *
+ * The tile itself is square (see `.tile-card`) so that cells can touch in the
+ * flush grid without leaving white notches where four rounded corners meet.
+ * That argument is about the CELL, and it never applied to the picture inside
+ * it: the photograph is an object sitting on the card inside 6px of padding,
+ * not part of the grid's own seam, so rounding it costs the flush sheet
+ * nothing.
+ *
+ * 10px is the figure the loading skeleton already uses for this box
+ * (`Skeletons.tsx`), so the placeholder and the real photograph have the same
+ * silhouette and the grid stops visibly re-drawing its corners when the
+ * products land. Keep the two in step.
+ *
+ * `object-cover` on a rounded box clips four small bites out of the picture; at
+ * 10px on a ~190px phone tile that is the outermost corner of a product shot
+ * photographed on white — which is to say, the white. */
 .tile-frame {
   aspect-ratio: 15 / 16;
+  border-radius: 10px;
 }
 
 @media (max-width: 39.99rem) {
