@@ -664,22 +664,26 @@ class _KandiSearchScreenState extends State<KandiSearchScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: _KSpace.md,
               crossAxisSpacing: _KSpace.md,
-              // ---- 0.62, where this was 0.57 ----
+              // ---- 0.64, where this was 0.62 ----
               //
-              // The tile got shorter and this is the figure that has to
-              // follow it: the price dropped from 17px to the site's 12,
-              // the struck original came off the phone entirely, and the
-              // sold-and-stars row moved below the price rather than
-              // adding a row above it. Left at 0.57 every cell would carry
-              // about forty pixels of empty white BELOW the price and
-              // inside the tile's new border, which is dead space a
-              // borderless tile could hide and a bordered one cannot.
+              // The tile lost the Spacer that held the price at the foot of the cell, so
+              // what is left over now shows as a gap BELOW the last row rather than as a
+              // hole in the middle of the card — which means the cell wants to sit as
+              // close to the content as it safely can.
               //
-              // Slack rather than a tight fit, deliberately. The rows grow
-              // with the reader's text size and the price is bottom-pinned,
-              // so what is left over collects above the price as air —
-              // whereas a cell one pixel too short clips the bottom row.
-              childAspectRatio: 0.62,
+              // Added up at 177px wide: 2 of border, 12 of padding, a 163 photograph, 8 to
+              // the name, a 30 name box, 3, a 13 price, 16 for the reserved sold-and-stars
+              // row, and 16 more for the stock line when there is one. That is 247 at rest
+              // and 263 at its fullest, in a 276 cell.
+              //
+              // The 13px on top of the fullest tile is not spare — it is what the rows
+              // grow by at a 1.3 text scale, which is as far as this has been measured.
+              // Past that the tile clips, and the figure to raise is this one.
+              //
+              // Reserving the meta row is what keeps the resting and fullest numbers only
+              // 16 apart. If it goes back to being conditional, this has to rise again or
+              // sparse tiles reopen the gap.
+              childAspectRatio: 0.64,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -1049,20 +1053,24 @@ class _Card extends StatelessWidget {
               // Red when it is a reduction, ink when it is just the price —
               // the oldest price-tag convention there is, and the same red as
               // the corner flag above.
-              // ---- The price is pinned to the foot of the tile ----
+              // ---- The price sits under the name, not at the foot ----
               //
-              // `mt-auto` on the site, and it is what makes a grid ROW
-              // readable: the cells in a row are stretched to a common height,
-              // so a two-line name beside a one-line name would otherwise land
-              // their prices on different baselines and the eye has to hunt
-              // down the page for each figure.
+              // This was a `Spacer`, pinning the price to the bottom of the
+              // cell the way `mt-auto` does on the site. The site can afford
+              // that because its phone grid is a masonry: each column sizes
+              // itself to its own content, so a pinned price has almost no
+              // slack above it. This grid gives every cell the same height, so
+              // the same trick opened a visible hole between the name and the
+              // price on every tile that was not the tallest in its row.
               //
-              // It also settles where the leftover height goes now that the
-              // tile draws its own border. Any slack between the grid cell and
-              // the card's content used to collect at the bottom, inside the
-              // edge, as a visible empty strip; it collects here instead,
-              // between the name and the price, where it reads as air.
-              const Spacer(),
+              // The alignment the pin was buying is still there, and bought
+              // more cheaply: everything above the price is a FIXED height —
+              // the square photograph, an 8px gap, a name box locked to two
+              // lines — so the price lands on the same baseline in every tile
+              // whether the name filled one line or two. That is why the name
+              // box is a SizedBox rather than a clamp, and it is load-bearing
+              // now rather than tidy.
+              const SizedBox(height: 3),
               Text(
                 product.priceLabel,
                 maxLines: 1,
@@ -1108,9 +1116,20 @@ class _Card extends StatelessWidget {
               // corroboration a shopper reads only once those two have passed.
               // Putting them above the price made the tile ask for attention
               // before it had said anything.
-              if (product.totalSales > 0 || product.ratingCount > 0) ...[
-                const SizedBox(height: 2),
-                Row(
+              // ---- Reserved, not conditional ----
+              //
+              // The row draws nothing when a product has no sales and no
+              // reviews, but it still takes its height. That is the site's own
+              // solution — "an empty box of the right height, rather than a
+              // missing row that shortens the tile" — and it matters more here
+              // than there: a cell in this grid is a fixed height, so a row
+              // that sometimes vanishes does not make the tile shorter, it
+              // makes the empty space at the foot of the tile taller. Holding
+              // the row keeps that gap to a few pixels on almost every tile.
+              const SizedBox(height: 2),
+              SizedBox(
+                height: 14,
+                child: Row(
                   children: [
                     // Flexible, and it is not decoration. The stars are icons
                     // at a fixed 11px and do not scale with the reader's text
@@ -1146,7 +1165,7 @@ class _Card extends StatelessWidget {
                     ],
                   ],
                 ),
-              ],
+              ),
             ],
           ),
         ),
