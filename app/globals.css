@@ -1518,7 +1518,7 @@ h6,
  * instances and a third weight is a third file. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 500;
+  font-weight: 400;
   font-size: 12px;
   line-height: 16px;
   /* Undoes the heading tracking. A product name is body copy that happens to be
