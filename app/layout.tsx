@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Manrope } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -71,24 +71,10 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  * typeface changes a two-line edit here instead of a search through two hundred
  * components. Do not collapse them.
  */
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
-  /* No `weight` array on purpose: naming any weight makes `next/font` fetch
-     STATIC instances, one file each. Omitting it takes Inter's variable file —
-     one download covering 100–900, and every step of the scale free. */
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-poppins",
-  /* Two files, and both are used: 700 is what the heading rule forces on every
-     h1–h6 and section title, 600 is the quieter step. Poppins has no variable
-     file, so each entry here is a real download — see the note above before
-     adding a third. */
-  weight: ["600", "700"],
+  variable: "--font-manrope",
 });
 
 /**
@@ -281,7 +267,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${inter.variable} ${poppins.variable} h-full`}
+      className={`${manrope.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

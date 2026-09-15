@@ -972,8 +972,8 @@
   --shell: 1720px;
 
   --font-ui:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+    var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Helvetica Neue", "Noto Sans", Arial, sans-serif;
   /* ---- The display face: Poppins ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -997,8 +997,8 @@
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
   --font-display:
-    var(--font-poppins), var(--font-inter), system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Poppins draws no true tabular set — but
      the call sites are worth keeping tagged, because they are exactly the
@@ -1028,15 +1028,15 @@ body {
   overflow-x: clip;
 }
 
+html {
+  font-size: 14px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ui);
-  /* 16px base. The store used to run at 14px, which left product titles,
-     prices and form labels a step smaller than they read comfortably at. The
-     fixed [Npx] sizes scattered through the components are stepped up with
-     the `text-*` scale below rather than one by one. */
-  font-size: 14px;
+  font-size: 13px;
   /* 1.6 rather than 1.55. The difference is a pixel and a half on a 16px line,
      and it is the difference between a paragraph that reads and one that has to
      be got through — descenders on one line stop crowding the caps on the next.
@@ -1118,6 +1118,16 @@ input,
 select,
 textarea {
   font-family: var(--font-ui);
+}
+
+::selection {
+  background: var(--color-shop-primary);
+  color: white;
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-shop-primary);
+  outline-offset: 3px;
 }
 
 /* Headings run heavy with the tracking pulled in a fraction — bold type sits too
