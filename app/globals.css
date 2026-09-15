@@ -1519,6 +1519,8 @@ h6,
 .product-name {
   font-family: var(--font-ui);
   font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
   /* Undoes the heading tracking. A product name is body copy that happens to be
      marked up as a heading and should be spaced like the sentences around it. */
   letter-spacing: 0;

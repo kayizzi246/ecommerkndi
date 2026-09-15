@@ -258,7 +258,7 @@ export default function ProductPurchase({
                in the picture, so it is set like one — 15px, regular, two lines
                of it, and the price beneath it is now unambiguously the loudest
                element in the column. */}
-          <h1 className="font-normal-heading text-[15px] leading-[22px] text-shop-ink md:text-[16px] md:leading-[24px]">
+          <h1 className="font-normal-heading text-[14px] leading-[20px] text-shop-ink md:text-[15px] md:leading-[22px]">
             <span className="mr-1.5 inline-flex items-center gap-1 align-[1px] text-[13px] font-semibold text-shop-success">
               <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />

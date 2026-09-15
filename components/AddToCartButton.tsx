@@ -326,7 +326,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-1 text-[14px] font-medium text-shop-ink">{product.name}</p>
+            <p className="line-clamp-1 text-[12px] font-medium text-shop-ink">{product.name}</p>
             <p className="text-[14px] text-shop-muted">{formatPrice(product.price)}</p>
           </div>
           <button
