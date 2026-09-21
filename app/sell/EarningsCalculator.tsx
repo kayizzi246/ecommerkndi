@@ -82,7 +82,7 @@ export default function EarningsCalculator({
        and 700 only and `font-synthesis-weight` is off, so 800 was rendering as
        700 anyway — see the note in `page.tsx` about the headline that had the
        same problem. Now the file says what the browser does. */
-    <div className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04),0_12px_32px_-12px_rgba(17,24,39,0.12)] ring-1 ring-shop-ink/[0.06] md:p-6">
+    <div className="rounded-2xl bg-white p-5 ring-1 ring-shop-ink/[0.06] md:p-6">
       <h3 className="text-[17px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
       <p className="mt-1.5 text-[13px] leading-[1.55] text-shop-muted">
         Two numbers you already know. We take {commissionRate}% commission — nothing else is

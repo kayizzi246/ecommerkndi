@@ -94,7 +94,7 @@ export default function ContactRail({ support }: { support: Support }) {
         aria-label="Back to top"
         aria-hidden={!scrolled}
         tabIndex={scrolled ? 0 : -1}
-        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-shop-line bg-white/95 py-2 pl-3 pr-3.5 text-[13px] font-semibold text-shop-body shadow-[0_2px_10px_rgba(120,72,30,0.16)] backdrop-blur transition-all duration-200 active:scale-95 lg:hidden ${
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-shop-line bg-white/95 py-2 pl-3 pr-3.5 text-[13px] font-semibold text-shop-body backdrop-blur transition-all duration-200 active:scale-95 lg:hidden ${
           scrolled
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none translate-y-2 opacity-0"
@@ -147,7 +147,7 @@ export default function ContactRail({ support }: { support: Support }) {
         aria-label="Back to top"
         aria-hidden={!scrolled}
         tabIndex={scrolled ? 0 : -1}
-        className={`group relative flex h-11 w-11 items-center justify-center rounded-full border border-shop-line bg-white text-shop-body shadow-sm transition-all hover:border-shop-primary hover:text-shop-primary ${
+        className={`group relative flex h-11 w-11 items-center justify-center rounded-full border border-shop-line bg-white text-shop-body transition-all hover:border-shop-primary hover:text-shop-primary ${
           scrolled ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -174,7 +174,7 @@ function RailButton({
   children: React.ReactNode;
 }) {
   const className =
-    "group relative flex h-11 w-11 items-center justify-center rounded-full border border-shop-line bg-white text-shop-body shadow-sm transition-colors hover:border-shop-primary hover:text-shop-primary";
+    "group relative flex h-11 w-11 items-center justify-center rounded-full border border-shop-line bg-white text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary";
 
   // `tel:` and `wa.me` are not app routes, so they get a plain anchor — handing
   // them to next/link would have the router try to navigate to them.

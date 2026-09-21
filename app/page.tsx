@@ -2,13 +2,11 @@ import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
 import HeroBanner from "@/components/home/HeroBanner";
 import PortalBand from "@/components/home/PortalBand";
-import FeatureCards, { type FeatureCard } from "@/components/home/FeatureCards";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
-import type { Product } from "@/lib/woocommerce";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -91,8 +89,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *
  * It is a HERO and a BAND now, in the arrangement the large marketplaces have
  * settled on. A full-width campaign opens the page, then three columns — where
- * things are, what it costs, and who the shopper is — then four programme cards,
- * then the endless grid with the departments as tabs across it. The same
+ * things are, what it costs, and who the shopper is — then the endless grid with the departments as tabs across it. The same
  * merchandise, the same feed, the same `lib/home-feed.ts` composing it; what is
  * gone is the scrolling between the parts.
  *
@@ -103,13 +100,10 @@ export async function generateMetadata(): Promise<Metadata> {
  *                        from the same settings when not.
  *   Super Deals        → the price panel in the band. Six products, six
  *                        prices, the same countdown.
- *   Maximise savings   → the three offer chips under the hero.
  *   Trending now       → leads the "For you" grid, which is what "picked for
  *                        you" ought to have meant all along.
- *   Best sellers,      → the four programme cards. Each keeps its heading and
- *   New in,              its claim and shows two real products; the browsing
- *   Promotions,          moves to the shelf's own page, which is a better place
- *   New arrivals         to browse than a rail with an arrow on it.
+ *   Best sellers, New in, Promotions, New arrivals, Maximise savings — gone.
+ *                        Each has its own page, reachable from the channel strip.
  *   Department rails   → the tabs above the endless grid, and now on every
  *                        device rather than desktop only.
  *   Picked for you     → unchanged, and it is still the floor of the page.
@@ -139,11 +133,7 @@ export default async function Home() {
     settings,
     departments,
     trending,
-    sellerArrivals,
-    promoProducts,
     deals,
-    newArrivals,
-    bestSellers,
     departmentRails,
     latest,
     latestTotalPages,
@@ -170,113 +160,6 @@ export default async function Home() {
       all.findIndex((other) => other.id === product.id) === index
   );
 
-  /* ---- The card pools, topped up rather than left empty ----
-
-     `buildHomeFeed` fills its shelves through a ledger that stops any product
-     appearing under two different claims, and that ledger is tuned for the page
-     this one replaces: eight rails of twelve, drawn from a forty-eight product
-     fetch plus a thirty-six product on-sale fetch. It spends the catalogue in
-     the order the old page rendered it, so the shelves at the END of that order
-     — `promoProducts`, `newArrivals`, `bestSellers`, `sellerArrivals` — come
-     back empty on a catalogue this size. On the old page that showed as four
-     rails quietly not rendering. On this one it showed as the entire card row
-     not rendering, because all four cards draw from exactly those four.
-
-     The exemption below is the same one `buildHomeFeed` already grants its
-     department rails, and the reasoning transfers intact: the ledger exists so
-     a shopper does not meet the same six products under six separate claims of
-     specialness. Four cards asking four DIFFERENT questions — what is reduced,
-     what sells, who is new here, what landed this week — is not that. A product
-     that answers two of them is answering two questions.
-
-     Nothing new is fetched and no cut-off is re-invented. `latest` is the
-     catalogue page the feed already has in hand, and the sorts below are the
-     ones `buildHomeFeed` itself applies to build these pools. */
-  const newestFirst = (a: Product, b: Product) =>
-    new Date(b.date_created ?? 0).getTime() - new Date(a.date_created ?? 0).getTime();
-
-  /* The four in the band's price panel are spoken for. Everything a card takes
-     is recorded here too, so the row can never draw one product twice — which
-     is the half of the ledger's job that still matters at this scale. */
-  const spoken = new Set<number>(deals.slice(0, 4).map((product) => product.id));
-
-  /** Two unspoken-for products, from the first pool that can supply them. */
-  const pick = (...pools: Product[][]): Product[] => {
-    const picked: Product[] = [];
-    for (const pool of pools) {
-      for (const product of pool) {
-        if (picked.length >= 2) break;
-        if (spoken.has(product.id)) continue;
-        picked.push(product);
-      }
-      if (picked.length >= 2) break;
-    }
-    for (const product of picked) spoken.add(product.id);
-    return picked;
-  };
-
-  /* ---- The four programme cards ----
-
-     Four, and each with its own destination. That constraint is what stops this
-     row becoming the rail stack again in miniature: a fifth card would need a
-     fifth page to send people to, and the shop has four. A card that still
-     cannot find two products is dropped rather than drawn empty — see
-     `FeatureCards` — so a shop with no sellers gets three cards rather than a
-     heading over two grey squares. */
-  const cards: FeatureCard[] = [
-    {
-      title: "Super Deals",
-      note: "Reduced from the regular price",
-      badge: "Sale",
-      // Crimson, and the same crimson the Super Deals shelf and the Super Price
-      // Store header use. All four badges are filled now — see the `accent`
-      // note in `FeatureCards` for why the row went back to colour after the
-      // pastels were taken off it.
-      accent: "feature-accent-deals",
-      href: "/sale",
-      /* The deals the price panel did not take, which are the next deepest cuts
-         in the shop rather than a different shelf. */
-      products: pick(promoProducts, deals),
-    },
-    {
-      title: "Best sellers",
-      note: "The ones other shoppers keep buying",
-      badge: "Top",
-      accent: "feature-accent-best",
-      href: "/search?sort=popular",
-      /* `total_sales > 0` is enforced rather than decorative: a "best seller"
-         nobody has bought is the one claim on this page that would be a lie. */
-      products: pick(
-        bestSellers,
-        latest
-          .filter((product) => product.total_sales > 0)
-          .sort((a, b) => b.total_sales - a.total_sales)
-      ),
-    },
-    {
-      title: "New in",
-      note: "From independent Ugandan stores",
-      badge: "Stores",
-      accent: "feature-accent-new",
-      href: "/sellers",
-      /* Filtered on `product.seller`, so this is only ever marketplace stock —
-         never the shop's own shelves. It is the one card that says Kandi is a
-         marketplace, and it is empty rather than padded on a shop with no
-         sellers yet. */
-      products: pick(
-        sellerArrivals,
-        latest.filter((product) => product.seller).sort(newestFirst)
-      ),
-    },
-    {
-      title: "Just landed",
-      note: "The newest stock in the shop",
-      badge: "New",
-      accent: "feature-accent-landed",
-      href: "/search?sort=newest",
-      products: pick(newArrivals, [...latest].sort(newestFirst)),
-    },
-  ];
 
   /* The departments, as tabs rather than as five stacked rails. A department
      the shop has not created does not appear, and neither does one with fewer
@@ -354,8 +237,6 @@ export default async function Home() {
         <ChannelRow />
 
         <PortalBand settings={settings} departments={departments} deals={deals} />
-
-        <FeatureCards cards={cards} />
 
         <PickedForYou
           latest={forYou}
