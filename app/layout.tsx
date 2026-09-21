@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Open_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,19 +13,20 @@ import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: one face, Open Sans, everywhere ----
+ * ---- The shop's type: one face, Inter, everywhere ----
  *
- * Open Sans is a humanist sans built for interface reading at small sizes —
- * open apertures, even figures, and enough personality at 700 weight to carry
- * a section title without a second family being loaded for it. `--font-ui`
- * and `--font-display` in `globals.css` both point at it, which is what lets
- * a headline and a price sit in the same visual family instead of arguing.
+ * Inter is a neo-grotesque drawn specifically for interface use at small
+ * sizes, which is what a page of 12–14px catalogue text is. Its figures are
+ * even and narrow, so a column of UGX prices lines up down a grid and a long
+ * price fits a phone tile. `--font-ui` and `--font-display` in `globals.css`
+ * both point at it, which is what lets a headline and a price sit in the same
+ * visual family instead of arguing.
  *
- * It is loaded as its VARIABLE file (Google ships wght 300–800 in one file),
- * so every weight this shop actually asks for — 400 body, 500–600 labels, 700
- * headings, 800 prices — is already in the one download. Nothing here needs a
- * `weight` array, and `font-synthesis-weight: none` in `globals.css` is safe
- * because there is no weight in use that was not really downloaded.
+ * It is loaded as its VARIABLE file (one file covers 100–900), so every weight
+ * this shop asks for — 400 body, 500–600 labels, 700 headings, 800 prices — is
+ * already in the one download. Nothing here needs a `weight` array, and
+ * `font-synthesis-weight: none` in `globals.css` is safe because no weight in
+ * use has to be faked.
  *
  * ---- The delivery, which is why a webfont is affordable at all ----
  *
@@ -39,15 +40,15 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  *     `@font-face`, so the swap does not reflow a price or a product name.
  *
  * `variable` rather than `className`: the family is handed to CSS as
- * `--font-open-sans`, and `globals.css` points `--font-ui` and `--font-display`
+ * `--font-inter`, and `globals.css` points `--font-ui` and `--font-display`
  * at it. Those two names are the seam that makes the next typeface change a
  * two-line edit here instead of a search through two hundred components. Do
  * not collapse them.
  */
-const openSans = Open_Sans({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-open-sans",
+  variable: "--font-inter",
 });
 
 /**
@@ -227,8 +228,8 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `openSans.variable` defines `--font-open-sans` on the root element,
-      // where every rule in globals.css can reach it. The class carries no
+      // `inter.variable` defines `--font-inter` on the root element, where
+      // every rule in globals.css can reach it. The class carries no
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
@@ -240,7 +241,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${openSans.variable} h-full`}
+      className={`${inter.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

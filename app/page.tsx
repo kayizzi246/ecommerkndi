@@ -1,5 +1,7 @@
 import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
+import HeroBanner from "@/components/home/HeroBanner";
+import TrustBar from "@/components/home/TrustBar";
 import PortalBand from "@/components/home/PortalBand";
 import FeatureCards, { type FeatureCard } from "@/components/home/FeatureCards";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
@@ -88,21 +90,21 @@ export async function generateMetadata(): Promise<Metadata> {
  * see a fraction of the catalogue — was correct. That is the shape of a page
  * that has run out of room: every block defensible, the whole indefensible.
  *
- * It is a BAND now, in the arrangement the large marketplaces have all settled
- * on. One screen carries four columns — where things are, what is on, what it
- * costs, and who the shopper is — then four programme cards, then the endless
- * grid with the departments as tabs across the top of it. The same merchandise,
- * the same feed, the same `lib/home-feed.ts` composing it; what is gone is the
- * scrolling between the parts.
+ * It is a HERO and a BAND now, in the arrangement the large marketplaces have
+ * settled on. A full-width campaign opens the page, then three columns — where
+ * things are, what it costs, and who the shopper is — then four programme cards,
+ * then the endless grid with the departments as tabs across it. The same
+ * merchandise, the same feed, the same `lib/home-feed.ts` composing it; what is
+ * gone is the scrolling between the parts.
  *
  * ---- Where each of the old sections went ----
  *
- *   Hero banner        → the campaign panel in the middle of the band, which
- *                        renders the uploaded artwork when there is any and a
- *                        branded panel built from the same settings when not.
- *   Super Deals        → the price panel in the band. Four products, four
+ *   Hero banner        → `HeroBanner`, full width above the band: the uploaded
+ *                        artwork when there is any, and a designed panel built
+ *                        from the same settings when not. A trust bar under it.
+ *   Super Deals        → the price panel in the band. Six products, six
  *                        prices, the same countdown.
- *   Maximise savings   → the three offer chips under the campaign panel.
+ *   Maximise savings   → the three offer chips under the hero.
  *   Trending now       → leads the "For you" grid, which is what "picked for
  *                        you" ought to have meant all along.
  *   Best sellers,      → the four programme cards. Each keeps its heading and
@@ -324,11 +326,6 @@ export default async function Home() {
         }}
       />
 
-      {/* The channel strip runs edge to edge, above the shell, because it is
-          navigation rather than content — the same reason the masthead's
-          department bar does. It is the one block on the page that is not inset. */}
-      <ChannelRow />
-
       {/* Phone spacing is deliberately tighter than the desktop step below it.
           16px between shelves and 12px of gutter is a desktop rhythm applied to
           a screen a quarter the width: it pushed roughly one tile-row of
@@ -344,6 +341,22 @@ export default async function Home() {
           what separates two sections is the seam between two white blocks
           rather than the size of the gap between them. */}
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 py-2 md:gap-4 md:px-8 md:py-3.5">
+        {/* ---- The opening screen, in the order a shopper asks the questions ----
+
+            The hero says what is on. The trust bar says why to buy it here —
+            four promises the shop can be held to, each linked to the page that
+            proves it. The channel strip says where to go next. Then the band:
+            departments, the deepest cuts with prices showing, and the account.
+
+            The strip used to open the page above the shell; a row of nine
+            chips is a weaker first impression than a campaign, and navigation
+            reads better once there is something to navigate away from. */}
+        <HeroBanner settings={settings} />
+
+        <TrustBar settings={settings} />
+
+        <ChannelRow />
+
         <PortalBand settings={settings} departments={departments} deals={deals} />
 
         <FeatureCards cards={cards} />

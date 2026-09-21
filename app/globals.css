@@ -828,9 +828,9 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Open Sans, one face, everywhere ----
+/* ---- The type: Inter, one face, everywhere ----
  *
- * `--font-open-sans` is set by `next/font` in `app/layout.tsx`, where the
+ * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the
  * reasoning for the face — and the delivery it rides in on — is written out in
  * full. This is the other half: the stack behind it, and the scale it is set
  * at.
@@ -867,19 +867,19 @@
  * their own face again, this is the one place that changes. Do not collapse
  * them into one variable to save a line. */
 :root {
-  /* ---- The face: Open Sans ----
+  /* ---- The face: Inter ----
    *
-   * Open Sans first, then the metric-matched fallback Next generates for it,
+   * Inter first, then the metric-matched fallback Next generates for it,
    * then the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Open Sans, so that face is what a shopper on a
+   * screen in whatever is behind Inter, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
-   * and SF on iOS. All three are humanist sans like Open Sans itself, which is
+   * and SF on iOS. All three are neo-grotesques like Inter itself, which is
    * what makes this the cheap half of the swap: the fallback and the webfont
    * are the same KIND of face, so the repaint moves letterforms rather than
-   * re-setting the page. Open Sans is variable, so the whole scale arrives in
+   * re-setting the page. Inter is variable, so the whole scale arrives in
    * that one file — see `layout.tsx`. */
   /* ---------- How wide the shop is ----------
    *
@@ -977,9 +977,9 @@
   --shell: 1720px;
 
   --font-ui:
-    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", "Noto Sans", Arial, sans-serif;
-  /* ---- The display face: Open Sans ----
+  /* ---- The display face: Inter ----
    *
    * Everything that is FOUND rather than read resolves through this token —
    * `h1`–`h6`, `.section-title`, `.heading-black`, `.heading-800`,
@@ -991,11 +991,11 @@
    * rest of the tile, because a price is the largest step of a block of numbers
    * rather than a headline. See the note on `.price` below.
    *
-   * Open Sans is loaded as its VARIABLE file (Google ships wght 300–800 in one
-   * file). Anything resolving through this token may ask for any weight in that
-   * range — `font-synthesis-weight: none` still matters if a weight outside it
-   * (900, say) is ever asked for; it would silently render as 800 instead of
-   * looking wrong.
+   * Inter is loaded as its VARIABLE file, so one download covers 100–900 and
+   * anything resolving through this token may ask for any weight in that range
+   * without adding a request. `font-synthesis-weight: none` stays on anyway:
+   * it is what guarantees a weight that renders is a weight that exists, if
+   * this token is ever pointed at a face shipped as static instances.
    *
    * Product names are the deliberate exception: they are set as `<h3>` on a
    * card and `<h1>` on a product page, and `.font-normal-heading` pulls them
@@ -1003,10 +1003,10 @@
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
   --font-display:
-    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
-     It no longer names anything real — Open Sans draws no true tabular set —
+     It no longer names anything real — Inter draws no true tabular set —
      but the call sites are worth keeping tagged, because they are exactly the
      places to repoint if a face with proper figures ever comes back. */
   --font-tabular: var(--font-ui);
@@ -1048,9 +1048,10 @@ body {
      be got through — descenders on one line stop crowding the caps on the next.
      Long-form pages go further still with `leading-relaxed`. */
   line-height: 1.5;
-  /* Open Sans sets its default spacing at a comfortable reading width already —
-     open apertures, no crowded counters at 12–14px — so body copy takes no
-     tracking correction at all. */
+  /* Inter is drawn for interface use and already spaces itself for the 12–14px
+     this page mostly runs at, so body copy takes no tracking correction. Its
+     optical-size compensation is a DISPLAY-size concern — see the negative
+     tracking on the heading rule, which is where Inter actually wants it. */
   letter-spacing: 0;
   /* ---- Subpixel rendering, where this forced greyscale ----
    *
@@ -1079,12 +1080,10 @@ body {
    * If type ever needs to look lighter, the lever is the WEIGHT, not this.
    * Turning subpixel rendering off to simulate a lighter weight is paying for
    * it in sharpness on every screen that does not need the effect. */
-  /* Open Sans is loaded as its variable file, which covers every weight this
-     stylesheet and the components ask for, so a synthesised bold would only
-     ever be the browser smearing a real one — turn it off and any weight that
-     renders genuinely exists in a file. The corollary: if type somewhere
-     suddenly looks too light, it is asking for a weight outside 300–800,
-     and the fix is the `weight` array in `layout.tsx`, not this line. */
+  /* Inter is loaded as its variable file, which covers 100–900 — every weight
+     this stylesheet and the components ask for — so a synthesised bold would
+     only ever be the browser smearing a real one. Turned off, any weight that
+     renders genuinely exists in the file. */
   font-synthesis-weight: none;
 }
 
@@ -1146,7 +1145,7 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. 700 is well within Open Sans's
+     it that the eye had to stop and check. 700 is well within Inter's
      variable range, so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
@@ -1155,9 +1154,9 @@ h6,
      solid block that has to be decoded rather than read. Tracking that tight is
      a poster technique: it works on three words at 60px and fails on a sentence
      at 18px. -0.012em keeps a heading looking deliberate without closing the
-     gaps a reader uses to tell one letter from the next — Open Sans is drawn
-     open enough at 700 that pulling it in this far still reads as a solid,
-     confident block rather than as cramped type. */
+     gaps a reader uses to tell one letter from the next, and it is the
+     correction Inter itself asks for above body size: the face is spaced for
+     12–14px, so at 20–24px it reads slack unless it is pulled back in. */
   letter-spacing: -0.012em;
 }
 
@@ -1211,7 +1210,7 @@ h6,
    * display, headings. This is one row of the scale moving to the reading face,
    * not the display face going away.
    *
-   * The practical gain is figures. Open Sans is drawn for interface use with
+   * The practical gain is figures. Inter is drawn for interface use with
    * even digits, so "UGX 145,854" sets meaningfully shorter than it did in a
    * geometric face — which is the difference between a discounted price row
    * fitting a 150px phone tile and not. */
@@ -1498,13 +1497,28 @@ h6,
  * weight is worth most: it is the smallest tile, the lowest contrast in
  * daylight, and the screen this shop is mostly used on.
  *
- * Free, because Open Sans is loaded as its VARIABLE file (no `weight` array in
- * `app/layout.tsx`), so every step of 300–800 is already in the one download. */
+ * Free, because Inter is loaded as its VARIABLE file (no `weight` array in
+ * `app/layout.tsx`), so every step of 100–900 is already in the one download. */
 .product-name {
   font-family: var(--font-ui);
   font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
+  /* ---- No `font-size` or `line-height` here, and that is the fix ----
+   *
+   * This rule carried `font-size: 12px; line-height: 16px` for two commits, and
+   * because it is UNLAYERED it beat every `text-[Npx]`/`leading-[Npx]` utility
+   * on the elements wearing it — Tailwind's utilities live in `@layer
+   * utilities`, and an unlayered declaration wins outright. So both call sites
+   * asked for 13/17 (and 14/18 from `sm`) and both silently rendered at 12/16.
+   *
+   * What that broke is not only the size. A tile's name box is `line-clamp-2`
+   * with a `min-h` set to exactly twice the LEADING, which is what keeps every
+   * name in a row two lines tall and every price in that row on the same line.
+   * With the leading forced to 16px inside a 34/36px box, the pairing came
+   * apart and the two-line block stopped being locked at both ends.
+   *
+   * Size and leading belong to the call site, because a name in a grid tile and
+   * a name in the recently-viewed rail are different sizes. This rule owns the
+   * family, the weight and the tracking — the things that must not drift. */
   /* Undoes the heading tracking. A product name is body copy that happens to be
      marked up as a heading and should be spaced like the sentences around it. */
   letter-spacing: 0;
@@ -1569,9 +1583,10 @@ h6,
 
 /* The heaviest step, for the section headings that anchor the homepage.
  *
- * 800 rather than 900: Open Sans's variable file stops at 800, and at the
- * sizes these headings run — 18 to 24px, not poster scale — that is already
- * the heaviest step that still reads as letters rather than a black bar.
+ * 800 rather than 900, and the variable file carries both. At the sizes these
+ * headings run — 18 to 24px, not poster scale — 900 closes Inter's counters up
+ * and the word turns into a black bar. 800 is the heaviest step that still
+ * reads as letters.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
  * Tracking is pulled in harder than at 600: at this weight the letterforms
@@ -1604,7 +1619,7 @@ h6,
 
 /* Large buttons and promotional labels.
  *
- * `--font-ui` rather than `--font-display`. Both resolve to Open Sans today so
+ * `--font-ui` rather than `--font-display`. Both resolve to Inter today so
  * it changes nothing on screen, and it is kept deliberately: buttons are UI, read
  * at a glance at 14–16px alongside the navigation, and the last time headings
  * had a separate wide display face it pushed "Add to cart" broader than the

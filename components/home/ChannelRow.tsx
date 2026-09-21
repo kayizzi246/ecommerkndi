@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 /**
- * The channel strip: the shop's dozen destinations, as icons, above everything
- * else on the page.
+ * The channel strip: the shop's nine destinations, as chips, under the hero
+ * and the trust bar.
  *
  * ---- What this replaces, and why it is not the category row again ----
  *
@@ -18,16 +18,16 @@ import Link from "next/link";
  * the row survive an empty department, and each is a flat two-colour mark at
  * 20px because anything more detailed is mud at that size.
  *
- * ---- Why it is above the portal band rather than inside it ----
+ * ---- Where it sits ----
  *
- * It is the page's second navigation, after the masthead, and both belong at
- * the top edge. Put it below the band and it becomes a row of buttons in the
- * middle of the merchandise, which is the thing the removed category grids were
- * each guilty of.
+ * Third on the page: the hero opens it, the trust bar answers "why here", and
+ * this row answers "where to". It stays above the first product — below the
+ * merchandise it would be a row of buttons in the middle of the shelves, which
+ * is the thing the removed category grids were each guilty of.
  */
 
 /**
- * One channel. `tint` is the icon disc; the label is always ink.
+ * One channel. `tint` is the chip's ground and text colour.
  *
  * ---- Why almost all of them are the same grey ----
  *
@@ -48,12 +48,12 @@ type Channel = {
   icon: React.ReactNode;
 };
 
-/* 20px, `currentColor`, 1.8 stroke — the weight the masthead icons use, so the
+/* 18px, `currentColor`, 1.8 stroke — the weight the masthead icons use, so the
    two rows of navigation read as one set rather than two. */
 function Glyph({ children }: { children: React.ReactNode }) {
   return (
     <svg
-      className="h-[19px] w-[19px]"
+      className="h-[18px] w-[18px] shrink-0"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -71,7 +71,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Super Deals",
     href: "/sale",
-    tint: "bg-shop-primary-soft text-shop-primary-ink",
+    tint: "bg-shop-primary-soft text-shop-primary-ink ring-shop-primary/25",
     icon: (
       <Glyph>
         <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
@@ -81,7 +81,7 @@ const CHANNELS: Channel[] = [
   {
     label: "New in",
     href: "/search?sort=newest",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M12 3v18M3 12h18" />
@@ -91,7 +91,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Best sellers",
     href: "/search?sort=popular",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M6 20V10M12 20V4M18 20v-7" />
@@ -101,7 +101,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Top rated",
     href: "/search?sort=rating",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8L12 3.5Z" />
@@ -111,7 +111,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Shop by store",
     href: "/sellers",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 9h16l-1 11H5L4 9Z" />
@@ -122,7 +122,7 @@ const CHANNELS: Channel[] = [
   {
     label: "All categories",
     href: "/categories",
-    tint: "bg-shop-surface text-shop-ink",
+    tint: "bg-white text-shop-ink hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 5h7v7H4V5ZM13 5h7v7h-7V5ZM4 14h7v5H4v-5ZM13 14h7v5h-7v-5Z" />
@@ -132,7 +132,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Free delivery",
     href: "/shipping",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M3 7h11v9H3V7ZM14 10h4l3 3v3h-7v-6Z" />
@@ -144,7 +144,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Track order",
     href: "/track-order",
-    tint: "bg-shop-surface text-shop-body",
+    tint: "bg-white text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <circle cx="12" cy="12" r="8.5" />
@@ -155,7 +155,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Sell on Kandi",
     href: "/sell",
-    tint: "bg-shop-surface text-shop-ink",
+    tint: "bg-white text-shop-ink hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 20h16M7 20V9M12 20V4M17 20v-7" />
@@ -166,34 +166,32 @@ const CHANNELS: Channel[] = [
 
 export default function ChannelRow() {
   return (
-    <nav
-      aria-label="Shop sections"
-      className="border-b border-shop-line bg-white"
-    >
-      {/* ---- It scrolls on a phone rather than wrapping ----
+    <nav aria-label="Shop sections">
+      {/* ---- Chips on one line, not tiles in a rank ----
 
-          Nine channels wrapped onto three rows is a 150px block of navigation
-          above the first product, which is exactly the failure the removed
-          category grids kept producing. One scrolling row is 64px on any screen,
-          and the four that fit are the four this shop most wants tapped.
+          This was nine 74px tiles, each a 40px disc above a caption — a 64px
+          block on every screen, and on a phone four of them visible with five
+          more off the side of it. Laid out horizontally instead, a channel is
+          the icon and its label on ONE line, so the row is ~38px, six fit on a
+          phone rather than four, and the strip stops competing with the trust
+          bar directly above it for the same vertical space.
+
+          It still scrolls rather than wrapping. Nine channels wrapped onto
+          three rows is a 150px block of navigation above the first product,
+          which is exactly the failure the removed category grids kept
+          producing.
 
           `justify-center` from lg, where all nine fit at once and a left-ranged
           row would leave a third of the strip empty. */}
-      <ul className="no-scrollbar mx-auto flex max-w-[var(--shell)] items-start gap-1 overflow-x-auto px-3 py-2.5 md:px-8 lg:justify-center lg:gap-3">
+      <ul className="no-scrollbar phone-gutter mx-auto flex max-w-[var(--shell)] items-center gap-2 overflow-x-auto py-0.5 md:px-0 lg:justify-center">
         {CHANNELS.map((channel) => (
           <li key={channel.label} className="shrink-0">
             <Link
               href={channel.href}
-              className="group flex w-[74px] flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-center transition-colors hover:bg-shop-hairline md:w-[92px]"
+              className={`group flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-[12px] font-semibold ring-1 ring-shop-edge transition-colors hover:ring-shop-primary md:text-[13px] ${channel.tint}`}
             >
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-200 ease-out group-hover:-translate-y-0.5 ${channel.tint}`}
-              >
-                {channel.icon}
-              </span>
-              <span className="w-full truncate text-[11px] font-semibold leading-tight text-shop-ink transition-colors group-hover:text-shop-primary md:text-[12px]">
-                {channel.label}
-              </span>
+              {channel.icon}
+              <span className="whitespace-nowrap">{channel.label}</span>
             </Link>
           </li>
         ))}
