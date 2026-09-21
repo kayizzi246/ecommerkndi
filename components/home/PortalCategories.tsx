@@ -181,7 +181,7 @@ export default function PortalCategories({
                 shopper has to move the pointer to find that out. */}
             {row.children.length > 0 && (
               <div className="pointer-events-none invisible absolute -top-3 left-full z-30 w-[430px] pl-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
-                <div className="rounded-2xl bg-white p-4 shadow-[0_18px_44px_-16px_rgba(120,72,30,0.32)] ring-1 ring-shop-edge">
+                <div className="rounded-2xl bg-white p-4 ring-1 ring-shop-edge">
                   <p className="mb-2.5 text-[13px] font-bold text-shop-ink">
                     {row.name}
                   </p>

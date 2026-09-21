@@ -1,7 +1,6 @@
 import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
 import HeroBanner from "@/components/home/HeroBanner";
-import TrustBar from "@/components/home/TrustBar";
 import PortalBand from "@/components/home/PortalBand";
 import FeatureCards, { type FeatureCard } from "@/components/home/FeatureCards";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
@@ -101,7 +100,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *
  *   Hero banner        → `HeroBanner`, full width above the band: the uploaded
  *                        artwork when there is any, and a designed panel built
- *                        from the same settings when not. A trust bar under it.
+ *                        from the same settings when not.
  *   Super Deals        → the price panel in the band. Six products, six
  *                        prices, the same countdown.
  *   Maximise savings   → the three offer chips under the hero.
@@ -343,17 +342,14 @@ export default async function Home() {
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 py-2 md:gap-4 md:px-8 md:py-3.5">
         {/* ---- The opening screen, in the order a shopper asks the questions ----
 
-            The hero says what is on. The trust bar says why to buy it here —
-            four promises the shop can be held to, each linked to the page that
-            proves it. The channel strip says where to go next. Then the band:
+            The hero says what is on. The channel strip says where to go next.
+            Then the band:
             departments, the deepest cuts with prices showing, and the account.
 
             The strip used to open the page above the shell; a row of nine
             chips is a weaker first impression than a campaign, and navigation
             reads better once there is something to navigate away from. */}
         <HeroBanner settings={settings} />
-
-        <TrustBar settings={settings} />
 
         <ChannelRow />
 

@@ -58,7 +58,7 @@ export default function PortalBand({
           when there are fewer than four discounts to show, so a shop running no
           sale gets a two-column band rather than an empty promise. */}
       {deals.length >= 4 && (
-        <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 shadow-[0_12px_28px_-24px_rgba(120,72,30,0.5)] ring-1 ring-shop-edge md:p-3.5">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 ring-1 ring-shop-edge md:p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[13px] font-bold leading-tight text-shop-ink sm:text-[14px]">
               Today&rsquo;s deepest cuts

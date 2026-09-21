@@ -943,7 +943,7 @@ export default function ProductCard({
              back with the ground. That is the same trade the yellow round made
              in the opposite direction, and it is why a fill change here is
              never only a fill change. */
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white shadow-[0_4px_10px_-4px_rgba(198,40,40,0.85)]">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white">
             −{discount}%
           </span>
         )}

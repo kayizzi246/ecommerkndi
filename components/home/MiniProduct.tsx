@@ -93,7 +93,7 @@ export default function MiniProduct({
             White type rather than ink: this red is 5.5:1 against white, where
             near-black on it is under 4. */}
         {discount > 0 && (
-          <span className="absolute left-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1 py-px text-[9px] font-bold leading-tight text-white shadow-[0_3px_8px_-3px_rgba(198,40,40,0.75)] sm:px-1.5 sm:py-0.5 sm:text-[10px]">
+          <span className="absolute left-1 top-1 rounded-full bg-[color:var(--color-shop-price-was)] px-1 py-px text-[9px] font-bold leading-tight text-white sm:px-1.5 sm:py-0.5 sm:text-[10px]">
             -{discount}%
           </span>
         )}
