@@ -1440,12 +1440,12 @@ h6,
   letter-spacing: 0;
 }
 
-/* ---------- Product names on a tile — 400, 12px ----------
+/* ---------- Product names on a tile — 500, 14–15px ----------
  * A grid tile's name and a product page's <h1> are the same string doing two
  * different jobs. They differ in size and in weight.
  *
- * This has been 600, then 400, then 600, and is 400 again — asked for directly
- * this time, alongside a smaller size, so the note records what it settles.
+ * This has been 600, then 400, then 600, then 400, and is 500 now — asked for
+ * directly, alongside a larger size, so the note records what it settles.
  *
  * The argument for 400 is the one that has always been true of the SCAN: a
  * shopper going down a grid is matching pictures and prices, and the name is
@@ -1501,7 +1501,7 @@ h6,
  * `app/layout.tsx`), so every step of 100–900 is already in the one download. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 400;
+  font-weight: 500;
   /* ---- No `font-size` or `line-height` here, and that is the fix ----
    *
    * This rule carried `font-size: 12px; line-height: 16px` for two commits, and

@@ -1176,7 +1176,7 @@ export default function ProductCard({
               from the leading rather than from the line count. 17px on 13px
               type is still a comfortable 1.31, and it is two pixels off every
               tile in the grid. */}
-          {/* ---- 13/17 on a phone, 14/18 from `sm` up, at weight 500 ----
+          {/* ---- 14/18 on a phone, 15/20 from `sm` up, at weight 500 ----
 
               Up from 12/15 and 12/14 at weight 400 — 300 on a phone. The long
               note above argued the name down to that, and the half of it that
@@ -1196,8 +1196,8 @@ export default function ProductCard({
               red on a reduction, the saving is a green chip, and the name is
               500 — three steps down and the only uncoloured row in the block.
 
-              `min-h` is exactly 2 × the leading at BOTH sizes — 34/17 on a
-              phone, 36/18 from `sm` up — and that pairing is load-bearing:
+              `min-h` is exactly 2 × the leading at BOTH sizes — 36/18 on a
+              phone, 40/20 from `sm` up — and that pairing is load-bearing:
               `line-clamp-2` is a ceiling rather than a height, so any slack in
               the box is slack a one-line name collects and a two-line name does
               not, and the prices across a row stop landing on the same line.
@@ -1212,7 +1212,7 @@ export default function ProductCard({
               place there is height to spare. 18 on 14 is 1.29, the same ratio
               the phone runs at, so a name now reads the same way at every
               width. */}
-          <h3 className="product-name line-clamp-2 min-h-[34px] text-[13px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[14px] sm:leading-[18px]">
+          <h3 className="product-name line-clamp-2 min-h-[36px] text-[14px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[40px] sm:text-[15px] sm:leading-[20px]">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}

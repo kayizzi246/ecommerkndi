@@ -209,7 +209,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                      keeps every tile in the row the same height. */}
                 {/* 13px, following the grid tile up from 12. One line here
                     rather than two, so the leading already had the room. */}
-                <h3 className="product-name mt-2 truncate text-[13px] leading-[17px] text-shop-ink transition-colors group-hover:text-shop-primary">
+                <h3 className="product-name mt-2 truncate text-[14px] leading-[18px] text-shop-ink transition-colors group-hover:text-shop-primary">
                   {item.name}
                 </h3>
                 <p className="price mt-1 whitespace-nowrap">{formatPrice(item.price)}</p>
