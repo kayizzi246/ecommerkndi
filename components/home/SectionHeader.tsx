@@ -27,8 +27,8 @@ export default function SectionHeader({
    * fifth added "because that one is on a dark background" is how it gets back
    * to four.
    *
-   * The link keeps the brand orange in BOTH tones, deliberately. #ff6a00 is
-   * 5.9:1 on #111827 — the same arithmetic the masthead note in `Header` runs —
+   * The link keeps the brand orange in BOTH tones, deliberately. #f2560a is
+   * ~5.2:1 on #111827 — the same arithmetic the masthead note in `Header` runs —
    * so it is one of the few things in this shop that needs no adjustment when
    * the ground flips.
    *
@@ -157,7 +157,7 @@ export default function SectionHeader({
           /* ---- The link is white on a dark ground, not orange ----
 
              The note at the top of this file says the brand orange needs no
-             adjustment when the ground flips, because #ff6a00 is 5.9:1 on
+             adjustment when the ground flips, because #f2560a is ~5.2:1 on
              #111827. That was true and it was true about ONE dark ground. The
              deals shelf is crimson now, and orange on #b8123a is about 2:1 —
              two saturated warm hues a few degrees apart, which is both

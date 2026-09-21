@@ -865,8 +865,8 @@ export default function ProductCard({
 
              `shop-primary-ink` rather than `shop-primary` is not a nicety.
              The palette note at the top of `globals.css` is explicit — white
-             on #ff6a00 is 2.9:1 and fails AA at small sizes, and this label is
-             11px. #b34a00 puts it at 5.9:1, which is better than the red it
+             on #f2560a is ~3.4:1 and fails AA at small sizes, and this label is
+             11px. #a84006 puts it at ~6.2:1, which is better than the red it
              replaces managed (4.0:1). The whole deal language — this flag, the
              Super Deal chip and the discounted price — is now that one colour.
 
@@ -911,7 +911,7 @@ export default function ProductCard({
              the flag was the only thing drawn on a bare photograph.
 
              The tile is a white card on a cream page now, and yellow lost the
-             argument on sight: #facc15 next to #ff6a00, on a warm ground, is two
+             argument on sight: #facc15 next to #f2560a, on a warm ground, is two
              saturated warm hues a few degrees apart, which is the one pairing
              that reads as an accident rather than as a system. Four of those in
              a row is what made the old homepage look cluttered rather than
@@ -919,8 +919,8 @@ export default function ProductCard({
              things to learn and a calmer page.
 
              Ink type on the orange rather than white, and that part is not
-             taste: white on #ff6a00 is 2.9:1 and this label is 11px, where
-             near-black on it is 6.0:1. It also happens to look better — a dark
+             taste: white on #f2560a is ~3.4:1 and this label is 11px, where
+             near-black on it is ~5.2:1. It also happens to look better — a dark
              number on a bright chip is what a price sticker looks like.
 
              The shape stays as the note above describes it: a pill, 800 weight,

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"TSC_EXIT:$?\")",
+      "Bash(npx next *)",
+      "Bash(curl -sL --max-time 40 -o C:/Users/LENOVO/AppData/Local/Temp/claude/c--Users-LENOVO-Desktop-my-projects-kandi-ecommerce-store-kandi-store/4f7cbc5f-e93f-4874-be1b-530111515e98/scratchpad/banner.png https://shop.kandiug.com/wp-content/uploads/2026/08/ChatGPT-Image-Aug-21-2026-08_30_24-PM.png)",
+      "Bash(git diff *)",
+      "Bash(awk '/^@@/{h=$0} /^@@/{print \"\\\\n\"h} !/^@@/{if\\(h ~ /-129/\\) print}')",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(sed -n '/_kDeptTints = /,/];/p' home_sections_widget.dart)",
+      "Bash(sed -n '/_kDeptInks = /,/];/p' home_sections_widget.dart)"
+    ]
+  }
+}

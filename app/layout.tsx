@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,46 +13,19 @@ import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: Inter for reading, Poppins for finding ----
+ * ---- The shop's type: one face, Open Sans, everywhere ----
  *
- * Two faces, and the split is by JOB rather than by element:
+ * Open Sans is a humanist sans built for interface reading at small sizes —
+ * open apertures, even figures, and enough personality at 700 weight to carry
+ * a section title without a second family being loaded for it. `--font-ui`
+ * and `--font-display` in `globals.css` both point at it, which is what lets
+ * a headline and a price sit in the same visual family instead of arguing.
  *
- *   INTER   everything a shopper reads or scans a word at a time — product
- *           names, prices, body copy, form fields, navigation, the meta lines
- *           under a tile. It is a neo-grotesque drawn for interface use at
- *           small sizes, which is exactly what a page of 12–14px catalogue
- *           text is, and its figures are even enough that a column of UGX
- *           prices lines up down a grid.
- *
- *   POPPINS everything that is FOUND rather than read — "Trending now", a page
- *           headline, the hero. Geometric and near-circular, so a section title
- *           stays legible at a glance halfway down a page of photographs, and
- *           its weight reads as personality rather than as emphasis.
- *
- * That is the marketplace idiom: the merchandise supplies the character, the
- * body face gets out of its way, and the display face appears only where the
- * page needs to be navigated rather than read.
- *
- * ---- What this costs, stated plainly ----
- *
- * Inter is a VARIABLE font: one file covers 100–900, so every weight the shop
- * uses — 400 body, 500, 600 product names, 700, 800 prices — is free once that
- * file has landed. Nothing in the reading face ever needs to be argued over
- * again.
- *
- * Poppins is NOT. Google ships it as static instances, so every weight is its
- * own download, which is why the array below is exactly two entries and not the
- * nine on offer. 700 is the weight the heading rule in `globals.css` forces on
- * every h1–h6, `.section-title`, `.hero-display` and `.heading-*`; 600 is the
- * quieter step for the few titles that ask for it. There is no 400, 500 or 800
- * Poppins in this shop, and adding one costs a Ugandan shopper another file on
- * the critical path — check it is genuinely used first.
- *
- * `font-synthesis-weight: none` in `globals.css` is what makes that list
- * load-bearing rather than advisory: a weight that was not downloaded is not
- * smeared into existence, it silently renders as a neighbour. So a Poppins
- * weight that is missing here does not look broken, it looks *untouched* —
- * which is far harder to notice.
+ * It is loaded as its VARIABLE file (Google ships wght 300–800 in one file),
+ * so every weight this shop actually asks for — 400 body, 500–600 labels, 700
+ * headings, 800 prices — is already in the one download. Nothing here needs a
+ * `weight` array, and `font-synthesis-weight: none` in `globals.css` is safe
+ * because there is no weight in use that was not really downloaded.
  *
  * ---- The delivery, which is why a webfont is affordable at all ----
  *
@@ -65,16 +38,16 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
  *     `@font-face`, so the swap does not reflow a price or a product name.
  *
- * `variable` rather than `className`: the families are handed to CSS as
- * `--font-inter` and `--font-poppins`, and `globals.css` points `--font-ui` and
- * `--font-display` at them. Those two names are the seam that has now made five
- * typeface changes a two-line edit here instead of a search through two hundred
- * components. Do not collapse them.
+ * `variable` rather than `className`: the family is handed to CSS as
+ * `--font-open-sans`, and `globals.css` points `--font-ui` and `--font-display`
+ * at it. Those two names are the seam that makes the next typeface change a
+ * two-line edit here instead of a search through two hundred components. Do
+ * not collapse them.
  */
-const manrope = Manrope({
+const openSans = Open_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-manrope",
+  variable: "--font-open-sans",
 });
 
 /**
@@ -254,8 +227,8 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `poppins.variable` defines `--font-poppins` on the root element, where
-      // every rule in globals.css can reach it. The class carries no
+      // `openSans.variable` defines `--font-open-sans` on the root element,
+      // where every rule in globals.css can reach it. The class carries no
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
@@ -267,7 +240,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${manrope.variable} h-full`}
+      className={`${openSans.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

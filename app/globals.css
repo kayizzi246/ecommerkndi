@@ -9,9 +9,9 @@
  * as a brand.
  *
  * Orange is a light hue, which constrains where it can carry text:
- *   • #ff6a00 on white is 2.9:1 — fine for a fill, a logo or 24px+ display type,
- *     under the 4.5:1 that body-sized text needs.
- *   • white on #ff6a00 is the same 2.9:1, so a small white button label on an
+ *   • #f2560a on white is ~3.4:1 — fine for a fill, a logo or 24px+ display
+ *     type, under the 4.5:1 that body-sized text needs.
+ *   • white on #f2560a is the same ~3.4:1, so a small white button label on an
  *     orange fill does not meet AA either. `--color-shop-primary-ink` exists for
  *     the cases that must pass.
  *
@@ -278,7 +278,7 @@
    *
    * The first pair was #eef0f4 on #ffffff — a cool neutral canvas under white
    * panels. It worked structurally and it was the wrong temperature for this
-   * shop: the brand is #ff6a00, the masthead and every button on the site are
+   * shop: the brand is #f2560a, the masthead and every button on the site are
    * orange, and a blue-grey ground under all of it put the page half a turn
    * away from its own accent colour. Warm ground, warm brand, one page.
    *
@@ -376,7 +376,7 @@
    * The seventh turn of the argument at the head of this file, and the first
    * one that stops asking "white or grey". Both answers were cold: a flat
    * white page gives the eye nothing to group by, and every off-white tried
-   * here was a NEUTRAL grey, which under a #ff6a00 brand reads as the page
+   * here was a NEUTRAL grey, which under a #f2560a brand reads as the page
    * being switched off.
    *
    * The canvas is a 3% warm cream. It is lighter than every grey this file
@@ -413,7 +413,7 @@
    *
    * What it costs, and what to look at first if the page starts reading cold:
    * #f7f5f2 is a 3% neutral, and the complaint the seventh turn was answering
-   * was that a neutral off-white under a #ff6a00 brand reads as the page being
+   * was that a neutral off-white under a #f2560a brand reads as the page being
    * switched off. If that comes back, this line is where it comes from, and
    * #fff8f2 is what it was.
    *
@@ -621,17 +621,22 @@
   --color-shop-olive-bright: #a4b504;
   --color-shop-olive-dark: #5a6502;
 
-  /* The brand orange. Fills, the logo, prices at display size, active nav. */
-  --color-shop-primary: #ff6a00;
-  --color-shop-primary-dark: #e85d00; /* hover */
-  --color-shop-primary-soft: #fff3e8; /* tint behind an active or selected row */
-  /* The same hue darkened until white text on it clears 4.6:1. Used where a
-     small label sits on an orange fill — a 14px button caption on #ff6a00 is
-     2.9:1 and fails AA, and no amount of brand consistency is worth a button
-     nobody with low vision can read. */
-  --color-shop-primary-ink: #b34a00;
-  --color-shop-flame: #ff6a00; /* alias of primary, kept so components compile */
-  --color-shop-ember: #e85d00; /* the second stop of the one gradient allowed */
+  /* The brand orange. Fills, the logo, prices at display size, active nav.
+     Deepened from the old #ff6a00 — same hue, pulled a step toward red and off
+     full saturation, which is the difference between a traffic-cone orange and
+     one that reads as a considered brand colour rather than a warning colour. */
+  --color-shop-primary: #f2560a;
+  --color-shop-primary-dark: #d94a00; /* hover */
+  --color-shop-primary-soft: #fdf1e7; /* tint behind an active or selected row */
+  /* The same hue darkened until white text on it clears AA. Used where a
+     small label sits on an orange fill — a 14px button caption on #f2560a is
+     ~3.4:1 and fails AA, and no amount of brand consistency is worth a button
+     nobody with low vision can read. This step clears ~6.2:1, more headroom
+     than the old #b34a00 gave, because the richer base hue needed less of a
+     dip to get there. */
+  --color-shop-primary-ink: #a84006;
+  --color-shop-flame: #f2560a; /* alias of primary, kept so components compile */
+  --color-shop-ember: #d94a00; /* the second stop of the one gradient allowed */
 
   /* ---- Red now means ERRORS, and only errors ----
    *
@@ -693,7 +698,7 @@
    *
    * #c62828 rather than a pure red: it clears 5.5:1 on white, so a price is
    * still a price to somebody reading at low contrast, and it sits beside the
-   * brand orange without the two arguing. Pure #ff0000 next to #ff6a00 is two
+   * brand orange without the two arguing. Pure #ff0000 next to #f2560a is two
    * signals shouting the same thing in slightly different voices. */
   /* ---- 2026-09-04: this is now the shop's ONE deal red ----
    *
@@ -789,8 +794,8 @@
    * display, one tint for backgrounds. Kept deliberately few: a marketplace
    * grid is already visually busy, and the products have to win.
    */
-  --color-pop-orange: #ff6a00;
-  --color-pop-orange-bright: #ff8c33;
+  --color-pop-orange: #f2560a;
+  --color-pop-orange-bright: #ff8642;
   --color-pop-red: #111827;
   --color-pop-green: #16a34a;
   --color-pop-blue: #1a4fd6;
@@ -812,8 +817,8 @@
   --color-pop-violet-on-dark: #c4b5fd;
 
   /* Legacy aliases kept so existing pages keep compiling */
-  --color-kandi: #ff6a00;
-  --color-kandi-dark: #e85d00;
+  --color-kandi: #f2560a;
+  --color-kandi-dark: #d94a00;
   --color-sale: #111827; /* was red; retired with the rest — see shop-error */
   --color-fresh: #16a34a;
   --color-sun: #facc15;
@@ -823,10 +828,10 @@
   --color-sold: #71717a;
 }
 
-/* ---- The type: Poppins, one face, everywhere ----
+/* ---- The type: Open Sans, one face, everywhere ----
  *
- * `--font-poppins` is set by `next/font` in `app/layout.tsx`, where the
- * reasoning for the face — and the three costs it carries — is written out in
+ * `--font-open-sans` is set by `next/font` in `app/layout.tsx`, where the
+ * reasoning for the face — and the delivery it rides in on — is written out in
  * full. This is the other half: the stack behind it, and the scale it is set
  * at.
  *
@@ -862,20 +867,20 @@
  * their own face again, this is the one place that changes. Do not collapse
  * them into one variable to save a line. */
 :root {
-  /* ---- The reading face: Inter ----
+  /* ---- The face: Open Sans ----
    *
-   * Inter first, then the metric-matched fallback Next generates for it, then
-   * the system stack this shop used to run on outright.
+   * Open Sans first, then the metric-matched fallback Next generates for it,
+   * then the system stack this shop used to run on outright.
    *
    * The fallback list is not decoration. `display: swap` paints the first
-   * screen in whatever is behind Inter, so that face is what a shopper on a
+   * screen in whatever is behind Open Sans, so that face is what a shopper on a
    * slow connection actually reads for the first few hundred milliseconds —
    * `system-ui` resolves it to Segoe UI Variable on Windows, Roboto on Android
-   * and SF on iOS. All three are neo-grotesques like Inter itself, which is
+   * and SF on iOS. All three are humanist sans like Open Sans itself, which is
    * what makes this the cheap half of the swap: the fallback and the webfont
    * are the same KIND of face, so the repaint moves letterforms rather than
-   * re-setting the page. Inter is variable, so the whole scale arrives in that
-   * one file — see `layout.tsx`. */
+   * re-setting the page. Open Sans is variable, so the whole scale arrives in
+   * that one file — see `layout.tsx`. */
   /* ---------- How wide the shop is ----------
    *
    * Every container in the store — the masthead, the nav, the search bar, the
@@ -972,24 +977,25 @@
   --shell: 1720px;
 
   --font-ui:
-    var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", "Noto Sans", Arial, sans-serif;
-  /* ---- The display face: Poppins ----
+  /* ---- The display face: Open Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
    * `h1`–`h6`, `.section-title`, `.heading-black`, `.heading-800`,
    * `.hero-display` and `.price` — so pointing it at a different family is a
    * one-line change and cannot leave half the store on the old face. That is
-   * the whole reason the token exists, and it has now earned it four times over.
+   * the whole reason the token exists, and it has now earned it five times over.
    *
    * `.price` is no longer in that list — it reads through `--font-ui` with the
    * rest of the tile, because a price is the largest step of a block of numbers
    * rather than a headline. See the note on `.price` below.
    *
-   * Poppins is loaded as TWO static weights, 600 and 700 (Google ships no
-   * variable Poppins). Anything resolving through this token may therefore only
-   * ask for those two — `font-synthesis-weight: none` means a third would
-   * silently render as one of them rather than looking wrong.
+   * Open Sans is loaded as its VARIABLE file (Google ships wght 300–800 in one
+   * file). Anything resolving through this token may ask for any weight in that
+   * range — `font-synthesis-weight: none` still matters if a weight outside it
+   * (900, say) is ever asked for; it would silently render as 800 instead of
+   * looking wrong.
    *
    * Product names are the deliberate exception: they are set as `<h3>` on a
    * card and `<h1>` on a product page, and `.font-normal-heading` pulls them
@@ -997,11 +1003,11 @@
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
   --font-display:
-    var(--font-manrope), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-open-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
-     It no longer names anything real — Poppins draws no true tabular set — but
-     the call sites are worth keeping tagged, because they are exactly the
+     It no longer names anything real — Open Sans draws no true tabular set —
+     but the call sites are worth keeping tagged, because they are exactly the
      places to repoint if a face with proper figures ever comes back. */
   --font-tabular: var(--font-ui);
 }
@@ -1042,19 +1048,9 @@ body {
      be got through — descenders on one line stop crowding the caps on the next.
      Long-form pages go further still with `leading-relaxed`. */
   line-height: 1.5;
-  /* Very slightly negative, where this used to be very slightly positive.
-   *
-   * The old +0.004em existed because Inter and Roboto are drawn tight for
-   * interface use, and at the 12–14px most of this page runs at their counters
-   * close up — "rn" starts reading as "m" — so a hair of tracking opened them
-   * back out.
-   *
-   * Poppins has the opposite problem. It is geometric: circular bowls, generous
-   * sidebearings, drawn spacious by construction. Adding tracking to it makes a
-   * product title look letterspaced rather than legible, and on a two-line name
-   * in a 150px tile the extra width costs real characters before the ellipsis.
-   * Pulling it in a fraction buys some of that width back without the type ever
-   * looking cramped — there is a lot of room in this face to give up. */
+  /* Open Sans sets its default spacing at a comfortable reading width already —
+     open apertures, no crowded counters at 12–14px — so body copy takes no
+     tracking correction at all. */
   letter-spacing: 0;
   /* ---- Subpixel rendering, where this forced greyscale ----
    *
@@ -1083,11 +1079,11 @@ body {
    * If type ever needs to look lighter, the lever is the WEIGHT, not this.
    * Turning subpixel rendering off to simulate a lighter weight is paying for
    * it in sharpness on every screen that does not need the effect. */
-  /* The five Poppins weights loaded in `layout.tsx` are every weight this
+  /* Open Sans is loaded as its variable file, which covers every weight this
      stylesheet and the components ask for, so a synthesised bold would only
      ever be the browser smearing a real one — turn it off and any weight that
      renders genuinely exists in a file. The corollary: if type somewhere
-     suddenly looks too light, it is asking for a weight that was not loaded,
+     suddenly looks too light, it is asking for a weight outside 300–800,
      and the fix is the `weight` array in `layout.tsx`, not this line. */
   font-synthesis-weight: none;
 }
@@ -1150,8 +1146,8 @@ h6,
      A heading's job on a marketplace page is to be found without being read —
      a shopper scrolling past four product rails needs to locate "Daily Deals"
      at a glance, and at 600 it sat close enough to the product titles beneath
-     it that the eye had to stop and check. 700 is one of the five Poppins
-     weights loaded in `layout.tsx`, so nothing here is a synthesised bold. */
+     it that the eye had to stop and check. 700 is well within Open Sans's
+     variable range, so nothing here is a synthesised bold. */
   font-weight: 700;
   /* Tightened, but only just.
 
@@ -1159,19 +1155,9 @@ h6,
      solid block that has to be decoded rather than read. Tracking that tight is
      a poster technique: it works on three words at 60px and fails on a sentence
      at 18px. -0.012em keeps a heading looking deliberate without closing the
-     gaps a reader uses to tell one letter from the next.
-
-     It stays at -0.012em on Poppins rather than being opened back up, for the
-     same reason the body tracking went negative: Poppins is geometric and drawn
-     with generous sidebearings, so a heading set at its natural spacing reads
-     slack above the dense product grid underneath it. On a one-face page this
-     matters more, not less — tracking, weight and size are now the only things
-     separating a heading from the copy around it.
-
-     It went to -0.008em while headings were set in a neo-grotesque, which is
-     drawn tight for interface use already and closed its counters at -0.012em.
-     Headings are Poppins again, so the original number comes back with them:
-     the tracking has to follow the face, not the file it happens to live in. */
+     gaps a reader uses to tell one letter from the next — Open Sans is drawn
+     open enough at 700 that pulling it in this far still reads as a solid,
+     confident block rather than as cramped type. */
   letter-spacing: -0.012em;
 }
 
@@ -1225,10 +1211,10 @@ h6,
    * display, headings. This is one row of the scale moving to the reading face,
    * not the display face going away.
    *
-   * The practical gain is figures. Inter is drawn for interface use with
-   * narrow, even digits, so "UGX 145,854" sets meaningfully shorter than it did
-   * in a geometric face — which is the difference between a discounted price
-   * row fitting a 150px phone tile and not. */
+   * The practical gain is figures. Open Sans is drawn for interface use with
+   * even digits, so "UGX 145,854" sets meaningfully shorter than it did in a
+   * geometric face — which is the difference between a discounted price row
+   * fitting a 150px phone tile and not. */
   font-family: var(--font-ui);
   /* ---- 800, and it is a real weight rather than a smeared one ----
    *
@@ -1512,10 +1498,8 @@ h6,
  * weight is worth most: it is the smallest tile, the lowest contrast in
  * daylight, and the screen this shop is mostly used on.
  *
- * Free, because Inter is loaded as its VARIABLE file (no `weight` array in
- * `app/layout.tsx`), so every step of 100–900 is already in the one download.
- * Do not repeat this with anything set in Poppins — that face is two static
- * instances and a third weight is a third file. */
+ * Free, because Open Sans is loaded as its VARIABLE file (no `weight` array in
+ * `app/layout.tsx`), so every step of 300–800 is already in the one download. */
 .product-name {
   font-family: var(--font-ui);
   font-weight: 400;
@@ -1585,11 +1569,9 @@ h6,
 
 /* The heaviest step, for the section headings that anchor the homepage.
  *
- * 800 rather than 900, by choice and now by supply as well. Poppins does draw a
- * 900, but it is deliberately not loaded: at the sizes these headings run — 18
- * to 24px, not poster scale — 900 closes the counters up and the word turns
- * into a black bar, so it would be a sixth font file downloaded to make the
- * page worse. 800 is the heaviest step that still reads as letters.
+ * 800 rather than 900: Open Sans's variable file stops at 800, and at the
+ * sizes these headings run — 18 to 24px, not poster scale — that is already
+ * the heaviest step that still reads as letters rather than a black bar.
  *
  * Unlayered, like the heading rule it overrides, so it wins wherever it lands.
  * Tracking is pulled in harder than at 600: at this weight the letterforms
@@ -1622,8 +1604,8 @@ h6,
 
 /* Large buttons and promotional labels.
  *
- * `--font-ui` rather than `--font-display`. Both resolve to Poppins today so it
- * changes nothing on screen, and it is kept deliberately: buttons are UI, read
+ * `--font-ui` rather than `--font-display`. Both resolve to Open Sans today so
+ * it changes nothing on screen, and it is kept deliberately: buttons are UI, read
  * at a glance at 14–16px alongside the navigation, and the last time headings
  * had a separate wide display face it pushed "Add to cart" broader than the
  * button drawn around it. Tagging them correctly now is free. */
@@ -2107,7 +2089,7 @@ h6,
 }
 .tile-card:hover {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 106, 0, 0.32),
+    inset 0 0 0 1px rgba(242, 86, 10, 0.32),
     0 16px 32px -20px rgba(120, 72, 30, 0.55);
   transform: translateY(-2px);
 }
@@ -2139,7 +2121,7 @@ h6,
 .field-shop:focus {
   outline: none;
   border-color: var(--color-shop-primary);
-  box-shadow: 0 0 0 3px rgba(192, 90, 28, 0.12);
+  box-shadow: 0 0 0 3px rgba(242, 86, 10, 0.16);
 }
 
 /* ---------- Typing must not move the page ----------
@@ -2615,7 +2597,7 @@ h6,
  * enough on its own here — it is drawn INSET, so it lands on the cell rather
  * than in the gap, and the neighbours do not move. */
 .product-grid-flush .tile-card:hover {
-  box-shadow: inset 0 0 0 1px rgba(255, 106, 0, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(242, 86, 10, 0.32);
   transform: none;
 }
 

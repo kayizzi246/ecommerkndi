@@ -59,12 +59,12 @@ export default function SellerAuthLayout({
         <div
           aria-hidden
           className="pointer-events-none absolute -left-32 -top-32 h-[520px] w-[520px] rounded-full opacity-[0.22] blur-3xl"
-          style={{ background: "radial-gradient(circle, #ff6a00 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #f2560a 0%, transparent 70%)" }}
         />
         <div
           aria-hidden
           className="pointer-events-none absolute -bottom-40 -right-24 h-[440px] w-[440px] rounded-full opacity-[0.14] blur-3xl"
-          style={{ background: "radial-gradient(circle, #ff6a00 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #f2560a 0%, transparent 70%)" }}
         />
 
         <div className="relative flex h-full flex-col">

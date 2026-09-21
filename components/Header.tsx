@@ -45,15 +45,15 @@ import AccountMenu from "@/components/AccountMenu";
  * ---- Why the working row is gray-900 and not orange ----
  *
  * Orange was the obvious choice and it is the wrong one, for a reason worth
- * recording so nobody re-tries it: #ff6a00 is a LIGHT hue. White on it is
- * 2.9:1, which fails AA for text and fails the 3:1 graphics threshold for
+ * recording so nobody re-tries it: #f2560a is a LIGHT hue. White on it is
+ * ~3.4:1, which fails AA for text and fails the 3:1 graphics threshold for
  * icons too. An orange masthead therefore cannot carry white type or white
  * icons — it has to carry near-black ones, which looks muddy — and the shop
  * would be reaching for `--color-shop-primary-ink` in the one place a brand
  * colour is supposed to be at full strength.
  *
  * Gray-900 has no such problem. White on #111827 is 16.1:1 and the brand orange
- * on it is 5.9:1, so orange becomes the ACCENT — the search button, the cart
+ * on it is ~5.2:1, so orange becomes the ACCENT — the search button, the cart
  * badge, the cart total, every hover — at full saturation and fully legible.
  * That is the palette's own stated ratio (mostly neutral, a little orange)
  * expressed in the masthead rather than argued against by it.
@@ -61,7 +61,7 @@ import AccountMenu from "@/components/AccountMenu";
  * ---- The promo strip is orange and its type is near-black ----
  *
  * Same arithmetic, opposite conclusion. The strip carries nothing but short
- * bold phrases, near-black on orange is 5.5:1, and one saturated hairline above
+ * bold phrases, near-black on orange is ~5.2:1, and one saturated hairline above
  * a dark row is what stops the top of the page reading as a single black slab.
  * It replaces a yellow strip, which was legible (black on #facc15 is 11:1) and
  * a second brand colour the shop does not otherwise use.
@@ -271,7 +271,7 @@ export default function Header({
 
            White is where it lands, and the argument this time is about the PAGE
            rather than the row: the shop wants a light storefront, and a
-           full-width block of #ff6a00 above the fold was the largest and
+           full-width block of #f2560a above the fold was the largest and
            heaviest object on the homepage. The brand still gets its colour —
            the wordmark, the deal links, the buttons, the hero disc — but it is
            spent on marks rather than on a ground.
@@ -408,7 +408,7 @@ export default function Header({
             //
             // The row is white again, which makes this cheaper than it was.
             // The two files that used to break here were a dark-on-transparent
-            // logo, which muddied against #ff6a00, and a logo saved WITH a
+            // logo, which muddied against #f2560a, and a logo saved WITH a
             // white rectangle behind it, which showed as a box parked on the
             // orange. On white both of those are simply correct — a
             // dark-on-transparent PNG is now the file this slot wants, and it
@@ -464,7 +464,7 @@ export default function Header({
                 >
                   <path
                     d="M2 13h6M0 19h5M3 25h5"
-                    stroke="#ff6a00"
+                    stroke="#f2560a"
                     strokeWidth="2.4"
                     strokeLinecap="round"
                     opacity=".55"
@@ -473,8 +473,8 @@ export default function Header({
                     d="M13 11h18a2 2 0 0 1 2 2.2l-1.8 20A3 3 0 0 1 28.2 36H15.8a3 3 0 0 1-3-2.8L11 13.2A2 2 0 0 1 13 11Z"
                     /* Flat, not a gradient.
 
-                       The bag was filled with a two-stop ramp from #ff6a00 to
-                       #e85d00 — a 6% shift in lightness across 22 pixels. At
+                       The bag was filled with a two-stop ramp from #f2560a to
+                       #d94a00 — a 6% shift in lightness across 22 pixels. At
                        the size this mark actually renders, 32px on a phone and
                        40 on a desktop, that is invisible: it is a gradient
                        nobody can see, costing a `<defs>`, an id, and a
@@ -486,18 +486,18 @@ export default function Header({
                        darkens across its width reads as a shape half-dissolving
                        into the bar rather than as a logo on it.
 
-                       Flat #ff6a00 is also what the id in `globals.css` calls
+                       Flat #f2560a is also what the id in `globals.css` calls
                        "the one gradient allowed" being spent somewhere it
                        matters instead of here. A logo is the last thing on a
                        site that should carry a gradient: it is reproduced at
                        every size, in one colour on an invoice, and embroidered
                        on a shirt if the shop ever prints one. */
-                    fill="#ff6a00"
+                    fill="#f2560a"
                   />
                   <path
                     d="M17.5 12V9a4.5 4.5 0 0 1 9 0v3"
                     fill="none"
-                    stroke="#e85d00"
+                    stroke="#d94a00"
                     strokeWidth="2.2"
                     strokeLinecap="round"
                   />
