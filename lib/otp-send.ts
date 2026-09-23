@@ -69,7 +69,7 @@ function smsBody(code: string): string {
  * ====================================================================== */
 
 /**
- * EgoSMS — `POST https://comms.egosms.co/api/v1/json/`.
+ * EgoSMS — `POST https://www.egosms.co/api/v1/json/`.
  *
  * The API answers `{"Status":"OK"}` on success and `{"Status":"Failed",
  * "Message":"…"}` otherwise, both with HTTP 200 — so the status code is not the
@@ -85,7 +85,7 @@ async function sendViaEgoSms(to: string, code: string): Promise<SendResult> {
 
   try {
     const response = await fetch(
-      process.env.KANDI_SMS_URL || "https://comms.egosms.co/api/v1/json/",
+      process.env.KANDI_SMS_URL || "https://www.egosms.co/api/v1/json/",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

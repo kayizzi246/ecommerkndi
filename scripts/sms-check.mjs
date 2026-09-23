@@ -8,7 +8,7 @@
  * To check production's values, paste them into .env.local first.
  */
 
-const url = process.env.KANDI_SMS_URL || "https://comms.egosms.co/api/v1/json/";
+const url = process.env.KANDI_SMS_URL || "https://www.egosms.co/api/v1/json/";
 const username = process.env.KANDI_SMS_USERNAME;
 const password = process.env.KANDI_SMS_PASSWORD;
 const senderId = process.env.KANDI_SMS_SENDER_ID || "KandiUg";
