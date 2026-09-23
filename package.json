@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sms:check": "node --env-file-if-exists=.env.local scripts/sms-check.mjs"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

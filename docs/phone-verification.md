@@ -37,7 +37,7 @@ because the number is what the rider calls.
 
 ```
 KANDI_SMS_USERNAME=...        # EgoSMS account
-KANDI_SMS_PASSWORD=...        # EgoSMS API key
+KANDI_SMS_PASSWORD=...        # EgoSMS account password (the API takes no API key)
 KANDI_SMS_SENDER_ID=KandiUg   # must be registered with the gateway
 ```
 
