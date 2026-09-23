@@ -21,6 +21,7 @@ import ExpandableContent from "@/components/ExpandableContent";
 import { autoDescription, hasOwnDescription } from "@/lib/product-copy";
 import ProductPurchase from "./ProductPurchase";
 import ProductTabs from "./ProductTabs";
+import ProductCarousel from "@/components/ProductCarousel";
 
 const NEW_WINDOW_DAYS = 30;
 
@@ -175,7 +176,7 @@ export default async function ProductPage({
   const brand = product.categories[0];
   const subCategory = product.categories[1];
 
-  const [reviews, settings, relatedResponse] = await Promise.all([
+  const [reviews, settings, relatedResponse, storeResponse] = await Promise.all([
     // Reviews come from WordPress with the page, so they are in the HTML for
     // search engines rather than fetched by the browser afterwards. Keyed on
     // the numeric id the lookup above resolved, since reviews are id-only.
@@ -189,6 +190,12 @@ export default async function ProductPage({
     // the component needs to know how much more there is to fetch.
     brand
       ? getProductsSafe({ category: brand.slug, per_page: 24 })
+      : Promise.resolve({ products: [] as typeof product[], total_pages: 0 }),
+    // The seller's other listings, for the "More from this store" rail: a
+    // shopper who trusts the store enough to be on this page is the likeliest
+    // to add a second item from it.
+    product.seller?.store_slug
+      ? getProductsSafe({ seller: product.seller.store_slug, per_page: 13, sort: "popular" })
       : Promise.resolve({ products: [] as typeof product[], total_pages: 0 }),
   ]);
 
@@ -212,6 +219,10 @@ export default async function ProductPage({
   const related = relatedResponse.products.filter((item) => item.id !== product.id);
   const relatedTotalPages =
     (relatedResponse as { total_pages?: number }).total_pages ?? 1;
+
+  const storeProducts = storeResponse.products
+    .filter((item) => item.id !== product.id)
+    .slice(0, 12);
 
   const isNew = isNewListing(product.date_created);
 
@@ -363,6 +374,7 @@ export default async function ProductPage({
         isNew={isNew}
         freeDeliveryFrom={settings.commerce.free_delivery_from}
         returnsDays={settings.commerce.returns_days}
+        whatsapp={settings.support.whatsapp}
         ratingAverage={reviews.average_rating}
         ratingCount={reviews.rating_count}
         ratingBreakdown={ratingBreakdown}
@@ -514,6 +526,13 @@ export default async function ProductPage({
            on the server, so the grid is full on arrival and indexable, then
            extends as the shopper scrolls. The product being viewed is filtered
            out of every page of it. */}
+      {product.seller && (
+        <ProductCarousel
+          title={`More from ${product.seller.store_name}`}
+          products={storeProducts}
+        />
+      )}
+
       {related.length > 0 && (
         <section className="mt-8">
           <h2 className="section-title mb-3 px-1 text-[17px] text-shop-ink md:text-[19px]">

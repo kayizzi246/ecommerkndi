@@ -28,7 +28,7 @@ type Props = {
 
 /**
  * Product gallery, following the Next.js Commerce gallery: one large square
- * white frame showing the whole product with `object-contain`, a single
+ * frame the product photo fills edge to edge with `object-cover`, a single
  * rounded arrow pill floating over its bottom edge, and a row of bordered
  * square thumbnails underneath that highlight the active shot.
  *
@@ -125,7 +125,7 @@ export default function ImageGallery({
                     width={64}
                     height={64}
                     quality={90}
-                    className="h-full w-full object-contain p-1"
+                    className="h-full w-full object-cover"
                   />
                 </button>
               </li>
@@ -143,9 +143,8 @@ export default function ImageGallery({
              Portrait rather than merely bigger. Most of this catalogue is
              clothing, shoes and packaged goods shot upright, so 4:5 is the
              shape the stock already is; a taller square would have added the
-             same height and then filled it with background. `object-contain`
-             means nothing is cropped either way — a genuinely landscape shot
-             letterboxes into the frame exactly as it did before.
+             same height and then filled it with background. `object-cover` fills
+             the frame edge to edge; the lightbox still shows the whole shot.
 
              The cap on the column moved with it (`ProductPurchase`, 560 → 640),
              because height alone would have made the frame narrow and tall.
@@ -165,7 +164,7 @@ export default function ImageGallery({
             fill
             sizes="(min-width: 1024px) 680px, 100vw"
             quality={90}
-            className={`h-full w-full object-contain p-1.5 ${soldOut ? "opacity-45" : ""}`}
+            className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
             priority
           />
         </button>
@@ -276,7 +275,7 @@ export default function ImageGallery({
                   width={64}
                   height={64}
                   quality={90}
-                  className="h-full w-full object-contain p-1"
+                  className="h-full w-full object-cover"
                 />
               </button>
             </li>

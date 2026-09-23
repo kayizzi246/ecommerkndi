@@ -68,6 +68,7 @@ export default function ProductPurchase({
    * at the foot of the page lists — so the summary beside the price and the one
    * below can never report different numbers for the same product.
    */
+  whatsapp = "",
   ratingAverage = 0,
   ratingCount = 0,
   ratingBreakdown = [],
@@ -86,6 +87,8 @@ export default function ProductPurchase({
   isNew: boolean;
   freeDeliveryFrom?: number;
   returnsDays?: number;
+  /** The shop's WhatsApp number from wp-admin; the order button hides without one. */
+  whatsapp?: string;
   ratingAverage?: number;
   ratingCount?: number;
   ratingBreakdown?: number[];
@@ -106,6 +109,22 @@ export default function ProductPurchase({
       slug: product.slug,
     });
   }, [addProduct, product.id, product.name, product.image, product.price, product.slug]);
+
+  /* ---- Order on WhatsApp ----
+
+     Plenty of shoppers here would rather message than fill in a checkout. The
+     message arrives pre-written with the product, price and link, so the shop
+     can confirm the order in one reply. */
+  const whatsappNumber = whatsapp.replace(/[^\d]/g, "");
+  const whatsappText = `Hi, I'd like to order: ${product.name} (${formatPrice(product.price)})`;
+  const whatsappHref = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`
+    : "";
+  /** Adds the page link at click time, when `window` is certainly there. */
+  const withPageLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const text = `${whatsappText}\n${window.location.href}`;
+    event.currentTarget.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
+  };
 
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
@@ -561,6 +580,20 @@ export default function ProductPurchase({
 
           <div id="buy-box" className="mt-4 scroll-mt-32">
             <AddToCartButton product={product} onOptionChange={handleOptionChange} />
+            {!soldOut && whatsappHref && (
+              <a
+                href={whatsappHref}
+                onClick={withPageLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1faa53] bg-white text-[14px] font-semibold text-[#128c43] transition-colors hover:bg-[#1faa53] hover:text-white"
+              >
+                <svg aria-hidden className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z" />
+                </svg>
+                Order on WhatsApp
+              </a>
+            )}
           </div>
 
           {/* ---- What you can pay with, at the moment of deciding ----
