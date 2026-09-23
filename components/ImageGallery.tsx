@@ -176,7 +176,7 @@ export default function ImageGallery({
             fact that decides whether the rest of the page is worth reading. */}
         {soldOut && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="rounded-full bg-shop-ink/90 px-5 py-2 text-[14px] font-semibold uppercase tracking-[0.08em] text-white">
+            <span className="rounded-full bg-shop-ink/90 px-5 py-2 text-[13px] font-semibold uppercase tracking-[0.08em] text-white">
               Sold out
             </span>
           </div>
@@ -192,17 +192,17 @@ export default function ImageGallery({
                tapped should meet the same mark in the same colour here; it was
                the brand's burnt orange, which made the product page the one
                place the shop said "reduced" in a different voice. */
-            <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-3 py-1 text-[13px] font-bold text-white">
+            <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-3 py-1 text-[12px] font-bold text-white">
               −{discount}%
             </span>
           )}
           {!soldOut && superPrice && (
-            <span className="rounded-full bg-shop-flame px-3 py-1 text-[13px] font-semibold text-white">
+            <span className="rounded-full bg-shop-flame px-3 py-1 text-[12px] font-semibold text-white">
               Super price
             </span>
           )}
           {!soldOut && isNew && !superPrice && discount === 0 && (
-            <span className="rounded-full bg-pop-green px-3 py-1 text-[13px] font-semibold text-white">
+            <span className="rounded-full bg-pop-green px-3 py-1 text-[12px] font-semibold text-white">
               New in
             </span>
           )}
@@ -213,7 +213,7 @@ export default function ImageGallery({
           type="button"
           onClick={share}
           aria-label="Share this product"
-          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[13px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
+          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[12px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />

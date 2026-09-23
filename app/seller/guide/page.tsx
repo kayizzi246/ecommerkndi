@@ -21,23 +21,23 @@ export default function SellerGuidePage() {
   return (
     <div className="mx-auto max-w-[860px]">
       <header>
-        <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
           New here?
         </p>
-        <h1 className="mt-1.5 text-[28px] font-extrabold leading-tight text-shop-ink">
+        <h1 className="mt-1.5 text-[27px] font-extrabold leading-tight text-shop-ink">
           How selling on Kandi works
         </h1>
-        <p className="mt-2 max-w-[60ch] text-[16px] leading-relaxed text-shop-body">
+        <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-shop-body">
           Ten minutes of reading, and you will know everything the job needs. Nothing here is
           theory — it is what happens, in the order it happens.
         </p>
       </header>
 
       <nav className="mt-7 rounded-2xl border border-shop-line bg-white p-5">
-        <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-muted">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">
           On this page
         </p>
-        <ol className="mt-3 grid gap-2 text-[15px] sm:grid-cols-2">
+        <ol className="mt-3 grid gap-2 text-[14px] sm:grid-cols-2">
           {SECTIONS.map((section, index) => (
             <li key={section.id}>
               <a
@@ -108,7 +108,7 @@ export default function SellerGuidePage() {
               "We settle payout requests weekly, and email you when the money goes out.",
             ]}
           />
-          <p className="text-[15px] leading-relaxed text-shop-body">
+          <p className="text-[14px] leading-relaxed text-shop-body">
             Your own rate and payout account are on{" "}
             <Link href="/seller/settings" className="font-semibold text-shop-primary hover:underline">
               Settings
@@ -133,7 +133,7 @@ export default function SellerGuidePage() {
         </Section>
 
         <Section id="rules" title="6. What closes a store">
-          <ul className="space-y-2 text-[15px] leading-relaxed text-shop-body">
+          <ul className="space-y-2 text-[14px] leading-relaxed text-shop-body">
             {[
               "Counterfeit or illegal goods — immediate, no warning.",
               "Taking payment outside Kandi, or asking a shopper to pay you directly.",
@@ -146,7 +146,7 @@ export default function SellerGuidePage() {
               </li>
             ))}
           </ul>
-          <p className="text-[15px] leading-relaxed text-shop-body">
+          <p className="text-[14px] leading-relaxed text-shop-body">
             The full terms are in the{" "}
             <Link href="/seller-policies" className="font-semibold text-shop-primary hover:underline">
               seller policies
@@ -157,12 +157,12 @@ export default function SellerGuidePage() {
       </div>
 
       <div className="mt-10 rounded-2xl border border-shop-line bg-white p-6 text-center">
-        <h2 className="text-[19px] font-extrabold text-shop-ink">Still stuck?</h2>
-        <p className="mx-auto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-body">
+        <h2 className="text-[18px] font-extrabold text-shop-ink">Still stuck?</h2>
+        <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] leading-relaxed text-shop-body">
           Call the number in your approval email, or reply to any email we have sent you. A person
           reads it.
         </p>
-        <Link href="/seller/products/new" className="btn-shop mt-5 inline-flex px-7 py-3 text-[15px]">
+        <Link href="/seller/products/new" className="btn-shop mt-5 inline-flex px-7 py-3 text-[14px]">
           Add your first product
         </Link>
       </div>
@@ -190,7 +190,7 @@ function Section({
 }) {
   return (
     <section id={id} className="scroll-mt-24 rounded-2xl border border-shop-line bg-white p-5 md:p-6">
-      <h2 className="text-[20px] font-extrabold leading-tight text-shop-ink">{title}</h2>
+      <h2 className="text-[19px] font-extrabold leading-tight text-shop-ink">{title}</h2>
       <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
@@ -204,11 +204,11 @@ function Steps({ items }: { items: string[] }) {
         <li key={index} className="flex gap-3.5">
           <span
             aria-hidden
-            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[13px] font-bold text-shop-ink"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[12px] font-bold text-shop-ink"
           >
             {index + 1}
           </span>
-          <p className="text-[15px] leading-relaxed text-shop-body">{item}</p>
+          <p className="text-[14px] leading-relaxed text-shop-body">{item}</p>
         </li>
       ))}
     </ol>
@@ -224,7 +224,7 @@ function Callout({
 }) {
   return (
     <p
-      className={`rounded-xl px-4 py-3 text-[14px] leading-relaxed ${
+      className={`rounded-xl px-4 py-3 text-[13px] leading-relaxed ${
         tone === "warning"
           ? "bg-pop-red-soft text-pop-red"
           : "bg-shop-primary-soft text-shop-primary-ink"

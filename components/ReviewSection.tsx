@@ -54,7 +54,7 @@ export default function ReviewSection({ productId, initial }: Props) {
 
   return (
     <section id="reviews" className="mt-8 border-t border-shop-line pt-6">
-      <h2 className="mb-6 text-[20px] font-extrabold uppercase tracking-tight text-shop-ink">
+      <h2 className="mb-6 text-[19px] font-extrabold uppercase tracking-tight text-shop-ink">
         Customer reviews
       </h2>
 
@@ -64,13 +64,13 @@ export default function ReviewSection({ productId, initial }: Props) {
           {count > 0 ? (
             <div className="mb-8 flex flex-wrap items-start gap-8 rounded-xl border border-shop-line bg-white p-5">
               <div className="text-center">
-                <p className="text-[44px] font-semibold leading-none text-shop-ink">
+                <p className="text-[43px] font-semibold leading-none text-shop-ink">
                   {average.toFixed(1)}
                 </p>
                 <div className="mt-2">
                   <StarRating rating={average} size="md" showCount={false} />
                 </div>
-                <p className="mt-1 text-[14px] text-shop-muted">
+                <p className="mt-1 text-[13px] text-shop-muted">
                   {count} {count === 1 ? "review" : "reviews"}
                 </p>
               </div>
@@ -79,7 +79,7 @@ export default function ReviewSection({ productId, initial }: Props) {
                   const star = 5 - i;
                   const pct = total > 0 ? (tally / total) * 100 : 0;
                   return (
-                    <div key={star} className="flex items-center gap-2 text-[14px]">
+                    <div key={star} className="flex items-center gap-2 text-[13px]">
                       <span className="w-14 shrink-0 text-right text-shop-muted">
                         {star} star
                       </span>
@@ -89,7 +89,7 @@ export default function ReviewSection({ productId, initial }: Props) {
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="w-10 shrink-0 text-[13px] text-shop-muted">
+                      <span className="w-10 shrink-0 text-[12px] text-shop-muted">
                         {pct.toFixed(0)}%
                       </span>
                     </div>
@@ -98,7 +98,7 @@ export default function ReviewSection({ productId, initial }: Props) {
               </div>
             </div>
           ) : (
-            <p className="mb-8 rounded-xl border border-dashed border-shop-line bg-white p-6 text-center text-[15px] text-shop-muted">
+            <p className="mb-8 rounded-xl border border-dashed border-shop-line bg-white p-6 text-center text-[14px] text-shop-muted">
               No reviews yet — be the first to rate this product.
             </p>
           )}
@@ -126,13 +126,13 @@ export default function ReviewSection({ productId, initial }: Props) {
                       className="h-9 w-9 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[14px] font-semibold text-shop-ink">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-hairline text-[13px] font-semibold text-shop-ink">
                       {review.author.charAt(0).toUpperCase()}
                     </span>
                   )}
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[15px] font-semibold text-shop-ink">{review.author}</p>
+                      <p className="text-[14px] font-semibold text-shop-ink">{review.author}</p>
                       {review.verified && (
                         <span className="rounded bg-shop-successbg px-1.5 py-0.5 text-[11px] font-semibold text-shop-success">
                           Verified purchase
@@ -147,7 +147,7 @@ export default function ReviewSection({ productId, initial }: Props) {
                     </div>
                   </div>
                 </div>
-                <p className="ml-12 whitespace-pre-line text-[15px] leading-relaxed text-shop-body">
+                <p className="ml-12 whitespace-pre-line text-[14px] leading-relaxed text-shop-body">
                   {review.text}
                 </p>
               </article>
@@ -159,7 +159,7 @@ export default function ReviewSection({ productId, initial }: Props) {
               <button
                 type="button"
                 onClick={() => setVisible((n) => n + PAGE_SIZE)}
-                className="btn-shop-outline px-8 py-2.5 text-[14px]"
+                className="btn-shop-outline px-8 py-2.5 text-[13px]"
               >
                 Show more reviews
               </button>

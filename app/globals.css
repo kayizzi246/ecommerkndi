@@ -625,18 +625,18 @@
      Deepened from the old #ff6a00 — same hue, pulled a step toward red and off
      full saturation, which is the difference between a traffic-cone orange and
      one that reads as a considered brand colour rather than a warning colour. */
-  --color-shop-primary: #f2560a;
-  --color-shop-primary-dark: #d94a00; /* hover */
-  --color-shop-primary-soft: #fdf1e7; /* tint behind an active or selected row */
+  --color-shop-primary: #d32f2f;
+  --color-shop-primary-dark: #b71c1c; /* hover */
+  --color-shop-primary-soft: #fdecea; /* tint behind an active or selected row */
   /* The same hue darkened until white text on it clears AA. Used where a
      small label sits on an orange fill — a 14px button caption on #f2560a is
      ~3.4:1 and fails AA, and no amount of brand consistency is worth a button
      nobody with low vision can read. This step clears ~6.2:1, more headroom
      than the old #b34a00 gave, because the richer base hue needed less of a
      dip to get there. */
-  --color-shop-primary-ink: #a84006;
-  --color-shop-flame: #f2560a; /* alias of primary, kept so components compile */
-  --color-shop-ember: #d94a00; /* the second stop of the one gradient allowed */
+  --color-shop-primary-ink: #b71c1c;
+  --color-shop-flame: #d32f2f; /* alias of primary, kept so components compile */
+  --color-shop-ember: #b71c1c; /* the second stop of the one gradient allowed */
 
   /* ---- Red now means ERRORS, and only errors ----
    *
@@ -794,7 +794,7 @@
    * display, one tint for backgrounds. Kept deliberately few: a marketplace
    * grid is already visually busy, and the products have to win.
    */
-  --color-pop-orange: #f2560a;
+  --color-pop-orange: #d32f2f;
   --color-pop-orange-bright: #ff8642;
   --color-pop-red: #111827;
   --color-pop-green: #16a34a;
@@ -817,8 +817,8 @@
   --color-pop-violet-on-dark: #c4b5fd;
 
   /* Legacy aliases kept so existing pages keep compiling */
-  --color-kandi: #f2560a;
-  --color-kandi-dark: #d94a00;
+  --color-kandi: #d32f2f;
+  --color-kandi-dark: #b71c1c;
   --color-sale: #111827; /* was red; retired with the rest — see shop-error */
   --color-fresh: #16a34a;
   --color-sun: #facc15;
@@ -1035,14 +1035,14 @@ body {
 }
 
 html {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 12px;
   /* 1.6 rather than 1.55. The difference is a pixel and a half on a 16px line,
      and it is the difference between a paragraph that reads and one that has to
      be got through — descenders on one line stop crowding the caps on the next.
@@ -1323,7 +1323,7 @@ h6,
    from 2 columns to 3 and a tile stops being 150px wide. */
 @media (min-width: 640px) {
   .price {
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 } /* @layer components */
@@ -1386,7 +1386,7 @@ h6,
 .search-input {
   font-family: var(--font-ui);
   font-weight: 400;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* ---------- Category names — 500, 14px ----------
@@ -1412,7 +1412,7 @@ h6,
 .hero-display {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(24px, 2.8vw, 32px);
+  font-size: clamp(23px, 2.8vw, 30px);
   line-height: 1.1;
   /* Tighter than the headings below it. At 32px and up the letterforms already
      crowd, and display type set at reading tracking looks slack. */
@@ -1544,7 +1544,7 @@ h6,
      a rail title is 20 on a phone and 24 on a desktop without a breakpoint.
      Call sites that set their own `text-[Npx]` still win — this is the default
      for the ones that do not. */
-  font-size: clamp(16px, 1.4vw, 18px);
+  font-size: clamp(15px, 1.4vw, 16px);
   letter-spacing: -0.01em;
   /* 1.1 clipped the descenders of a title that wrapped onto a second line. */
   line-height: 1.2;
@@ -2100,7 +2100,7 @@ h6,
     transform 0.2s ease;
 }
 .tile-card:hover {
-  box-shadow: inset 0 0 0 1px rgba(242, 86, 10, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(211, 47, 47, 0.32);
   transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2119,7 +2119,7 @@ h6,
   border: 1px solid var(--color-shop-line);
   border-radius: 6px;
   padding: 0.75rem 0.875rem;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-shop-ink);
   transition:
     border-color 0.15s ease,
@@ -2131,7 +2131,7 @@ h6,
 .field-shop:focus {
   outline: none;
   border-color: var(--color-shop-primary);
-  box-shadow: 0 0 0 3px rgba(242, 86, 10, 0.16);
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.16);
 }
 
 /* ---------- Typing must not move the page ----------
@@ -2211,7 +2211,7 @@ h6,
   --color-shop-muted: #8a847d;
   --color-shop-edge: #2b2724;
   --color-shop-line: #2b2724;
-  --color-shop-primary-ink: #ff8a3d;
+  --color-shop-primary-ink: #ff6f6f;
   --color-shop-save: #5fd08a;
   color-scheme: dark;
 }
@@ -2607,7 +2607,7 @@ h6,
  * enough on its own here — it is drawn INSET, so it lands on the cell rather
  * than in the gap, and the neighbours do not move. */
 .product-grid-flush .tile-card:hover {
-  box-shadow: inset 0 0 0 1px rgba(242, 86, 10, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(211, 47, 47, 0.32);
   transform: none;
 }
 

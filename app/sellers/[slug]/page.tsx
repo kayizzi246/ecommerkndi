@@ -197,7 +197,7 @@ export default async function StorePage({ params }: Params) {
           ) : (
             <span
               style={{ boxShadow: `0 0 0 1px ${veil(0.18)}` }}
-              className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[26px] font-bold text-shop-primary md:h-[88px] md:w-[88px] md:text-[34px]"
+              className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-white text-[25px] font-bold text-shop-primary md:h-[88px] md:w-[88px] md:text-[33px]"
             >
               {store.store_name.charAt(0).toUpperCase()}
             </span>
@@ -209,7 +209,7 @@ export default async function StorePage({ params }: Params) {
                   page that has to carry weight on its own, and `tracking-tight`
                   at this size is what stops a two-word name reading as two
                   separate words. */}
-              <h1 className="heading-black text-[28px] leading-[1.1] tracking-tight md:text-[38px]">
+              <h1 className="heading-black text-[27px] leading-[1.1] tracking-tight md:text-[37px]">
                 {store.store_name}
               </h1>
               {/* The tick, not a pill of text. Every store on this site is an
@@ -237,7 +237,7 @@ export default async function StorePage({ params }: Params) {
 
             <p
               style={{ color: veil(0.72) }}
-              className="mt-2 max-w-[52ch] text-[14px] leading-relaxed"
+              className="mt-2 max-w-[52ch] text-[13px] leading-relaxed"
             >
               Sold by {store.store_name}, dispatched and guaranteed through Kandi.
             </p>
@@ -262,7 +262,7 @@ export default async function StorePage({ params }: Params) {
                   >
                     {stat.label}
                   </dt>
-                  <dd className="price mt-1 text-[17px] md:text-[19px]">
+                  <dd className="price mt-1 text-[16px] md:text-[18px]">
                     {stat.value}
                   </dd>
                 </div>
@@ -274,18 +274,18 @@ export default async function StorePage({ params }: Params) {
 
       {products.length === 0 ? (
         <div className="mx-3 mt-8 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center md:mx-8">
-          <p className="text-[16px] text-shop-muted">
+          <p className="text-[15px] text-shop-muted">
             This store has nothing listed right now. Check back soon.
           </p>
-          <Link href="/sellers" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+          <Link href="/sellers" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
             Browse other stores
           </Link>
         </div>
       ) : (
         <>
-          <h2 className="mb-4 mt-8 flex flex-wrap items-baseline gap-x-3 px-3 text-[19px] font-extrabold tracking-tight text-shop-ink md:px-8 md:text-[22px]">
+          <h2 className="mb-4 mt-8 flex flex-wrap items-baseline gap-x-3 px-3 text-[18px] font-extrabold tracking-tight text-shop-ink md:px-8 md:text-[21px]">
             Everything from this store
-            <span className="text-[13px] font-medium tracking-normal text-shop-muted">
+            <span className="text-[12px] font-medium tracking-normal text-shop-muted">
               {products.length} {products.length === 1 ? "item" : "items"}
             </span>
           </h2>

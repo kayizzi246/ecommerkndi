@@ -44,8 +44,8 @@ export default async function CareersPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {areas.map((area) => (
             <div key={area.title} className="rounded-2xl border border-shop-line bg-white p-5">
-              <p className={`text-[16px] font-semibold ${area.tone}`}>{area.title}</p>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-shop-muted">{area.copy}</p>
+              <p className={`text-[15px] font-semibold ${area.tone}`}>{area.title}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-shop-muted">{area.copy}</p>
             </div>
           ))}
         </div>

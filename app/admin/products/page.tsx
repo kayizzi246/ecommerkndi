@@ -175,15 +175,15 @@ export default function AdminProductsPage() {
     <div className="mx-auto max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[22px] leading-tight text-shop-ink">Products</h1>
-          <p className="mt-1 text-[15px] text-shop-muted">
+          <h1 className="text-[21px] leading-tight text-shop-ink">Products</h1>
+          <p className="mt-1 text-[14px] text-shop-muted">
             Every product in the shop — yours and your sellers&rsquo;. Changes go
             live on the storefront straight away.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <RefreshCatalogue />
-          <button type="button" onClick={() => setEditing("new")} className="btn-shop px-6 py-3 text-[15px]">
+          <button type="button" onClick={() => setEditing("new")} className="btn-shop px-6 py-3 text-[14px]">
             Add a product
           </button>
         </div>
@@ -199,7 +199,7 @@ export default function AdminProductsPage() {
                 type="button"
                 onClick={() => setFilter(entry.value)}
                 aria-pressed={active}
-                className={`rounded-full border px-4 py-2 text-[14px] font-semibold transition-colors ${
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
                   active
                     ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
                     : "border-shop-line bg-white text-shop-body hover:border-shop-primary"
@@ -218,17 +218,17 @@ export default function AdminProductsPage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name or SKU"
-          className="field-shop ml-auto w-full max-w-[280px] text-[15px]"
+          className="field-shop ml-auto w-full max-w-[280px] text-[14px]"
         />
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-lg bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red">
+        <p role="alert" className="mb-4 rounded-lg bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red">
           {error}
         </p>
       )}
       {notice && !error && (
-        <p role="status" className="mb-4 rounded-lg bg-shop-successbg px-4 py-3 text-[15px] font-medium text-shop-success">
+        <p role="status" className="mb-4 rounded-lg bg-shop-successbg px-4 py-3 text-[14px] font-medium text-shop-success">
           {notice}
         </p>
       )}
@@ -241,10 +241,10 @@ export default function AdminProductsPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-lg border border-dashed border-shop-line bg-white p-12 text-center">
-          <p className="text-[17px] font-semibold text-shop-ink">
+          <p className="text-[16px] font-semibold text-shop-ink">
             {products.length === 0 ? "No products yet" : "Nothing matches that"}
           </p>
-          <p className="mx-auto mt-2 max-w-md text-[15px] text-shop-muted">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
             {products.length === 0
               ? "Add your first listing — it goes live on the shop immediately."
               : "Try a different filter or clear the search."}
@@ -253,7 +253,7 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setEditing("new")}
-              className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]"
+              className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]"
             >
               Add a product
             </button>
@@ -321,7 +321,7 @@ function RefreshCatalogue() {
         }
         setTimeout(() => setState("idle"), 4000);
       }}
-      className="btn-shop-outline px-5 py-3 text-[14px] disabled:opacity-60"
+      className="btn-shop-outline px-5 py-3 text-[13px] disabled:opacity-60"
     >
       {state === "working"
         ? "Refreshing…"
@@ -380,7 +380,7 @@ function ProductRow({
           </div>
 
           <div className="min-w-0">
-            <p className="line-clamp-1 text-[16px] font-semibold text-shop-ink">{product.name}</p>
+            <p className="line-clamp-1 text-[15px] font-semibold text-shop-ink">{product.name}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
@@ -399,14 +399,14 @@ function ProductRow({
                   {product.seller_name || "Seller listing"}
                 </span>
               )}
-              {product.sku && <span className="text-[13px] text-shop-muted">SKU {product.sku}</span>}
+              {product.sku && <span className="text-[12px] text-shop-muted">SKU {product.sku}</span>}
             </div>
           </div>
         </div>
 
         <div className="w-28 shrink-0">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">Price</p>
-          <p className="mt-0.5 text-[16px] font-semibold text-shop-ink">
+          <p className="mt-0.5 text-[15px] font-semibold text-shop-ink">
             {formatPrice(product.price)}
           </p>
           {product.sale_price ? (
@@ -418,7 +418,7 @@ function ProductRow({
 
         <div className="w-20 shrink-0">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">Sold</p>
-          <p className="mt-0.5 text-[16px] font-semibold text-shop-ink">{product.units_sold}</p>
+          <p className="mt-0.5 text-[15px] font-semibold text-shop-ink">{product.units_sold}</p>
         </div>
 
         {/* Inline restock — the job done most often, so it is on the row. */}
@@ -437,13 +437,13 @@ function ProductRow({
                   if (event.key === "Enter" && dirty) onRestock(Number(stock) || 0);
                 }}
                 aria-label={`Stock for ${product.name}`}
-                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[15px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none"
+                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[14px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none"
               />
               <button
                 type="button"
                 disabled={!dirty || busy}
                 onClick={() => onRestock(Number(stock) || 0)}
-                className="h-10 rounded-lg bg-shop-primary px-3 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:bg-shop-hairline disabled:text-shop-muted"
+                className="h-10 rounded-lg bg-shop-primary px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:bg-shop-hairline disabled:text-shop-muted"
               >
                 Save
               </button>
@@ -455,14 +455,14 @@ function ProductRow({
           <Link
             href={`/products/${product.id}`}
             target="_blank"
-            className="rounded-lg border border-shop-line px-3 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+            className="rounded-lg border border-shop-line px-3 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
           >
             View
           </Link>
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+            className="rounded-lg border border-shop-line px-4 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
           >
             Edit
           </button>
@@ -470,7 +470,7 @@ function ProductRow({
             type="button"
             disabled={busy}
             onClick={() => onVisibility(product.status !== "publish")}
-            className="rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary disabled:opacity-50"
+            className="rounded-lg border border-shop-line px-4 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary disabled:opacity-50"
           >
             {product.status === "publish" ? "Hide" : "Publish"}
           </button>
@@ -478,7 +478,7 @@ function ProductRow({
             type="button"
             disabled={busy}
             onClick={onDelete}
-            className="rounded-lg border border-pop-red/30 px-4 py-2.5 text-[14px] font-semibold text-pop-red transition-colors hover:bg-pop-red-soft disabled:opacity-50"
+            className="rounded-lg border border-pop-red/30 px-4 py-2.5 text-[13px] font-semibold text-pop-red transition-colors hover:bg-pop-red-soft disabled:opacity-50"
           >
             Delete
           </button>

@@ -330,7 +330,7 @@ export default async function ProductPage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="mb-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-0.5 text-[13px] text-shop-muted no-scrollbar">
+      <nav className="mb-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-0.5 text-[12px] text-shop-muted no-scrollbar">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -410,13 +410,13 @@ export default async function ProductPage({
                     generated copy disappears — it never runs alongside real
                     copy, and it never overrides it. */}
                 {!hasOwnDescription(product) && autoDescription(product).length > 0 && (
-                  <div className="max-w-3xl space-y-3 text-[15px] leading-7 text-shop-body">
+                  <div className="max-w-3xl space-y-3 text-[14px] leading-7 text-shop-body">
                     {autoDescription(product).map((line) => (
                       <p key={line}>{line}</p>
                     ))}
                   </div>
                 )}
-                <ul className="mt-4 list-disc pl-5 text-[15px] leading-7 text-shop-body">
+                <ul className="mt-4 list-disc pl-5 text-[14px] leading-7 text-shop-body">
                   <li>Style code: KD-{product.id}</li>
                   {product.short_description && <li>{product.short_description}</li>}
                 </ul>
@@ -424,7 +424,7 @@ export default async function ProductPage({
                   // Imported markup carries its own tables and images, so it is
                   // constrained here: tables scroll rather than widen the page.
                   <div
-                    className="mt-4 max-w-3xl text-[15px] leading-7 text-shop-body [&_img]:h-auto [&_img]:max-w-full [&_li]:my-1 [&_p]:my-3 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-5"
+                    className="mt-4 max-w-3xl text-[14px] leading-7 text-shop-body [&_img]:h-auto [&_img]:max-w-full [&_li]:my-1 [&_p]:my-3 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-5"
                     // Run through the allowlist first — see `lib/sanitize-html.ts`.
                     // WordPress applies `wp_kses_post()` before sending this, so
                     // in a healthy deployment nothing is removed here; the
@@ -450,7 +450,7 @@ export default async function ProductPage({
                 {detailRows.map(([label, value]) => (
                   <div
                     key={label}
-                    className="flex gap-4 border-b border-shop-hairline py-3 text-[15px]"
+                    className="flex gap-4 border-b border-shop-hairline py-3 text-[14px]"
                   >
                     <dt className="w-40 shrink-0 text-shop-muted">{label}</dt>
                     <dd className="text-shop-body">{value}</dd>
@@ -466,7 +466,7 @@ export default async function ProductPage({
               // Stacked for the same reason as the spec list above: three
               // columns of prose inside the left column would be three ~180px
               // ribbons.
-              <div className="grid max-w-4xl gap-6 text-[15px] leading-7 text-shop-body">
+              <div className="grid max-w-4xl gap-6 text-[14px] leading-7 text-shop-body">
                 <div>
                   <p className="mb-1.5 font-semibold text-shop-ink">Delivery</p>
                   <p>
@@ -516,7 +516,7 @@ export default async function ProductPage({
            out of every page of it. */}
       {related.length > 0 && (
         <section className="mt-8">
-          <h2 className="section-title mb-3 px-1 text-[18px] text-shop-ink md:text-[20px]">
+          <h2 className="section-title mb-3 px-1 text-[17px] text-shop-ink md:text-[19px]">
             You may also like
           </h2>
           <InfiniteProducts

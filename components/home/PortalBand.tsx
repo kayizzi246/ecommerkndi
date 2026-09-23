@@ -60,7 +60,7 @@ export default function PortalBand({
       {deals.length >= 4 && (
         <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 ring-1 ring-shop-edge md:p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[13px] font-bold leading-tight text-shop-ink sm:text-[14px]">
+            <p className="text-[12px] font-bold leading-tight text-shop-ink sm:text-[13px]">
               Today&rsquo;s deepest cuts
               <span className="ml-1.5 hidden font-medium text-shop-muted sm:inline">
                 — the biggest reductions in the shop right now

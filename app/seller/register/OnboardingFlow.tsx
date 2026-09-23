@@ -309,10 +309,10 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
       //
       // The panel beside it is the surface now, so this side can be plain.
       <SellerAuthLayout eyebrow="Sell on Kandi">
-        <h1 className="mt-2 text-[30px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+        <h1 className="mt-2 text-[29px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
           Open your store
         </h1>
-        <p className="mt-2.5 text-[15px] leading-relaxed text-shop-body">
+        <p className="mt-2.5 text-[14px] leading-relaxed text-shop-body">
           Takes about three minutes. We will ask for your store name, what you
           sell and a number we can call.
         </p>
@@ -328,7 +328,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
               text="signup_with"
             />
           </div>
-          <p className="mt-2.5 text-[13px] text-shop-muted">
+          <p className="mt-2.5 text-[12px] text-shop-muted">
             {checkingGoogle
               ? "Checking your Google account…"
               : "Fastest — and signing back in later is one tap."}
@@ -346,25 +346,25 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
               setMethod("password");
               setError(null);
             }}
-            className="btn-shop-outline w-full py-3 text-[15px]"
+            className="btn-shop-outline w-full py-3 text-[14px]"
           >
             Sign up with an email address
           </button>
-          <p className="mt-2.5 text-[13px] text-shop-muted">
+          <p className="mt-2.5 text-[12px] text-shop-muted">
             We will email you a six-digit code to confirm the address.
           </p>
 
           {error && (
             <p
               role="alert"
-              className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
             >
               {error}
             </p>
           )}
         </div>
 
-        <p className="mt-8 border-t border-shop-line pt-6 text-[14px] text-shop-muted">
+        <p className="mt-8 border-t border-shop-line pt-6 text-[13px] text-shop-muted">
           Already selling?{" "}
           <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
             Sign in
@@ -406,7 +406,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
             onCancel={() => setVerifying(false)}
             cancelLabel="I'll do this later"
           />
-          <p className="mt-4 text-center text-[13px] text-shop-muted">
+          <p className="mt-4 text-center text-[12px] text-shop-muted">
             Your store is saved and you are signed in — this only confirms we can reach you.
           </p>
         </div>
@@ -426,13 +426,13 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
   return (
     <div className="mx-auto flex min-h-screen max-w-[1100px] flex-col px-4 py-8 md:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/sell" className="flex items-center gap-2 text-[15px] text-shop-body hover:text-shop-primary">
+        <Link href="/sell" className="flex items-center gap-2 text-[14px] text-shop-body hover:text-shop-primary">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Back to Sell with us
         </Link>
-        <p className="text-[15px] text-shop-muted">
+        <p className="text-[14px] text-shop-muted">
           Already selling?{" "}
           <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
             Sign in
@@ -450,7 +450,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                 <li key={entry.key} className="flex shrink-0 items-start gap-3 lg:pb-6">
                   <div className="flex flex-col items-center self-stretch">
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold transition-colors duration-300 ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold transition-colors duration-300 ${
                         state === "done"
                           ? "bg-pop-green text-white"
                           : state === "active"
@@ -476,13 +476,13 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                   </div>
                   <div className="hidden lg:block">
                     <p
-                      className={`text-[15px] font-semibold ${
+                      className={`text-[14px] font-semibold ${
                         state === "todo" ? "text-shop-muted" : "text-shop-ink"
                       }`}
                     >
                       {entry.title}
                     </p>
-                    <p className="text-[13px] text-shop-muted">{entry.blurb}</p>
+                    <p className="text-[12px] text-shop-muted">{entry.blurb}</p>
                   </div>
                 </li>
               );
@@ -501,10 +501,10 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
         {/* ---- Step ---- */}
         <div>
           <div key={STEPS[step].key} className={anim}>
-            <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
               Step {step + 1} of {STEPS.length}
             </p>
-            <h1 className="mt-2 text-[21px] font-extrabold leading-tight text-shop-ink md:text-[24px]">
+            <h1 className="mt-2 text-[20px] font-extrabold leading-tight text-shop-ink md:text-[23px]">
               {STEPS[step].key === "store" && "Let's name your store"}
               {STEPS[step].key === "you" && "Now, a bit about you"}
               {STEPS[step].key === "password" && "Secure your account"}
@@ -520,7 +520,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       value={form.store_name}
                       onChange={(event) => set("store_name", event.target.value)}
                       placeholder="e.g. Kampala Kicks"
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     />
                   </Field>
 
@@ -528,7 +528,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                     <select
                       value={form.category}
                       onChange={(event) => set("category", event.target.value)}
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     >
                       {CATEGORIES.map((option) => (
                         <option key={option}>{option}</option>
@@ -540,7 +540,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                     <select
                       value={form.city}
                       onChange={(event) => set("city", event.target.value)}
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     >
                       {CITIES.map((option) => (
                         <option key={option}>{option}</option>
@@ -550,10 +550,10 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
 
                   {form.store_name.trim() && (
                     <div className="field-in rounded-xl border border-shop-line bg-white p-4">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-muted">
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">
                         Your store page will be
                       </p>
-                      <p className="mt-1 break-all text-[15px] font-semibold text-shop-primary">
+                      <p className="mt-1 break-all text-[14px] font-semibold text-shop-primary">
                         kandiug.com/{slugify(form.store_name)}
                       </p>
                     </div>
@@ -569,7 +569,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       value={form.owner_name}
                       onChange={(event) => set("owner_name", event.target.value)}
                       autoComplete="name"
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     />
                   </Field>
 
@@ -593,7 +593,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                         </svg>
-                        <span className="min-w-0 truncate text-[16px] text-shop-ink">
+                        <span className="min-w-0 truncate text-[15px] text-shop-ink">
                           {form.email}
                         </span>
                       </div>
@@ -605,7 +605,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                         value={form.email}
                         onChange={(event) => set("email", event.target.value)}
                         autoComplete="email"
-                        className="field-shop text-[16px]"
+                        className="field-shop text-[15px]"
                       />
                     </Field>
                   )}
@@ -617,7 +617,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       onChange={(event) => set("phone", event.target.value)}
                       placeholder="07XX XXX XXX"
                       autoComplete="tel"
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     />
 
                   </Field>
@@ -633,7 +633,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       value={form.password}
                       onChange={(event) => set("password", event.target.value)}
                       autoComplete="new-password"
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     />
                   </Field>
 
@@ -643,7 +643,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                       value={form.confirm}
                       onChange={(event) => set("confirm", event.target.value)}
                       autoComplete="new-password"
-                      className="field-shop text-[16px]"
+                      className="field-shop text-[15px]"
                     />
                   </Field>
 
@@ -663,7 +663,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
             {error && (
               <p
                 role="alert"
-                className="field-in mt-5 max-w-[560px] rounded-xl bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red"
+                className="field-in mt-5 max-w-[560px] rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
               >
                 {error}
               </p>
@@ -671,7 +671,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               {step > 0 && (
-                <button type="button" onClick={back} className="btn-shop-outline px-7 py-3 text-[16px]">
+                <button type="button" onClick={back} className="btn-shop-outline px-7 py-3 text-[15px]">
                   Back
                 </button>
               )}
@@ -679,7 +679,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                 type="button"
                 onClick={isLast ? submit : next}
                 disabled={submitting}
-                className="btn-shop px-9 py-3 text-[16px]"
+                className="btn-shop px-9 py-3 text-[15px]"
               >
                 {submitting
                   ? "Creating your store…"
@@ -720,8 +720,8 @@ function Field({
 }) {
   return (
     <label className="field-in block" style={{ animationDelay: `${80 + delay * 70}ms` }}>
-      <span className="mb-1.5 block text-[15px] font-semibold text-shop-ink">{label}</span>
-      {hint && <span className="mb-2 block text-[13px] text-shop-muted">{hint}</span>}
+      <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">{label}</span>
+      {hint && <span className="mb-2 block text-[12px] text-shop-muted">{hint}</span>}
       {children}
     </label>
   );
@@ -758,7 +758,7 @@ function PasswordMeter({ password }: { password: string }) {
         {checks.map((check) => (
           <li
             key={check.label}
-            className={`flex items-center gap-2 text-[14px] ${
+            className={`flex items-center gap-2 text-[13px] ${
               check.ok ? "text-pop-green" : "text-shop-muted"
             }`}
           >
@@ -800,13 +800,13 @@ function FeeStep({
         className="field-in rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-6"
         style={{ animationDelay: "60ms" }}
       >
-        <p className="text-[14px] font-semibold uppercase tracking-wide text-shop-primary">
+        <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-primary">
           One-off, never again
         </p>
-        <p className="mt-1 text-[38px] font-semibold leading-none text-shop-primary">
+        <p className="mt-1 text-[37px] font-semibold leading-none text-shop-primary">
           {formatPrice(registrationFee)}
         </p>
-        <p className="mt-2 text-[15px] leading-relaxed text-shop-body">
+        <p className="mt-2 text-[14px] leading-relaxed text-shop-body">
           Charged once when you join{storeName ? ` ${storeName} to Kandi` : ""}. There is no
           monthly fee, no listing fee and no payout fee — after this, the only cost is{" "}
           {commissionRate}% of what you actually sell.
@@ -814,10 +814,10 @@ function FeeStep({
       </div>
 
       <div className="field-in" style={{ animationDelay: "140ms" }}>
-        <p className="text-[16px] font-semibold text-shop-ink">What it pays for</p>
+        <p className="text-[15px] font-semibold text-shop-ink">What it pays for</p>
         <ul className="mt-3 space-y-2.5">
           {covers.map((item) => (
-            <li key={item} className="flex gap-2.5 text-[15px] leading-relaxed text-shop-body">
+            <li key={item} className="flex gap-2.5 text-[14px] leading-relaxed text-shop-body">
               <svg
                 className="mt-1 h-4 w-4 shrink-0 text-pop-green"
                 fill="none"
@@ -834,7 +834,7 @@ function FeeStep({
       </div>
 
       <div
-        className="field-in rounded-xl border border-shop-line bg-white p-4 text-[15px] leading-relaxed text-shop-body"
+        className="field-in rounded-xl border border-shop-line bg-white p-4 text-[14px] leading-relaxed text-shop-body"
         style={{ animationDelay: "220ms" }}
       >
         <p>
@@ -880,10 +880,10 @@ function Done({
           </svg>
         </span>
 
-        <h1 className="mt-5 text-[21px] font-extrabold leading-tight text-shop-ink">
+        <h1 className="mt-5 text-[20px] font-extrabold leading-tight text-shop-ink">
           {seller.store_name} is created
         </h1>
-        <p className="mx-auto mt-2 max-w-[42ch] text-[16px] leading-relaxed text-shop-body">
+        <p className="mx-auto mt-2 max-w-[42ch] text-[15px] leading-relaxed text-shop-body">
           {feeDue
             ? "Two things left: your verification documents and your first month's fee. Both take a couple of minutes."
             : "Send us your verification documents and your store goes to our team for approval."}
@@ -893,12 +893,12 @@ function Done({
             gate — so a seller cannot half-finish in two different screens and be
             unsure which one counted. Verifying signed them in, so this link
             lands them straight on it. */}
-        <Link href="/seller/onboarding" className="btn-shop mt-7 w-full py-3.5 text-[16px]">
+        <Link href="/seller/onboarding" className="btn-shop mt-7 w-full py-3.5 text-[15px]">
           Finish setting up
         </Link>
         <Link
           href="/seller-policies"
-          className="mt-4 block text-[14px] font-semibold text-shop-muted hover:text-shop-primary"
+          className="mt-4 block text-[13px] font-semibold text-shop-muted hover:text-shop-primary"
         >
           Read the seller policies
         </Link>

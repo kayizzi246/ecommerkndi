@@ -87,10 +87,10 @@ export default async function OrderReceivedPage({
           </svg>
         </span>
 
-        <h1 className="mt-5 text-[24px] font-extrabold text-shop-ink md:text-[28px]">
+        <h1 className="mt-5 text-[23px] font-extrabold text-shop-ink md:text-[27px]">
           Order confirmed
         </h1>
-        <p className="mt-2 text-[15px] text-shop-muted">
+        <p className="mt-2 text-[14px] text-shop-muted">
           {isPaid
             ? "Payment received. We are getting it ready."
             : "Thank you — we have your order and are getting it ready."}
@@ -101,15 +101,15 @@ export default async function OrderReceivedPage({
       {id && (
         <div className="mt-7 rounded-2xl border border-shop-line bg-white p-5">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-[14px] text-shop-muted">Order number</span>
-            <span className="text-[17px] font-semibold text-shop-ink">#{id}</span>
+            <span className="text-[13px] text-shop-muted">Order number</span>
+            <span className="text-[16px] font-semibold text-shop-ink">#{id}</span>
           </div>
           {amount !== null && (
             <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-shop-line pt-3">
-              <span className="text-[14px] text-shop-muted">
+              <span className="text-[13px] text-shop-muted">
                 {isPaid ? "Paid" : "To pay on delivery"}
               </span>
-              <span className="text-[17px] font-semibold text-shop-ink">{formatPrice(amount)}</span>
+              <span className="text-[16px] font-semibold text-shop-ink">{formatPrice(amount)}</span>
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ export default async function OrderReceivedPage({
       {/* What happens next, as three steps rather than a paragraph. A shopper
           who has just parted with money is scanning, not reading. */}
       <section className="mt-6 rounded-2xl border border-shop-line bg-white p-5">
-        <h2 className="text-[15px] font-semibold text-shop-ink">What happens next</h2>
+        <h2 className="text-[14px] font-semibold text-shop-ink">What happens next</h2>
         <ol className="mt-3.5 space-y-4">
           {steps.map((entry, index) => (
             <li key={entry.title} className="flex gap-3.5">
@@ -129,8 +129,8 @@ export default async function OrderReceivedPage({
                 {index + 1}
               </span>
               <div>
-                <p className="text-[14px] font-semibold text-shop-ink">{entry.title}</p>
-                <p className="mt-0.5 text-[13px] leading-relaxed text-shop-muted">{entry.body}</p>
+                <p className="text-[13px] font-semibold text-shop-ink">{entry.title}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-shop-muted">{entry.body}</p>
               </div>
             </li>
           ))}
@@ -138,18 +138,18 @@ export default async function OrderReceivedPage({
       </section>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Link href={trackHref} className="btn-shop flex-1 py-3.5 text-center text-[15px]">
+        <Link href={trackHref} className="btn-shop flex-1 py-3.5 text-center text-[14px]">
           Track this order
         </Link>
         <Link
           href="/"
-          className="flex-1 rounded-[10px] border border-shop-line py-3.5 text-center text-[15px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+          className="flex-1 rounded-[10px] border border-shop-line py-3.5 text-center text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
         >
           Continue shopping
         </Link>
       </div>
 
-      <p className="mt-6 text-center text-[13px] leading-relaxed text-shop-muted">
+      <p className="mt-6 text-center text-[12px] leading-relaxed text-shop-muted">
         Keep your order number. Something not right?{" "}
         <a
           href={`tel:${support.phone.replace(/\s/g, "")}`}

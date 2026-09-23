@@ -56,11 +56,11 @@ export default async function ContactPage() {
             rel={channel.href.startsWith("http") ? "noopener noreferrer" : undefined}
             className="rounded-2xl border border-shop-line bg-white p-5 transition-colors hover:border-shop-primary"
           >
-            <p className={`text-[13px] font-semibold uppercase tracking-wide ${channel.tone}`}>
+            <p className={`text-[12px] font-semibold uppercase tracking-wide ${channel.tone}`}>
               {channel.label}
             </p>
-            <p className="mt-1.5 text-[19px] font-semibold text-shop-ink">{channel.value}</p>
-            <p className="mt-1 text-[14px] text-shop-muted">{channel.detail}</p>
+            <p className="mt-1.5 text-[18px] font-semibold text-shop-ink">{channel.value}</p>
+            <p className="mt-1 text-[13px] text-shop-muted">{channel.detail}</p>
           </a>
         ))}
       </div>

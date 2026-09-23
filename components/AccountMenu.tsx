@@ -60,7 +60,7 @@ export default function AccountMenu() {
           className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
         >
           <Avatar customer={customer} />
-          <span className="hidden max-w-[90px] truncate text-[13px] xl:inline">
+          <span className="hidden max-w-[90px] truncate text-[12px] xl:inline">
             {customer.name.split(" ")[0]}
           </span>
         </Link>
@@ -78,7 +78,7 @@ export default function AccountMenu() {
             <circle cx="12" cy="8" r="3.75" />
             <path strokeLinecap="round" d="M4.5 20.1a7.5 7.5 0 0 1 15 0" />
           </svg>
-          <span className="hidden max-w-[90px] truncate text-[13px] xl:inline">
+          <span className="hidden max-w-[90px] truncate text-[12px] xl:inline">
             {loading ? "" : "Sign in"}
           </span>
         </button>
@@ -113,13 +113,13 @@ export default function AccountMenu() {
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bfl-surface text-[16px] font-semibold text-bfl-ink">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-bfl-surface text-[15px] font-semibold text-bfl-ink">
                     {customer.name.charAt(0).toUpperCase()}
                   </span>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate text-[15px] font-semibold text-black">{customer.name}</p>
-                  <p className="truncate text-[13px] text-bfl-grey">{customer.email}</p>
+                  <p className="truncate text-[14px] font-semibold text-black">{customer.name}</p>
+                  <p className="truncate text-[12px] text-bfl-grey">{customer.email}</p>
                 </div>
               </div>
 
@@ -129,7 +129,7 @@ export default function AccountMenu() {
                     <Link
                       href={link.href}
                       onClick={() => setOpen(false)}
-                      className="block px-1 py-2 text-[14px] text-[#333] hover:text-black hover:underline"
+                      className="block px-1 py-2 text-[13px] text-[#333] hover:text-black hover:underline"
                     >
                       {link.label}
                     </Link>
@@ -143,15 +143,15 @@ export default function AccountMenu() {
                   await signOut();
                   setOpen(false);
                 }}
-                className="w-full border border-bfl-line py-2 text-[14px] font-semibold text-[#333] hover:border-black"
+                className="w-full border border-bfl-line py-2 text-[13px] font-semibold text-[#333] hover:border-black"
               >
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <p className="text-[16px] font-semibold text-black">Welcome to Kandi</p>
-              <p className="mb-4 mt-1 text-[13px] leading-5 text-bfl-grey">
+              <p className="text-[15px] font-semibold text-black">Welcome to Kandi</p>
+              <p className="mb-4 mt-1 text-[12px] leading-5 text-bfl-grey">
                 Sign in to track orders, save your wishlist and check out faster.
               </p>
 
@@ -160,7 +160,7 @@ export default function AccountMenu() {
                   looks like the sign-in did not take. */}
               <SignInPanel onSuccess={onSignedIn} />
 
-              <p className="mt-4 border-t border-bfl-line pt-3 text-center text-[13px] text-bfl-grey">
+              <p className="mt-4 border-t border-bfl-line pt-3 text-center text-[12px] text-bfl-grey">
                 Selling with us?{" "}
                 <Link href="/seller/login" onClick={() => setOpen(false)} className="link-bfl font-semibold">
                   Seller Centre
@@ -196,7 +196,7 @@ function Avatar({ customer }: { customer: { name: string; avatar: string } }) {
   }
 
   return (
-    <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-shop-primary-soft text-[13px] font-semibold text-shop-primary">
+    <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-shop-primary-soft text-[12px] font-semibold text-shop-primary">
       {customer.name.charAt(0).toUpperCase()}
     </span>
   );

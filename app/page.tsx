@@ -1,6 +1,5 @@
 import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
-import HeroBanner from "@/components/home/HeroBanner";
 import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
@@ -95,9 +94,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *
  * ---- Where each of the old sections went ----
  *
- *   Hero banner        → `HeroBanner`, full width above the band: the uploaded
- *                        artwork when there is any, and a designed panel built
- *                        from the same settings when not.
+ *   Hero banner        → removed. The page opens on the channel strip.
  *   Super Deals        → the price panel in the band. Six products, six
  *                        prices, the same countdown.
  *   Trending now       → leads the "For you" grid, which is what "picked for
@@ -225,15 +222,8 @@ export default async function Home() {
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 py-2 md:gap-4 md:px-8 md:py-3.5">
         {/* ---- The opening screen, in the order a shopper asks the questions ----
 
-            The hero says what is on. The channel strip says where to go next.
-            Then the band:
-            departments, the deepest cuts with prices showing, and the account.
-
-            The strip used to open the page above the shell; a row of nine
-            chips is a weaker first impression than a campaign, and navigation
-            reads better once there is something to navigate away from. */}
-        <HeroBanner settings={settings} />
-
+            No hero banner: the channel strip says where to go, then the band —
+            departments, the deepest cuts with prices showing, and the account. */}
         <ChannelRow />
 
         <PortalBand settings={settings} departments={departments} deals={deals} />
@@ -266,7 +256,7 @@ export default async function Home() {
         >
           <h1
             id="about-kandi"
-            className="text-[15px] leading-snug text-shop-body md:text-[16px]"
+            className="text-[14px] leading-snug text-shop-body md:text-[15px]"
           >
             {/* The registered name and the name people type, in the one
                 element Google weighs most heavily on the page.
@@ -281,7 +271,7 @@ export default async function Home() {
             {/* "Kandi For Less | KandiUg" on one line, the way the reference
                 heads its own closing block with the store's two names. Both are
                 this shop: one is registered, the other is what people type. */}
-            <span className="block text-[17px] font-bold text-shop-ink md:text-[18px]">
+            <span className="block text-[16px] font-bold text-shop-ink md:text-[17px]">
               {brandName(settings)}
               <span className="mx-1.5 font-normal text-shop-faint">|</span>
               KandiUg
@@ -295,7 +285,7 @@ export default async function Home() {
             </span>
           </h1>
 
-          <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-shop-body">
+          <div className="mt-3 space-y-2 text-[12px] leading-relaxed text-shop-body">
             <p>
               {brand} — also known as <strong className="font-semibold text-shop-ink">KandiUg</strong>,
               after the kandiug.com address — is a Ugandan online marketplace

@@ -103,7 +103,7 @@ export default async function StoresPage() {
         }}
       />
 
-      <nav className="mb-6 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="mb-6 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-primary">
           Home
         </Link>
@@ -112,19 +112,19 @@ export default async function StoresPage() {
       </nav>
 
       <header className="border-b border-shop-line pb-6">
-        <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+        <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
           Marketplace
         </p>
-        <h1 className="heading-800 text-[24px] text-shop-ink md:text-[30px]">
+        <h1 className="heading-800 text-[23px] text-shop-ink md:text-[29px]">
           Shop by store
         </h1>
-        <p className="mt-3 max-w-[65ch] text-[17px] font-medium leading-relaxed text-shop-body">
+        <p className="mt-3 max-w-[65ch] text-[16px] font-medium leading-relaxed text-shop-body">
           Independent Ugandan stores selling through Kandi. Every one is approved before it can
           list a single product, and every order is covered by the same delivery and returns
           promise.
         </p>
         {stores.length > 0 && (
-          <p className="mt-3 text-[14px] text-shop-muted">
+          <p className="mt-3 text-[13px] text-shop-muted">
             {stores.length} {stores.length === 1 ? "store" : "stores"}
             {stocked > 0 && stocked !== stores.length && ` · ${stocked} currently selling`}
           </p>
@@ -134,12 +134,12 @@ export default async function StoresPage() {
       <div className="mt-8">
         {stores.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center">
-            <p className="text-[17px] font-semibold text-shop-ink">No stores listed yet</p>
-            <p className="mx-auto mt-2 max-w-md text-[15px] text-shop-muted">
+            <p className="text-[16px] font-semibold text-shop-ink">No stores listed yet</p>
+            <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
               We are approving the first marketplace stores now. In the meantime, everything on
               the site is sold and dispatched by Kandi directly.
             </p>
-            <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+            <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
               Browse all products
             </Link>
           </div>
@@ -205,7 +205,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
           ) : (
             <span
               style={{ backgroundColor: store.store_color, color: ink }}
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[21px] font-semibold"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[20px] font-semibold"
             >
               {store.store_name.charAt(0).toUpperCase()}
             </span>
@@ -214,11 +214,11 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
           <div className="min-w-0">
             <Link
               href={href}
-              className="block truncate text-[17px] font-bold text-shop-ink transition-colors hover:text-shop-primary"
+              className="block truncate text-[16px] font-bold text-shop-ink transition-colors hover:text-shop-primary"
             >
               {store.store_name}
             </Link>
-            <p className="mt-0.5 text-[13px] text-shop-muted">
+            <p className="mt-0.5 text-[12px] text-shop-muted">
               {empty
                 ? "Setting up"
                 : `${store.product_count} ${store.product_count === 1 ? "product" : "products"}`}
@@ -262,7 +262,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
                         />
                       )}
                     </div>
-                    <p className="price mt-1.5 truncate text-[13px] text-shop-ink">
+                    <p className="price mt-1.5 truncate text-[12px] text-shop-ink">
                       {formatPrice(product.price)}
                     </p>
                   </Link>
@@ -270,7 +270,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
               ))}
             </ul>
           ) : (
-            <p className="rounded-lg border border-dashed border-shop-line px-4 py-6 text-center text-[14px] text-shop-muted">
+            <p className="rounded-lg border border-dashed border-shop-line px-4 py-6 text-center text-[13px] text-shop-muted">
               This store has not listed anything yet.
             </p>
           )}
@@ -280,7 +280,7 @@ function StoreCard({ store, products }: { store: Store; products: Product[] }) {
         <div className="md:shrink-0">
           <Link
             href={href}
-            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-shop-ink px-5 py-2.5 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary md:w-auto"
+            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-shop-ink px-5 py-2.5 text-[13px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary md:w-auto"
           >
             Visit store
             <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">

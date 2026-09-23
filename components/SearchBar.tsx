@@ -286,7 +286,7 @@ export default function SearchBar({
             id="search-scope"
             value={scope}
             onChange={(event) => setScope(event.target.value)}
-            className="hidden max-w-[130px] shrink-0 cursor-pointer truncate border-r border-shop-line bg-transparent py-2.5 pr-2 text-[13px] font-normal text-shop-ink focus:outline-none sm:block"
+            className="hidden max-w-[130px] shrink-0 cursor-pointer truncate border-r border-shop-line bg-transparent py-2.5 pr-2 text-[12px] font-normal text-shop-ink focus:outline-none sm:block"
           >
             <option value="">All</option>
             {SCOPES.map((entry) => (
@@ -354,7 +354,7 @@ export default function SearchBar({
                 // which is what replays the animation — a CSS animation on a
                 // persistent node only ever runs once.
                 key={prompt}
-                className="ticker-line block truncate text-[14px] text-shop-muted"
+                className="ticker-line block truncate text-[13px] text-shop-muted"
               >
                 {SEARCH_PROMPTS[prompt]}
               </span>
@@ -422,7 +422,7 @@ export default function SearchBar({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goToSearch(label)}
-                    className="rounded-full border border-shop-line px-3 py-1.5 text-[13px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+                    className="rounded-full border border-shop-line px-3 py-1.5 text-[12px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
                   >
                     {label}
                   </button>
@@ -430,9 +430,9 @@ export default function SearchBar({
               </div>
             </div>
           ) : loading && rows.length === 0 ? (
-            <p className="px-4 py-3 text-[14px] text-shop-muted">Searching…</p>
+            <p className="px-4 py-3 text-[13px] text-shop-muted">Searching…</p>
           ) : rows.length === 0 ? (
-            <p className="px-4 py-3 text-[14px] text-shop-muted">
+            <p className="px-4 py-3 text-[13px] text-shop-muted">
               No matches for “{term}”
             </p>
           ) : (
@@ -478,12 +478,12 @@ export default function SearchBar({
                               className="h-9 w-9 shrink-0 rounded-full border border-shop-line bg-white object-cover"
                             />
                           ) : (
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-ink text-[14px] font-semibold text-white">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-shop-ink text-[13px] font-semibold text-white">
                               {store.name.charAt(0).toUpperCase()}
                             </span>
                           )}
                           <span className="min-w-0 flex-1">
-                            <span className="line-clamp-1 block text-[14px] font-medium text-shop-ink">
+                            <span className="line-clamp-1 block text-[13px] font-medium text-shop-ink">
                               {highlight(store.name, term)}
                             </span>
                             <span className="block text-[12px] text-shop-muted">
@@ -526,7 +526,7 @@ export default function SearchBar({
                         className="h-11 w-11 shrink-0 rounded-lg border border-shop-line bg-white object-contain p-1"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="line-clamp-1 block text-[14px] text-shop-body">
+                        <span className="line-clamp-1 block text-[13px] text-shop-body">
                           {highlight(s.name, term)}
                         </span>
                         {s.category && (
@@ -534,7 +534,7 @@ export default function SearchBar({
                         )}
                       </span>
                       <span
-                        className={`shrink-0 text-[14px] font-semibold ${
+                        className={`shrink-0 text-[13px] font-semibold ${
                           s.on_sale ? "text-shop-primary-ink" : "text-shop-ink"
                         }`}
                       >
@@ -548,7 +548,7 @@ export default function SearchBar({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goToSearch(term)}
-                className="w-full bg-shop-surface py-3 text-center text-[13px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline"
+                className="w-full bg-shop-surface py-3 text-center text-[12px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline"
               >
                 View all results for “{term}”
               </button>

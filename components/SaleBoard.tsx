@@ -112,12 +112,12 @@ export default function SaleBoard({
             style={{ ["--shelf"]: band.shelf } as CSSProperties}
           >
             <div className="section-head flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 className="heading-black text-[18px] md:text-[21px]">{band.title}</h2>
+              <h2 className="heading-black text-[17px] md:text-[20px]">{band.title}</h2>
               {/* The count is of what is ON the board, and it grows as more
                   arrives. It used to be the count on one page of 24, which on a
                   sale of three hundred products was a number about the
                   pagination rather than about the shop. */}
-              <p className="section-sub text-[13px]">
+              <p className="section-sub text-[12px]">
                 {band.products.length}{" "}
                 {band.products.length === 1 ? "product" : "products"}
               </p>

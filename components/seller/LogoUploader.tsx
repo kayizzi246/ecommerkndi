@@ -89,7 +89,7 @@ export default function LogoUploader({
             className="object-cover"
           />
         ) : (
-          <span className="flex h-full items-center justify-center text-[26px] font-bold text-shop-primary">
+          <span className="flex h-full items-center justify-center text-[25px] font-bold text-shop-primary">
             {storeName.charAt(0).toUpperCase() || "?"}
           </span>
         )}
@@ -110,7 +110,7 @@ export default function LogoUploader({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="rounded border border-black bg-black px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+            className="rounded border border-black bg-black px-4 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
           >
             {busy ? "Uploading…" : value ? "Change picture" : "Upload a picture"}
           </button>
@@ -119,19 +119,19 @@ export default function LogoUploader({
             <button
               type="button"
               onClick={() => onChange("")}
-              className="rounded border border-bfl-line px-3 py-2 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+              className="rounded border border-bfl-line px-3 py-2 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
             >
               Remove
             </button>
           )}
         </div>
 
-        <p className="mt-2 text-[13px] text-bfl-grey">
+        <p className="mt-2 text-[12px] text-bfl-grey">
           Square works best — it is shown in a circle. Up to 8 MB.
         </p>
 
         {error && (
-          <p role="alert" className="mt-1.5 text-[13px] font-medium text-shop-sale">
+          <p role="alert" className="mt-1.5 text-[12px] font-medium text-shop-sale">
             {error}
           </p>
         )}

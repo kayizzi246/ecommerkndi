@@ -130,7 +130,7 @@ export default function CategoryDrawer({
             </svg>
           </span>
           <Link href="/account" onClick={close} className="min-w-0 flex-1">
-            <span className="block text-[15px] font-bold leading-tight">My account</span>
+            <span className="block text-[14px] font-bold leading-tight">My account</span>
             <span className="block truncate text-[12px] leading-tight text-white/80">
               Orders, wishlist and settings
             </span>
@@ -159,7 +159,7 @@ export default function CategoryDrawer({
 
           <Band title="Our categories" seeAll="/categories" onClose={close}>
             {departments.length === 0 ? (
-              <p className="px-4 py-4 text-[13px] text-shop-muted">
+              <p className="px-4 py-4 text-[12px] text-shop-muted">
                 No departments yet — add product categories in WordPress and they
                 appear here.
               </p>
@@ -215,7 +215,7 @@ export default function CategoryDrawer({
                           <Link
                             href={`/category/${child.slug}`}
                             onClick={close}
-                            className="block truncate py-2.5 pl-[54px] pr-4 text-[14px] font-semibold text-shop-ink transition-colors hover:text-shop-primary"
+                            className="block truncate py-2.5 pl-[54px] pr-4 text-[13px] font-semibold text-shop-ink transition-colors hover:text-shop-primary"
                           >
                             {child.name}
                           </Link>
@@ -243,7 +243,7 @@ export default function CategoryDrawer({
                                   <Link
                                     href={`/category/${grandchild.slug}`}
                                     onClick={close}
-                                    className="block truncate py-2 pl-[68px] pr-4 text-[13px] text-shop-body transition-colors hover:text-shop-primary"
+                                    className="block truncate py-2 pl-[68px] pr-4 text-[12px] text-shop-body transition-colors hover:text-shop-primary"
                                   >
                                     {grandchild.name}
                                   </Link>
@@ -341,7 +341,7 @@ function Row({
     <Link
       href={href}
       onClick={onClose}
-      className="flex min-w-0 flex-1 items-center gap-3.5 px-4 py-3 text-[14px] text-shop-ink transition-colors hover:text-shop-primary"
+      className="flex min-w-0 flex-1 items-center gap-3.5 px-4 py-3 text-[13px] text-shop-ink transition-colors hover:text-shop-primary"
     >
       <span className="shrink-0 text-shop-body">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>

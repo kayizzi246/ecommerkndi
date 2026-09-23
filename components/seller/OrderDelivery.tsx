@@ -47,18 +47,18 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
 
   return (
     <div className="rounded border border-bfl-line bg-white p-4">
-      <p className="text-[13px] font-semibold text-black">Deliver to</p>
+      <p className="text-[12px] font-semibold text-black">Deliver to</p>
 
-      <p className="mt-2 text-[14px] font-semibold text-black">{order.customer || "—"}</p>
+      <p className="mt-2 text-[13px] font-semibold text-black">{order.customer || "—"}</p>
 
       {order.phone && (
-        <p className="mt-0.5 text-[14px] text-[#333]" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <p className="mt-0.5 text-[13px] text-[#333]" style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatUgPhone(order.phone)}
         </p>
       )}
 
       {lines.length > 0 ? (
-        <p className="mt-1.5 text-[14px] leading-relaxed text-[#333]">
+        <p className="mt-1.5 text-[13px] leading-relaxed text-[#333]">
           {lines.map((line) => (
             <span key={line} className="block">
               {line}
@@ -66,13 +66,13 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
           ))}
         </p>
       ) : (
-        <p className="mt-1.5 text-[14px] text-bfl-grey">
+        <p className="mt-1.5 text-[13px] text-bfl-grey">
           No street address on this order — use the map pin or call the buyer.
         </p>
       )}
 
       {order.note && (
-        <p className="mt-3 rounded bg-[#fff6dd] px-3 py-2 text-[13px] text-[#8a6100]">
+        <p className="mt-3 rounded bg-[#fff6dd] px-3 py-2 text-[12px] text-[#8a6100]">
           <span className="font-semibold">The buyer asked:</span> {order.note}
         </p>
       )}
@@ -81,7 +81,7 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
         {order.phone && (
           <a
             href={`tel:${order.phone.replace(/[^\d+]/g, "")}`}
-            className="rounded border border-black bg-black px-3 py-1.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-85"
+            className="rounded border border-black bg-black px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-85"
           >
             Call
           </a>
@@ -92,7 +92,7 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
             href={`https://wa.me/${normalised.replace("+", "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+            className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
           >
             WhatsApp
           </a>
@@ -103,7 +103,7 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
             href={order.map_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+            className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
           >
             Open the pin
           </a>
@@ -112,14 +112,14 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
         <button
           type="button"
           onClick={copyAddress}
-          className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+          className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
         >
           {copied ? "Copied" : "Copy address"}
         </button>
       </div>
 
       {order.payment && (
-        <p className="mt-3 text-[13px] text-bfl-grey">
+        <p className="mt-3 text-[12px] text-bfl-grey">
           Paid by <span className="text-[#333]">{order.payment}</span>
         </p>
       )}

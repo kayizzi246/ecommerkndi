@@ -175,11 +175,11 @@ function SectionHead({ title, note }: { title: string; note?: string }) {
   return (
     <div className="lg:sticky lg:top-[92px]">
       <span aria-hidden className="block h-[3px] w-7 bg-shop-primary" />
-      <h2 className="mt-3.5 text-[19px] font-bold leading-[1.25] tracking-[-0.02em] text-shop-ink md:text-[20px]">
+      <h2 className="mt-3.5 text-[18px] font-bold leading-[1.25] tracking-[-0.02em] text-shop-ink md:text-[19px]">
         {title}
       </h2>
       {note && (
-        <p className="mt-2.5 max-w-[34ch] text-[14px] leading-[1.6] text-shop-muted">{note}</p>
+        <p className="mt-2.5 max-w-[34ch] text-[13px] leading-[1.6] text-shop-muted">{note}</p>
       )}
     </div>
   );
@@ -347,12 +347,12 @@ export default async function SellPage() {
                    whole of Uganda" is the reach. Left to the browser it broke
                    after "to", stranding a preposition, which reads as text that
                    was enlarged rather than type that was set. */}
-              <h1 className="mt-4 text-[28px] font-bold leading-[1.1] tracking-[-0.025em] text-shop-ink md:text-[34px] lg:text-[40px]">
+              <h1 className="mt-4 text-[27px] font-bold leading-[1.1] tracking-[-0.025em] text-shop-ink md:text-[33px] lg:text-[39px]">
                 Sell your shoes and fashion
                 <br className="hidden sm:block" /> to the whole of Uganda.
               </h1>
 
-              <p className="mt-4 max-w-[50ch] text-[15px] leading-[1.6] text-shop-body md:text-[16px]">
+              <p className="mt-4 max-w-[50ch] text-[14px] leading-[1.6] text-shop-body md:text-[15px]">
                 Open a store on {brand.name} and list what you have. We run the storefront, take
                 the payments and deliver the parcel — you pack it. There is nothing to build and
                 nothing to host.
@@ -366,15 +366,15 @@ export default async function SellPage() {
                     Sized down with everything else. A 16px label on a py-3.5
                     button was reading as a phone control on a desktop page —
                     the pair of them spanned most of the column. */}
-                <Link href="/seller/register" className="btn-shop px-6 py-3 text-[15px]">
+                <Link href="/seller/register" className="btn-shop px-6 py-3 text-[14px]">
                   Start selling
                 </Link>
-                <Link href="#calculator" className="btn-shop-outline px-5 py-3 text-[15px]">
+                <Link href="#calculator" className="btn-shop-outline px-5 py-3 text-[14px]">
                   Work out what you would keep
                 </Link>
               </div>
 
-              <p className="mt-5 text-[13px] leading-relaxed text-shop-muted">
+              <p className="mt-5 text-[12px] leading-relaxed text-shop-muted">
                 Already selling with us?{" "}
                 <Link
                   href="/seller/login"
@@ -420,7 +420,7 @@ export default async function SellPage() {
                     the headline — the rank was never carried by the point size
                     alone, it is carried by the rule above them, the tabular
                     figures and the fact that nothing else in the band competes. */}
-                <dd className="mt-1.5 text-[19px] font-bold leading-none tracking-[-0.02em] text-shop-ink tabular-nums md:text-[22px]">
+                <dd className="mt-1.5 text-[18px] font-bold leading-none tracking-[-0.02em] text-shop-ink tabular-nums md:text-[21px]">
                   {term.value}
                 </dd>
                 <dd className="mt-2 max-w-[26ch] text-[12px] leading-snug text-shop-muted">
@@ -473,10 +473,10 @@ export default async function SellPage() {
             {included.map((item) => (
               <li key={item.title} className="bg-[#faf9f6] px-0 py-5 sm:p-5">
                 <Glyph name={item.icon} />
-                <h3 className="mt-3 text-[15px] font-bold leading-snug tracking-[-0.01em] text-shop-ink">
+                <h3 className="mt-3 text-[14px] font-bold leading-snug tracking-[-0.01em] text-shop-ink">
                   {item.title}
                 </h3>
-                <p className="mt-1.5 text-[14px] leading-[1.6] text-shop-body">{item.copy}</p>
+                <p className="mt-1.5 text-[13px] leading-[1.6] text-shop-body">{item.copy}</p>
               </li>
             ))}
           </ul>
@@ -504,10 +504,10 @@ export default async function SellPage() {
                   <span className="text-[12px] font-bold tracking-[0.08em] text-shop-primary tabular-nums">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <h3 className="mt-2 text-[15px] font-bold tracking-[-0.01em] text-shop-ink">
+                  <h3 className="mt-2 text-[14px] font-bold tracking-[-0.01em] text-shop-ink">
                     {step.title}
                   </h3>
-                  <p className="mt-1.5 text-[14px] leading-[1.6] text-shop-body">{step.copy}</p>
+                  <p className="mt-1.5 text-[13px] leading-[1.6] text-shop-body">{step.copy}</p>
                 </li>
               ))}
             </ol>
@@ -517,7 +517,7 @@ export default async function SellPage() {
                 afterwards, and the sellers who lose from that are the honest
                 ones. Saying so here is also the argument for the fee, three
                 sections early. */}
-            <p className="mt-7 border-l-2 border-shop-primary pl-4 text-[14px] leading-[1.7] text-shop-body">
+            <p className="mt-7 border-l-2 border-shop-primary pl-4 text-[13px] leading-[1.7] text-shop-body">
               None of this is automatic. A person approves your store and a person reads your first
               listings, which is slower than a form that lets anybody in — and it is the reason a
               shopper trusts the stores that get through it.
@@ -536,7 +536,7 @@ export default async function SellPage() {
             />
 
             <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
-              <div className="space-y-3.5 text-[14px] leading-[1.7] text-shop-body">
+              <div className="space-y-3.5 text-[13px] leading-[1.7] text-shop-body">
                 <p>
                   It is a subscription, not a deposit and not commission in advance. It pays for
                   the shopfront your products sit in — the storefront, the photography standards,
@@ -565,14 +565,14 @@ export default async function SellPage() {
                 <ol className="mt-3 divide-y divide-shop-line border-y border-shop-line">
                   {feeCovers.map((item, index) => (
                     <li key={item} className="flex gap-4 py-4">
-                      <span className="mt-0.5 shrink-0 text-[13px] font-bold text-shop-primary tabular-nums">
+                      <span className="mt-0.5 shrink-0 text-[12px] font-bold text-shop-primary tabular-nums">
                         {String(index + 1).padStart(2, "0")}
                       </span>
-                      <span className="text-[14px] leading-[1.6] text-shop-body">{item}</span>
+                      <span className="text-[13px] leading-[1.6] text-shop-body">{item}</span>
                     </li>
                   ))}
                 </ol>
-                <p className="mt-5 text-[14px] font-semibold leading-relaxed text-shop-ink">
+                <p className="mt-5 text-[13px] font-semibold leading-relaxed text-shop-ink">
                   Turned down? Your first {formatPrice(seller.registration_fee)} comes back within
                   five working days.
                 </p>
@@ -592,12 +592,12 @@ export default async function SellPage() {
 
           <div className="grid gap-10 md:grid-cols-2 md:gap-12">
             <div>
-              <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-shop-ink">
+              <h3 className="text-[12px] font-bold uppercase tracking-[0.12em] text-shop-ink">
                 Apply if
               </h3>
               <ul className="mt-4 divide-y divide-shop-line border-t border-shop-line">
                 {apply.map((item) => (
-                  <li key={item} className="py-3 text-[14px] leading-[1.6] text-shop-body">
+                  <li key={item} className="py-3 text-[13px] leading-[1.6] text-shop-body">
                     {item}
                   </li>
                 ))}
@@ -609,12 +609,12 @@ export default async function SellPage() {
                 and they should read as the quieter list rather than as a
                 mirror-image feature grid. */}
             <div>
-              <h3 className="text-[13px] font-bold uppercase tracking-[0.12em] text-shop-muted">
+              <h3 className="text-[12px] font-bold uppercase tracking-[0.12em] text-shop-muted">
                 Do not apply if
               </h3>
               <ul className="mt-4 divide-y divide-shop-line border-t border-shop-line">
                 {doNot.map((item) => (
-                  <li key={item} className="py-3 text-[14px] leading-[1.6] text-shop-muted">
+                  <li key={item} className="py-3 text-[13px] leading-[1.6] text-shop-muted">
                     {item}
                   </li>
                 ))}
@@ -635,23 +635,23 @@ export default async function SellPage() {
             <div className="divide-y divide-shop-line border-y border-shop-line">
               {faqs.map((faq) => (
                 <details key={faq.q} className="group py-4">
-                  <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-[14px] font-semibold leading-snug text-shop-ink">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-[13px] font-semibold leading-snug text-shop-ink">
                     {faq.q}
                     <span
                       aria-hidden
-                      className="mt-1 shrink-0 text-[18px] font-normal leading-none text-shop-muted transition-transform group-open:rotate-45"
+                      className="mt-1 shrink-0 text-[17px] font-normal leading-none text-shop-muted transition-transform group-open:rotate-45"
                     >
                       +
                     </span>
                   </summary>
-                  <p className="mt-2.5 max-w-[68ch] text-[14px] leading-[1.7] text-shop-body">
+                  <p className="mt-2.5 max-w-[68ch] text-[13px] leading-[1.7] text-shop-body">
                     {faq.a}
                   </p>
                 </details>
               ))}
             </div>
 
-            <p className="mt-6 text-[14px] text-shop-muted">
+            <p className="mt-6 text-[13px] text-shop-muted">
               The full rules are in the{" "}
               <Link
                 href="/seller-policies"
@@ -678,21 +678,21 @@ export default async function SellPage() {
         <div className="mx-auto max-w-[1200px] px-4 py-12 md:px-8 md:py-14">
           <div className="grid items-end gap-7 md:grid-cols-[1fr_auto] md:gap-12">
             <div>
-              <h2 className="text-[22px] font-bold leading-[1.2] tracking-[-0.02em] text-white md:text-[26px]">
+              <h2 className="text-[21px] font-bold leading-[1.2] tracking-[-0.02em] text-white md:text-[25px]">
                 Set your store up today
               </h2>
-              <p className="mt-2.5 max-w-[46ch] text-[14px] leading-relaxed text-white/70">
+              <p className="mt-2.5 max-w-[46ch] text-[13px] leading-relaxed text-white/70">
                 Three minutes to apply, {formatPrice(seller.registration_fee)} for the first month,
                 and most applications are reviewed the same day.
               </p>
             </div>
 
             <div className="flex flex-col items-start gap-3 md:items-end">
-              <Link href="/seller/register" className="btn-shop px-7 py-3 text-[15px]">
+              <Link href="/seller/register" className="btn-shop px-7 py-3 text-[14px]">
                 Start selling
               </Link>
               {support.phone && (
-                <p className="text-[13px] text-white/60">
+                <p className="text-[12px] text-white/60">
                   Or talk to someone first:{" "}
                   <a
                     href={`tel:${support.phone.replace(/\s+/g, "")}`}

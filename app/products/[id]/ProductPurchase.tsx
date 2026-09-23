@@ -258,8 +258,8 @@ export default function ProductPurchase({
                in the picture, so it is set like one — 15px, regular, two lines
                of it, and the price beneath it is now unambiguously the loudest
                element in the column. */}
-          <h1 className="font-normal-heading line-clamp-2 text-[14px] leading-[20px] text-shop-ink md:text-[15px] md:leading-[22px]">
-            <span className="mr-1.5 inline-flex items-center gap-1 align-[1px] text-[13px] font-semibold text-shop-success">
+          <h1 className="font-normal-heading line-clamp-2 text-[13px] leading-[20px] text-shop-ink md:text-[14px] md:leading-[22px]">
+            <span className="mr-1.5 inline-flex items-center gap-1 align-[1px] text-[12px] font-semibold text-shop-success">
               <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
               </svg>
@@ -277,7 +277,7 @@ export default function ProductPurchase({
                Every figure is from WooCommerce and each half disappears when
                there is nothing behind it. */}
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-shop-muted">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-shop-muted">
               {product.total_sales > 0 && (
                 <span className="font-semibold text-shop-body">
                   {product.total_sales} sold
@@ -333,7 +333,7 @@ export default function ProductPurchase({
 
             {product.rating_count > 0 && (
               <a href="#reviews" className="flex shrink-0 items-center gap-1.5">
-                <span className="text-[14px] font-semibold text-shop-ink">
+                <span className="text-[13px] font-semibold text-shop-ink">
                   {product.average_rating.toFixed(1)}
                 </span>
                 <StarRating rating={product.average_rating} size="md" showCount={false} />
@@ -363,7 +363,7 @@ export default function ProductPurchase({
                of reading it quickly. */}
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
             <span
-              className={`price text-[30px] leading-none ${
+              className={`price text-[29px] leading-none ${
                 soldOut
                   ? "text-shop-muted line-through"
                   : discount > 0
@@ -388,7 +388,7 @@ export default function ProductPurchase({
             )}
             {!soldOut && discount > 0 && (
               <>
-                <span className="text-[17px] text-shop-muted line-through">
+                <span className="text-[16px] text-shop-muted line-through">
                   {formatPrice(product.regular_price)}
                 </span>
                 {/* Red, and the same red as the price it is standing beside
@@ -420,12 +420,12 @@ export default function ProductPurchase({
               against their wallet, and it is the single line that most reliably
               moves a discounted product. */}
           {!soldOut && discount > 0 && (
-            <p className="price mt-1.5 text-[15px] text-shop-success">
+            <p className="price mt-1.5 text-[14px] text-shop-success">
               You save {formatPrice(product.regular_price - product.price)}
             </p>
           )}
 
-          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-shop-muted">
+          <p className="mt-1 flex items-center gap-1.5 text-[12px] text-shop-muted">
             Tax included. Shipping calculated at checkout.
             {discount > 0 && (
               <button
@@ -452,7 +452,7 @@ export default function ProductPurchase({
                and the colour made them look like promotions rather than terms.
                Grey, one line each, and the figures still come from wp-admin. */}
           {!soldOut && (
-            <div className="mt-3 rounded-lg bg-shop-surface px-3 py-2.5 text-[13px] leading-snug text-shop-body">
+            <div className="mt-3 rounded-lg bg-shop-surface px-3 py-2.5 text-[12px] leading-snug text-shop-body">
               <p className="flex items-start gap-2">
                 <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
@@ -508,14 +508,14 @@ export default function ProductPurchase({
                not persuasion, it is a taunt. */}
           {soldOut ? (
             <div className="mt-3 rounded-lg border border-shop-line bg-shop-surface px-3.5 py-3">
-              <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-ink">
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-ink">
                 <svg aria-hidden className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" />
                   <path strokeLinecap="round" d="M9 12h6" />
                 </svg>
                 Out of stock
               </p>
-              <p className="mt-1 text-[13px] leading-snug text-shop-body">
+              <p className="mt-1 text-[12px] leading-snug text-shop-body">
                 This item has sold out. We restock popular lines regularly — check
                 back, or{" "}
                 {brand ? (
@@ -543,17 +543,17 @@ export default function ProductPurchase({
               <BackInStockForm productId={product.id} productName={product.name} />
             </div>
           ) : onBackorder ? (
-            <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-primary-ink">
+            <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium text-shop-primary-ink">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-primary" aria-hidden />
               Available on backorder — ships as soon as it arrives
             </p>
           ) : product.stock_quantity !== null && product.stock_quantity <= 10 ? (
-            <p className="mt-2.5 flex items-center gap-2 text-[14px] font-medium text-shop-sale">
+            <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium text-shop-sale">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
               Only {product.stock_quantity} left in stock
             </p>
           ) : (
-            <p className="mt-2.5 flex items-center gap-2 text-[13px] text-shop-muted">
+            <p className="mt-2.5 flex items-center gap-2 text-[12px] text-shop-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-success" aria-hidden />
               {viewers} people viewed this in the last 24 hours
             </p>
@@ -570,7 +570,7 @@ export default function ProductPurchase({
                line works here — and answering that two clicks away answers it
                for nobody. Drawn inline as SVG, so no marks can fail to load. */}
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-shop-hairline pt-3">
-            <span className="text-[13px] font-semibold text-shop-body">
+            <span className="text-[12px] font-semibold text-shop-body">
               Pay with
             </span>
             <span className="flex flex-wrap items-center gap-1.5">
@@ -591,7 +591,7 @@ export default function ProductPurchase({
                despatch detail a shopper checks once they have decided. */}
           {!soldOut && (
             <div className="mt-3.5 border-t border-shop-hairline pt-3.5">
-              <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-success">
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-success">
                 <svg aria-hidden className="h-[18px] w-[18px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
                 </svg>
@@ -614,7 +614,7 @@ export default function ProductPurchase({
                nothing in this panel is a claim the business has not made
                elsewhere. */}
           <div className="mt-3.5 rounded-lg border border-shop-line bg-white p-3.5">
-            <p className="flex items-center gap-2 text-[14px] font-semibold text-shop-ink">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-ink">
               <svg aria-hidden className="h-[18px] w-[18px] shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
@@ -623,7 +623,7 @@ export default function ProductPurchase({
             </p>
             <div className="mt-2.5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
               <div>
-                <p className="text-[13px] font-semibold text-shop-body">
+                <p className="text-[12px] font-semibold text-shop-body">
                   Payment &amp; privacy
                 </p>
                 <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
@@ -636,7 +636,7 @@ export default function ProductPurchase({
                 </ul>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-shop-body">
+                <p className="text-[12px] font-semibold text-shop-body">
                   Delivery guarantee
                 </p>
                 <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
@@ -663,7 +663,7 @@ export default function ProductPurchase({
             className="mt-3.5"
           />
 
-          <div className="mt-3.5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px]">
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
             <button
               type="button"
               onClick={() => setModal("delivery")}
@@ -744,7 +744,7 @@ export default function ProductPurchase({
           Sizes follow the brand&apos;s own chart, so they can differ slightly between labels. If you
           are between sizes we recommend going one size up.
         </p>
-        <table className="mt-4 w-full overflow-hidden rounded-lg border border-shop-line text-[14px]">
+        <table className="mt-4 w-full overflow-hidden rounded-lg border border-shop-line text-[13px]">
           <thead>
             <tr className="bg-shop-surface text-left">
               <th className="px-3 py-2 font-semibold">Size</th>

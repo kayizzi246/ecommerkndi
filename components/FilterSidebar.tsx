@@ -213,9 +213,9 @@ export default function FilterSidebar({
     (currentBrand ? 1 : 0);
 
   return (
-    <aside className={`text-[14px] ${className}`}>
+    <aside className={`text-[13px] ${className}`}>
       <div className="mb-5 flex items-center justify-between">
-        <h3 className="text-[16px] font-extrabold text-shop-ink">
+        <h3 className="text-[15px] font-extrabold text-shop-ink">
           Filters{" "}
           {activeCount > 0 && (
             <span className="ml-1 rounded-full bg-shop-primary px-2 py-0.5 text-[12px] font-semibold text-white">
@@ -228,7 +228,7 @@ export default function FilterSidebar({
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
+              className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink"
             >
               Clear all
             </button>
@@ -254,7 +254,7 @@ export default function FilterSidebar({
            cannot be helped by a price range. */}
       {browse.groups.length > 0 && (
         <section className="border-t border-shop-line py-5">
-          <h4 className="mb-1 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
+          <h4 className="mb-1 text-[12px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
             {browse.current ? "Shop by category" : "Departments"}
           </h4>
           <p className="mb-3 text-[12px] leading-snug text-shop-muted">
@@ -270,7 +270,7 @@ export default function FilterSidebar({
           {browse.parent && (
             <Link
               href={`/category/${browse.parent.slug}`}
-              className="mb-2 flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:bg-shop-surface hover:text-shop-ink"
+              className="mb-2 flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-semibold text-shop-body transition-colors hover:bg-shop-surface hover:text-shop-ink"
             >
               <span aria-hidden>←</span>
               All {browse.parent.name}
@@ -311,7 +311,7 @@ export default function FilterSidebar({
             <button
               type="button"
               onClick={() => setShowAllCategories((open) => !open)}
-              className="mt-3 px-2.5 text-[13px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
+              className="mt-3 px-2.5 text-[12px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
             >
               {showAllCategories
                 ? "Show fewer categories"
@@ -323,7 +323,7 @@ export default function FilterSidebar({
 
       {/* Availability */}
       <section className="border-t border-shop-line py-5">
-        <h4 className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
+        <h4 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
           Availability
         </h4>
         <label className="flex cursor-pointer items-center gap-2.5 py-1 text-shop-body">
@@ -348,7 +348,7 @@ export default function FilterSidebar({
 
       {/* Price */}
       <section className="border-t border-shop-line py-5">
-        <h4 className="mb-3 text-[13px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
+        <h4 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.08em] text-shop-muted">
           Price
         </h4>
         <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ export default function FilterSidebar({
             onChange={(e) => setLocalMin(e.target.value)}
             placeholder="Min"
             aria-label="Minimum price"
-            className="field-shop px-2.5 py-2 text-[14px]"
+            className="field-shop px-2.5 py-2 text-[13px]"
           />
           <span className="text-shop-muted">–</span>
           <input
@@ -369,7 +369,7 @@ export default function FilterSidebar({
             onChange={(e) => setLocalMax(e.target.value)}
             placeholder="Max"
             aria-label="Maximum price"
-            className="field-shop px-2.5 py-2 text-[14px]"
+            className="field-shop px-2.5 py-2 text-[13px]"
           />
         </div>
         <button
@@ -380,12 +380,12 @@ export default function FilterSidebar({
               max_price: localMax || undefined,
             })
           }
-          className="btn-shop-outline mt-2.5 w-full py-2 text-[13px]"
+          className="btn-shop-outline mt-2.5 w-full py-2 text-[12px]"
         >
           Apply price
         </button>
         {(currentMin || currentMax) && (
-          <p className="mt-2 text-[13px] text-shop-muted">
+          <p className="mt-2 text-[12px] text-shop-muted">
             Showing {currentMin ? formatPrice(Number(currentMin)) : "any"} –{" "}
             {currentMax ? formatPrice(Number(currentMax)) : "any"}
           </p>
@@ -485,7 +485,7 @@ function CategoryLink({
       href={`/category/${entry.slug}`}
       aria-current={here ? "page" : undefined}
       className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 transition-colors ${
-        small ? "text-[13px]" : "text-[14px] font-semibold"
+        small ? "text-[12px]" : "text-[13px] font-semibold"
       } ${
         here
           ? "bg-shop-primary-soft font-bold text-shop-primary-ink"

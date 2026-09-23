@@ -29,7 +29,7 @@ export default function RangeFilter({
           type="button"
           aria-pressed={value === range.value}
           onClick={() => onChange(range.value)}
-          className={`rounded border px-3 py-1.5 text-[13px] transition-colors ${
+          className={`rounded border px-3 py-1.5 text-[12px] transition-colors ${
             value === range.value
               ? "border-black bg-black font-semibold text-white"
               : "border-bfl-line bg-white text-[#333] hover:border-[#b0b0b0]"

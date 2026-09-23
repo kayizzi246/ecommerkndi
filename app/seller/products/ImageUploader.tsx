@@ -286,10 +286,10 @@ export default function ImageUploader({
             : "border-bfl-line bg-white hover:border-shop-primary"
         } ${full ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
       >
-        <span className="text-[15px] font-semibold text-black">
+        <span className="text-[14px] font-semibold text-black">
           {full ? `${MAX_PHOTOS} photos added` : "Upload photos"}
         </span>
-        <span className="text-[13px] text-bfl-grey">
+        <span className="text-[12px] text-bfl-grey">
           {full
             ? "Remove one to add another."
             : "Tap to choose from your phone or computer, or drag files here."}
@@ -313,7 +313,7 @@ export default function ImageUploader({
       />
 
       {notice && (
-        <p role="alert" className="mt-2 text-[13px] font-medium text-pop-red">
+        <p role="alert" className="mt-2 text-[12px] font-medium text-pop-red">
           {notice}
         </p>
       )}
@@ -404,7 +404,7 @@ export default function ImageUploader({
                   type="button"
                   onClick={() => remove(photo.key)}
                   aria-label="Remove photo"
-                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-[15px] leading-none text-white hover:bg-black"
+                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-[14px] leading-none text-white hover:bg-black"
                 >
                   ×
                 </button>
@@ -426,7 +426,7 @@ export default function ImageUploader({
                       onClick={() => move(index, -1)}
                       disabled={index === 0}
                       aria-label="Move photo earlier"
-                      className="px-2 py-1 text-[13px] leading-none text-white disabled:opacity-30"
+                      className="px-2 py-1 text-[12px] leading-none text-white disabled:opacity-30"
                     >
                       ‹
                     </button>
@@ -446,7 +446,7 @@ export default function ImageUploader({
                       onClick={() => move(index, 1)}
                       disabled={index === photos.length - 1}
                       aria-label="Move photo later"
-                      className="px-2 py-1 text-[13px] leading-none text-white disabled:opacity-30"
+                      className="px-2 py-1 text-[12px] leading-none text-white disabled:opacity-30"
                     >
                       ›
                     </button>

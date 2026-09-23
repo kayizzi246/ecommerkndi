@@ -30,14 +30,14 @@ function ResetForm() {
   if (!key || !login) {
     return (
       <SellerAuthLayout eyebrow="Seller Centre">
-        <h1 className="mt-2 text-[26px] font-extrabold leading-tight tracking-tight text-shop-ink">
+        <h1 className="mt-2 text-[25px] font-extrabold leading-tight tracking-tight text-shop-ink">
           That link is incomplete
         </h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+        <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
           Reset links expire after a day and can only be used once. Ask for a new one and it will
           arrive within a minute.
         </p>
-        <Link href="/seller/login" className="btn-shop mt-6 inline-flex px-8 py-3.5 text-[15px]">
+        <Link href="/seller/login" className="btn-shop mt-6 inline-flex px-8 py-3.5 text-[14px]">
           Back to sign in
         </Link>
       </SellerAuthLayout>
@@ -85,17 +85,17 @@ function ResetForm() {
 
   return (
     <SellerAuthLayout eyebrow="Seller Centre">
-      <h1 className="mt-2 text-[30px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+      <h1 className="mt-2 text-[29px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
         Choose a new password
       </h1>
-      <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+      <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
         Setting this signs you out everywhere else, so anybody still holding your old password
         loses access.
       </p>
 
       <form onSubmit={submit} className="mt-7 space-y-4">
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
+          <label htmlFor="password" className="mb-1.5 block text-[12px] font-semibold text-shop-ink">
             New password
           </label>
           <input
@@ -112,7 +112,7 @@ function ResetForm() {
         </div>
 
         <div>
-          <label htmlFor="confirm" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
+          <label htmlFor="confirm" className="mb-1.5 block text-[12px] font-semibold text-shop-ink">
             Type it again
           </label>
           <input
@@ -129,18 +129,18 @@ function ResetForm() {
         {error && (
           <p
             role="alert"
-            className="rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[14px] text-shop-sale"
+            className="rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[13px] text-shop-sale"
           >
             {error}
           </p>
         )}
 
-        <button type="submit" disabled={saving} className="btn-shop w-full py-3.5 text-[15px]">
+        <button type="submit" disabled={saving} className="btn-shop w-full py-3.5 text-[14px]">
           {saving ? "Saving…" : "Save and sign in"}
         </button>
       </form>
 
-      <p className="mt-6 text-[14px] text-shop-muted">
+      <p className="mt-6 text-[13px] text-shop-muted">
         Remembered it?{" "}
         <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
           Sign in instead

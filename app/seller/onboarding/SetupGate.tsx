@@ -68,7 +68,7 @@ export default function SetupGate({
   if (!needsKyc && !feeDue) {
     return (
       <Shell title="Your setup is complete" step={null}>
-        <p className="text-[15px] leading-relaxed text-shop-body">
+        <p className="text-[14px] leading-relaxed text-shop-body">
           {seller.kyc_status === "approved"
             ? "Your documents have been checked and your store is verified."
             : "Your documents are with our team. We will email you the moment they are checked — usually the same working day."}
@@ -77,7 +77,7 @@ export default function SetupGate({
         <button
           type="button"
           onClick={() => router.replace("/seller")}
-          className="btn-shop mt-6 w-full py-3 text-[15px]"
+          className="btn-shop mt-6 w-full py-3 text-[14px]"
         >
           Go to my dashboard
         </button>
@@ -124,7 +124,7 @@ export default function SetupGate({
   if (needsKyc) {
     return (
       <Shell title="Verify your business" step={feeDue ? "Step 1 of 2" : "Step 1 of 1"}>
-        <p className="text-[15px] leading-relaxed text-shop-body">
+        <p className="text-[14px] leading-relaxed text-shop-body">
           Every store on Kandi is checked before it can trade. This is between you and our team
           — none of it appears on your store page.
         </p>
@@ -132,7 +132,7 @@ export default function SetupGate({
         {seller.kyc_status === "rejected" && (
           <p
             role="alert"
-            className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+            className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
           >
             We could not read the documents you sent last time. Please upload them again — a
             clear, well-lit photo of the whole card works best.
@@ -148,10 +148,10 @@ export default function SetupGate({
           />
 
           <fieldset>
-            <legend className="text-[14px] font-semibold text-shop-ink">
+            <legend className="text-[13px] font-semibold text-shop-ink">
               Is the business formally registered?
             </legend>
-            <p className="mt-1 text-[13px] text-shop-muted">
+            <p className="mt-1 text-[12px] text-shop-muted">
               Registered with URSB, or holding a trading licence or TIN.
             </p>
             <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
@@ -164,14 +164,14 @@ export default function SetupGate({
                     setError(null);
                   }}
                   aria-pressed={registered === value}
-                  className={`rounded-xl border px-4 py-3 text-left text-[15px] font-semibold transition-colors ${
+                  className={`rounded-xl border px-4 py-3 text-left text-[14px] font-semibold transition-colors ${
                     registered === value
                       ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
                       : "border-shop-line bg-white text-shop-ink hover:border-shop-primary"
                   }`}
                 >
                   {value === "yes" ? "Yes, it is registered" : "No, not yet"}
-                  <span className="mt-0.5 block text-[13px] font-normal text-shop-muted">
+                  <span className="mt-0.5 block text-[12px] font-normal text-shop-muted">
                     {value === "yes"
                       ? "We will ask for the number"
                       : "You can still sell — many of our stores start here"}
@@ -187,14 +187,14 @@ export default function SetupGate({
                 <input
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
-                  className="field-shop text-[16px]"
+                  className="field-shop text-[15px]"
                 />
               </Field>
               <Field label="Certificate or TIN number">
                 <input
                   value={businessNumber}
                   onChange={(event) => setBusinessNumber(event.target.value)}
-                  className="field-shop text-[16px]"
+                  className="field-shop text-[15px]"
                 />
               </Field>
               <FileField
@@ -209,13 +209,13 @@ export default function SetupGate({
           {error && (
             <p
               role="alert"
-              className="rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              className="rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
             >
               {error}
             </p>
           )}
 
-          <button type="submit" disabled={submitting} className="btn-shop w-full py-3.5 text-[16px]">
+          <button type="submit" disabled={submitting} className="btn-shop w-full py-3.5 text-[15px]">
             {submitting ? "Sending…" : "Send for verification"}
           </button>
         </form>
@@ -226,7 +226,7 @@ export default function SetupGate({
   /* ---------------------------------------------------------------- step 2 */
   return (
     <Shell title="Pay your first month" step="Step 2 of 2">
-      <p className="text-[15px] leading-relaxed text-shop-body">
+      <p className="text-[14px] leading-relaxed text-shop-body">
         One payment of{" "}
         <strong className="text-shop-ink">
           {formatPrice(seller.fee_amount || registrationFee)}
@@ -234,7 +234,7 @@ export default function SetupGate({
         , and never again. It covers your store setup and the checks we run on every seller — it
         is what keeps counterfeit traders off the shop.
       </p>
-      <p className="mt-2 text-[14px] text-shop-muted">
+      <p className="mt-2 text-[13px] text-shop-muted">
         Your dashboard opens as soon as the payment clears.
       </p>
 
@@ -248,7 +248,7 @@ export default function SetupGate({
       <button
         type="button"
         onClick={refresh}
-        className="btn-shop-outline mt-4 w-full py-3 text-[15px]"
+        className="btn-shop-outline mt-4 w-full py-3 text-[14px]"
       >
         I have paid — check again
       </button>
@@ -256,7 +256,7 @@ export default function SetupGate({
       <button
         type="button"
         onClick={signOut}
-        className="mt-4 w-full text-center text-[14px] font-semibold text-shop-muted hover:text-shop-primary"
+        className="mt-4 w-full text-center text-[13px] font-semibold text-shop-muted hover:text-shop-primary"
       >
         Sign out
       </button>
@@ -277,11 +277,11 @@ function Shell({
     <div className="mx-auto flex min-h-screen max-w-[620px] flex-col justify-center px-4 py-10">
       <div className="rounded-2xl border border-shop-line bg-white p-6 md:p-8">
         {step && (
-          <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
             {step}
           </p>
         )}
-        <h1 className="mt-1.5 text-[24px] font-extrabold leading-tight text-shop-ink md:text-[27px]">
+        <h1 className="mt-1.5 text-[23px] font-extrabold leading-tight text-shop-ink md:text-[26px]">
           {title}
         </h1>
         <div className="mt-3">{children}</div>
@@ -301,9 +301,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[13px] text-shop-muted">{hint}</span>}
+      {hint && <span className="mt-1 block text-[12px] text-shop-muted">{hint}</span>}
     </label>
   );
 }
@@ -330,7 +330,7 @@ function FileField({
 
   return (
     <div>
-      <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">{label}</span>
       <label
         className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 py-4 transition-colors ${
           file && !tooBig
@@ -346,15 +346,15 @@ function FileField({
         />
         <span
           aria-hidden
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[18px] shadow-sm"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[17px] shadow-sm"
         >
           {file && !tooBig ? "✓" : "＋"}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[15px] font-semibold text-shop-ink">
+          <span className="block truncate text-[14px] font-semibold text-shop-ink">
             {file ? file.name : "Choose a file"}
           </span>
-          <span className="block text-[13px] text-shop-muted">
+          <span className="block text-[12px] text-shop-muted">
             {tooBig ? `That file is over ${MAX_MB} MB — choose a smaller one.` : hint}
           </span>
         </span>

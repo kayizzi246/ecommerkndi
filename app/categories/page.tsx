@@ -212,7 +212,7 @@ export default async function CategoriesPage() {
           navigation — a bottom-nav tab leads to it, and the browser below puts
           every department one tap away — so a row saying where the shopper is
           is a line of text spent telling them what they can already see. */}
-      <nav className="phone-gutter mb-3 hidden items-center gap-2 text-[13px] text-shop-muted md:flex">
+      <nav className="phone-gutter mb-3 hidden items-center gap-2 text-[12px] text-shop-muted md:flex">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -236,10 +236,10 @@ export default async function CategoriesPage() {
           in a way a stack of rails was not, so the sentence of counts that
           introduced them is desktop-only. */}
       <header className="phone-gutter mb-3 md:mb-5">
-        <h1 className="heading-black text-[19px] leading-tight text-shop-ink md:text-[32px]">
+        <h1 className="heading-black text-[18px] leading-tight text-shop-ink md:text-[31px]">
           Browse the shop
         </h1>
-        <p className="section-sub mt-1 hidden text-[14px] md:block">
+        <p className="section-sub mt-1 hidden text-[13px] md:block">
           {departments.length > 0
             ? `${departments.length} ${departments.length === 1 ? "department" : "departments"}, shelf by shelf.`
             : "Categories are being set up. Everything on the shop is still one search away."}
@@ -248,10 +248,10 @@ export default async function CategoriesPage() {
 
       {sections.length === 0 ? (
         <div className="phone-gutter"><div className="rounded-3xl border border-shop-line bg-white p-10 text-center">
-          <p className="text-[15px] text-shop-muted">
+          <p className="text-[14px] text-shop-muted">
             Nothing to browse yet. Have a look at everything on the shop instead.
           </p>
-          <Link href="/search" className="btn-shop mt-5 inline-flex px-7 py-2.5 text-[15px]">
+          <Link href="/search" className="btn-shop mt-5 inline-flex px-7 py-2.5 text-[14px]">
             Browse all products
           </Link>
         </div></div>
@@ -278,7 +278,7 @@ export default async function CategoriesPage() {
                 <a
                   key={department.id}
                   href={`#dept-${department.slug}`}
-                  className="shrink-0 rounded-full border border-shop-line bg-white px-4 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+                  className="shrink-0 rounded-full border border-shop-line bg-white px-4 py-2 text-[12px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
                 >
                   {department.name}
                 </a>

@@ -15,7 +15,7 @@ import ColorOptions, {
 } from "@/components/seller/ColorOptions";
 
 const INPUT =
-  "w-full border border-bfl-line px-3 py-2.5 text-[15px] focus:border-black focus:outline-none";
+  "w-full border border-bfl-line px-3 py-2.5 text-[14px] focus:border-black focus:outline-none";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -105,7 +105,7 @@ export default function NewProductPage() {
 
   return (
     <div className="mx-auto max-w-[1000px]">
-      <nav className="mb-4 flex items-center gap-2 text-[14px] text-bfl-grey">
+      <nav className="mb-4 flex items-center gap-2 text-[13px] text-bfl-grey">
         <Link href="/seller/products" className="hover:text-black hover:underline">
           Products
         </Link>
@@ -113,8 +113,8 @@ export default function NewProductPage() {
         <span className="text-black">New listing</span>
       </nav>
 
-      <h1 className="text-[26px] font-extrabold text-black">Add a product</h1>
-      <p className="mt-1 text-[14px] text-bfl-grey">
+      <h1 className="text-[25px] font-extrabold text-black">Add a product</h1>
+      <p className="mt-1 text-[13px] text-bfl-grey">
         New listings are submitted for approval and appear on the storefront once our team clears them.
       </p>
 
@@ -225,7 +225,7 @@ export default function NewProductPage() {
           </Section>
 
           {error && (
-            <p role="alert" className="border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink">
+            <p role="alert" className="border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[13px] text-shop-ink">
               {error}
             </p>
           )}
@@ -234,9 +234,9 @@ export default function NewProductPage() {
         {/* Sticky summary */}
         <aside className="h-fit lg:sticky lg:top-20">
           <div className="border border-bfl-line bg-white p-5">
-            <h2 className="text-[16px] font-extrabold text-black">Listing summary</h2>
+            <h2 className="text-[15px] font-extrabold text-black">Listing summary</h2>
 
-            <dl className="mt-4 space-y-2.5 text-[14px]">
+            <dl className="mt-4 space-y-2.5 text-[13px]">
               <Row label="Selling price" value={effectivePrice > 0 ? formatPrice(effectivePrice) : "—"} bold />
               {discount > 0 && (
                 <Row
@@ -257,14 +257,14 @@ export default function NewProductPage() {
             <button
               type="submit"
               disabled={submitting || uploading}
-              className="btn-bfl mt-5 w-full py-3 text-[15px]"
+              className="btn-bfl mt-5 w-full py-3 text-[14px]"
             >
               {submitting ? "Submitting…" : uploading ? "Uploading photos…" : "Submit for approval"}
             </button>
 
             <Link
               href="/seller/products"
-              className="mt-2 block w-full border border-bfl-line py-2.5 text-center text-[14px] font-semibold text-[#333] hover:border-black"
+              className="mt-2 block w-full border border-bfl-line py-2.5 text-center text-[13px] font-semibold text-[#333] hover:border-black"
             >
               Cancel
             </Link>
@@ -278,7 +278,7 @@ export default function NewProductPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border border-bfl-line bg-white p-5">
-      <h2 className="mb-4 text-[16px] font-extrabold text-black">{title}</h2>
+      <h2 className="mb-4 text-[15px] font-extrabold text-black">{title}</h2>
       <div className="space-y-4">{children}</div>
     </section>
   );
@@ -295,7 +295,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">{label}</span>
+      <span className="mb-1.5 block text-[12px] font-semibold text-[#333]">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-[12px] text-bfl-grey">{hint}</span>}
     </label>

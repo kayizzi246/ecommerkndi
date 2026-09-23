@@ -80,7 +80,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
 
   if (product.stock_status === "outofstock") {
     return (
-      <button disabled className="btn-shop w-full py-4 text-[15px]">
+      <button disabled className="btn-shop w-full py-4 text-[14px]">
         Sold out
       </button>
     );
@@ -149,7 +149,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (attr.name.toLowerCase() === 'color') {
           return (
             <div key={attr.name}>
-              <p className="mb-2.5 text-[14px] text-shop-muted">
+              <p className="mb-2.5 text-[13px] text-shop-muted">
                 Colour:{" "}
                 <span className="font-semibold text-shop-ink">
                   {selected[attr.name] || "Select a colour"}
@@ -173,7 +173,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         return (
           <div key={attr.name}>
             <div className="mb-2.5 flex items-baseline justify-between gap-4">
-              <p className="text-[14px] text-shop-muted">
+              <p className="text-[13px] text-shop-muted">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
                   {selected[attr.name] ?? `Select a ${attr.name.toLowerCase()}`}
@@ -184,7 +184,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                   aria-label="Size system"
                   value={sizeSystem}
                   onChange={(event) => setSizeSystem(event.target.value)}
-                  className="rounded-lg border border-shop-line bg-white px-2.5 py-1.5 text-[13px] text-shop-body focus:border-shop-ink focus:outline-none"
+                  className="rounded-lg border border-shop-line bg-white px-2.5 py-1.5 text-[12px] text-shop-body focus:border-shop-ink focus:outline-none"
                 >
                   {SIZE_SYSTEMS.map((system) => (
                     <option key={system}>{system}</option>
@@ -203,7 +203,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                     type="button"
                     disabled={!available}
                     onClick={() => handleSelect(attr.name, option.name)}
-                    className={`relative min-w-[52px] rounded-lg border px-4 py-2.5 text-[14px] transition-colors disabled:cursor-not-allowed disabled:border-shop-hairline disabled:bg-shop-surface disabled:text-[#bbb] ${
+                    className={`relative min-w-[52px] rounded-lg border px-4 py-2.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:border-shop-hairline disabled:bg-shop-surface disabled:text-[#bbb] ${
                       active
                         ? "border-shop-primary bg-shop-primary-soft font-semibold text-shop-primary"
                         : "border-shop-line text-shop-body hover:border-shop-primary"
@@ -223,11 +223,11 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         );
       })}
 
-      {error && <p className="text-[14px] font-medium text-shop-error">{error}</p>}
+      {error && <p className="text-[13px] font-medium text-shop-error">{error}</p>}
 
       {/* Quantity stepper, then a full-width primary action — the Shopify order. */}
       <div ref={actionRef}>
-        <p className="mb-2.5 text-[14px] text-shop-muted">Quantity</p>
+        <p className="mb-2.5 text-[13px] text-shop-muted">Quantity</p>
         <div className="flex items-stretch gap-3">
           <div className="flex items-center rounded-lg border border-shop-line">
             <button
@@ -235,13 +235,13 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               aria-label="Decrease quantity"
               onClick={() => setQuantity((n) => Math.max(1, n - 1))}
               disabled={quantity <= 1}
-              className="flex h-12 w-11 items-center justify-center text-[20px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
+              className="flex h-12 w-11 items-center justify-center text-[19px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
             >
               −
             </button>
             <span
               aria-live="polite"
-              className="w-8 text-center text-[15px] font-semibold text-shop-ink"
+              className="w-8 text-center text-[14px] font-semibold text-shop-ink"
             >
               {quantity}
             </span>
@@ -250,7 +250,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               aria-label="Increase quantity"
               onClick={() => setQuantity((n) => Math.min(10, n + 1))}
               disabled={quantity >= 10}
-              className="flex h-12 w-11 items-center justify-center text-[20px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
+              className="flex h-12 w-11 items-center justify-center text-[19px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
             >
               +
             </button>
@@ -288,7 +288,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           <button
             type="button"
             onClick={add}
-            className="flex-1 rounded-full border border-shop-ink bg-white px-6 py-3.5 text-[15px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+            className="flex-1 rounded-full border border-shop-ink bg-white px-6 py-3.5 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
           >
             Add to cart
           </button>
@@ -297,7 +297,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             onClick={buyNow}
             className="flex-1 rounded-full bg-shop-primary px-6 py-2.5 text-center leading-tight text-white transition-colors hover:bg-shop-primary-dark"
           >
-            <span className="block text-[15px] font-bold">Buy now</span>
+            <span className="block text-[14px] font-bold">Buy now</span>
             {/* Full white, not white/90. White on the brand orange is already
                 only 2.9:1 (see the palette note in globals.css); dimming it
                 further to look "secondary" would have put the smallest text on
@@ -327,13 +327,13 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-[12px] font-normal text-shop-ink">{product.name}</p>
-            <p className="text-[14px] text-shop-muted">{formatPrice(product.price)}</p>
+            <p className="text-[13px] text-shop-muted">{formatPrice(product.price)}</p>
           </div>
           <button
             type="button"
             tabIndex={actionVisible ? -1 : 0}
             onClick={add}
-            className="btn-shop shrink-0 px-6 py-3 text-[14px] md:px-10"
+            className="btn-shop shrink-0 px-6 py-3 text-[13px] md:px-10"
           >
             Add to cart
           </button>

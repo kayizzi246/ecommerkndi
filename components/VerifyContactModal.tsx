@@ -287,14 +287,14 @@ export default function VerifyContactModal({
         className="w-full max-w-[420px] rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 id="verify-title" className="text-[18px] font-extrabold text-shop-ink">
+          <h2 id="verify-title" className="text-[17px] font-extrabold text-shop-ink">
             {step === "destination" ? title : "Enter the code"}
           </h2>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Close"
-            className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[22px] leading-none text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
+            className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[21px] leading-none text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
           >
             ×
           </button>
@@ -302,13 +302,13 @@ export default function VerifyContactModal({
 
         {step === "destination" ? (
           <form onSubmit={send} className="mt-2">
-            <p className="text-[13px] leading-relaxed text-shop-body">{intro}</p>
+            <p className="text-[12px] leading-relaxed text-shop-body">{intro}</p>
 
             {channel === "sms" ? (
               <>
                 <label
                   htmlFor="verify-phone"
-                  className="mt-4 block text-[13px] font-semibold text-shop-ink"
+                  className="mt-4 block text-[12px] font-semibold text-shop-ink"
                 >
                   Mobile number
                 </label>
@@ -318,7 +318,7 @@ export default function VerifyContactModal({
                       types it themselves types it four different ways —
                       `normaliseUgPhone` accepts all of them, but showing the
                       prefix is what stops the question being asked. */}
-                  <span className="shrink-0 rounded-lg bg-shop-surface px-3 py-2.5 text-[15px] font-semibold text-shop-body">
+                  <span className="shrink-0 rounded-lg bg-shop-surface px-3 py-2.5 text-[14px] font-semibold text-shop-body">
                     +256
                   </span>
                   <input
@@ -332,7 +332,7 @@ export default function VerifyContactModal({
                     value={to}
                     onChange={(event) => setTo(event.target.value)}
                     placeholder="772 123 456"
-                    className="field-shop flex-1 px-3 py-2.5 text-[15px]"
+                    className="field-shop flex-1 px-3 py-2.5 text-[14px]"
                   />
                 </div>
               </>
@@ -340,7 +340,7 @@ export default function VerifyContactModal({
               <>
                 <label
                   htmlFor="verify-email"
-                  className="mt-4 block text-[13px] font-semibold text-shop-ink"
+                  className="mt-4 block text-[12px] font-semibold text-shop-ink"
                 >
                   Email address
                 </label>
@@ -354,18 +354,18 @@ export default function VerifyContactModal({
                   value={to}
                   onChange={(event) => setTo(event.target.value)}
                   placeholder="you@example.com"
-                  className="field-shop mt-1.5 w-full px-3 py-2.5 text-[15px]"
+                  className="field-shop mt-1.5 w-full px-3 py-2.5 text-[14px]"
                 />
               </>
             )}
 
             {error && (
-              <p role="alert" className="mt-2.5 text-[13px] font-medium text-shop-sale">
+              <p role="alert" className="mt-2.5 text-[12px] font-medium text-shop-sale">
                 {error}
               </p>
             )}
 
-            <button type="submit" disabled={busy} className="btn-shop mt-4 w-full py-3 text-[15px]">
+            <button type="submit" disabled={busy} className="btn-shop mt-4 w-full py-3 text-[14px]">
               {busy ? "Sending…" : "Send code"}
             </button>
 
@@ -394,7 +394,7 @@ export default function VerifyContactModal({
                     setTo("");
                     setError("");
                   }}
-                  className="mt-3 w-full text-[13px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
+                  className="mt-3 w-full text-[12px] font-semibold text-shop-primary-ink underline underline-offset-4 hover:text-shop-ink"
                 >
                   {channel === "sms"
                     ? "Use my email address instead"
@@ -405,7 +405,7 @@ export default function VerifyContactModal({
           </form>
         ) : (
           <form onSubmit={verify} className="mt-2">
-            <p className="text-[13px] leading-relaxed text-shop-body">
+            <p className="text-[12px] leading-relaxed text-shop-body">
               We sent a 6-digit code to{" "}
               <span className="font-semibold text-shop-ink">{sentTo}</span>. It expires in 10
               minutes.
@@ -430,11 +430,11 @@ export default function VerifyContactModal({
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
               placeholder="••••••"
-              className="field-shop mt-3 w-full px-3 py-3 text-center text-[24px] font-bold tracking-[0.4em]"
+              className="field-shop mt-3 w-full px-3 py-3 text-center text-[23px] font-bold tracking-[0.4em]"
             />
 
             {error && (
-              <p role="alert" className="mt-2.5 text-[13px] font-medium text-shop-sale">
+              <p role="alert" className="mt-2.5 text-[12px] font-medium text-shop-sale">
                 {error}
               </p>
             )}
@@ -442,12 +442,12 @@ export default function VerifyContactModal({
             <button
               type="submit"
               disabled={busy || code.length !== 6}
-              className="btn-shop mt-4 w-full py-3 text-[15px] disabled:opacity-60"
+              className="btn-shop mt-4 w-full py-3 text-[14px] disabled:opacity-60"
             >
               {busy ? "Checking…" : "Verify and continue"}
             </button>
 
-            <div className="mt-3 flex items-center justify-between gap-3 text-[13px]">
+            <div className="mt-3 flex items-center justify-between gap-3 text-[12px]">
               <button
                 type="button"
                 onClick={() => {
@@ -480,7 +480,7 @@ export default function VerifyContactModal({
         <button
           type="button"
           onClick={onCancel}
-          className="mt-4 w-full rounded-lg py-2 text-[13px] font-semibold text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
+          className="mt-4 w-full rounded-lg py-2 text-[12px] font-semibold text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
         >
           Cancel
         </button>

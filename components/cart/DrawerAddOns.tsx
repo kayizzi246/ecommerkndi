@@ -127,7 +127,7 @@ export default function DrawerAddOns({
 
   return (
     <div className="mt-4 border-t border-shop-line pt-4">
-      <p className="text-[13px] font-semibold text-shop-ink">
+      <p className="text-[12px] font-semibold text-shop-ink">
         {away > 0 ? (
           <>
             Add one of these and delivery is free

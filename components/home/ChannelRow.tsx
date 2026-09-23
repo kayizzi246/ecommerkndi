@@ -188,7 +188,7 @@ export default function ChannelRow() {
           <li key={channel.label} className="shrink-0">
             <Link
               href={channel.href}
-              className={`group flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-[12px] font-semibold ring-1 ring-shop-edge transition-colors hover:ring-shop-primary md:text-[13px] ${channel.tint}`}
+              className={`group flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-[12px] font-semibold ring-1 ring-shop-edge transition-colors hover:ring-shop-primary md:text-[12px] ${channel.tint}`}
             >
               {channel.icon}
               <span className="whitespace-nowrap">{channel.label}</span>

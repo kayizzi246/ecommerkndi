@@ -128,14 +128,14 @@ export default function GettingStarted({
     <section className="mb-6 rounded-2xl border border-shop-line bg-white p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-extrabold text-shop-ink">Getting your store trading</h2>
-          <p className="mt-0.5 text-[14px] text-shop-muted">
+          <h2 className="text-[17px] font-extrabold text-shop-ink">Getting your store trading</h2>
+          <p className="mt-0.5 text-[13px] text-shop-muted">
             {doneCount} of {steps.length} done
             {next && !next.waiting ? ` · next: ${next.title.toLowerCase()}` : ""}
             {next?.waiting ? " · nothing needed from you right now" : ""}
           </p>
         </div>
-        <Link href="/seller/guide" className="text-[14px] font-semibold text-shop-primary hover:underline">
+        <Link href="/seller/guide" className="text-[13px] font-semibold text-shop-primary hover:underline">
           How selling works ›
         </Link>
       </div>
@@ -155,7 +155,7 @@ export default function GettingStarted({
           <li key={step.title} className="flex items-start gap-3.5">
             <span
               aria-hidden
-              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-bold ${
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
                 step.done
                   ? "bg-pop-green text-white"
                   : step.waiting
@@ -168,27 +168,27 @@ export default function GettingStarted({
 
             <div className="min-w-0 flex-1">
               <p
-                className={`text-[15px] font-semibold ${
+                className={`text-[14px] font-semibold ${
                   step.done ? "text-shop-muted line-through" : "text-shop-ink"
                 }`}
               >
                 {step.title}
               </p>
               {!step.done && (
-                <p className="mt-0.5 text-[13px] leading-[1.5] text-shop-muted">{step.copy}</p>
+                <p className="mt-0.5 text-[12px] leading-[1.5] text-shop-muted">{step.copy}</p>
               )}
             </div>
 
             {!step.done && step.href && step.action && (
               <Link
                 href={step.href}
-                className="shrink-0 rounded-lg bg-shop-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+                className="shrink-0 rounded-lg bg-shop-ink px-3.5 py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
               >
                 {step.action}
               </Link>
             )}
             {!step.done && step.waiting && (
-              <span className="shrink-0 rounded-lg bg-pop-orange-soft px-3 py-2 text-[13px] font-semibold text-pop-orange">
+              <span className="shrink-0 rounded-lg bg-pop-orange-soft px-3 py-2 text-[12px] font-semibold text-pop-orange">
                 With us
               </span>
             )}

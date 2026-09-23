@@ -73,7 +73,7 @@ export default function PickedForYou({
       <div className="phone-gutter no-scrollbar mb-3 flex items-center gap-2 overflow-x-auto border-b border-shop-line pb-2.5">
         <h2
           id="picked-heading"
-          className="mr-1 shrink-0 text-[15px] font-bold text-shop-ink md:text-[17px]"
+          className="mr-1 shrink-0 text-[14px] font-bold text-shop-ink md:text-[16px]"
         >
           You might like
         </h2>
@@ -127,7 +127,7 @@ export default function PickedForYou({
           <div className="phone-gutter mt-8 flex justify-center">
             <Link
               href={department.slug ? `/category/${department.slug}` : "/categories"}
-              className="rounded-lg border border-shop-line px-8 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+              className="rounded-lg border border-shop-line px-8 py-2.5 text-[13px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
             >
               Everything in {department.title}
             </Link>

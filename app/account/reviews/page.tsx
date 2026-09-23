@@ -43,13 +43,13 @@ export default function AccountReviews() {
 
   return (
     <div>
-      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">My reviews</h1>
-      <p className="mt-1 text-[15px] text-shop-muted">
+      <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">My reviews</h1>
+      <p className="mt-1 text-[14px] text-shop-muted">
         Your ratings are saved to your account and shown on the product pages.
       </p>
 
       {error && (
-        <p role="alert" className="mt-6 rounded-xl bg-pop-red-soft p-4 text-[15px] text-pop-red">
+        <p role="alert" className="mt-6 rounded-xl bg-pop-red-soft p-4 text-[14px] text-pop-red">
           {error}
         </p>
       )}
@@ -62,10 +62,10 @@ export default function AccountReviews() {
         </div>
       ) : reviews.length === 0 && !error ? (
         <div className="mt-6 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center">
-          <p className="text-[16px] text-shop-muted">
+          <p className="text-[15px] text-shop-muted">
             You have not reviewed anything yet.
           </p>
-          <Link href="/account/orders" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+          <Link href="/account/orders" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
             Review a past order
           </Link>
         </div>
@@ -95,14 +95,14 @@ export default function AccountReviews() {
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/products/${review.product_id}`}
-                  className="line-clamp-1 text-[16px] font-semibold text-shop-ink hover:underline"
+                  className="line-clamp-1 text-[15px] font-semibold text-shop-ink hover:underline"
                 >
                   {review.product_name || `Product #${review.product_id}`}
                 </Link>
 
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <StarRating rating={review.rating} size="sm" showCount={false} />
-                  <span className="text-[13px] text-shop-muted">
+                  <span className="text-[12px] text-shop-muted">
                     {formatOrderDate(review.date)}
                   </span>
                   {!review.approved && (
@@ -112,13 +112,13 @@ export default function AccountReviews() {
                   )}
                 </div>
 
-                <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-shop-body">
+                <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-shop-body">
                   {review.text}
                 </p>
 
                 <Link
                   href={`/products/${review.product_id}#reviews`}
-                  className="mt-2 inline-block text-[14px] font-semibold text-shop-primary hover:underline"
+                  className="mt-2 inline-block text-[13px] font-semibold text-shop-primary hover:underline"
                 >
                   Edit review
                 </Link>

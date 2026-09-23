@@ -84,7 +84,7 @@ export default function CartRecommendations({ excludeIds }: { excludeIds: number
   return (
     <section className="mt-7 border-t border-shop-line pt-6">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="section-title text-[16px] text-shop-ink md:text-[17px]">You may also like</h2>
+        <h2 className="section-title text-[15px] text-shop-ink md:text-[16px]">You may also like</h2>
 
         {/* Arrows on the desktop grid would point at nothing, so they belong to
             the rail — and the rail only exists below md. */}

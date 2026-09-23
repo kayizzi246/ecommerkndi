@@ -112,7 +112,7 @@ export default function CategoryBrowser({
                      notch cut out of the rail, rather than as a highlighted row
                      in a list. That is the whole trick of this layout, and it
                      is why the rail is tinted and the pane is not. */
-                  className={`relative block w-full px-3 py-3.5 text-left text-[13px] leading-[17px] transition-colors ${
+                  className={`relative block w-full px-3 py-3.5 text-left text-[12px] leading-[17px] transition-colors ${
                     on
                       ? "bg-white font-bold text-shop-primary"
                       : "font-medium text-shop-body active:bg-black/[0.03]"
@@ -139,7 +139,7 @@ export default function CategoryBrowser({
           than as anything visibly wrong with this block. */}
       <div className="min-w-0 flex-1 px-3 pb-8 pt-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="truncate text-[17px] font-extrabold text-shop-ink">
+          <h2 className="truncate text-[16px] font-extrabold text-shop-ink">
             {current.name}
           </h2>
           <Link
@@ -151,7 +151,7 @@ export default function CategoryBrowser({
         </div>
 
         {current.tiles.length === 0 ? (
-          <p className="py-6 text-[13px] text-shop-muted">
+          <p className="py-6 text-[12px] text-shop-muted">
             Nothing filed under {current.name} yet.
           </p>
         ) : (
@@ -174,7 +174,7 @@ export default function CategoryBrowser({
                         className="object-cover"
                       />
                     ) : (
-                      <span className="flex h-full w-full items-center justify-center text-[20px] font-black text-shop-line">
+                      <span className="flex h-full w-full items-center justify-center text-[19px] font-black text-shop-line">
                         {tile.name.slice(0, 1)}
                       </span>
                     )}
@@ -203,13 +203,13 @@ export default function CategoryBrowser({
             rather than for the page. */}
         {grid && (
           <div className="mt-6">
-            <h3 className="mb-2 text-[14px] font-bold text-shop-ink">
+            <h3 className="mb-2 text-[13px] font-bold text-shop-ink">
               Popular in {current.name}
             </h3>
             <div className="-mx-3">{grid}</div>
             <Link
               href={`/category/${current.slug}`}
-              className="mt-4 flex items-center justify-center rounded-full border border-shop-line py-2.5 text-[13px] font-bold text-shop-body"
+              className="mt-4 flex items-center justify-center rounded-full border border-shop-line py-2.5 text-[12px] font-bold text-shop-body"
             >
               See all {current.name}
             </Link>

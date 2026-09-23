@@ -145,12 +145,12 @@ export default function SignInPanel({
   }
 
   const field =
-    "w-full rounded-xl border border-shop-line bg-white px-3.5 py-2.5 text-[15px] text-shop-ink outline-none transition-colors placeholder:text-shop-faint focus:border-shop-primary";
+    "w-full rounded-xl border border-shop-line bg-white px-3.5 py-2.5 text-[14px] text-shop-ink outline-none transition-colors placeholder:text-shop-faint focus:border-shop-primary";
 
   return (
     <div className="text-left">
       {heading && (
-        <h2 className="mb-4 text-center text-[18px] font-bold text-shop-ink">{heading}</h2>
+        <h2 className="mb-4 text-center text-[17px] font-bold text-shop-ink">{heading}</h2>
       )}
 
       {/* Sign in / Create account. Hidden while resetting, where neither label
@@ -163,7 +163,7 @@ export default function SignInPanel({
               type="button"
               onClick={() => switchTo(value)}
               aria-pressed={mode === value}
-              className={`rounded-lg py-2 text-[14px] font-semibold transition-colors ${
+              className={`rounded-lg py-2 text-[13px] font-semibold transition-colors ${
                 mode === value
                   ? "bg-white text-shop-ink ring-1 ring-shop-line"
                   : "text-shop-muted hover:text-shop-ink"
@@ -176,7 +176,7 @@ export default function SignInPanel({
       )}
 
       {mode === "forgot" && (
-        <p className="mb-4 text-[14px] leading-relaxed text-shop-muted">
+        <p className="mb-4 text-[13px] leading-relaxed text-shop-muted">
           Enter the email address on your account and we will send you a link to choose a new
           password.
         </p>
@@ -185,7 +185,7 @@ export default function SignInPanel({
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {mode === "register" && (
           <div>
-            <label htmlFor="kandi-name" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
+            <label htmlFor="kandi-name" className="mb-1.5 block text-[12px] font-semibold text-shop-body">
               Your name
             </label>
             <input
@@ -200,7 +200,7 @@ export default function SignInPanel({
         )}
 
         <div>
-          <label htmlFor="kandi-email" className="mb-1.5 block text-[13px] font-semibold text-shop-body">
+          <label htmlFor="kandi-email" className="mb-1.5 block text-[12px] font-semibold text-shop-body">
             Email address
           </label>
           <input
@@ -232,7 +232,7 @@ export default function SignInPanel({
         {mode === "register" && (
           <div className="rounded-xl border border-shop-line bg-shop-surface px-3.5 py-3">
             {verified ? (
-              <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-ink">
+              <p className="flex items-center gap-2 text-[12px] font-semibold text-shop-ink">
                 <span aria-hidden className="text-shop-success">
                   ✓
                 </span>
@@ -240,7 +240,7 @@ export default function SignInPanel({
               </p>
             ) : (
               <>
-                <p className="text-[13px] font-semibold text-shop-ink">
+                <p className="text-[12px] font-semibold text-shop-ink">
                   Verify your phone number
                 </p>
                 <p className="mt-0.5 text-[12px] leading-snug text-shop-muted">
@@ -249,7 +249,7 @@ export default function SignInPanel({
                 <button
                   type="button"
                   onClick={() => setVerifying(true)}
-                  className="btn-shop-outline mt-2.5 w-full py-2 text-[13px]"
+                  className="btn-shop-outline mt-2.5 w-full py-2 text-[12px]"
                 >
                   Verify now
                 </button>
@@ -261,14 +261,14 @@ export default function SignInPanel({
         {mode !== "forgot" && (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label htmlFor="kandi-password" className="block text-[13px] font-semibold text-shop-body">
+              <label htmlFor="kandi-password" className="block text-[12px] font-semibold text-shop-body">
                 Password
               </label>
               {mode === "signin" && (
                 <button
                   type="button"
                   onClick={() => switchTo("forgot")}
-                  className="text-[13px] font-semibold text-shop-primary hover:underline"
+                  className="text-[12px] font-semibold text-shop-primary hover:underline"
                 >
                   Forgot password?
                 </button>
@@ -292,7 +292,7 @@ export default function SignInPanel({
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute inset-y-0 right-0 px-3 text-[13px] font-semibold text-shop-muted hover:text-shop-ink"
+                className="absolute inset-y-0 right-0 px-3 text-[12px] font-semibold text-shop-muted hover:text-shop-ink"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -301,18 +301,18 @@ export default function SignInPanel({
         )}
 
         {error && (
-          <p role="alert" className="rounded-xl bg-shop-sale/10 px-3.5 py-2.5 text-[14px] text-shop-sale">
+          <p role="alert" className="rounded-xl bg-shop-sale/10 px-3.5 py-2.5 text-[13px] text-shop-sale">
             {error}
           </p>
         )}
 
         {notice && (
-          <p role="status" className="rounded-xl bg-shop-primary-soft px-3.5 py-2.5 text-[14px] text-shop-ink">
+          <p role="status" className="rounded-xl bg-shop-primary-soft px-3.5 py-2.5 text-[13px] text-shop-ink">
             {notice}
           </p>
         )}
 
-        <button type="submit" disabled={busy} className="btn-shop mt-1 w-full py-2.5 text-[15px]">
+        <button type="submit" disabled={busy} className="btn-shop mt-1 w-full py-2.5 text-[14px]">
           {busy
             ? "Please wait…"
             : mode === "signin"
@@ -327,7 +327,7 @@ export default function SignInPanel({
         <button
           type="button"
           onClick={() => switchTo("signin")}
-          className="mt-4 w-full text-center text-[14px] font-semibold text-shop-primary hover:underline"
+          className="mt-4 w-full text-center text-[13px] font-semibold text-shop-primary hover:underline"
         >
           Back to sign in
         </button>

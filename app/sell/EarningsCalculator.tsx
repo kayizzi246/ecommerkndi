@@ -83,8 +83,8 @@ export default function EarningsCalculator({
        700 anyway — see the note in `page.tsx` about the headline that had the
        same problem. Now the file says what the browser does. */
     <div className="rounded-2xl bg-white p-5 ring-1 ring-shop-ink/[0.06] md:p-6">
-      <h3 className="text-[17px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
-      <p className="mt-1.5 text-[13px] leading-[1.55] text-shop-muted">
+      <h3 className="text-[16px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
+      <p className="mt-1.5 text-[12px] leading-[1.55] text-shop-muted">
         Two numbers you already know. We take {commissionRate}% commission — nothing else is
         deducted.
       </p>
@@ -92,8 +92,8 @@ export default function EarningsCalculator({
       {/* Items a month */}
       <label className="mt-5 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[13px] font-semibold text-shop-body">Items sold a month</span>
-          <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
+          <span className="text-[12px] font-semibold text-shop-body">Items sold a month</span>
+          <span className="text-[18px] font-bold leading-none text-shop-ink tabular-nums">
             {units}
             {units === UNITS_MAX ? "+" : ""}
           </span>
@@ -117,8 +117,8 @@ export default function EarningsCalculator({
       {/* Average price */}
       <label className="mt-4 block">
         <span className="flex items-baseline justify-between gap-4">
-          <span className="text-[13px] font-semibold text-shop-body">Average selling price</span>
-          <span className="text-[19px] font-bold leading-none text-shop-ink tabular-nums">
+          <span className="text-[12px] font-semibold text-shop-body">Average selling price</span>
+          <span className="text-[18px] font-bold leading-none text-shop-ink tabular-nums">
             {formatPrice(price)}
           </span>
         </span>
@@ -143,15 +143,15 @@ export default function EarningsCalculator({
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-pop-green">
           You keep, every month
         </p>
-        <p className="mt-1.5 text-[24px] font-bold leading-none tracking-[-0.02em] text-pop-green tabular-nums">
+        <p className="mt-1.5 text-[23px] font-bold leading-none tracking-[-0.02em] text-pop-green tabular-nums">
           {formatPrice(net)}
         </p>
-        <p className="mt-2 text-[13px] text-shop-body">
+        <p className="mt-2 text-[12px] text-shop-body">
           {formatPrice(perItem)} per item · {formatPrice(yearlyNet)} over 12 months
         </p>
       </div>
 
-      <dl className="mt-4 space-y-2 text-[13px]">
+      <dl className="mt-4 space-y-2 text-[12px]">
         <Row label={`${units} items × ${formatPrice(price)}`} value={formatPrice(revenue)} />
         <Row
           label={`Kandi commission (${commissionRate}%)`}
@@ -161,7 +161,7 @@ export default function EarningsCalculator({
       </dl>
 
       {registrationFee > 0 && unitsToCoverFee > 0 && (
-        <p className="mt-3.5 rounded-xl bg-shop-hairline p-3.5 text-[13px] leading-[1.6] text-shop-body">
+        <p className="mt-3.5 rounded-xl bg-shop-hairline p-3.5 text-[12px] leading-[1.6] text-shop-body">
           <strong className="text-shop-ink">
             The {formatPrice(registrationFee)} monthly fee
           </strong>{" "}
@@ -177,7 +177,7 @@ export default function EarningsCalculator({
         depends on your products, your pricing and your stock — we do not promise a number.
       </p>
 
-      <Link href="/seller/register" className="btn-shop mt-4 w-full py-3 text-[15px]">
+      <Link href="/seller/register" className="btn-shop mt-4 w-full py-3 text-[14px]">
         Get started
       </Link>
     </div>

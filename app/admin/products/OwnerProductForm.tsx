@@ -145,14 +145,14 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
         className="step-in relative flex h-full w-full max-w-[520px] flex-col bg-white shadow-2xl"
       >
         <header className="flex items-center justify-between gap-4 border-b border-shop-line px-5 py-4">
-          <h2 className="text-[19px] text-shop-ink">
+          <h2 className="text-[18px] text-shop-ink">
             {creating ? "Add a product" : "Edit product"}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[22px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[21px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
           >
             ×
           </button>
@@ -160,30 +160,30 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
               Product name
             </span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
               autoFocus={creating}
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">SKU</span>
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">SKU</span>
               <input
                 value={sku}
                 onChange={(event) => setSku(event.target.value)}
                 placeholder="Your own reference code"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 Category
               </span>
               {/* A free text box backed by a list: pick an existing category, or
@@ -193,7 +193,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
                 onChange={(event) => setCategory(event.target.value)}
                 list="owner-categories"
                 placeholder="e.g. Shoes"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
               <datalist id="owner-categories">
                 {categories.map((entry) => (
@@ -205,7 +205,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 Price (UGX)
               </span>
               <input
@@ -214,12 +214,12 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
                 step={500}
                 value={regular}
                 onChange={(event) => setRegular(event.target.value)}
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 Sale price
                 <span className="ml-1 font-normal text-shop-muted">(optional)</span>
               </span>
@@ -230,13 +230,13 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
                 value={sale}
                 onChange={(event) => setSale(event.target.value)}
                 placeholder="Leave empty"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
           </div>
 
           {discount > 0 && (
-            <p className="rounded-lg bg-pop-green-soft px-4 py-3 text-[14px] font-semibold text-pop-green">
+            <p className="rounded-lg bg-pop-green-soft px-4 py-3 text-[13px] font-semibold text-pop-green">
               Shoppers see {formatPrice(saleNumber ?? 0)} — a {discount}% saving on{" "}
               {formatPrice(regularNumber)}.
             </p>
@@ -244,7 +244,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 In stock
               </span>
               <input
@@ -252,21 +252,21 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
                 min={0}
                 value={stock}
                 onChange={(event) => setStock(event.target.value)}
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
-              <span className="mt-1.5 block text-[13px] text-shop-muted">
+              <span className="mt-1.5 block text-[12px] text-shop-muted">
                 {Number(stock) > 0 ? "Buyable." : "Shows as sold out."}
               </span>
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 Visibility
               </span>
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value as OwnerProductStatus)}
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               >
                 <option value="publish">Live in the shop</option>
                 <option value="draft">Hidden</option>
@@ -277,7 +277,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
               Short description
             </span>
             <textarea
@@ -285,24 +285,24 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
               value={shortDescription}
               onChange={(event) => setShortDescription(event.target.value)}
               placeholder="The line shoppers read beside the price"
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
               Full description
             </span>
             <textarea
               rows={5}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
               Photo URLs
             </span>
             <textarea
@@ -310,9 +310,9 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
               value={images}
               onChange={(event) => setImages(event.target.value)}
               placeholder={"One URL per line. The first becomes the main photo."}
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
-            <span className="mt-1.5 block text-[13px] text-shop-muted">
+            <span className="mt-1.5 block text-[12px] text-shop-muted">
               {creating
                 ? "Copied into your WordPress media library on save."
                 : "Leave empty to keep the photos this product already has."}
@@ -321,22 +321,22 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Sizes</span>
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Sizes</span>
               <input
                 value={sizes}
                 onChange={(event) => setSizes(event.target.value)}
                 placeholder="39, 40, 41"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Colours</span>
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Colours</span>
               <input
                 value={colors}
                 onChange={(event) => setColors(event.target.value)}
                 placeholder="Black, White"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
           </div>
@@ -344,7 +344,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
           {error && (
             <p
               role="alert"
-              className="rounded-lg bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              className="rounded-lg bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
             >
               {error}
             </p>
@@ -352,10 +352,10 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
         </div>
 
         <footer className="flex gap-3 border-t border-shop-line px-5 py-4">
-          <button type="button" onClick={onClose} className="btn-shop-outline flex-1 py-3 text-[15px]">
+          <button type="button" onClick={onClose} className="btn-shop-outline flex-1 py-3 text-[14px]">
             Cancel
           </button>
-          <button type="button" onClick={save} disabled={busy} className="btn-shop flex-1 py-3 text-[15px]">
+          <button type="button" onClick={save} disabled={busy} className="btn-shop flex-1 py-3 text-[14px]">
             {busy ? "Saving…" : creating ? "Add product" : "Save changes"}
           </button>
         </footer>

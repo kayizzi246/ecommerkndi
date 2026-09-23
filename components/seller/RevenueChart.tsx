@@ -51,7 +51,7 @@ export default function RevenueChart({ data, formatValue }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="viz-root rounded border border-bfl-line bg-white p-10 text-center text-[14px] text-[color:var(--text-muted)]">
+      <div className="viz-root rounded border border-bfl-line bg-white p-10 text-center text-[13px] text-[color:var(--text-muted)]">
         No sales recorded in this period yet.
       </div>
     );
@@ -81,15 +81,15 @@ export default function RevenueChart({ data, formatValue }: Props) {
     <div className="viz-root rounded border border-bfl-line bg-white p-4">
       <div className="mb-1 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[16px] font-extrabold text-[color:var(--text-primary)]">Revenue by day</h2>
-          <p className="text-[13px] text-[color:var(--text-secondary)]">
+          <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Revenue by day</h2>
+          <p className="text-[12px] text-[color:var(--text-secondary)]">
             Your share of order totals, before commission.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowTable((open) => !open)}
-          className="shrink-0 rounded border border-bfl-line px-2.5 py-1 text-[13px] text-[color:var(--text-secondary)] hover:border-[#b0b0b0]"
+          className="shrink-0 rounded border border-bfl-line px-2.5 py-1 text-[12px] text-[color:var(--text-secondary)] hover:border-[#b0b0b0]"
           aria-expanded={showTable}
         >
           {showTable ? "Hide table" : "View as table"}
@@ -205,11 +205,11 @@ export default function RevenueChart({ data, formatValue }: Props) {
             <p className="text-[12px] text-[color:var(--text-muted)]">{longDate(active.date)}</p>
             <p className="mt-1 flex items-center gap-2">
               <span className="inline-block h-0.5 w-4" style={{ background: "var(--series-1)" }} />
-              <span className="text-[16px] font-semibold text-[color:var(--text-primary)]">
+              <span className="text-[15px] font-semibold text-[color:var(--text-primary)]">
                 {formatValue(active.revenue)}
               </span>
             </p>
-            <p className="text-[13px] text-[color:var(--text-secondary)]">
+            <p className="text-[12px] text-[color:var(--text-secondary)]">
               {active.orders} {active.orders === 1 ? "order" : "orders"}
             </p>
           </div>
@@ -218,7 +218,7 @@ export default function RevenueChart({ data, formatValue }: Props) {
 
       {showTable && (
         <div className="mt-4 max-h-64 overflow-y-auto border-t border-bfl-line">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-[12px]">
             <thead className="sticky top-0 bg-white text-left text-[color:var(--text-secondary)]">
               <tr>
                 <th className="py-2 font-semibold">Date</th>

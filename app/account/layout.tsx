@@ -45,8 +45,8 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
               <path strokeLinecap="round" d="M4.5 20.1a7.5 7.5 0 0 1 15 0" />
             </svg>
           </span>
-          <h1 className="mt-4 text-[24px] font-extrabold text-shop-ink">Your Kandi account</h1>
-          <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-shop-muted">
+          <h1 className="mt-4 text-[23px] font-extrabold text-shop-ink">Your Kandi account</h1>
+          <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-shop-muted">
             Sign in to track orders, manage your wishlist, review what you have bought and
             check out faster.
           </p>
@@ -57,7 +57,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             <SignInPanel onSuccess={refresh} />
           </div>
 
-          <p className="mt-6 border-t border-shop-line pt-4 text-[14px] text-shop-muted">
+          <p className="mt-6 border-t border-shop-line pt-4 text-[13px] text-shop-muted">
             Selling with us?{" "}
             <Link href="/seller/login" className="font-semibold text-shop-primary hover:underline">
               Seller Centre
@@ -87,13 +87,13 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-shop-primary-soft text-[19px] font-semibold text-shop-primary">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-shop-primary-soft text-[18px] font-semibold text-shop-primary">
                 {customer.name.charAt(0).toUpperCase()}
               </span>
             )}
             <div className="min-w-0">
-              <p className="truncate text-[16px] font-semibold text-shop-ink">{customer.name}</p>
-              <p className="truncate text-[13px] text-shop-muted">{customer.email}</p>
+              <p className="truncate text-[15px] font-semibold text-shop-ink">{customer.name}</p>
+              <p className="truncate text-[12px] text-shop-muted">{customer.email}</p>
             </div>
           </div>
 
@@ -109,7 +109,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold transition-colors ${
+                  className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-[14px] font-semibold transition-colors ${
                     active
                       ? "bg-shop-primary-soft text-shop-primary"
                       : "text-shop-body hover:bg-shop-hairline hover:text-shop-ink"
@@ -125,7 +125,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           <button
             type="button"
             onClick={signOut}
-            className="btn-shop-outline mt-4 w-full py-2.5 text-[15px]"
+            className="btn-shop-outline mt-4 w-full py-2.5 text-[14px]"
           >
             Sign out
           </button>

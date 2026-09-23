@@ -14,15 +14,15 @@ export default function AccountWishlist() {
 
   return (
     <div>
-      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">Wishlist</h1>
-      <p className="mt-1 text-[15px] text-shop-muted">
+      <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">Wishlist</h1>
+      <p className="mt-1 text-[14px] text-shop-muted">
         Saved on this device — {items.length} {items.length === 1 ? "item" : "items"}.
       </p>
 
       {items.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center">
-          <p className="text-[16px] text-shop-muted">Nothing saved yet.</p>
-          <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+          <p className="text-[15px] text-shop-muted">Nothing saved yet.</p>
+          <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
             Browse products
           </Link>
         </div>
@@ -45,17 +45,17 @@ export default function AccountWishlist() {
               <div className="flex min-w-0 flex-1 flex-col">
                 <Link
                   href={`/products/${item.productId}`}
-                  className="line-clamp-2 text-[15px] text-shop-body hover:text-shop-ink"
+                  className="line-clamp-2 text-[14px] text-shop-body hover:text-shop-ink"
                 >
                   {item.name}
                 </Link>
-                <p className="mt-1 text-[19px] font-semibold text-shop-ink">
+                <p className="mt-1 text-[18px] font-semibold text-shop-ink">
                   {formatPrice(item.price)}
                 </p>
                 <button
                   type="button"
                   onClick={() => remove(item.productId)}
-                  className="mt-auto self-start text-[14px] font-semibold text-shop-muted hover:text-shop-sale"
+                  className="mt-auto self-start text-[13px] font-semibold text-shop-muted hover:text-shop-sale"
                 >
                   Remove
                 </button>

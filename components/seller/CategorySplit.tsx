@@ -47,8 +47,8 @@ export default function CategorySplit({
   if (total <= 0) {
     return (
       <div className="viz-root rounded border border-bfl-line bg-white p-4">
-        <h2 className="text-[16px] font-extrabold text-[color:var(--text-primary)]">Revenue by category</h2>
-        <p className="mt-6 text-center text-[14px] text-[color:var(--text-muted)]">
+        <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Revenue by category</h2>
+        <p className="mt-6 text-center text-[13px] text-[color:var(--text-muted)]">
           Nothing to split yet — your first sale will fill this in.
         </p>
       </div>
@@ -59,15 +59,15 @@ export default function CategorySplit({
     <div className="viz-root rounded border border-bfl-line bg-white p-4">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[16px] font-extrabold text-[color:var(--text-primary)]">Revenue by category</h2>
-          <p className="text-[13px] text-[color:var(--text-secondary)]">
+          <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Revenue by category</h2>
+          <p className="text-[12px] text-[color:var(--text-secondary)]">
             Share of {formatValue(total)} in the selected period.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowTable((open) => !open)}
-          className="shrink-0 rounded border border-bfl-line px-2.5 py-1 text-[13px] text-[color:var(--text-secondary)] hover:border-[#b0b0b0]"
+          className="shrink-0 rounded border border-bfl-line px-2.5 py-1 text-[12px] text-[color:var(--text-secondary)] hover:border-[#b0b0b0]"
           aria-expanded={showTable}
         >
           {showTable ? "Hide table" : "View as table"}
@@ -99,7 +99,7 @@ export default function CategorySplit({
             key={row.name}
             onPointerEnter={() => setHovered(row.name)}
             onPointerLeave={() => setHovered(null)}
-            className="flex items-center gap-2 text-[13px]"
+            className="flex items-center gap-2 text-[12px]"
           >
             <span className="h-3 w-3 shrink-0 rounded-[2px]" style={{ background: row.color }} />
             <span className="min-w-0 flex-1 truncate text-[color:var(--text-secondary)]">{row.name}</span>
@@ -117,7 +117,7 @@ export default function CategorySplit({
       </ul>
 
       {showTable && (
-        <table className="mt-4 w-full border-t border-bfl-line text-[13px]">
+        <table className="mt-4 w-full border-t border-bfl-line text-[12px]">
           <thead className="text-left text-[color:var(--text-secondary)]">
             <tr>
               <th className="py-2 font-semibold">Category</th>

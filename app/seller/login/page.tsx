@@ -201,15 +201,15 @@ export default function SellerLoginPage() {
       <SellerAuthLayout eyebrow="Seller Centre">
         {sentTo ? (
           <>
-            <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-shop-ink">
+            <h1 className="mt-2 text-[27px] font-extrabold leading-tight tracking-tight text-shop-ink">
               Check your email
             </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+            <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
               If <span className="font-semibold text-shop-ink">{sentTo}</span> has a seller account,
               a link to set a new password is on its way. It works once and stops working after a
               day.
             </p>
-            <p className="mt-4 text-[14px] text-shop-muted">
+            <p className="mt-4 text-[13px] text-shop-muted">
               Nothing after a few minutes? Look in your spam folder, then try again — and check the
               address above is the one you registered with.
             </p>
@@ -219,17 +219,17 @@ export default function SellerLoginPage() {
                 setSentTo(null);
                 setForgotOpen(false);
               }}
-              className="btn-shop mt-7 w-full py-3.5 text-[15px]"
+              className="btn-shop mt-7 w-full py-3.5 text-[14px]"
             >
               Back to sign in
             </button>
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight text-shop-ink">
+            <h1 className="mt-2 text-[27px] font-extrabold leading-tight tracking-tight text-shop-ink">
               Reset your password
             </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-shop-muted">
+            <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
               Tell us the address on your seller account and we will email you a link to set a new
               password.
             </p>
@@ -249,7 +249,7 @@ export default function SellerLoginPage() {
             {error && (
               <p
                 role="alert"
-                className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+                className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
               >
                 {error}
               </p>
@@ -259,7 +259,7 @@ export default function SellerLoginPage() {
               type="button"
               onClick={sendResetLink}
               disabled={sending}
-              className="btn-shop mt-5 w-full py-3.5 text-[15px]"
+              className="btn-shop mt-5 w-full py-3.5 text-[14px]"
             >
               {sending ? "Sending…" : "Email me a link"}
             </button>
@@ -270,7 +270,7 @@ export default function SellerLoginPage() {
                 setForgotOpen(false);
                 setError(null);
               }}
-              className="mt-4 w-full text-[14px] font-semibold text-shop-muted hover:text-shop-ink"
+              className="mt-4 w-full text-[13px] font-semibold text-shop-muted hover:text-shop-ink"
             >
               Back to sign in
             </button>
@@ -307,10 +307,10 @@ export default function SellerLoginPage() {
      through {@link SellerAuthLayout}, so they cannot come apart again. */
   return (
     <SellerAuthLayout eyebrow="Seller Centre">
-      <h1 className="mt-2 text-[30px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+      <h1 className="mt-2 text-[29px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
         Welcome back
       </h1>
-      <p className="mt-2.5 text-[15px] leading-relaxed text-shop-body">
+      <p className="mt-2.5 text-[14px] leading-relaxed text-shop-body">
         Manage your listings, orders and payouts.
       </p>
 
@@ -360,7 +360,7 @@ export default function SellerLoginPage() {
           <button
             type="button"
             onClick={() => setForgotOpen(true)}
-            className="mt-2 text-[13px] font-semibold text-shop-primary hover:underline"
+            className="mt-2 text-[12px] font-semibold text-shop-primary hover:underline"
           >
             Forgot your password?
           </button>
@@ -369,18 +369,18 @@ export default function SellerLoginPage() {
         {error && (
           <p
             role="alert"
-            className="rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+            className="rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
           >
             {error}
           </p>
         )}
 
-        <button type="submit" disabled={submitting} className="btn-shop w-full py-3 text-[15px]">
+        <button type="submit" disabled={submitting} className="btn-shop w-full py-3 text-[14px]">
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-8 border-t border-shop-line pt-6 text-[14px] text-shop-muted">
+      <p className="mt-8 border-t border-shop-line pt-6 text-[13px] text-shop-muted">
         New to Kandi?{" "}
         <Link href="/seller/register" className="font-semibold text-shop-primary hover:underline">
           Open a seller account
@@ -393,7 +393,7 @@ export default function SellerLoginPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">{label}</span>
+      <span className="mb-1.5 block text-[12px] font-semibold text-shop-ink">{label}</span>
       {children}
     </label>
   );

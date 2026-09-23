@@ -159,7 +159,7 @@ export default function TrackOrderPanel() {
       >
         <div className="grid gap-3 sm:grid-cols-[1fr_1.3fr]">
           <div>
-            <label htmlFor="track-number" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
+            <label htmlFor="track-number" className="mb-1.5 block text-[12px] font-semibold text-shop-ink">
               Order number
             </label>
             <input
@@ -173,7 +173,7 @@ export default function TrackOrderPanel() {
             />
           </div>
           <div>
-            <label htmlFor="track-contact" className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
+            <label htmlFor="track-contact" className="mb-1.5 block text-[12px] font-semibold text-shop-ink">
               Phone or email you ordered with
             </label>
             <input
@@ -190,12 +190,12 @@ export default function TrackOrderPanel() {
         <button
           type="submit"
           disabled={loading}
-          className="btn-shop mt-4 w-full py-3.5 text-[15px] sm:w-auto sm:px-10"
+          className="btn-shop mt-4 w-full py-3.5 text-[14px] sm:w-auto sm:px-10"
         >
           {loading ? "Looking…" : "Track my order"}
         </button>
 
-        <p className="mt-3 text-[13px] text-shop-muted">
+        <p className="mt-3 text-[12px] text-shop-muted">
           The order number is in your confirmation email and starts with #. No account needed.
         </p>
       </form>
@@ -203,7 +203,7 @@ export default function TrackOrderPanel() {
       {error && (
         <p
           role="alert"
-          className="rounded-xl border border-shop-sale/30 bg-[#fdeeeb] px-4 py-3 text-[14px] text-shop-sale"
+          className="rounded-xl border border-shop-sale/30 bg-[#fdeeeb] px-4 py-3 text-[13px] text-shop-sale"
         >
           {error}
         </p>
@@ -213,19 +213,19 @@ export default function TrackOrderPanel() {
         <div className="overflow-hidden rounded-2xl border border-shop-line bg-white">
           <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-shop-line px-5 py-4">
             <div>
-              <p className="text-[18px] font-semibold text-shop-ink">Order #{order.number}</p>
-              <p className="mt-0.5 text-[13px] text-shop-muted">
+              <p className="text-[17px] font-semibold text-shop-ink">Order #{order.number}</p>
+              <p className="mt-0.5 text-[12px] text-shop-muted">
                 Placed {shortDate(order.created)}
                 {order.city ? ` · delivering to ${order.city}` : ""}
               </p>
             </div>
-            <p className="text-[18px] font-semibold text-shop-ink">{formatPrice(order.total)}</p>
+            <p className="text-[17px] font-semibold text-shop-ink">{formatPrice(order.total)}</p>
           </div>
 
           {stopped ? (
             <div className="px-5 py-6">
-              <p className="text-[16px] font-semibold text-shop-ink">{stopped.label}</p>
-              <p className="mt-1 text-[14px] text-shop-muted">{stopped.note}</p>
+              <p className="text-[15px] font-semibold text-shop-ink">{stopped.label}</p>
+              <p className="mt-1 text-[13px] text-shop-muted">{stopped.note}</p>
             </div>
           ) : (
             /* A vertical timeline rather than a horizontal bar: four labels
@@ -273,13 +273,13 @@ export default function TrackOrderPanel() {
 
                     <div className={`pb-6 ${index === STEPS.length - 1 ? "pb-0" : ""}`}>
                       <p
-                        className={`text-[15px] ${
+                        className={`text-[14px] ${
                           current ? "font-semibold text-shop-ink" : done ? "text-shop-ink" : "text-shop-muted"
                         }`}
                       >
                         {entry.label}
                       </p>
-                      <p className="mt-0.5 text-[13px] text-shop-muted">
+                      <p className="mt-0.5 text-[12px] text-shop-muted">
                         {done && at ? shortDate(at) : entry.note}
                       </p>
                     </div>
@@ -297,15 +297,15 @@ export default function TrackOrderPanel() {
                     <Image src={item.image} alt="" fill sizes="48px" className="object-cover" />
                   )}
                 </div>
-                <p className="min-w-0 flex-1 truncate text-[14px] text-shop-ink">
+                <p className="min-w-0 flex-1 truncate text-[13px] text-shop-ink">
                   {item.quantity} × {item.name}
                 </p>
-                <p className="shrink-0 text-[14px] text-shop-body">{formatPrice(item.total)}</p>
+                <p className="shrink-0 text-[13px] text-shop-body">{formatPrice(item.total)}</p>
               </li>
             ))}
           </ul>
 
-          <div className="flex flex-wrap gap-3 border-t border-shop-line px-5 py-4 text-[14px]">
+          <div className="flex flex-wrap gap-3 border-t border-shop-line px-5 py-4 text-[13px]">
             <Link href="/contact" className="font-semibold text-shop-primary hover:underline">
               Something wrong? Contact us
             </Link>

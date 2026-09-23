@@ -16,7 +16,7 @@ import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
-const labelClass = "mb-1 block text-[13px] font-semibold text-shop-ink";
+const labelClass = "mb-1 block text-[12px] font-semibold text-shop-ink";
 
 /** The grey line under a field that says what to put in it. */
 const hintClass = "mt-1 text-[12px] leading-4 text-shop-muted";
@@ -42,7 +42,7 @@ function FieldError({ children }: { children: React.ReactNode }) {
 function StepHeading({ step, title, sub }: { step: number; title: string; sub?: string }) {
   return (
     <div className="mb-4">
-      <h2 className="flex items-center gap-2.5 text-[18px] font-extrabold text-shop-ink">
+      <h2 className="flex items-center gap-2.5 text-[17px] font-extrabold text-shop-ink">
         <span
           aria-hidden
           className="flex h-6 w-6 items-center justify-center rounded-full bg-shop-ink text-[12px] font-bold text-white"
@@ -51,7 +51,7 @@ function StepHeading({ step, title, sub }: { step: number; title: string; sub?: 
         </span>
         {title}
       </h2>
-      {sub && <p className="mt-1.5 text-[13px] leading-5 text-shop-muted">{sub}</p>}
+      {sub && <p className="mt-1.5 text-[12px] leading-5 text-shop-muted">{sub}</p>}
     </div>
   );
 }
@@ -244,9 +244,9 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="mb-3 text-[21px] font-extrabold text-shop-ink">Nothing to check out</h1>
-        <p className="mb-8 text-[15px] text-shop-muted">Your cart is empty.</p>
-        <Link href="/" className="btn-shop px-10 py-3.5 text-[15px]">
+        <h1 className="mb-3 text-[20px] font-extrabold text-shop-ink">Nothing to check out</h1>
+        <p className="mb-8 text-[14px] text-shop-muted">Your cart is empty.</p>
+        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
           Continue shopping
         </Link>
       </main>
@@ -485,11 +485,11 @@ export default function CheckoutPage() {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-[14px] font-medium leading-snug text-shop-ink">
+              <p className="line-clamp-2 text-[13px] font-medium leading-snug text-shop-ink">
                 {item.name}
               </p>
               {item.options && Object.keys(item.options).length > 0 && (
-                <p className="mt-0.5 text-[13px] text-shop-muted">
+                <p className="mt-0.5 text-[12px] text-shop-muted">
                   {Object.entries(item.options)
                     .map(([k, v]) => `${k}: ${v}`)
                     .join(" · ")}
@@ -498,7 +498,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2.5">
-              <span className="whitespace-nowrap text-[14px] font-medium text-shop-ink">
+              <span className="whitespace-nowrap text-[13px] font-medium text-shop-ink">
                 {formatPrice(item.price * item.quantity)}
               </span>
 
@@ -535,14 +535,14 @@ export default function CheckoutPage() {
         ))}
       </ul>
 
-      <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[15px]">
+      <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[14px]">
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Subtotal · {count} {count === 1 ? "item" : "items"}</dt>
           <dd className="font-medium text-shop-ink">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Delivery</dt>
-          <dd className="text-[14px]">
+          <dd className="text-[13px]">
             {!delivery ? (
               <span className="text-shop-muted">Add your location</span>
             ) : !delivery.deliverable ? (
@@ -565,7 +565,7 @@ export default function CheckoutPage() {
       {showFreeDeliveryNudge && (
         <Link
           href="/cart"
-          className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-shop-successbg px-3.5 py-2.5 text-[13px] leading-snug text-shop-body transition-colors hover:bg-shop-surface"
+          className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-shop-successbg px-3.5 py-2.5 text-[12px] leading-snug text-shop-body transition-colors hover:bg-shop-surface"
         >
           <span>
             Add{" "}
@@ -581,12 +581,12 @@ export default function CheckoutPage() {
       )}
 
       <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-        <span className="text-[16px] font-semibold text-shop-ink">Total</span>
-        <span className="text-[22px] font-extrabold tracking-tight text-shop-ink">
+        <span className="text-[15px] font-semibold text-shop-ink">Total</span>
+        <span className="text-[21px] font-extrabold tracking-tight text-shop-ink">
           {formatPrice(total)}
         </span>
       </div>
-      <p className="mt-1 text-right text-[13px] text-shop-muted">Including taxes</p>
+      <p className="mt-1 text-right text-[12px] text-shop-muted">Including taxes</p>
     </>
   );
 
@@ -650,13 +650,13 @@ export default function CheckoutPage() {
            whole screen when tapped is worse than one that scrolls away. */}
       <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface/95 backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
-          <span className="flex items-center gap-2 text-[15px] text-shop-ink">
+          <span className="flex items-center gap-2 text-[14px] text-shop-ink">
             Order summary
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
             </svg>
           </span>
-          <span className="text-[20px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
+          <span className="text-[19px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
         </summary>
         <div className="max-h-[60vh] overflow-y-auto px-4 pb-6">{summary}</div>
       </details>
@@ -664,7 +664,7 @@ export default function CheckoutPage() {
       {/* Form column */}
       <div className="order-1 bg-white">
         <div className="mx-auto w-full max-w-[560px] px-4 pb-28 pt-6 md:px-8 lg:ml-auto lg:mr-0 lg:px-14 lg:pb-10 lg:pt-10">
-          <nav className="mb-8 flex items-center gap-2 text-[13px] text-shop-muted">
+          <nav className="mb-8 flex items-center gap-2 text-[12px] text-shop-muted">
             <Link href="/cart" className="hover:text-shop-ink">
               Cart
             </Link>
@@ -947,7 +947,7 @@ export default function CheckoutPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-[15px] font-medium text-shop-ink">
+                        <span className="text-[14px] font-medium text-shop-ink">
                           {option.label}
                         </span>
                         {/* The networks this option actually takes, in place of
@@ -968,7 +968,7 @@ export default function CheckoutPage() {
                           </>
                         )}
                       </span>
-                      <span className="mt-1 block text-[14px] leading-5 text-shop-muted">
+                      <span className="mt-1 block text-[13px] leading-5 text-shop-muted">
                         {option.value === "cod"
                           ? codAllowed
                             ? `Available at this address. ${option.hint}`
@@ -986,7 +986,7 @@ export default function CheckoutPage() {
             {error && (
               <p
                 role="alert"
-                className="mt-5 rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[14px] text-shop-sale"
+                className="mt-5 rounded-lg border border-shop-sale/30 bg-[#fdeeeb] px-3 py-2.5 text-[13px] text-shop-sale"
               >
                 {error}
               </p>
@@ -1005,7 +1005,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 hidden w-full py-4 text-[16px] lg:block"
+              className="btn-shop mt-6 hidden w-full py-4 text-[15px] lg:block"
             >
               {submitting ? "Placing order…" : `Pay ${formatPrice(total)}`}
             </button>
@@ -1043,14 +1043,14 @@ export default function CheckoutPage() {
                 happens. It was the same weight as the product prices in the
                 summary above it, which on a phone made the thing being paid
                 indistinguishable from the things being bought. */}
-            <p className="price text-[22px] font-extrabold leading-none tracking-tight text-shop-ink">
+            <p className="price text-[21px] font-extrabold leading-none tracking-tight text-shop-ink">
               {formatPrice(total)}
             </p>
           </div>
           <button
             type="submit"
             disabled={submitting}
-            className="btn-shop ml-auto shrink-0 px-8 py-3.5 text-[15px]"
+            className="btn-shop ml-auto shrink-0 px-8 py-3.5 text-[14px]"
           >
             {submitting ? "Placing…" : "Pay now"}
           </button>

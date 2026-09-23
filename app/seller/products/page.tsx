@@ -312,12 +312,12 @@ export default function SellerProductsPage() {
     <div className="mx-auto max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">Products</h1>
-          <p className="mt-1 text-[15px] text-shop-muted">
+          <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">Products</h1>
+          <p className="mt-1 text-[14px] text-shop-muted">
             Edit prices, restock and manage what shoppers can see.
           </p>
         </div>
-        <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[15px]">
+        <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[14px]">
           Add a product
         </Link>
       </div>
@@ -342,7 +342,7 @@ export default function SellerProductsPage() {
                 }}
                 disabled={bulkProgress !== null}
                 aria-pressed={active}
-                className={`rounded-full border px-4 py-2 text-[14px] font-semibold transition-colors ${
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
                   active
                     ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
                     : "border-shop-line bg-white text-shop-body hover:border-shop-primary"
@@ -365,7 +365,7 @@ export default function SellerProductsPage() {
               setConfirming(null);
             }}
             placeholder="Search by name or SKU"
-            className="field-shop w-full max-w-[280px] text-[15px]"
+            className="field-shop w-full max-w-[280px] text-[14px]"
           />
 
           {/* Only offered when there is something to delete, and never while a
@@ -380,7 +380,7 @@ export default function SellerProductsPage() {
               onClick={() => setConfirming((open) => (open === "listed" ? null : "listed"))}
               disabled={bulkProgress !== null}
               aria-expanded={confirming === "listed"}
-              className="shrink-0 rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-shop-line px-4 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink disabled:opacity-50"
             >
               {bulkIsEverything ? "Delete all" : `Delete these ${visible.length}`}
             </button>
@@ -402,7 +402,7 @@ export default function SellerProductsPage() {
           the first tick. */}
       {products !== null && visible.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-shop-line bg-white px-4 py-2.5">
-          <label className="flex cursor-pointer items-center gap-2.5 text-[14px] font-semibold text-shop-body">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-semibold text-shop-body">
             <input
               type="checkbox"
               checked={allListedSelected}
@@ -421,7 +421,7 @@ export default function SellerProductsPage() {
 
           {selectedProducts.length > 0 && (
             <div className="ml-auto flex flex-wrap items-center gap-2">
-              <span className="text-[14px] font-semibold text-shop-ink">
+              <span className="text-[13px] font-semibold text-shop-ink">
                 {selectedProducts.length} selected
                 {selectedOffScreen > 0 && (
                   <span className="font-medium text-shop-muted">
@@ -437,7 +437,7 @@ export default function SellerProductsPage() {
                 }
                 disabled={bulkProgress !== null}
                 aria-expanded={confirming === "selected"}
-                className="rounded-lg border border-shop-ink/25 px-4 py-2 text-[14px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline disabled:opacity-50"
+                className="rounded-lg border border-shop-ink/25 px-4 py-2 text-[13px] font-semibold text-shop-ink transition-colors hover:bg-shop-hairline disabled:opacity-50"
               >
                 Delete {selectedProducts.length}
               </button>
@@ -448,7 +448,7 @@ export default function SellerProductsPage() {
                   setConfirming(null);
                 }}
                 disabled={bulkProgress !== null}
-                className="rounded-lg px-3 py-2 text-[14px] font-semibold text-shop-body transition-colors hover:text-shop-ink disabled:opacity-50"
+                className="rounded-lg px-3 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:text-shop-ink disabled:opacity-50"
               >
                 Clear
               </button>
@@ -461,7 +461,7 @@ export default function SellerProductsPage() {
           puts the destructive button beside a Cancel of equal weight. */}
       {confirming !== null && bulkProgress === null && bulkTargets.length > 0 && (
         <div className="mb-4 rounded-xl border border-shop-ink/20 bg-shop-hairline px-4 py-3.5">
-          <p className="text-[15px] font-semibold text-shop-ink">
+          <p className="text-[14px] font-semibold text-shop-ink">
             Delete {bulkTargets.length} {bulkTargets.length === 1 ? "product" : "products"}
             {confirming === "selected"
               ? // Ticked rows the filter is hiding are the one case where the
@@ -475,7 +475,7 @@ export default function SellerProductsPage() {
                 : " matching this filter"}
             ?
           </p>
-          <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-shop-body">
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-shop-body">
             They come off the shop straight away and move to the bin, so Kandi
             can put them back if this was a mistake. Past orders keep their
             record either way.
@@ -484,14 +484,14 @@ export default function SellerProductsPage() {
             <button
               type="button"
               onClick={() => removeMany(bulkTargets)}
-              className="rounded-lg bg-shop-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+              className="rounded-lg bg-shop-ink px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
             >
               Yes, delete {bulkTargets.length}
             </button>
             <button
               type="button"
               onClick={() => setConfirming(null)}
-              className="rounded-lg border border-shop-line bg-white px-5 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+              className="rounded-lg border border-shop-line bg-white px-5 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
             >
               Cancel
             </button>
@@ -505,19 +505,19 @@ export default function SellerProductsPage() {
       {bulkProgress !== null && (
         <p
           role="status"
-          className="mb-4 rounded-xl bg-shop-primary-soft px-4 py-3 text-[15px] font-medium text-shop-primary-ink"
+          className="mb-4 rounded-xl bg-shop-primary-soft px-4 py-3 text-[14px] font-medium text-shop-primary-ink"
         >
           Deleting {Math.min(bulkProgress.done + 1, bulkProgress.total)} of {bulkProgress.total}…
         </p>
       )}
 
       {error && (
-        <p role="alert" className="mb-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red">
+        <p role="alert" className="mb-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red">
           {error}
         </p>
       )}
       {notice && !error && (
-        <p role="status" className="mb-4 rounded-xl bg-shop-successbg px-4 py-3 text-[15px] font-medium text-shop-success">
+        <p role="status" className="mb-4 rounded-xl bg-shop-successbg px-4 py-3 text-[14px] font-medium text-shop-success">
           {notice}
         </p>
       )}
@@ -530,16 +530,16 @@ export default function SellerProductsPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-shop-line bg-white p-12 text-center">
-          <p className="text-[17px] font-semibold text-shop-ink">
+          <p className="text-[16px] font-semibold text-shop-ink">
             {products.length === 0 ? "No products yet" : "Nothing matches that"}
           </p>
-          <p className="mx-auto mt-2 max-w-md text-[15px] text-shop-muted">
+          <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
             {products.length === 0
               ? "Add your first listing and it goes for approval straight away."
               : "Try a different filter or clear the search."}
           </p>
           {products.length === 0 && (
-            <Link href="/seller/products/new" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+            <Link href="/seller/products/new" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
               Add a product
             </Link>
           )}
@@ -656,7 +656,7 @@ function ProductRow({
           </div>
 
           <div className="min-w-0">
-            <p className="line-clamp-1 text-[16px] font-semibold text-shop-ink">{product.name}</p>
+            <p className="line-clamp-1 text-[15px] font-semibold text-shop-ink">{product.name}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
@@ -676,7 +676,7 @@ function ProductRow({
                 </span>
               )}
               {product.sku && (
-                <span className="text-[13px] text-shop-muted">SKU {product.sku}</span>
+                <span className="text-[12px] text-shop-muted">SKU {product.sku}</span>
               )}
             </div>
           </div>
@@ -687,7 +687,7 @@ function ProductRow({
           <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">
             Price
           </p>
-          <p className="mt-0.5 text-[16px] font-semibold text-shop-ink">
+          <p className="mt-0.5 text-[15px] font-semibold text-shop-ink">
             {formatPrice(product.price)}
           </p>
           {product.sale_price ? (
@@ -702,7 +702,7 @@ function ProductRow({
           <p className="text-[12px] font-semibold uppercase tracking-wide text-shop-muted">
             Sold
           </p>
-          <p className="mt-0.5 text-[16px] font-semibold text-shop-ink">{product.units_sold}</p>
+          <p className="mt-0.5 text-[15px] font-semibold text-shop-ink">{product.units_sold}</p>
         </div>
 
         {/* Inline restock — the job done most often, so it is on the row. */}
@@ -722,13 +722,13 @@ function ProductRow({
                 }}
                 disabled={busy}
                 aria-label={`Stock for `}
-                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[15px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none disabled:bg-shop-hairline"
+                className="h-10 w-20 rounded-lg border border-shop-line px-2.5 text-center text-[14px] font-semibold text-shop-ink focus:border-shop-primary focus:outline-none disabled:bg-shop-hairline"
               />
               <button
                 type="button"
                 disabled={!dirty || busy}
                 onClick={() => onRestock(Number(stock) || 0)}
-                className="h-10 rounded-lg bg-shop-primary px-3 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:bg-shop-hairline disabled:text-shop-muted"
+                className="h-10 rounded-lg bg-shop-primary px-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:bg-shop-hairline disabled:text-shop-muted"
               >
                 Save
               </button>
@@ -742,7 +742,7 @@ function ProductRow({
             type="button"
             onClick={onEdit}
             disabled={busy}
-            className="rounded-lg border border-shop-line px-4 py-2.5 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary disabled:pointer-events-none"
+            className="rounded-lg border border-shop-line px-4 py-2.5 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary disabled:pointer-events-none"
           >
             Edit
           </button>
@@ -773,7 +773,7 @@ function ProductRow({
                 <Link
                   href={`/products/${product.id}`}
                   target="_blank"
-                  className="block px-4 py-2.5 text-[14px] text-shop-body hover:bg-shop-hairline"
+                  className="block px-4 py-2.5 text-[13px] text-shop-body hover:bg-shop-hairline"
                 >
                   View in the shop
                 </Link>
@@ -783,7 +783,7 @@ function ProductRow({
                     setMenuOpen(false);
                     onVisibility(product.status !== "draft");
                   }}
-                  className="block w-full px-4 py-2.5 text-left text-[14px] text-shop-body hover:bg-shop-hairline"
+                  className="block w-full px-4 py-2.5 text-left text-[13px] text-shop-body hover:bg-shop-hairline"
                 >
                   {product.status === "draft" ? "Send for review" : "Hide from shop"}
                 </button>
@@ -793,7 +793,7 @@ function ProductRow({
                     setMenuOpen(false);
                     onDelete();
                   }}
-                  className="block w-full px-4 py-2.5 text-left text-[14px] font-semibold text-pop-red hover:bg-pop-red-soft"
+                  className="block w-full px-4 py-2.5 text-left text-[13px] font-semibold text-pop-red hover:bg-pop-red-soft"
                 >
                   Delete listing
                 </button>

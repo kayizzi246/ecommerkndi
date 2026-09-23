@@ -71,8 +71,8 @@ export default function FeePayment({
   if (paid) {
     return (
       <div className="mt-7 rounded-2xl border-2 border-pop-green bg-pop-green-soft p-6 text-left">
-        <p className="text-[15px] font-semibold text-pop-green">Joining fee paid</p>
-        <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
+        <p className="text-[14px] font-semibold text-pop-green">Joining fee paid</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-shop-body">
           Thank you. Your application goes to our team for approval — you can sign in and start
           adding products in the meantime.
         </p>
@@ -82,17 +82,17 @@ export default function FeePayment({
 
   return (
     <div className="mt-7 rounded-2xl border-2 border-shop-flame bg-shop-primary-soft p-6 text-left">
-      <p className="text-[14px] font-semibold uppercase tracking-wide text-shop-primary">
+      <p className="text-[13px] font-semibold uppercase tracking-wide text-shop-primary">
         Next: pay your monthly fee
       </p>
-      <p className="price mt-1 text-[22px] leading-none text-shop-flame">{formatPrice(amount)}</p>
+      <p className="price mt-1 text-[21px] leading-none text-shop-flame">{formatPrice(amount)}</p>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={startPayment}
           disabled={starting}
-          className="btn-shop flex-1 py-3 text-[15px]"
+          className="btn-shop flex-1 py-3 text-[14px]"
         >
           {starting ? "Opening…" : "Pay by mobile money"}
         </button>
@@ -100,23 +100,23 @@ export default function FeePayment({
           type="button"
           onClick={startPayment}
           disabled={starting}
-          className="btn-shop-outline flex-1 py-3 text-[15px]"
+          className="btn-shop-outline flex-1 py-3 text-[14px]"
         >
           Pay by card
         </button>
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[13px] font-medium text-shop-sale">
+        <p role="alert" className="mt-3 text-[12px] font-medium text-shop-sale">
           {error}
         </p>
       )}
 
       <details className="mt-5">
-        <summary className="cursor-pointer text-[13px] font-semibold text-shop-body hover:text-shop-primary">
+        <summary className="cursor-pointer text-[12px] font-semibold text-shop-body hover:text-shop-primary">
           Rather send the money yourself?
         </summary>
-        <dl className="mt-3 space-y-2.5 text-[15px]">
+        <dl className="mt-3 space-y-2.5 text-[14px]">
           {payNumber ? (
             <>
               <Row label="Send to" value={payNumber} />
@@ -129,7 +129,7 @@ export default function FeePayment({
           )}
           <Row label="Your reference" value={seller.fee_reference} mono />
         </dl>
-        <p className="mt-3 text-[13px] leading-relaxed text-shop-body">
+        <p className="mt-3 text-[12px] leading-relaxed text-shop-body">
           Quote that reference so we can match your payment to your store. We confirm it by email,
           usually the same day.
         </p>

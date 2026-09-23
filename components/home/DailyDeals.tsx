@@ -101,7 +101,7 @@ export default function DailyDeals({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h2
               id="daily-deals-heading"
-              className="heading-black text-[18px] text-shop-ink md:text-[20px]"
+              className="heading-black text-[17px] text-shop-ink md:text-[19px]"
             >
               Daily Deals
             </h2>
@@ -109,7 +109,7 @@ export default function DailyDeals({
               {best > 0 ? `Up to ${best}% off` : "Lowest today"}
             </span>
           </div>
-          <p className="section-sub mt-0.5 truncate text-[13px]">
+          <p className="section-sub mt-0.5 truncate text-[12px]">
             Today&rsquo;s reductions, gone at midnight
           </p>
         </div>

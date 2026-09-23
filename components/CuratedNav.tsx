@@ -316,7 +316,7 @@ function MegaPanel({
           <Link
             href={`/category/${department.slug}`}
             onClick={onNavigate}
-            className="mb-4 inline-flex items-center gap-1 text-[14px] font-bold text-shop-ink underline-offset-4 hover:text-shop-flame hover:underline"
+            className="mb-4 inline-flex items-center gap-1 text-[13px] font-bold text-shop-ink underline-offset-4 hover:text-shop-flame hover:underline"
           >
             View all {department.name}
             <svg aria-hidden className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
@@ -333,7 +333,7 @@ function MegaPanel({
                 <Link
                   href={`/category/${child.slug}`}
                   onClick={onNavigate}
-                  className="block border-b border-shop-hairline pb-1.5 text-[13px] font-bold text-shop-ink transition-colors hover:text-shop-flame"
+                  className="block border-b border-shop-hairline pb-1.5 text-[12px] font-bold text-shop-ink transition-colors hover:text-shop-flame"
                 >
                   {child.name}
                 </Link>
@@ -345,7 +345,7 @@ function MegaPanel({
                         <Link
                           href={`/category/${grandchild.slug}`}
                           onClick={onNavigate}
-                          className="block text-[13px] text-shop-body transition-colors hover:text-shop-flame"
+                          className="block text-[12px] text-shop-body transition-colors hover:text-shop-flame"
                         >
                           {grandchild.name}
                         </Link>
@@ -356,7 +356,7 @@ function MegaPanel({
                         <Link
                           href={`/category/${child.slug}`}
                           onClick={onNavigate}
-                          className="block text-[13px] font-semibold text-shop-flame hover:underline"
+                          className="block text-[12px] font-semibold text-shop-flame hover:underline"
                         >
                           View all
                         </Link>
@@ -380,7 +380,7 @@ function MegaPanel({
              otherwise reserve 260px of blank panel on every open. */}
         {products.length > 0 && (
           <div className="hidden w-[300px] shrink-0 border-l border-shop-hairline pl-8 xl:block">
-            <p className="mb-3 flex items-center justify-between text-[13px] font-bold text-shop-ink">
+            <p className="mb-3 flex items-center justify-between text-[12px] font-bold text-shop-ink">
               Selling fastest
               <Link
                 href={`/category/${department.slug}?sort=popular`}
@@ -416,7 +416,7 @@ function MegaPanel({
                     <p className="mt-1.5 line-clamp-2 text-[12px] leading-tight text-shop-body">
                       {product.name}
                     </p>
-                    <p className="price mt-0.5 text-[13px] text-shop-ink">
+                    <p className="price mt-0.5 text-[12px] text-shop-ink">
                       {formatPrice(product.price)}
                     </p>
                   </Link>

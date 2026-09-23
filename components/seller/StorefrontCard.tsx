@@ -129,8 +129,8 @@ export default function StorefrontCard({
 
   return (
     <section className="rounded border border-bfl-line bg-white p-5">
-      <h2 className="text-[16px] font-extrabold text-black">Your storefront</h2>
-      <p className="mt-1 text-[14px] text-bfl-grey">
+      <h2 className="text-[15px] font-extrabold text-black">Your storefront</h2>
+      <p className="mt-1 text-[13px] text-bfl-grey">
         How your shop looks to customers, and the link you give them.
       </p>
 
@@ -153,12 +153,12 @@ export default function StorefrontCard({
               className="h-11 w-11 shrink-0 rounded-full border border-white/60 bg-white object-cover"
             />
           ) : (
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[18px] font-bold text-shop-primary">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[17px] font-bold text-shop-primary">
               {seller.store_name.charAt(0).toUpperCase()}
             </span>
           )}
           <div className="min-w-0">
-            <p className="truncate text-[17px] font-extrabold leading-tight">
+            <p className="truncate text-[16px] font-extrabold leading-tight">
               {seller.store_name}
             </p>
             <p className="mt-0.5 text-[12px]" style={{ color: veil(0.7) }}>
@@ -169,7 +169,7 @@ export default function StorefrontCard({
       </div>
 
       <div className="mt-4">
-        <span className="mb-2 block text-[13px] font-semibold text-black">Header colour</span>
+        <span className="mb-2 block text-[12px] font-semibold text-black">Header colour</span>
         <div className="flex flex-wrap gap-2">
           {SWATCHES.map((swatch) => (
             <button
@@ -192,11 +192,11 @@ export default function StorefrontCard({
 
       {/* ---- The link ---- */}
       <div className="mt-5">
-        <label htmlFor="store-slug" className="mb-1.5 block text-[13px] font-semibold text-black">
+        <label htmlFor="store-slug" className="mb-1.5 block text-[12px] font-semibold text-black">
           Your store link
         </label>
         <div className="flex items-center overflow-hidden rounded border border-bfl-line focus-within:border-black">
-          <span className="shrink-0 border-r border-bfl-line bg-bfl-surface px-2.5 py-2.5 text-[13px] text-bfl-grey">
+          <span className="shrink-0 border-r border-bfl-line bg-bfl-surface px-2.5 py-2.5 text-[12px] text-bfl-grey">
             {origin.replace(/^https?:\/\//, "") || "kandiug.com"}/
           </span>
           <input
@@ -213,10 +213,10 @@ export default function StorefrontCard({
                   .replace(/^-+/, "")
               )
             }
-            className="w-full px-2.5 py-2.5 text-[15px] text-black focus:outline-none"
+            className="w-full px-2.5 py-2.5 text-[14px] text-black focus:outline-none"
           />
         </div>
-        <p className="mt-1.5 text-[13px] text-bfl-grey">
+        <p className="mt-1.5 text-[12px] text-bfl-grey">
           Short, easy to say, and yours. Changing it stops the old link working, so anything you
           have already printed will need reprinting.
         </p>
@@ -225,13 +225,13 @@ export default function StorefrontCard({
       {error && (
         <p
           role="alert"
-          className="mt-4 border-l-2 border-shop-sale bg-[#fdeeeb] px-3 py-2 text-[14px] text-shop-sale"
+          className="mt-4 border-l-2 border-shop-sale bg-[#fdeeeb] px-3 py-2 text-[13px] text-shop-sale"
         >
           {error}
         </p>
       )}
       {notice && (
-        <p className="mt-4 border-l-2 border-[#0a7a2f] bg-[#e7f7ea] px-3 py-2 text-[14px] text-[#0a7a2f]">
+        <p className="mt-4 border-l-2 border-[#0a7a2f] bg-[#e7f7ea] px-3 py-2 text-[13px] text-[#0a7a2f]">
           {notice}
         </p>
       )}
@@ -240,14 +240,14 @@ export default function StorefrontCard({
         type="button"
         onClick={save}
         disabled={saving || !dirty}
-        className="btn-bfl mt-4 px-6 py-2.5 text-[14px] disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-bfl mt-4 px-6 py-2.5 text-[13px] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {saving ? "Saving…" : "Save storefront"}
       </button>
 
       {/* ---- Share ---- */}
       <div className="mt-6 border-t border-bfl-line pt-5">
-        <h3 className="text-[14px] font-bold text-black">Share your shop</h3>
+        <h3 className="text-[13px] font-bold text-black">Share your shop</h3>
 
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="shrink-0">
@@ -262,8 +262,8 @@ export default function StorefrontCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="break-all text-[14px] font-semibold text-black">{spoken}</p>
-            <p className="mt-1 text-[13px] text-bfl-grey">
+            <p className="break-all text-[13px] font-semibold text-black">{spoken}</p>
+            <p className="mt-1 text-[12px] text-bfl-grey">
               Print the code on a flyer or your shopfront. A customer points a camera at it and
               lands on your products.
             </p>
@@ -272,14 +272,14 @@ export default function StorefrontCard({
               <button
                 type="button"
                 onClick={copy}
-                className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+                className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
               >
                 {copied ? "Copied" : "Copy link"}
               </button>
               <button
                 type="button"
                 onClick={download}
-                className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+                className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
               >
                 Download QR
               </button>
@@ -287,14 +287,14 @@ export default function StorefrontCard({
                 href={`https://wa.me/?text=${encodeURIComponent(`Shop ${seller.store_name} on Kandi: ${link}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded border border-bfl-line px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
+                className="rounded border border-bfl-line px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0]"
               >
                 Share on WhatsApp
               </a>
             </div>
 
             {dirty && slug !== seller.store_slug && (
-              <p className="mt-3 text-[13px] font-medium text-[#8a6100]">
+              <p className="mt-3 text-[12px] font-medium text-[#8a6100]">
                 The code and the link above are still your current address. Save to change them.
               </p>
             )}

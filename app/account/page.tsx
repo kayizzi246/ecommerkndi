@@ -78,10 +78,10 @@ export default function AccountOverview() {
   return (
     <div className="space-y-5 md:space-y-8">
       <header>
-        <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">
+        <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">
           Hi {customer?.name.split(" ")[0]} 👋
         </h1>
-        <p className="mt-1 text-[15px] text-shop-muted">
+        <p className="mt-1 text-[14px] text-shop-muted">
           Here is everything on your Kandi account.
         </p>
       </header>
@@ -103,8 +103,8 @@ export default function AccountOverview() {
       {toReview.length > 0 && (
         <section className="rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[19px] font-extrabold text-shop-ink">Rate what you bought</h2>
-            <Link href="/account/reviews" className="text-[14px] font-semibold text-shop-primary">
+            <h2 className="text-[18px] font-extrabold text-shop-ink">Rate what you bought</h2>
+            <Link href="/account/reviews" className="text-[13px] font-semibold text-shop-primary">
               My reviews ›
             </Link>
           </div>
@@ -120,10 +120,10 @@ export default function AccountOverview() {
                   )}
                 </Link>
                 <div className="min-w-0">
-                  <p className="line-clamp-2 text-[14px] text-shop-body">{item.name}</p>
+                  <p className="line-clamp-2 text-[13px] text-shop-body">{item.name}</p>
                   <Link
                     href={`/products/${item.productId}#reviews`}
-                    className="mt-1 inline-block text-[14px] font-semibold text-shop-primary hover:underline"
+                    className="mt-1 inline-block text-[13px] font-semibold text-shop-primary hover:underline"
                   >
                     Write a review
                   </Link>
@@ -137,8 +137,8 @@ export default function AccountOverview() {
       {/* Recent orders */}
       <section className="rounded-2xl border border-shop-line bg-white p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[19px] font-extrabold text-shop-ink">Recent orders</h2>
-          <Link href="/account/orders" className="text-[14px] font-semibold text-shop-primary">
+          <h2 className="text-[18px] font-extrabold text-shop-ink">Recent orders</h2>
+          <Link href="/account/orders" className="text-[13px] font-semibold text-shop-primary">
             See all ›
           </Link>
         </div>
@@ -147,8 +147,8 @@ export default function AccountOverview() {
           <div className="h-24 animate-skeleton rounded-xl bg-shop-hairline" />
         ) : orders!.length === 0 ? (
           <div className="py-6 text-center">
-            <p className="text-[15px] text-shop-muted">You have not ordered anything yet.</p>
-            <Link href="/" className="btn-shop mt-4 inline-flex px-7 py-2.5 text-[15px]">
+            <p className="text-[14px] text-shop-muted">You have not ordered anything yet.</p>
+            <Link href="/" className="btn-shop mt-4 inline-flex px-7 py-2.5 text-[14px]">
               Start shopping
             </Link>
           </div>
@@ -161,7 +161,7 @@ export default function AccountOverview() {
               <li key={order.id} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[15px] font-semibold text-shop-ink">#{order.number}</span>
+                    <span className="text-[14px] font-semibold text-shop-ink">#{order.number}</span>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                         ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
@@ -170,11 +170,11 @@ export default function AccountOverview() {
                       {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[13px] text-shop-muted">
+                  <p className="mt-0.5 text-[12px] text-shop-muted">
                     {formatOrderDate(order.date)}
                   </p>
                 </div>
-                <span className="shrink-0 whitespace-nowrap text-[15px] font-semibold text-shop-ink">
+                <span className="shrink-0 whitespace-nowrap text-[14px] font-semibold text-shop-ink">
                   {formatPrice(order.total)}
                 </span>
               </li>
@@ -198,10 +198,10 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
        The figure steps down a size on a phone for the same reason: a total in
        the millions is a realistic amount here, and it has to fit. */
     <div className="min-w-0 rounded-2xl border border-shop-line bg-white p-3.5 sm:p-4">
-      <p className="truncate text-[12px] font-semibold uppercase tracking-wide text-shop-muted sm:text-[13px]">
+      <p className="truncate text-[12px] font-semibold uppercase tracking-wide text-shop-muted sm:text-[12px]">
         {label}
       </p>
-      <p className={`mt-1.5 break-words text-[17px] font-semibold leading-tight sm:text-[19px] ${tone}`}>
+      <p className={`mt-1.5 break-words text-[16px] font-semibold leading-tight sm:text-[18px] ${tone}`}>
         {value}
       </p>
     </div>

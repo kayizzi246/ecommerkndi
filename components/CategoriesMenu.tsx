@@ -236,12 +236,12 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
                         <Link
                           href={`/category/${group.slug}`}
                           onClick={() => setOpen(false)}
-                          className="block border-b border-shop-line pb-2 text-[13px] font-bold tracking-[-0.01em] text-shop-ink transition-colors hover:text-shop-flame"
+                          className="block border-b border-shop-line pb-2 text-[12px] font-bold tracking-[-0.01em] text-shop-ink transition-colors hover:text-shop-flame"
                         >
                           {group.name}
                         </Link>
                       ) : (
-                        <p className="block border-b border-shop-line pb-2 text-[13px] font-bold tracking-[-0.01em] text-shop-ink">
+                        <p className="block border-b border-shop-line pb-2 text-[12px] font-bold tracking-[-0.01em] text-shop-ink">
                           {group.name}
                         </p>
                       )}
@@ -252,7 +252,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
                             <Link
                               href={`/category/${child.slug}`}
                               onClick={() => setOpen(false)}
-                              className="block text-[13px] leading-5 text-shop-body transition-colors hover:text-shop-flame"
+                              className="block text-[12px] leading-5 text-shop-body transition-colors hover:text-shop-flame"
                             >
                               {child.name}
                             </Link>
@@ -264,7 +264,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
                             <Link
                               href={`/category/${group.slug}`}
                               onClick={() => setOpen(false)}
-                              className="block text-[13px] font-semibold leading-5 text-shop-flame hover:underline"
+                              className="block text-[12px] font-semibold leading-5 text-shop-flame hover:underline"
                             >
                               View all
                             </Link>
@@ -284,7 +284,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
               <Link
                 href="/categories"
                 onClick={() => setOpen(false)}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-shop-ink transition-colors hover:text-shop-flame"
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-shop-ink transition-colors hover:text-shop-flame"
               >
                 All categories
                 <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">

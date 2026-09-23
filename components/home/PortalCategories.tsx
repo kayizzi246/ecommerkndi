@@ -122,7 +122,7 @@ export default function PortalCategories({
       // that clipped it would render the whole hover interaction as a 2px sliver.
       className="hidden h-full flex-col overflow-visible rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex"
     >
-      <p className="mb-1 px-2 text-[13px] font-bold text-shop-ink">
+      <p className="mb-1 px-2 text-[12px] font-bold text-shop-ink">
         All categories
       </p>
 
@@ -182,7 +182,7 @@ export default function PortalCategories({
             {row.children.length > 0 && (
               <div className="pointer-events-none invisible absolute -top-3 left-full z-30 w-[430px] pl-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
                 <div className="rounded-2xl bg-white p-4 ring-1 ring-shop-edge">
-                  <p className="mb-2.5 text-[13px] font-bold text-shop-ink">
+                  <p className="mb-2.5 text-[12px] font-bold text-shop-ink">
                     {row.name}
                   </p>
                   <ul className="grid grid-cols-3 gap-x-3 gap-y-1.5">

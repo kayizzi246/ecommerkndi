@@ -103,10 +103,10 @@ export default function PayoutDialog({
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="payout-title" className="text-[19px] font-extrabold text-black">
+            <h2 id="payout-title" className="text-[18px] font-extrabold text-black">
               Request a payout
             </h2>
-            <p className="mt-1 text-[13px] text-bfl-grey">
+            <p className="mt-1 text-[12px] text-bfl-grey">
               {formatPrice(overview.payable)} is cleared and ready to send.
               {overview.pending > 0 && ` ${formatPrice(overview.pending)} is still clearing.`}
             </p>
@@ -116,7 +116,7 @@ export default function PayoutDialog({
             onClick={onClose}
             disabled={sending}
             aria-label="Close"
-            className="-mr-1 -mt-1 shrink-0 rounded p-1.5 text-[20px] leading-none text-bfl-grey hover:text-black disabled:opacity-40"
+            className="-mr-1 -mt-1 shrink-0 rounded p-1.5 text-[19px] leading-none text-bfl-grey hover:text-black disabled:opacity-40"
           >
             ×
           </button>
@@ -125,14 +125,14 @@ export default function PayoutDialog({
         <form onSubmit={submit} className="mt-5">
           <fieldset disabled={sending} className="space-y-5">
             <div>
-              <span className="mb-2 block text-[13px] font-semibold text-black">
+              <span className="mb-2 block text-[12px] font-semibold text-black">
                 Send it by
               </span>
               <div className="space-y-2">
                 {methods.map((option) => (
                   <label
                     key={option}
-                    className={`flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-[14px] transition-colors ${
+                    className={`flex cursor-pointer items-center gap-3 rounded border px-3 py-2.5 text-[13px] transition-colors ${
                       method === option
                         ? "border-black bg-bfl-surface text-black"
                         : "border-bfl-line text-[#333] hover:border-[#b0b0b0]"
@@ -153,7 +153,7 @@ export default function PayoutDialog({
             </div>
 
             <div>
-              <label htmlFor="payout-account" className="mb-1.5 block text-[13px] font-semibold text-black">
+              <label htmlFor="payout-account" className="mb-1.5 block text-[12px] font-semibold text-black">
                 {method === "Bank transfer" ? "Account number" : "Mobile money number"}
               </label>
               <input
@@ -163,16 +163,16 @@ export default function PayoutDialog({
                 inputMode={method === "Bank transfer" ? "text" : "tel"}
                 placeholder={method === "Bank transfer" ? "Account number" : "0772 123 456"}
                 required
-                className="w-full rounded border border-bfl-line px-3 py-2.5 text-[16px] text-black placeholder:text-bfl-grey focus:border-black focus:outline-none"
+                className="w-full rounded border border-bfl-line px-3 py-2.5 text-[15px] text-black placeholder:text-bfl-grey focus:border-black focus:outline-none"
               />
-              <p className="mt-1.5 text-[13px] text-bfl-grey">
+              <p className="mt-1.5 text-[12px] text-bfl-grey">
                 This is saved to your account for next time.
               </p>
             </div>
 
             <div>
               <div className="mb-1.5 flex items-baseline justify-between gap-3">
-                <label htmlFor="payout-amount" className="text-[13px] font-semibold text-black">
+                <label htmlFor="payout-amount" className="text-[12px] font-semibold text-black">
                   How much
                 </label>
                 <button
@@ -181,14 +181,14 @@ export default function PayoutDialog({
                     setAmount(String(Math.floor(overview.payable)));
                     amountRef.current?.focus();
                   }}
-                  className="text-[13px] font-semibold text-bfl-ink underline underline-offset-2"
+                  className="text-[12px] font-semibold text-bfl-ink underline underline-offset-2"
                 >
                   Withdraw all
                 </button>
               </div>
 
               <div className="flex items-center rounded border border-bfl-line focus-within:border-black">
-                <span className="pl-3 text-[14px] text-bfl-grey">UGX</span>
+                <span className="pl-3 text-[13px] text-bfl-grey">UGX</span>
                 <input
                   id="payout-amount"
                   ref={amountRef}
@@ -197,21 +197,21 @@ export default function PayoutDialog({
                   inputMode="numeric"
                   /* 16px, so focusing it on iOS does not zoom the page and
                      leave the seller pinching their way back out. */
-                  className="w-full bg-transparent px-2 py-2.5 text-[16px] font-semibold text-black focus:outline-none"
+                  className="w-full bg-transparent px-2 py-2.5 text-[15px] font-semibold text-black focus:outline-none"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 />
               </div>
 
               {tooMuch ? (
-                <p className="mt-1.5 text-[13px] font-semibold text-shop-sale">
+                <p className="mt-1.5 text-[12px] font-semibold text-shop-sale">
                   You can withdraw up to {formatPrice(overview.payable)} right now.
                 </p>
               ) : tooLittle ? (
-                <p className="mt-1.5 text-[13px] font-semibold text-shop-sale">
+                <p className="mt-1.5 text-[12px] font-semibold text-shop-sale">
                   The smallest payout we send is {formatPrice(overview.minimum)}.
                 </p>
               ) : (
-                <p className="mt-1.5 text-[13px] text-bfl-grey">
+                <p className="mt-1.5 text-[12px] text-bfl-grey">
                   Between {formatPrice(overview.minimum)} and {formatPrice(overview.payable)}.
                   Payouts settle whole orders, so we may send slightly less than you type and leave
                   the rest on your balance.
@@ -223,13 +223,13 @@ export default function PayoutDialog({
           {error && (
             <p
               role="alert"
-              className="mt-4 border-l-2 border-shop-sale bg-[#fdeeeb] px-3 py-2 text-[14px] text-shop-sale"
+              className="mt-4 border-l-2 border-shop-sale bg-[#fdeeeb] px-3 py-2 text-[13px] text-shop-sale"
             >
               {error}
             </p>
           )}
 
-          <p className="mt-5 rounded bg-bfl-surface px-3 py-2.5 text-[13px] text-[#333]">
+          <p className="mt-5 rounded bg-bfl-surface px-3 py-2.5 text-[12px] text-[#333]">
             We process every request within <strong>24 hours</strong>. You will get an email now
             confirming it, and another the moment the money goes out.
           </p>
@@ -239,14 +239,14 @@ export default function PayoutDialog({
               type="button"
               onClick={onClose}
               disabled={sending}
-              className="flex-1 rounded border border-bfl-line px-4 py-3 text-[14px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0] disabled:opacity-50"
+              className="flex-1 rounded border border-bfl-line px-4 py-3 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={invalid || sending}
-              className="flex-[2] rounded border border-black bg-black px-4 py-3 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-[2] rounded border border-black bg-black px-4 py-3 text-[13px] font-semibold text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {sending ? "Sending your request…" : `Request ${formatPrice(value || 0)}`}
             </button>

@@ -37,15 +37,15 @@ export default function OwnerLoginPage() {
 
   return (
     <div className="mx-auto max-w-[420px] py-10">
-      <h1 className="text-[22px] leading-tight text-shop-ink">Shop admin</h1>
-      <p className="mt-2 text-[15px] text-shop-muted">
+      <h1 className="text-[21px] leading-tight text-shop-ink">Shop admin</h1>
+      <p className="mt-2 text-[14px] text-shop-muted">
         Enter the owner passcode to add, edit and remove products. This is not a
         seller account — it reaches every product in the shop.
       </p>
 
       <form onSubmit={submit} className="card-shop mt-6 space-y-4 p-6">
         <label className="block">
-          <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+          <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
             Owner passcode
           </span>
           <input
@@ -54,25 +54,25 @@ export default function OwnerLoginPage() {
             autoFocus
             value={passcode}
             onChange={(event) => setPasscode(event.target.value)}
-            className="field-shop text-[15px]"
+            className="field-shop text-[14px]"
           />
         </label>
 
         {error && (
           <p
             role="alert"
-            className="rounded-lg bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+            className="rounded-lg bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
           >
             {error}
           </p>
         )}
 
-        <button type="submit" disabled={busy} className="btn-shop w-full py-3 text-[15px]">
+        <button type="submit" disabled={busy} className="btn-shop w-full py-3 text-[14px]">
           {busy ? "Checking…" : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-4 text-[13px] text-shop-muted">
+      <p className="mt-4 text-[12px] text-shop-muted">
         The passcode is the <code>KANDI_OWNER_PASSCODE</code> value set in your
         WordPress <code>wp-config.php</code>.
       </p>

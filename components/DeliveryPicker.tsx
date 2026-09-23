@@ -231,7 +231,7 @@ export default function DeliveryPicker({
           permission again for an address we already hold. */}
       {saved.length > 0 && (
         <div className="mb-4">
-          <p className="mb-2 text-[13px] font-medium text-shop-body">Deliver to a saved address</p>
+          <p className="mb-2 text-[12px] font-medium text-shop-body">Deliver to a saved address</p>
           <ul className="flex flex-wrap gap-2">
             {saved.map((entry) => {
               const active = activeSaved === entry.id;
@@ -248,7 +248,7 @@ export default function DeliveryPicker({
                       type="button"
                       onClick={() => applySaved(entry)}
                       disabled={busy}
-                      className="text-left text-[13px] text-shop-ink disabled:opacity-60"
+                      className="text-left text-[12px] text-shop-ink disabled:opacity-60"
                     >
                       <span className="font-medium">{entry.label || entry.city}</span>
                       {entry.street && (
@@ -264,7 +264,7 @@ export default function DeliveryPicker({
                         removeAddress(entry.id);
                         if (active) setActiveSaved(null);
                       }}
-                      className="flex h-5 w-5 items-center justify-center rounded-full text-[15px] leading-none text-shop-muted hover:bg-white hover:text-shop-sale"
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-[14px] leading-none text-shop-muted hover:bg-white hover:text-shop-sale"
                     >
                       ×
                     </button>
@@ -281,7 +281,7 @@ export default function DeliveryPicker({
           type="button"
           onClick={useMyLocation}
           disabled={busy}
-          className="btn-shop px-4 py-2.5 text-[14px] disabled:opacity-60"
+          className="btn-shop px-4 py-2.5 text-[13px] disabled:opacity-60"
         >
           <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" />
@@ -290,7 +290,7 @@ export default function DeliveryPicker({
           {busy ? "Locating…" : "Use my location"}
         </button>
 
-        <span className="text-[13px] text-shop-muted">or</span>
+        <span className="text-[12px] text-shop-muted">or</span>
 
         <div className="relative flex min-w-[220px] flex-1 gap-2">
           <input
@@ -335,13 +335,13 @@ export default function DeliveryPicker({
             aria-controls="delivery-suggestions"
             aria-expanded={openList && places.length > 0}
             autoComplete="off"
-            className="field-shop text-[14px]"
+            className="field-shop text-[13px]"
           />
           <button
             type="button"
             onClick={() => address.trim() && quote({ address })}
             disabled={busy || !address.trim()}
-            className="btn-shop-outline shrink-0 px-4 py-2 text-[14px] disabled:opacity-50"
+            className="btn-shop-outline shrink-0 px-4 py-2 text-[13px] disabled:opacity-50"
           >
             Check
           </button>
@@ -365,7 +365,7 @@ export default function DeliveryPicker({
                   <button
                     type="button"
                     onClick={() => choose(place)}
-                    className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left text-[14px] text-shop-ink transition-colors hover:bg-shop-surface"
+                    className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-shop-ink transition-colors hover:bg-shop-surface"
                   >
                     <svg
                       aria-hidden
@@ -388,7 +388,7 @@ export default function DeliveryPicker({
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[13px] font-medium text-shop-sale">
+        <p role="alert" className="mt-3 text-[12px] font-medium text-shop-sale">
           {error}
         </p>
       )}
@@ -396,7 +396,7 @@ export default function DeliveryPicker({
       {value && !error && (
         <div
           role="status"
-          className={`mt-3 rounded-lg px-3 py-2.5 text-[14px] ${
+          className={`mt-3 rounded-lg px-3 py-2.5 text-[13px] ${
             value.deliverable ? "bg-shop-primary-soft" : "bg-pop-red-soft"
           }`}
         >
@@ -419,7 +419,7 @@ export default function DeliveryPicker({
                 // Said out loud because fields filling themselves is startling,
                 // and because a reverse-geocoded street is a good guess rather
                 // than a fact — the shopper is the one who knows their gate.
-                <p className="mt-1.5 text-[13px] text-shop-body">
+                <p className="mt-1.5 text-[12px] text-shop-body">
                   We&apos;ve filled in your address below — please check it.
                 </p>
               )}
@@ -431,7 +431,7 @@ export default function DeliveryPicker({
       )}
 
       {!value && !error && (
-        <p className="mt-3 text-[13px] text-shop-muted">
+        <p className="mt-3 text-[12px] text-shop-muted">
           We work out delivery from how far you are — share your location or type
           your area to see the exact cost before you pay.
         </p>

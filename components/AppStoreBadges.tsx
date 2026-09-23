@@ -61,7 +61,7 @@ function Badge({
       <span className="shrink-0">{icon}</span>
       <span className="flex flex-col leading-none">
         <span className="text-[10px] uppercase tracking-wide opacity-75">{eyebrow}</span>
-        <span className="mt-0.5 text-[15px] font-semibold">{name}</span>
+        <span className="mt-0.5 text-[14px] font-semibold">{name}</span>
       </span>
     </>
   );
@@ -77,7 +77,7 @@ function Badge({
         <span className="opacity-45 grayscale">{icon}</span>
         <span className="flex flex-col leading-none">
           <span className="text-[10px] uppercase tracking-wide">{eyebrow}</span>
-          <span className="mt-0.5 text-[15px] font-semibold">{name}</span>
+          <span className="mt-0.5 text-[14px] font-semibold">{name}</span>
         </span>
         <span className="ml-1 rounded-full bg-shop-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-shop-primary">
           Soon

@@ -1212,7 +1212,7 @@ export default function ProductCard({
               place there is height to spare. 18 on 14 is 1.29, the same ratio
               the phone runs at, so a name now reads the same way at every
               width. */}
-          <h3 className="product-name line-clamp-2 min-h-[34px] text-[13px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[14px] sm:leading-[18px]">
+          <h3 className="product-name line-clamp-2 min-h-[34px] text-[12px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
             {chip && (
               <span
                 className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}

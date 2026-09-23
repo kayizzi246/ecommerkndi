@@ -217,8 +217,8 @@ export default function SellerCommissionsPage() {
 
   return (
     <div className="mx-auto max-w-[1200px]">
-      <h1 className="text-[26px] font-extrabold text-black">Commissions &amp; payouts</h1>
-      <p className="mt-1 text-[14px] text-bfl-grey">
+      <h1 className="text-[25px] font-extrabold text-black">Commissions &amp; payouts</h1>
+      <p className="mt-1 text-[13px] text-bfl-grey">
         Kandi deducts {seller?.commission_rate ?? 0}% of each completed order. Everything else is
         yours.
       </p>
@@ -230,7 +230,7 @@ export default function SellerCommissionsPage() {
           type="button"
           onClick={exportCsv}
           disabled={!summary || summary.entries.length === 0}
-          className="rounded border border-bfl-line bg-white px-3 py-1.5 text-[13px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0] disabled:opacity-40"
+          className="rounded border border-bfl-line bg-white px-3 py-1.5 text-[12px] font-semibold text-[#333] transition-colors hover:border-[#b0b0b0] disabled:opacity-40"
         >
           Download CSV
         </button>
@@ -239,19 +239,19 @@ export default function SellerCommissionsPage() {
       {error && (
         <p
           role="alert"
-          className="mb-4 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink"
+          className="mb-4 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[13px] text-shop-ink"
         >
           {error}
         </p>
       )}
       {notice && (
-        <p className="mb-4 border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[14px] text-[#0a7a2f]">
+        <p className="mb-4 border-l-2 border-bfl-green bg-[#e7f7ea] px-3 py-2 text-[13px] text-[#0a7a2f]">
           {notice}
         </p>
       )}
 
       {!summary ? (
-        <p className="py-16 text-center text-[14px] text-bfl-grey">Loading your statement…</p>
+        <p className="py-16 text-center text-[13px] text-bfl-grey">Loading your statement…</p>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -281,7 +281,7 @@ export default function SellerCommissionsPage() {
           {openPayout ? (
             <div className="mt-5 rounded border border-[#f0d9a5] bg-[#fffdf6] p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 className="text-[16px] font-extrabold text-black">
+                <h2 className="text-[15px] font-extrabold text-black">
                   Payout of {formatPrice(openPayout.amount)} is being processed
                 </h2>
                 <span className="rounded bg-[#fff6dd] px-2 py-1 text-[12px] font-semibold text-[#8a6100]">
@@ -289,7 +289,7 @@ export default function SellerCommissionsPage() {
                 </span>
               </div>
 
-              <p className="mt-2 text-[14px] text-[#333]">
+              <p className="mt-2 text-[13px] text-[#333]">
                 Requested {longDate(openPayout.requested_at)} · sending to{" "}
                 <strong>{payoutDestination(openPayout)}</strong>.
               </p>
@@ -297,7 +297,7 @@ export default function SellerCommissionsPage() {
               {/* A progress bar with no percentage behind it would be theatre.
                   What a seller needs here is the promise in words and the
                   knowledge that a receipt is already in their inbox. */}
-              <p className="mt-3 text-[14px] text-bfl-grey">
+              <p className="mt-3 text-[13px] text-bfl-grey">
                 We settle every request within <strong className="text-[#333]">24 hours</strong>. A
                 confirmation is already in your email, and we will write again the moment the money
                 goes out. You can request the next payout once this one is sent.
@@ -306,8 +306,8 @@ export default function SellerCommissionsPage() {
           ) : (
             <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded border border-bfl-line bg-white p-5">
               <div>
-                <h2 className="text-[16px] font-extrabold text-black">Request a payout</h2>
-                <p className="mt-1 text-[14px] text-bfl-grey">
+                <h2 className="text-[15px] font-extrabold text-black">Request a payout</h2>
+                <p className="mt-1 text-[13px] text-bfl-grey">
                   {(payouts?.payable ?? summary.payable) > 0
                     ? `${formatPrice(payouts?.payable ?? summary.payable)} is cleared and ready to send to ${
                         payouts?.account || seller?.payout_account || "your registered account"
@@ -323,7 +323,7 @@ export default function SellerCommissionsPage() {
                   dialogSupported === null ||
                   (payouts ? payouts.payable : summary.payable) <= 0
                 }
-                className="btn-bfl px-6 py-2.5 text-[14px] disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-bfl px-6 py-2.5 text-[13px] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {requesting ? "Requesting…" : "Request payout"}
               </button>
@@ -333,11 +333,11 @@ export default function SellerCommissionsPage() {
           {/* ---- Payout history ---- */}
           {payouts && payouts.payouts.length > 0 && (
             <div className="mt-5 overflow-x-auto rounded border border-bfl-line bg-white">
-              <table className="w-full min-w-[600px] text-[14px]">
-                <caption className="border-b border-bfl-line px-4 py-3 text-left text-[15px] font-extrabold text-black">
+              <table className="w-full min-w-[600px] text-[13px]">
+                <caption className="border-b border-bfl-line px-4 py-3 text-left text-[14px] font-extrabold text-black">
                   Your payouts
                 </caption>
-                <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[13px] text-bfl-grey">
+                <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[12px] text-bfl-grey">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Requested</th>
                     <th className="px-4 py-3 text-right font-semibold">Amount</th>
@@ -363,7 +363,7 @@ export default function SellerCommissionsPage() {
                           <>
                             {payout.account}
                             {payout.method && (
-                              <span className="block text-[13px] text-bfl-grey">
+                              <span className="block text-[12px] text-bfl-grey">
                                 {payout.method}
                               </span>
                             )}
@@ -391,8 +391,8 @@ export default function SellerCommissionsPage() {
 
           {/* Ledger */}
           <div className="mt-5 overflow-x-auto rounded border border-bfl-line bg-white">
-            <table className="w-full min-w-[720px] text-[14px]">
-              <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[13px] text-bfl-grey">
+            <table className="w-full min-w-[720px] text-[13px]">
+              <thead className="border-b border-bfl-line bg-bfl-surface text-left text-[12px] text-bfl-grey">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Order</th>
@@ -407,8 +407,8 @@ export default function SellerCommissionsPage() {
                 {summary.entries.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-14 text-center">
-                      <p className="text-[15px] font-semibold text-black">No commission entries yet</p>
-                      <p className="mt-1 text-[14px] text-bfl-grey">
+                      <p className="text-[14px] font-semibold text-black">No commission entries yet</p>
+                      <p className="mt-1 text-[13px] text-bfl-grey">
                         Each completed order adds a line here.
                       </p>
                     </td>

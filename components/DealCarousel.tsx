@@ -311,7 +311,7 @@ export default function DealCarousel({
                   <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
                 </svg>
               </span>
-              <span className="text-[13px] font-bold leading-tight text-shop-ink">
+              <span className="text-[12px] font-bold leading-tight text-shop-ink">
                 {viewAll.label}
               </span>
             </Link>

@@ -31,7 +31,7 @@ export default function ProductFeedFooter({
   return (
     <div ref={sentinel} className="mt-10 flex justify-center">
       {loading && (
-        <p className="text-[14px] text-shop-muted" role="status">
+        <p className="text-[13px] text-shop-muted" role="status">
           Loading more…
         </p>
       )}
@@ -40,7 +40,7 @@ export default function ProductFeedFooter({
         <button
           type="button"
           onClick={loadMore}
-          className="rounded-lg border border-shop-line px-6 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+          className="rounded-lg border border-shop-line px-6 py-2.5 text-[13px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
         >
           Could not load more — try again
         </button>
@@ -50,13 +50,13 @@ export default function ProductFeedFooter({
         <button
           type="button"
           onClick={loadMore}
-          className="rounded-lg border border-shop-line px-8 py-2.5 text-[14px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+          className="rounded-lg border border-shop-line px-8 py-2.5 text-[13px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
         >
           Load more
         </button>
       )}
 
-      {done && <p className="text-[13px] text-shop-muted">{doneLabel}</p>}
+      {done && <p className="text-[12px] text-shop-muted">{doneLabel}</p>}
     </div>
   );
 }

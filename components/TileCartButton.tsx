@@ -38,7 +38,7 @@ export default function TileCartButton({
   //   icon  — a bare disc, where there is no room for a label
   const base =
     variant === "bar"
-      ? "flex w-full items-center justify-center gap-2 py-2.5 text-[13px] font-bold transition-colors"
+      ? "flex w-full items-center justify-center gap-2 py-2.5 text-[12px] font-bold transition-colors"
       : variant === "pill"
         ? "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-bold uppercase tracking-wide transition-colors"
         // An outlined square beside the price. Quiet at rest so it does not

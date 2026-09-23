@@ -103,7 +103,7 @@ export default async function SearchPage({
           </div>
 
           <details className="group rounded-lg border border-shop-line bg-white md:hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[14px] font-semibold text-shop-ink">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-semibold text-shop-ink">
               Filters
               <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
@@ -118,10 +118,10 @@ export default async function SearchPage({
         <div className="min-w-0 flex-1">
           <div className="phone-gutter mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
-              <h1 className="section-title text-[20px] text-shop-ink md:text-[24px]">
+              <h1 className="section-title text-[19px] text-shop-ink md:text-[23px]">
                 {query ? `“${query}”` : "Search"}
               </h1>
-              <p className="section-sub mt-1 text-[14px]">
+              <p className="section-sub mt-1 text-[13px]">
                 {filtered
                   ? `${visible.length} of ${products.length} shown`
                   : `${total} ${total === 1 ? "item" : "items"} found`}
@@ -132,21 +132,21 @@ export default async function SearchPage({
 
           {visible.length === 0 ? (
             <div className="phone-gutter"><div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
-              <p className="text-[18px] font-semibold text-shop-ink">
+              <p className="text-[17px] font-semibold text-shop-ink">
                 {filtered
                   ? "No products match these filters"
                   : query
                     ? `No matches for “${query}”`
                     : "What are you looking for?"}
               </p>
-              <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
+              <p className="mx-auto mt-2 max-w-md text-[13px] text-shop-muted">
                 {filtered
                   ? "Try widening the price range or clearing a filter."
                   : query
                     ? "Check the spelling, or try a shorter, more general term."
                     : "Use the search bar above to find items or brands."}
               </p>
-              <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[14px]">
+              <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[13px]">
                 Continue shopping
               </Link>
             </div></div>

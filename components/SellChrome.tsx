@@ -64,7 +64,7 @@ function Wordmark({ settings }: { settings: SiteSettings }) {
   }
 
   return (
-    <span className="text-[26px] font-bold tracking-[-0.02em] text-shop-ink md:text-[28px]">
+    <span className="text-[25px] font-bold tracking-[-0.02em] text-shop-ink md:text-[27px]">
       {settings.brand.name}
       <span className="text-shop-primary">.</span>
     </span>
@@ -99,7 +99,7 @@ export function SellHeader({ settings }: { settings: SiteSettings }) {
             <a
               key={section.href}
               href={section.href}
-              className="text-[14px] font-medium text-shop-body transition-colors hover:text-shop-ink"
+              className="text-[13px] font-medium text-shop-body transition-colors hover:text-shop-ink"
             >
               {section.label}
             </a>
@@ -112,13 +112,13 @@ export function SellHeader({ settings }: { settings: SiteSettings }) {
               reader must not be offered two equal-weight buttons. */}
           <Link
             href="/seller/login"
-            className="hidden rounded-full px-4 py-2 text-[14px] font-medium text-shop-body transition-colors hover:text-shop-ink sm:inline-flex"
+            className="hidden rounded-full px-4 py-2 text-[13px] font-medium text-shop-body transition-colors hover:text-shop-ink sm:inline-flex"
           >
             Sign in
           </Link>
           <Link
             href="/seller/register"
-            className="inline-flex items-center rounded-full bg-shop-ink px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center rounded-full bg-shop-ink px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
           >
             Start selling
           </Link>
@@ -146,7 +146,7 @@ function LinkColumn({
           <li key={link.href + link.label}>
             <Link
               href={link.href}
-              className="text-[14px] text-shop-body transition-colors hover:text-shop-ink"
+              className="text-[13px] text-shop-body transition-colors hover:text-shop-ink"
             >
               {link.label}
             </Link>
@@ -172,11 +172,11 @@ export function SellFooter({ settings }: { settings: SiteSettings }) {
             <Link href="/" className="inline-flex items-center gap-2.5">
               <Wordmark settings={settings} />
             </Link>
-            <p className="mt-4 max-w-[34ch] text-[14px] leading-relaxed text-shop-body">
+            <p className="mt-4 max-w-[34ch] text-[13px] leading-relaxed text-shop-body">
               The storefront, the payments and the delivery — run for you, so you can get on
               with stocking and selling.
             </p>
-            <div className="mt-5 space-y-1 text-[14px] text-shop-body">
+            <div className="mt-5 space-y-1 text-[13px] text-shop-body">
               {settings.support.email && (
                 <p>
                   <a
@@ -238,25 +238,25 @@ export function SellFooter({ settings }: { settings: SiteSettings }) {
              checks to confirm the company is real, which is why it is plain
              text rather than another set of buttons. */}
         <div className="mt-12 flex flex-col gap-3 border-t border-shop-hairline pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[13px] text-shop-muted">
+          <p className="text-[12px] text-shop-muted">
             © {year} {settings.brand.name} {settings.brand.suffix}. Kampala, Uganda.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link
               href="/terms"
-              className="text-[13px] text-shop-muted transition-colors hover:text-shop-ink"
+              className="text-[12px] text-shop-muted transition-colors hover:text-shop-ink"
             >
               Terms
             </Link>
             <Link
               href="/privacy"
-              className="text-[13px] text-shop-muted transition-colors hover:text-shop-ink"
+              className="text-[12px] text-shop-muted transition-colors hover:text-shop-ink"
             >
               Privacy
             </Link>
             <Link
               href="/seller-policies"
-              className="text-[13px] text-shop-muted transition-colors hover:text-shop-ink"
+              className="text-[12px] text-shop-muted transition-colors hover:text-shop-ink"
             >
               Seller terms
             </Link>

@@ -135,7 +135,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
 
   if (loading || !seller) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white text-[15px] text-shop-muted">
+      <div className="flex min-h-screen items-center justify-center bg-white text-[14px] text-shop-muted">
         Loading your Seller Centre…
       </div>
     );
@@ -150,7 +150,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
   // the seller is about to be moved away from.
   if (setupDue) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white text-[15px] text-shop-muted">
+      <div className="flex min-h-screen items-center justify-center bg-white text-[14px] text-shop-muted">
         Taking you to your setup…
       </div>
     );
@@ -185,7 +185,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
               <path strokeLinecap="round" d="M9.5 8V6a2.5 2.5 0 0 1 5 0v2" />
             </svg>
           </span>
-          <span className="hidden text-[17px] font-semibold text-shop-ink sm:block">
+          <span className="hidden text-[16px] font-semibold text-shop-ink sm:block">
             Seller Centre
           </span>
         </Link>
@@ -193,12 +193,12 @@ export default function SellerShell({ children }: { children: React.ReactNode })
         <div className="ml-auto flex items-center gap-3 md:gap-4">
           <Link
             href={storeHref(seller.store_slug)}
-            className="hidden text-[14px] font-semibold text-shop-body hover:text-shop-primary md:block"
+            className="hidden text-[13px] font-semibold text-shop-body hover:text-shop-primary md:block"
           >
             View my store
           </Link>
           <div className="hidden text-right lg:block">
-            <p className="text-[14px] font-semibold leading-tight text-shop-ink">
+            <p className="text-[13px] font-semibold leading-tight text-shop-ink">
               {seller.store_name}
             </p>
             <p className="text-[12px] leading-tight text-shop-muted">{seller.email}</p>
@@ -206,7 +206,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
           <button
             type="button"
             onClick={signOut}
-            className="rounded-lg border border-shop-line px-3.5 py-2 text-[14px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+            className="rounded-lg border border-shop-line px-3.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
           >
             Sign out
           </button>
@@ -225,11 +225,11 @@ export default function SellerShell({ children }: { children: React.ReactNode })
               Store status
             </p>
             <span
-              className={`mt-1.5 inline-block rounded-full px-2.5 py-1 text-[13px] font-semibold ${status.className}`}
+              className={`mt-1.5 inline-block rounded-full px-2.5 py-1 text-[12px] font-semibold ${status.className}`}
             >
               {status.label}
             </span>
-            <p className="mt-2.5 text-[13px] text-shop-muted">
+            <p className="mt-2.5 text-[12px] text-shop-muted">
               Commission{" "}
               <span className="font-semibold text-shop-ink">{seller.commission_rate}%</span>
             </p>
@@ -246,7 +246,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
                   href={item.href}
                   onClick={() => setDrawerOpen(false)}
                   aria-current={active ? "page" : undefined}
-                  className={`mb-1 flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold transition-colors ${
+                  className={`mb-1 flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[14px] font-semibold transition-colors ${
                     active
                       ? "bg-shop-primary-soft text-shop-primary"
                       : "text-shop-body hover:bg-shop-hairline hover:text-shop-ink"
@@ -272,28 +272,28 @@ export default function SellerShell({ children }: { children: React.ReactNode })
               The panel now says what is actually happening instead. */}
           {storeApproved ? (
             <div className="m-2 rounded-xl bg-shop-hairline p-4">
-              <p className="text-[14px] font-semibold text-shop-ink">Add a product</p>
-              <p className="mt-1 text-[13px] leading-5 text-shop-muted">
+              <p className="text-[13px] font-semibold text-shop-ink">Add a product</p>
+              <p className="mt-1 text-[12px] leading-5 text-shop-muted">
                 Listings go live once our team approves them.
               </p>
               <Link
                 href="/seller/products/new"
                 onClick={() => setDrawerOpen(false)}
-                className="btn-shop mt-3 w-full py-2.5 text-[14px]"
+                className="btn-shop mt-3 w-full py-2.5 text-[13px]"
               >
                 New listing
               </Link>
             </div>
           ) : (
             <div className="m-2 rounded-xl bg-pop-orange-soft p-4">
-              <p className="text-[14px] font-semibold text-pop-orange">Store under review</p>
-              <p className="mt-1 text-[13px] leading-5 text-shop-body">
+              <p className="text-[13px] font-semibold text-pop-orange">Store under review</p>
+              <p className="mt-1 text-[12px] leading-5 text-shop-body">
                 Listings, orders and earnings open up as soon as your store is approved.
               </p>
               <Link
                 href="/seller/guide"
                 onClick={() => setDrawerOpen(false)}
-                className="mt-3 block text-[13px] font-semibold text-shop-primary hover:underline"
+                className="mt-3 block text-[12px] font-semibold text-shop-primary hover:underline"
               >
                 How selling works ›
               </Link>
@@ -327,10 +327,10 @@ export default function SellerShell({ children }: { children: React.ReactNode })
             <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft p-5">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[16px] font-semibold text-pop-orange">
+                  <p className="text-[15px] font-semibold text-pop-orange">
                     Confirm your email address
                   </p>
-                  <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
+                  <p className="mt-1 text-[13px] leading-relaxed text-shop-body">
                     We sent a six-digit code to{" "}
                     <span className="font-semibold text-shop-ink">{seller.email}</span>. Everything
                     here works without it — but we cannot pay you out until the address is
@@ -340,7 +340,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
                 <button
                   type="button"
                   onClick={() => setEnteringCode((open) => !open)}
-                  className="shrink-0 rounded-lg bg-shop-primary px-5 py-2.5 text-[14px] font-semibold text-white hover:opacity-90"
+                  className="shrink-0 rounded-lg bg-shop-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:opacity-90"
                 >
                   {enteringCode ? "Not now" : "Enter the code"}
                 </button>
@@ -367,10 +367,10 @@ export default function SellerShell({ children }: { children: React.ReactNode })
           {feeDue && (
             <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-5">
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-semibold text-shop-primary">
+                <p className="text-[15px] font-semibold text-shop-primary">
                   Your monthly seller fee is unpaid
                 </p>
-                <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
+                <p className="mt-1 text-[13px] leading-relaxed text-shop-body">
                   Your store cannot be approved until it clears. Quote reference{" "}
                   <span className="font-mono font-semibold text-shop-ink">
                     {seller.fee_reference}
@@ -380,7 +380,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
               </div>
               <Link
                 href="/seller/settings"
-                className="shrink-0 rounded-lg bg-shop-primary px-5 py-2.5 text-[14px] font-semibold text-white hover:opacity-90"
+                className="shrink-0 rounded-lg bg-shop-primary px-5 py-2.5 text-[13px] font-semibold text-white hover:opacity-90"
               >
                 Payment details
               </Link>

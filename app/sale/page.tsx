@@ -140,7 +140,7 @@ export default async function SalePage({
       />
 
       {/* Breadcrumbs */}
-      <nav className="phone-gutter mb-4 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="phone-gutter mb-4 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
@@ -192,10 +192,10 @@ export default async function SalePage({
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
               Super Price Store
             </p>
-            <h1 className="heading-black mt-1 text-[26px] leading-[1.08] text-white md:text-[34px]">
+            <h1 className="heading-black mt-1 text-[25px] leading-[1.08] text-white md:text-[33px]">
               {deepest > 0 ? `Up to ${deepest}% off` : "Every reduced price"}
             </h1>
-            <p className="mt-1.5 max-w-[54ch] text-[14px] leading-relaxed text-white/85">
+            <p className="mt-1.5 max-w-[54ch] text-[13px] leading-relaxed text-white/85">
               {total > 0
                 ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day — what is here today may not be tomorrow.`
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
@@ -213,7 +213,7 @@ export default async function SalePage({
 
       {/* Result bar */}
       <div className="phone-gutter mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
-        <p className="text-[14px] text-shop-muted">
+        <p className="text-[13px] text-shop-muted">
           Showing <span className="font-semibold text-shop-ink">{sorted.length}</span> of {total}{" "}
           {total === 1 ? "deal" : "deals"}
         </p>
@@ -257,7 +257,7 @@ function Figure({ label, value }: { label: string; value: ReactNode }) {
       <p className="text-[11px] font-bold uppercase tracking-wide text-shop-muted">
         {label}
       </p>
-      <p className="price mt-0.5 text-[19px] leading-none text-shop-ink">{value}</p>
+      <p className="price mt-0.5 text-[18px] leading-none text-shop-ink">{value}</p>
     </div>
   );
 }
@@ -265,13 +265,13 @@ function Figure({ label, value }: { label: string; value: ReactNode }) {
 function EmptyState({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="phone-gutter"><div className="rounded-2xl border border-dashed border-shop-line bg-white px-6 py-20 text-center">
-      <p className="text-[19px] font-extrabold text-shop-ink">{title}</p>
-      <p className="mx-auto mt-2 max-w-[44ch] text-[15px] leading-relaxed text-shop-muted">{copy}</p>
+      <p className="text-[18px] font-extrabold text-shop-ink">{title}</p>
+      <p className="mx-auto mt-2 max-w-[44ch] text-[14px] leading-relaxed text-shop-muted">{copy}</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link href="/search?sort=newest" className="btn-shop px-7 py-2.5 text-[15px]">
+        <Link href="/search?sort=newest" className="btn-shop px-7 py-2.5 text-[14px]">
           See what is new
         </Link>
-        <Link href="/" className="btn-shop-outline px-7 py-2.5 text-[15px]">
+        <Link href="/" className="btn-shop-outline px-7 py-2.5 text-[14px]">
           Back to the shop
         </Link>
       </div>

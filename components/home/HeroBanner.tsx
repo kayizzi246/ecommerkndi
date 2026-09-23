@@ -159,11 +159,11 @@ export default function HeroBanner({ settings }: { settings: SiteSettings }) {
           {/* `max-w-[16ch]` is what keeps a long headline breaking into two or
               three big lines rather than one thin one running the width of a
               desktop — display type is read in a block, not across a page. */}
-          <h2 className="hero-display mt-3 max-w-[16ch] text-[32px] leading-[1.05] text-white md:mt-4 md:text-[52px] lg:text-[58px]">
+          <h2 className="hero-display mt-3 max-w-[16ch] text-[31px] leading-[1.05] text-white md:mt-4 md:text-[51px] lg:text-[57px]">
             {headline}
           </h2>
 
-          <p className="mt-3 max-w-[42ch] text-[13px] leading-relaxed text-white/85 md:mt-4 md:text-[15px]">
+          <p className="mt-3 max-w-[42ch] text-[12px] leading-relaxed text-white/85 md:mt-4 md:text-[14px]">
             Free delivery over{" "}
             <span className="font-semibold text-white">
               {formatPrice(settings.commerce.free_delivery_from)}
@@ -175,7 +175,7 @@ export default function HeroBanner({ settings }: { settings: SiteSettings }) {
           <div className="mt-5 flex flex-wrap items-center gap-2.5 md:mt-7 md:gap-3">
             <Link
               href={cta_url || "/sale"}
-              className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[14px] font-bold text-shop-primary-ink transition-colors hover:bg-shop-primary-soft md:px-8 md:py-3.5 md:text-[15px]"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-[13px] font-bold text-shop-primary-ink transition-colors hover:bg-shop-primary-soft md:px-8 md:py-3.5 md:text-[14px]"
             >
               {cta_label}
               <svg
@@ -191,7 +191,7 @@ export default function HeroBanner({ settings }: { settings: SiteSettings }) {
             </Link>
             <Link
               href="/categories"
-              className="inline-flex items-center rounded-lg px-6 py-3 text-[14px] font-bold text-white ring-1 ring-white/50 transition-colors hover:bg-white/10 md:px-8 md:py-3.5 md:text-[15px]"
+              className="inline-flex items-center rounded-lg px-6 py-3 text-[13px] font-bold text-white ring-1 ring-white/50 transition-colors hover:bg-white/10 md:px-8 md:py-3.5 md:text-[14px]"
             >
               Browse categories
             </Link>

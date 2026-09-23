@@ -121,12 +121,12 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
         className="step-in relative flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl"
       >
         <header className="flex items-center justify-between gap-4 border-b border-shop-line px-5 py-4">
-          <h2 className="text-[18px] font-extrabold text-shop-ink">Edit listing</h2>
+          <h2 className="text-[17px] font-extrabold text-shop-ink">Edit listing</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[22px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[21px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
           >
             ×
           </button>
@@ -134,7 +134,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
           <div>
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Photos</span>
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Photos</span>
             <ImageUploader
               initialUrls={originalPhotos}
               onChange={setPhotos}
@@ -144,39 +144,39 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Product name</span>
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Product name</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">SKU</span>
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">SKU</span>
             <input
               value={sku}
               onChange={(event) => setSku(event.target.value)}
               placeholder="Your own reference code"
-              className="field-shop text-[15px]"
+              className="field-shop text-[14px]"
             />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Price (UGX)</span>
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Price (UGX)</span>
               <input
                 type="number"
                 min={0}
                 step={500}
                 value={regular}
                 onChange={(event) => setRegular(event.target.value)}
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">
+              <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">
                 Sale price
                 <span className="ml-1 font-normal text-shop-muted">(optional)</span>
               </span>
@@ -187,26 +187,26 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
                 value={sale}
                 onChange={(event) => setSale(event.target.value)}
                 placeholder="Leave empty"
-                className="field-shop text-[15px]"
+                className="field-shop text-[14px]"
               />
             </label>
           </div>
 
           {discount > 0 && (
-            <p className="rounded-xl bg-pop-green-soft px-4 py-3 text-[14px] font-semibold text-pop-green">
+            <p className="rounded-xl bg-pop-green-soft px-4 py-3 text-[13px] font-semibold text-pop-green">
               Shoppers see {formatPrice(saleNumber ?? 0)} — a {discount}% saving on{" "}
               {formatPrice(regularNumber)}.
             </p>
           )}
 
           <div>
-            <span className="mb-1.5 block text-[14px] font-semibold text-shop-ink">Stock</span>
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Stock</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setStock(String(Math.max(0, (Number(stock) || 0) - 1)))}
                 aria-label="Decrease stock"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-shop-line text-[20px] text-shop-body hover:border-shop-primary hover:text-shop-primary"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-shop-line text-[19px] text-shop-body hover:border-shop-primary hover:text-shop-primary"
               >
                 −
               </button>
@@ -215,13 +215,13 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
                 min={0}
                 value={stock}
                 onChange={(event) => setStock(event.target.value)}
-                className="field-shop text-center text-[16px] font-semibold"
+                className="field-shop text-center text-[15px] font-semibold"
               />
               <button
                 type="button"
                 onClick={() => setStock(String((Number(stock) || 0) + 1))}
                 aria-label="Increase stock"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-shop-line text-[20px] text-shop-body hover:border-shop-primary hover:text-shop-primary"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-shop-line text-[19px] text-shop-body hover:border-shop-primary hover:text-shop-primary"
               >
                 +
               </button>
@@ -232,13 +232,13 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
                   key={amount}
                   type="button"
                   onClick={() => setStock(String((Number(stock) || 0) + amount))}
-                  className="rounded-full border border-shop-line px-3 py-1.5 text-[13px] font-semibold text-shop-body hover:border-shop-primary hover:text-shop-primary"
+                  className="rounded-full border border-shop-line px-3 py-1.5 text-[12px] font-semibold text-shop-body hover:border-shop-primary hover:text-shop-primary"
                 >
                   +{amount}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[13px] text-shop-muted">
+            <p className="mt-2 text-[12px] text-shop-muted">
               {Number(stock) > 0
                 ? "This listing is buyable."
                 : "At zero the listing shows as sold out and nobody can order it."}
@@ -248,7 +248,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
           {error && (
             <p
               role="alert"
-              className="rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+              className="rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
             >
               {error}
             </p>
@@ -259,7 +259,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="btn-shop-outline flex-1 py-3 text-[15px]"
+            className="btn-shop-outline flex-1 py-3 text-[14px]"
           >
             Cancel
           </button>
@@ -267,7 +267,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
             type="button"
             onClick={save}
             disabled={busy || uploading}
-            className="btn-shop flex-1 py-3 text-[15px]"
+            className="btn-shop flex-1 py-3 text-[14px]"
           >
             {busy ? "Saving…" : uploading ? "Uploading photos…" : "Save changes"}
           </button>

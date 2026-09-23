@@ -68,8 +68,8 @@ export default async function HelpPage() {
             href={topic.href}
             className="rounded-2xl border border-shop-line bg-white p-5 transition-colors hover:border-shop-primary"
           >
-            <p className={`text-[17px] font-semibold ${topic.tone}`}>{topic.title}</p>
-            <p className="mt-1 text-[14px] text-shop-muted">{topic.copy}</p>
+            <p className={`text-[16px] font-semibold ${topic.tone}`}>{topic.title}</p>
+            <p className="mt-1 text-[13px] text-shop-muted">{topic.copy}</p>
           </Link>
         ))}
       </div>
@@ -78,13 +78,13 @@ export default async function HelpPage() {
         <div className="divide-y divide-shop-hairline">
           {faqs.map((faq) => (
             <details key={faq.q} className="group py-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[16px] font-semibold text-shop-ink">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-semibold text-shop-ink">
                 {faq.q}
                 <span className="shrink-0 text-shop-muted transition-transform group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="mt-2 text-[15px] leading-relaxed text-shop-body">{faq.a}</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-shop-body">{faq.a}</p>
             </details>
           ))}
         </div>

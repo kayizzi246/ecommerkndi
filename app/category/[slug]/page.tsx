@@ -268,7 +268,7 @@ export default async function CategoryPage({
 
           {/* Mobile: filters collapse into a disclosure. */}
           <details className="group rounded-lg border border-shop-line bg-white md:hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[14px] font-semibold text-shop-ink">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-semibold text-shop-ink">
               Filters
               <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
@@ -304,11 +304,11 @@ export default async function CategoryPage({
                   country shouted at them, and Google reads the text either way.
                   `capitalize` stays on the name only, so "shoes" title-cases
                   and " in Uganda" is not turned into " In Uganda". */}
-              <h1 className="section-title text-[18px] text-shop-ink md:text-[22px]">
+              <h1 className="section-title text-[17px] text-shop-ink md:text-[21px]">
                 <span className="capitalize">{title}</span>
                 <span className="font-normal text-shop-muted"> in Uganda</span>
               </h1>
-              <p className="section-sub mt-0.5 text-[13px]">
+              <p className="section-sub mt-0.5 text-[12px]">
                 {filtered
                   ? `${visible.length} of ${products.length} shown`
                   : `${total} ${total === 1 ? "item" : "items"}`}
@@ -319,17 +319,17 @@ export default async function CategoryPage({
 
           {visible.length === 0 ? (
             <div className="phone-gutter"><div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
-              <p className="text-[18px] font-semibold text-shop-ink">
+              <p className="text-[17px] font-semibold text-shop-ink">
                 {filtered || products.length > 0
                   ? "No products match these filters"
                   : "Nothing in this department yet"}
               </p>
-              <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
+              <p className="mx-auto mt-2 max-w-md text-[13px] text-shop-muted">
                 {filtered || products.length > 0
                   ? "Try widening the price range or clearing a filter."
                   : "New stock lands every week — try another department in the meantime."}
               </p>
-              <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[14px]">
+              <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[13px]">
                 Continue shopping
               </Link>
             </div></div>

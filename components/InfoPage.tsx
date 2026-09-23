@@ -20,7 +20,7 @@ export default function InfoPage({
 }) {
   return (
     <main className="mx-auto max-w-[900px] px-4 pb-24 pt-6 md:px-8 lg:pb-16">
-      <nav className="mb-6 flex items-center gap-2 text-[13px] text-shop-muted">
+      <nav className="mb-6 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-primary">
           Home
         </Link>
@@ -30,23 +30,23 @@ export default function InfoPage({
 
       <header className="border-b border-shop-line pb-6">
         {eyebrow && (
-          <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
+          <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
             {eyebrow}
           </p>
         )}
-        {/* The desktop step used to be `md:text-[19px]` — *smaller* than the
+        {/* The desktop step used to be `md:text-[18px]` — *smaller* than the
             21px it renders at on a phone. A page title that shrinks as the
             screen grows is backwards, and it left every policy and help page
             with a heading barely distinguishable from the body copy under it on
             the screens where there was most room for one. It now steps up. */}
-        <h1 className="heading-800 text-[24px] text-shop-ink md:text-[30px]">
+        <h1 className="heading-800 text-[23px] text-shop-ink md:text-[29px]">
           {title}
         </h1>
         {intro && (
           // The lede. 500 rather than 400: this is the paragraph that has to be
           // read for the page to have worked, and at the body weight it was
           // indistinguishable from the sections below it.
-          <p className="mt-3 max-w-[65ch] text-[17px] font-medium leading-relaxed text-shop-body">
+          <p className="mt-3 max-w-[65ch] text-[16px] font-medium leading-relaxed text-shop-body">
             {intro}
           </p>
         )}
@@ -72,8 +72,8 @@ export function InfoSection({
     // `scroll-mt` clears the sticky masthead — without it an anchored section
     // lands underneath the header and reads as the wrong section entirely.
     <section id={id} className={id ? "scroll-mt-32" : undefined}>
-      <h2 className="text-[20px] font-extrabold text-shop-ink">{title}</h2>
-      <div className="mt-2.5 max-w-[70ch] space-y-3 text-[16px] leading-relaxed text-shop-body [&_a]:font-semibold [&_a]:text-shop-primary [&_a:hover]:underline [&_li]:my-1 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
+      <h2 className="text-[19px] font-extrabold text-shop-ink">{title}</h2>
+      <div className="mt-2.5 max-w-[70ch] space-y-3 text-[15px] leading-relaxed text-shop-body [&_a]:font-semibold [&_a]:text-shop-primary [&_a:hover]:underline [&_li]:my-1 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
         {children}
       </div>
     </section>
@@ -92,8 +92,8 @@ export function InfoFooterCta({
 }) {
   return (
     <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-shop-line bg-white p-6">
-      <p className="text-[16px] font-semibold text-shop-ink">{text}</p>
-      <Link href={href} className="btn-shop px-7 py-3 text-[15px]">
+      <p className="text-[15px] font-semibold text-shop-ink">{text}</p>
+      <Link href={href} className="btn-shop px-7 py-3 text-[14px]">
         {label}
       </Link>
     </div>

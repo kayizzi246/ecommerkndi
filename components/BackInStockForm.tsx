@@ -70,7 +70,7 @@ export default function BackInStockForm({
 
   if (state === "done") {
     return (
-      <p className="mt-3 flex items-start gap-2 border-t border-shop-line pt-3 text-[13px] leading-snug text-shop-success">
+      <p className="mt-3 flex items-start gap-2 border-t border-shop-line pt-3 text-[12px] leading-snug text-shop-success">
         <svg
           aria-hidden
           className="mt-[3px] h-3.5 w-3.5 shrink-0"
@@ -93,7 +93,7 @@ export default function BackInStockForm({
     <form onSubmit={submit} className="mt-3 border-t border-shop-line pt-3">
       <label
         htmlFor={`back-in-stock-${productId}`}
-        className="text-[13px] font-semibold text-shop-ink"
+        className="text-[12px] font-semibold text-shop-ink"
       >
         Email me when it&apos;s back
       </label>
@@ -112,7 +112,7 @@ export default function BackInStockForm({
         <button
           type="submit"
           disabled={state === "sending"}
-          className="btn-shop shrink-0 px-5 text-[14px] disabled:opacity-60"
+          className="btn-shop shrink-0 px-5 text-[13px] disabled:opacity-60"
         >
           {state === "sending" ? "Saving…" : "Notify me"}
         </button>

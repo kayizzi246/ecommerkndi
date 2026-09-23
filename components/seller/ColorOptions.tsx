@@ -144,14 +144,14 @@ export default function ColorOptions({
             onChange={(event) => patch(row.key, { name: event.target.value })}
             placeholder="Colour name, e.g. Black"
             aria-label="Colour name"
-            className="h-11 min-w-0 flex-1 rounded-lg border border-shop-line px-3 text-[15px] text-shop-ink focus:border-shop-primary focus:outline-none"
+            className="h-11 min-w-0 flex-1 rounded-lg border border-shop-line px-3 text-[14px] text-shop-ink focus:border-shop-primary focus:outline-none"
           />
 
           {row.image && (
             <button
               type="button"
               onClick={() => patch(row.key, { image: null })}
-              className="shrink-0 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:text-shop-ink"
+              className="shrink-0 rounded-lg px-2.5 py-2 text-[12px] font-semibold text-shop-body transition-colors hover:text-shop-ink"
             >
               Remove photo
             </button>
@@ -171,7 +171,7 @@ export default function ColorOptions({
       ))}
 
       {error && (
-        <p role="alert" className="text-[13px] font-medium text-shop-ink">
+        <p role="alert" className="text-[12px] font-medium text-shop-ink">
           {error}
         </p>
       )}
@@ -179,7 +179,7 @@ export default function ColorOptions({
       <button
         type="button"
         onClick={() => update([...rows, emptyColorRow()])}
-        className="rounded-lg border border-shop-line px-3.5 py-2 text-[13px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
+        className="rounded-lg border border-shop-line px-3.5 py-2 text-[12px] font-semibold text-shop-body transition-colors hover:border-shop-primary hover:text-shop-primary"
       >
         + Add a colour
       </button>

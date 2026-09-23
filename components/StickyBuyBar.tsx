@@ -125,17 +125,17 @@ export default function StickyBuyBar({
             buttons the room they need to be tappable. */}
         <div className="hidden min-w-0 flex-1 sm:block">
           <p className="line-clamp-1 text-[12px] text-shop-title">{product.name}</p>
-          <p className="price text-[17px] leading-none text-shop-flame">
+          <p className="price text-[16px] leading-none text-shop-flame">
             {formatPrice(product.price)}
           </p>
         </div>
 
-        <p className="price shrink-0 text-[17px] leading-none text-shop-flame sm:hidden">
+        <p className="price shrink-0 text-[16px] leading-none text-shop-flame sm:hidden">
           {formatPrice(product.price)}
         </p>
 
         {soldOut ? (
-          <button disabled className="btn-shop flex-1 py-3 text-[14px] sm:flex-none sm:px-6">
+          <button disabled className="btn-shop flex-1 py-3 text-[13px] sm:flex-none sm:px-6">
             Sold out
           </button>
         ) : (
@@ -143,7 +143,7 @@ export default function StickyBuyBar({
             <button
               type="button"
               onClick={() => act("cart")}
-              className="btn-shop-outline flex-1 whitespace-nowrap px-4 py-3 text-[14px] sm:flex-none sm:px-6"
+              className="btn-shop-outline flex-1 whitespace-nowrap px-4 py-3 text-[13px] sm:flex-none sm:px-6"
             >
               Add to cart
             </button>
@@ -153,7 +153,7 @@ export default function StickyBuyBar({
             <button
               type="button"
               onClick={() => act("buy")}
-              className="btn-shop flex-1 whitespace-nowrap px-4 py-3 text-[14px] sm:flex-none sm:px-6"
+              className="btn-shop flex-1 whitespace-nowrap px-4 py-3 text-[13px] sm:flex-none sm:px-6"
             >
               Buy now
             </button>

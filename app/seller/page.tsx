@@ -118,10 +118,10 @@ export default function SellerOverviewPage() {
       {/* Page head */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight text-shop-ink">
+          <h1 className="text-[27px] font-extrabold leading-tight text-shop-ink">
             {seller ? `Hello, ${seller.owner_name.split(" ")[0] || seller.store_name}` : "Overview"}
           </h1>
-          <p className="mt-1 text-[15px] text-shop-muted">
+          <p className="mt-1 text-[14px] text-shop-muted">
             How {seller?.store_name ?? "your store"} is doing on Kandi.
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function SellerOverviewPage() {
             product from an unapproved seller, so before that this button leads
             to a form that ends in an error. */}
         {approvedStore && (
-          <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[15px]">
+          <Link href="/seller/products/new" className="btn-shop px-6 py-3 text-[14px]">
             Add a product
           </Link>
         )}
@@ -143,7 +143,7 @@ export default function SellerOverviewPage() {
       )}
 
       {seller?.status === "pending" && (
-        <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft px-5 py-4 text-[15px] leading-relaxed text-pop-orange">
+        <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft px-5 py-4 text-[14px] leading-relaxed text-pop-orange">
           <span className="font-semibold">Your store is awaiting approval.</span> You can prepare
           listings now — they go live the moment our team approves your account.
         </div>
@@ -155,7 +155,7 @@ export default function SellerOverviewPage() {
            list of things that genuinely need the seller. */}
       {approvedStore && jobs.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-3 text-[18px] font-extrabold text-shop-ink">What needs you</h2>
+          <h2 className="mb-3 text-[17px] font-extrabold text-shop-ink">What needs you</h2>
           <ul className="grid gap-3 md:grid-cols-2">
             {jobs.map((job) => (
               <li key={job.title}>
@@ -171,7 +171,7 @@ export default function SellerOverviewPage() {
                 >
                   <span
                     aria-hidden
-                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-white ${
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white ${
                       job.tone === "critical"
                         ? "bg-pop-red"
                         : job.tone === "warning"
@@ -182,11 +182,11 @@ export default function SellerOverviewPage() {
                     {job.tone === "critical" ? "!" : job.tone === "warning" ? "•" : "✓"}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[16px] font-semibold text-shop-ink">{job.title}</span>
-                    <span className="mt-1 block text-[14px] leading-relaxed text-shop-muted">
+                    <span className="block text-[15px] font-semibold text-shop-ink">{job.title}</span>
+                    <span className="mt-1 block text-[13px] leading-relaxed text-shop-muted">
                       {job.copy}
                     </span>
-                    <span className="mt-2 inline-block text-[14px] font-semibold text-shop-primary">
+                    <span className="mt-2 inline-block text-[13px] font-semibold text-shop-primary">
                       {job.action} ›
                     </span>
                   </span>
@@ -244,16 +244,16 @@ export default function SellerOverviewPage() {
            checklist above is the useful thing on the page until then. */}
       {!approvedStore ? (
         <section className="rounded-2xl border border-dashed border-shop-line bg-white p-8 text-center">
-          <h2 className="text-[18px] font-extrabold text-shop-ink">
+          <h2 className="text-[17px] font-extrabold text-shop-ink">
             Your sales figures appear here
           </h2>
-          <p className="mx-auto mt-1.5 max-w-[46ch] text-[15px] leading-relaxed text-shop-muted">
+          <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] leading-relaxed text-shop-muted">
             Revenue, best sellers and the split by category — all of it unlocks the moment your
             store is approved and starts taking orders.
           </p>
           <Link
             href="/seller/guide"
-            className="btn-shop-outline mt-5 inline-flex px-6 py-2.5 text-[15px]"
+            className="btn-shop-outline mt-5 inline-flex px-6 py-2.5 text-[14px]"
           >
             Read how selling works
           </Link>
@@ -261,7 +261,7 @@ export default function SellerOverviewPage() {
       ) : (
         <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[18px] font-extrabold text-shop-ink">Your numbers</h2>
+        <h2 className="text-[17px] font-extrabold text-shop-ink">Your numbers</h2>
         <RangeFilter
           value={range}
           onChange={(next) => {
@@ -274,7 +274,7 @@ export default function SellerOverviewPage() {
       {error && (
         <p
           role="alert"
-          className="mb-5 rounded-xl bg-pop-red-soft px-4 py-3 text-[15px] font-medium text-pop-red"
+          className="mb-5 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
         >
           {error}
         </p>
@@ -354,7 +354,7 @@ export default function SellerOverviewPage() {
 
           {/* Catalogue health */}
           <div className="mt-5 rounded-2xl border border-shop-line bg-white p-5">
-            <h2 className="text-[17px] font-extrabold text-shop-ink">Catalogue health</h2>
+            <h2 className="text-[16px] font-extrabold text-shop-ink">Catalogue health</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <HealthRow
                 label="Live listings"
@@ -410,8 +410,8 @@ function QuickAction({
         </svg>
       </span>
       <span className="min-w-0">
-        <span className="block text-[15px] font-semibold text-shop-ink">{label}</span>
-        <span className="block text-[13px] text-shop-muted">{copy}</span>
+        <span className="block text-[14px] font-semibold text-shop-ink">{label}</span>
+        <span className="block text-[12px] text-shop-muted">{copy}</span>
       </span>
     </Link>
   );
@@ -442,18 +442,18 @@ function HealthRow({
         {/* Status ships as icon + label, never colour alone. */}
         <span
           aria-hidden
-          className={`flex h-7 w-7 items-center justify-center rounded-full text-[15px] font-semibold text-white ${icon.className}`}
+          className={`flex h-7 w-7 items-center justify-center rounded-full text-[14px] font-semibold text-white ${icon.className}`}
         >
           {icon.symbol}
         </span>
         <div>
-          <p className="text-[21px] font-semibold leading-none text-shop-ink">{value}</p>
-          <p className="mt-1 text-[13px] text-shop-muted">{label}</p>
+          <p className="text-[20px] font-semibold leading-none text-shop-ink">{value}</p>
+          <p className="mt-1 text-[12px] text-shop-muted">{label}</p>
         </div>
       </div>
       <Link
         href={action.href}
-        className="shrink-0 text-[14px] font-semibold text-shop-primary hover:underline"
+        className="shrink-0 text-[13px] font-semibold text-shop-primary hover:underline"
       >
         {action.label}
       </Link>

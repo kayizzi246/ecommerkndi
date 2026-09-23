@@ -87,8 +87,8 @@ function Shell({
 
   return (
     <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
-      <h1 className={`section-title text-[22px] ${colour}`}>{title}</h1>
-      <div className="max-w-md text-[14px] text-shop-body">{children}</div>
+      <h1 className={`section-title text-[21px] ${colour}`}>{title}</h1>
+      <div className="max-w-md text-[13px] text-shop-body">{children}</div>
     </main>
   );
 }

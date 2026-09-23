@@ -30,8 +30,8 @@ export default function TopProductsChart({
   if (products.length === 0) {
     return (
       <div className="viz-root rounded border border-bfl-line bg-white p-4">
-        <h2 className="text-[16px] font-extrabold text-[color:var(--text-primary)]">Best sellers</h2>
-        <p className="mt-6 text-center text-[14px] text-[color:var(--text-muted)]">
+        <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Best sellers</h2>
+        <p className="mt-6 text-center text-[13px] text-[color:var(--text-muted)]">
           No products have sold in this period yet.
         </p>
       </div>
@@ -42,8 +42,8 @@ export default function TopProductsChart({
 
   return (
     <div className="viz-root rounded border border-bfl-line bg-white p-4">
-      <h2 className="text-[16px] font-extrabold text-[color:var(--text-primary)]">Best sellers</h2>
-      <p className="text-[13px] text-[color:var(--text-secondary)]">By revenue in the selected period.</p>
+      <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Best sellers</h2>
+      <p className="text-[12px] text-[color:var(--text-secondary)]">By revenue in the selected period.</p>
 
       <ul className="mt-4 space-y-3">
         {products.map((product) => {
@@ -59,9 +59,9 @@ export default function TopProductsChart({
               className="group relative rounded outline-none focus-visible:ring-2 focus-visible:ring-bfl-yellow"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <p className="truncate text-[14px] text-[color:var(--text-primary)]">{product.name}</p>
+                <p className="truncate text-[13px] text-[color:var(--text-primary)]">{product.name}</p>
                 <p
-                  className="shrink-0 text-[14px] font-semibold text-[color:var(--text-primary)]"
+                  className="shrink-0 text-[13px] font-semibold text-[color:var(--text-primary)]"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 >
                   {formatValue(product.revenue)}
@@ -82,10 +82,10 @@ export default function TopProductsChart({
 
               {hovered === product.id && (
                 <div className="pointer-events-none absolute -top-1 right-0 z-10 -translate-y-full rounded border border-bfl-line bg-white px-3 py-2 shadow-md">
-                  <p className="text-[16px] font-semibold text-[color:var(--text-primary)]">
+                  <p className="text-[15px] font-semibold text-[color:var(--text-primary)]">
                     {formatValue(product.revenue)}
                   </p>
-                  <p className="text-[13px] text-[color:var(--text-secondary)]">
+                  <p className="text-[12px] text-[color:var(--text-secondary)]">
                     {product.units} {product.units === 1 ? "unit" : "units"} sold
                   </p>
                   {/* Views, and what share of them bought — the pair is the
@@ -94,7 +94,7 @@ export default function TopProductsChart({
                       need opposite fixes: the first is a title or a category,
                       the second is a price or a photograph. */}
                   {product.views !== undefined && product.views > 0 && (
-                    <p className="text-[13px] text-[color:var(--text-muted)]">
+                    <p className="text-[12px] text-[color:var(--text-muted)]">
                       {product.views.toLocaleString("en-UG")} views ·{" "}
                       {((product.units / product.views) * 100).toFixed(1)}% bought
                     </p>

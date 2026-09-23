@@ -48,13 +48,13 @@ export default function AccountOrders() {
 
   return (
     <div>
-      <h1 className="text-[21px] font-extrabold leading-tight text-shop-ink">My orders</h1>
-      <p className="mt-1 text-[15px] text-shop-muted">
+      <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">My orders</h1>
+      <p className="mt-1 text-[14px] text-shop-muted">
         Every order placed with this account, wherever you placed it.
       </p>
 
       {error && (
-        <p role="alert" className="mt-6 rounded-xl bg-pop-red-soft p-4 text-[15px] text-pop-red">
+        <p role="alert" className="mt-6 rounded-xl bg-pop-red-soft p-4 text-[14px] text-pop-red">
           {error}
         </p>
       )}
@@ -67,8 +67,8 @@ export default function AccountOrders() {
         </div>
       ) : orders.length === 0 && !error ? (
         <div className="mt-6 rounded-2xl border border-dashed border-shop-line bg-white p-10 text-center">
-          <p className="text-[16px] text-shop-muted">No orders yet.</p>
-          <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[15px]">
+          <p className="text-[15px] text-shop-muted">No orders yet.</p>
+          <Link href="/" className="btn-shop mt-5 inline-flex px-8 py-3 text-[14px]">
             Start shopping
           </Link>
         </div>
@@ -83,7 +83,7 @@ export default function AccountOrders() {
               <header className="flex items-start justify-between gap-3 border-b border-shop-hairline px-4 py-3.5 sm:px-5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                    <span className="text-[16px] font-semibold text-shop-ink">#{order.number}</span>
+                    <span className="text-[15px] font-semibold text-shop-ink">#{order.number}</span>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                         ORDER_STATUS_TONE[order.status] ?? "bg-shop-hairline text-shop-body"
@@ -92,11 +92,11 @@ export default function AccountOrders() {
                       {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </span>
                   </div>
-                  <span className="mt-0.5 block text-[13px] text-shop-muted">
+                  <span className="mt-0.5 block text-[12px] text-shop-muted">
                     {formatOrderDate(order.date)}
                   </span>
                 </div>
-                <span className="shrink-0 whitespace-nowrap text-[17px] font-semibold text-shop-ink">
+                <span className="shrink-0 whitespace-nowrap text-[16px] font-semibold text-shop-ink">
                   {formatPrice(order.total)}
                 </span>
               </header>
@@ -114,17 +114,17 @@ export default function AccountOrders() {
                     </Link>
 
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-[15px] font-medium text-shop-ink">
+                      <p className="line-clamp-2 text-[14px] font-medium text-shop-ink">
                         {item.name}
                       </p>
-                      <p className="mt-1 text-[14px] text-shop-muted">
+                      <p className="mt-1 text-[13px] text-shop-muted">
                         Qty {item.quantity} · {formatPrice(item.total)}
                       </p>
 
                       {item.product_id > 0 && (
                         <Link
                           href={`/products/${item.product_id}#reviews`}
-                          className="mt-2 inline-block text-[14px] font-semibold text-shop-primary hover:underline"
+                          className="mt-2 inline-block text-[13px] font-semibold text-shop-primary hover:underline"
                         >
                           {item.reviewed ? "Edit your review" : "Write a review"}
                         </Link>

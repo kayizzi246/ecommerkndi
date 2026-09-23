@@ -126,7 +126,7 @@ export default function StoreChrome({
           <div className="mx-auto flex max-w-[var(--shell)] items-center gap-4 px-4 py-4 md:px-8">
             <Link
               href="/cart"
-              className="flex items-center gap-1.5 text-[14px] text-shop-body transition-colors hover:text-shop-ink"
+              className="flex items-center gap-1.5 text-[13px] text-shop-body transition-colors hover:text-shop-ink"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -138,7 +138,7 @@ export default function StoreChrome({
                 would have kept the old name on the one page where a shopper is
                 about to hand over money — which is the worst possible place for
                 the storefront to look like a different business. */}
-            <Link href="/" className="ml-auto text-[18px] font-semibold text-shop-ink">
+            <Link href="/" className="ml-auto text-[17px] font-semibold text-shop-ink">
               {settings.brand.name}{" "}
               <span className="font-normal">{settings.brand.suffix}</span>
             </Link>

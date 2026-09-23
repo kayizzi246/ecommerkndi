@@ -33,8 +33,8 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
   if (!customer) {
     return (
       <div className="rounded-xl border border-shop-line bg-white p-6 text-center">
-        <p className="text-[17px] font-semibold text-shop-ink">Bought this? Tell other shoppers</p>
-        <p className="mx-auto mt-1.5 max-w-md text-[14px] text-shop-muted">
+        <p className="text-[16px] font-semibold text-shop-ink">Bought this? Tell other shoppers</p>
+        <p className="mx-auto mt-1.5 max-w-md text-[13px] text-shop-muted">
           Sign in to rate this product. Your review is saved to your Kandi account and shown
           with your name.
         </p>
@@ -42,7 +42,7 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
           <SignInPanel onSuccess={refresh} />
         </div>
         {error && (
-          <p role="alert" className="mt-3 text-[13px] text-shop-sale">
+          <p role="alert" className="mt-3 text-[12px] text-shop-sale">
             {error}
           </p>
         )}
@@ -93,10 +93,10 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-shop-line bg-white p-6">
-      <p className="text-[17px] font-semibold text-shop-ink">
+      <p className="text-[16px] font-semibold text-shop-ink">
         {existing ? "Update your review" : "Write a review"}
       </p>
-      <p className="mt-1 text-[14px] text-shop-muted">
+      <p className="mt-1 text-[13px] text-shop-muted">
         Posting as {customer.name}. Reviews are saved to your account and can be edited later.
       </p>
 
@@ -123,7 +123,7 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
             </svg>
           </button>
         ))}
-        <span className="ml-2 text-[14px] text-shop-muted">
+        <span className="ml-2 text-[13px] text-shop-muted">
           {rating > 0 ? `${rating} of 5` : "Tap to rate"}
         </span>
       </div>
@@ -134,21 +134,21 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
         rows={4}
         maxLength={1500}
         placeholder="How is the fit, the quality, the delivery?"
-        className="field-shop mt-4 resize-y text-[15px]"
+        className="field-shop mt-4 resize-y text-[14px]"
       />
 
       {error && (
-        <p role="alert" className="mt-3 text-[14px] font-medium text-shop-sale">
+        <p role="alert" className="mt-3 text-[13px] font-medium text-shop-sale">
           {error}
         </p>
       )}
       {saved && !error && (
-        <p role="status" className="mt-3 text-[14px] font-medium text-shop-success">
+        <p role="status" className="mt-3 text-[13px] font-medium text-shop-success">
           Thanks — your review is live.
         </p>
       )}
 
-      <button type="submit" disabled={busy} className="btn-shop mt-4 px-8 py-3 text-[15px]">
+      <button type="submit" disabled={busy} className="btn-shop mt-4 px-8 py-3 text-[14px]">
         {busy ? "Saving…" : existing ? "Update review" : "Post review"}
       </button>
     </form>

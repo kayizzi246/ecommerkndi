@@ -140,7 +140,7 @@ export default function PesapalModal({
       <div className="flex h-[92vh] w-full max-w-[520px] flex-col overflow-hidden rounded-xl bg-white">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-shop-line px-5 py-3.5">
           <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold text-shop-ink">{title}</p>
+            <p className="truncate text-[14px] font-semibold text-shop-ink">{title}</p>
             <p className="text-[12px] text-shop-muted">Secured by Pesapal</p>
           </div>
           {/* Closing is always allowed WHILE PAYING. If the money has already
@@ -157,7 +157,7 @@ export default function PesapalModal({
               type="button"
               onClick={onClose}
               aria-label="Close payment window"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[22px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[21px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
             >
               ×
             </button>
@@ -166,7 +166,7 @@ export default function PesapalModal({
 
         <div className="relative min-h-0 flex-1">
           {!loaded && (
-            <p className="absolute inset-0 flex items-center justify-center text-[14px] text-shop-muted">
+            <p className="absolute inset-0 flex items-center justify-center text-[13px] text-shop-muted">
               Loading payment options…
             </p>
           )}
@@ -199,10 +199,10 @@ export default function PesapalModal({
                     className="h-12 w-12 animate-spin rounded-full border-[3px] border-shop-line border-t-shop-primary motion-reduce:animate-none"
                   />
                   <div>
-                    <p className="text-[17px] font-semibold text-shop-ink">
+                    <p className="text-[16px] font-semibold text-shop-ink">
                       Payment received
                     </p>
-                    <p className="mt-1 text-[14px] text-shop-body">
+                    <p className="mt-1 text-[13px] text-shop-body">
                       Completing your order…
                     </p>
                   </div>
@@ -229,8 +229,8 @@ export default function PesapalModal({
                     </svg>
                   </span>
                   <div>
-                    <p className="text-[18px] font-bold text-shop-ink">Order complete</p>
-                    <p className="mt-1 text-[14px] text-shop-body">
+                    <p className="text-[17px] font-bold text-shop-ink">Order complete</p>
+                    <p className="mt-1 text-[13px] text-shop-body">
                       Thank you — we are getting it ready.
                     </p>
                   </div>

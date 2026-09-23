@@ -91,7 +91,7 @@ export default function PortalAccount({
         </span>
 
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-bold text-shop-ink">
+          <p className="truncate text-[13px] font-bold text-shop-ink">
             {customer ? `${greeting}, ${customer.name.split(" ")[0]}` : greeting}
           </p>
           {/* Wraps to two lines rather than truncating. The column is 235px and
@@ -110,7 +110,7 @@ export default function PortalAccount({
       {customer ? (
         <Link
           href="/account"
-          className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13px]"
+          className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[12px]"
         >
           My account
         </Link>
@@ -118,7 +118,7 @@ export default function PortalAccount({
         <>
           <Link
             href="/account"
-            className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[13px]"
+            className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[12px]"
           >
             Sign in
           </Link>

@@ -41,7 +41,7 @@ export default function RatingSummary({
       className={`flex items-center gap-5 rounded-xl border border-shop-line bg-white p-3.5 transition-colors hover:border-shop-primary ${className}`}
     >
       <div className="shrink-0 text-center">
-        <p className="price text-[30px] leading-none text-shop-ink">{average.toFixed(1)}</p>
+        <p className="price text-[29px] leading-none text-shop-ink">{average.toFixed(1)}</p>
         <div className="mt-1.5 flex justify-center">
           <StarRating rating={average} size="sm" showCount={false} />
         </div>

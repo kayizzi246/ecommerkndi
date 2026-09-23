@@ -99,10 +99,10 @@ export default function CategoryShelves({
           second style for them here would make one shop look like two. */}
       <div className="phone-gutter flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 id={`dept-${slug}-title`} className="heading-black text-[22px] text-shop-ink md:text-[26px]">
+          <h2 id={`dept-${slug}-title`} className="heading-black text-[21px] text-shop-ink md:text-[25px]">
             {name}
           </h2>
-          <p className="section-sub mt-1 truncate text-[13px]">
+          <p className="section-sub mt-1 truncate text-[12px]">
             {shown.length} {shown.length === 1 ? "product" : "products"}
             {activeName
               ? ` in ${activeName}`
@@ -213,7 +213,7 @@ function Tab({
       aria-selected={active}
       aria-controls={panelId}
       onClick={onSelect}
-      className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+      className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
         active
           ? "border-shop-primary bg-shop-primary text-white"
           : "border-shop-line bg-white text-shop-body hover:border-shop-primary hover:text-shop-primary"

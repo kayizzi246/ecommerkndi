@@ -156,7 +156,7 @@ export default function VariantSheet({
             )}
           </div>
           <div className="min-w-0">
-            <p className="price text-[19px] leading-none text-shop-flame">
+            <p className="price text-[18px] leading-none text-shop-flame">
               {formatPrice(product.price)}
             </p>
             <p className="mt-1 line-clamp-2 text-[12px] text-shop-title">{product.name}</p>
@@ -166,7 +166,7 @@ export default function VariantSheet({
         <div className="space-y-5 px-4">
           {attributes.map((attr) => (
             <div key={attr.name}>
-              <p className="mb-2.5 text-[14px] text-shop-muted">
+              <p className="mb-2.5 text-[13px] text-shop-muted">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
                   {selected[attr.name] ?? `Choose a ${attr.name.toLowerCase()}`}
@@ -187,7 +187,7 @@ export default function VariantSheet({
                         setSelected((prev) => ({ ...prev, [attr.name]: option.name }));
                         setError(null);
                       }}
-                      className={`min-w-11 rounded-xl border px-3.5 py-2.5 text-[14px] font-semibold transition-colors ${
+                      className={`min-w-11 rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
                         isSelected
                           ? "border-shop-ink bg-shop-ink text-white"
                           : canBuy
@@ -207,24 +207,24 @@ export default function VariantSheet({
           ))}
 
           <div className="flex items-center justify-between">
-            <span className="text-[14px] text-shop-muted">Quantity</span>
+            <span className="text-[13px] text-shop-muted">Quantity</span>
             <div className="flex items-center gap-1 rounded-xl border border-shop-line">
               <button
                 type="button"
                 aria-label="Fewer"
                 onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                className="px-4 py-2 text-[18px] leading-none text-shop-body"
+                className="px-4 py-2 text-[17px] leading-none text-shop-body"
               >
                 −
               </button>
-              <span className="min-w-8 text-center text-[15px] font-semibold text-shop-ink">
+              <span className="min-w-8 text-center text-[14px] font-semibold text-shop-ink">
                 {quantity}
               </span>
               <button
                 type="button"
                 aria-label="More"
                 onClick={() => setQuantity((value) => value + 1)}
-                className="px-4 py-2 text-[18px] leading-none text-shop-body"
+                className="px-4 py-2 text-[17px] leading-none text-shop-body"
               >
                 +
               </button>
@@ -232,14 +232,14 @@ export default function VariantSheet({
           </div>
 
           {error && (
-            <p role="alert" className="text-[14px] font-semibold text-shop-sale">
+            <p role="alert" className="text-[13px] font-semibold text-shop-sale">
               {error}
             </p>
           )}
         </div>
 
         <div className="sticky bottom-0 mt-5 border-t border-shop-line bg-white px-4 py-3">
-          <button type="button" onClick={confirm} className="btn-shop w-full py-3.5 text-[15px]">
+          <button type="button" onClick={confirm} className="btn-shop w-full py-3.5 text-[14px]">
             {intent === "buy" ? "Buy now" : "Add to cart"}
           </button>
         </div>

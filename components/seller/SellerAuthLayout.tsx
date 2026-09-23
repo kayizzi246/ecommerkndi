@@ -59,18 +59,18 @@ export default function SellerAuthLayout({
         <div
           aria-hidden
           className="pointer-events-none absolute -left-32 -top-32 h-[520px] w-[520px] rounded-full opacity-[0.22] blur-3xl"
-          style={{ background: "radial-gradient(circle, #f2560a 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #d32f2f 0%, transparent 70%)" }}
         />
         <div
           aria-hidden
           className="pointer-events-none absolute -bottom-40 -right-24 h-[440px] w-[440px] rounded-full opacity-[0.14] blur-3xl"
-          style={{ background: "radial-gradient(circle, #f2560a 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #d32f2f 0%, transparent 70%)" }}
         />
 
         <div className="relative flex h-full flex-col">
           <Link href="/" className="flex items-center gap-2.5">
             <BrandMark />
-            <span className="text-[17px] font-extrabold tracking-tight">
+            <span className="text-[16px] font-extrabold tracking-tight">
               Kandi <span className="font-medium text-white/70">Seller Centre</span>
             </span>
           </Link>
@@ -80,10 +80,10 @@ export default function SellerAuthLayout({
               in whatever is left, so this reads the same on a laptop and on a
               tall monitor. */}
           <div className="mb-auto mt-auto max-w-[440px] py-12">
-            <h2 className="heading-black text-[34px] font-extrabold leading-[1.15] tracking-tight xl:text-[40px]">
+            <h2 className="heading-black text-[33px] font-extrabold leading-[1.15] tracking-tight xl:text-[39px]">
               Your shop, in front of the whole country.
             </h2>
-            <p className="mt-4 text-[15px] leading-relaxed text-white/70">
+            <p className="mt-4 text-[14px] leading-relaxed text-white/70">
               List what you already sell, take orders from anywhere in Uganda,
               and get paid to the number you already use.
             </p>
@@ -104,7 +104,7 @@ export default function SellerAuthLayout({
             </ul>
           </div>
 
-          <p className="relative text-[13px] text-white/45">
+          <p className="relative text-[12px] text-white/45">
             Questions before you start?{" "}
             <Link href="/contact" className="text-white/80 underline underline-offset-4 hover:text-white">
               Talk to the team
@@ -123,7 +123,7 @@ export default function SellerAuthLayout({
               mistake this replaces. */}
           <Link href="/" className="mb-8 flex items-center gap-2.5 lg:hidden">
             <BrandMark dark />
-            <span className="text-[17px] font-extrabold tracking-tight text-shop-ink">
+            <span className="text-[16px] font-extrabold tracking-tight text-shop-ink">
               Kandi <span className="font-medium text-shop-muted">Seller Centre</span>
             </span>
           </Link>
@@ -171,8 +171,8 @@ function Point({ title, body }: { title: string; body: string }) {
         </svg>
       </span>
       <span className="min-w-0">
-        <span className="block text-[15px] font-bold leading-snug">{title}</span>
-        <span className="mt-1 block text-[14px] leading-relaxed text-white/60">{body}</span>
+        <span className="block text-[14px] font-bold leading-snug">{title}</span>
+        <span className="mt-1 block text-[13px] leading-relaxed text-white/60">{body}</span>
       </span>
     </li>
   );

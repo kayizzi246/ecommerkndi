@@ -104,7 +104,7 @@ export default function CategoryPicker({
 
   if (loading) {
     return (
-      <p className="rounded-lg border border-shop-line bg-shop-hairline px-3 py-2.5 text-[14px] text-shop-muted">
+      <p className="rounded-lg border border-shop-line bg-shop-hairline px-3 py-2.5 text-[13px] text-shop-muted">
         Loading departments…
       </p>
     );
@@ -125,7 +125,7 @@ export default function CategoryPicker({
    */
   if (tree.length === 0) {
     return (
-      <p className="rounded-lg border border-shop-line bg-shop-hairline px-3 py-2.5 text-[14px] text-shop-body">
+      <p className="rounded-lg border border-shop-line bg-shop-hairline px-3 py-2.5 text-[13px] text-shop-body">
         No departments to choose from right now — submit the listing and our team
         will file it during approval.
       </p>
@@ -152,7 +152,7 @@ export default function CategoryPicker({
                     onClick={() => choose(branch, depth)}
                     disabled={disabled}
                     aria-pressed={active}
-                    className={`rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
+                    className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors disabled:opacity-50 ${
                       active
                         ? "border-shop-primary bg-shop-primary-soft text-shop-primary"
                         : "border-shop-line bg-white text-shop-body hover:border-shop-primary hover:text-shop-primary"
@@ -169,7 +169,7 @@ export default function CategoryPicker({
 
       {/* The trail. A picker of three chip rows can leave a seller unsure which
           of the three is the answer, so the answer is written out. */}
-      <p className="text-[13px] text-shop-body">
+      <p className="text-[12px] text-shop-body">
         {path.length === 0 ? (
           <span className="text-shop-muted">
             Not filed yet — pick a department so shoppers can browse to it.

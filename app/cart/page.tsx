@@ -59,11 +59,11 @@ export default function CartPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
           </svg>
         </div>
-        <h1 className="mb-3 section-title text-[20px] text-shop-ink">Your cart is empty</h1>
-        <p className="mb-8 text-[15px] text-shop-muted">
+        <h1 className="mb-3 section-title text-[19px] text-shop-ink">Your cart is empty</h1>
+        <p className="mb-8 text-[14px] text-shop-muted">
           Discover this week&apos;s arrivals and find something you love.
         </p>
-        <Link href="/" className="btn-shop px-10 py-3.5 text-[15px]">
+        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
           Continue shopping
         </Link>
       </main>
@@ -90,10 +90,10 @@ export default function CartPage() {
     <main className="pb-28 lg:pb-16">
       <div className="mx-auto max-w-[1200px] px-3 py-5 md:px-8 md:py-7">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 md:mb-5">
-        <h1 className="section-title text-[19px] text-shop-ink md:text-[24px]">Your cart</h1>
+        <h1 className="section-title text-[18px] text-shop-ink md:text-[23px]">Your cart</h1>
         <Link
           href="/"
-          className="text-[13px] text-shop-body underline underline-offset-4 hover:text-shop-ink md:text-[14px]"
+          className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink md:text-[13px]"
         >
           Continue shopping
         </Link>
@@ -107,7 +107,7 @@ export default function CartPage() {
            twelve shelves on the homepage. One class across the shop means the
            cart cannot drift away from the storefront again. */
         <div className="shop-panel mb-4">
-          <p className="text-[13px] text-shop-body md:text-[14px]">
+          <p className="text-[12px] text-shop-body md:text-[13px]">
             {qualifiesFree ? (
               <span className="font-semibold text-shop-success">
                 Nice — your order ships free.
@@ -135,7 +135,7 @@ export default function CartPage() {
         <div>
           {/* Select-all bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-2.5">
-            <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-shop-body md:text-[14px]">
+            <label className="flex cursor-pointer items-center gap-2.5 text-[12px] text-shop-body md:text-[13px]">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -151,7 +151,7 @@ export default function CartPage() {
                 selectedItems.forEach((item) => removeItem(item.key));
                 notify("Selected items removed");
               }}
-              className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale md:text-[14px]"
+              className="text-[12px] text-shop-muted underline underline-offset-4 hover:text-shop-sale md:text-[13px]"
             >
               Remove selected
             </button>
@@ -211,27 +211,27 @@ export default function CartPage() {
                     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                       <Link
                         href={`/products/${item.productId}`}
-                        className="line-clamp-2 text-[13px] font-medium leading-snug text-shop-ink hover:underline sm:line-clamp-none sm:text-[15px]"
+                        className="line-clamp-2 text-[12px] font-medium leading-snug text-shop-ink hover:underline sm:line-clamp-none sm:text-[14px]"
                       >
                         {item.name}
                       </Link>
                       {/* The line total. Bold and a size up on a phone, where
                           it is on its own row and is the only figure the
                           shopper is checking against the summary below. */}
-                      <p className="price whitespace-nowrap text-[15px] text-shop-ink sm:text-[16px]">
+                      <p className="price whitespace-nowrap text-[14px] text-shop-ink sm:text-[15px]">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
 
                     {item.options && Object.keys(item.options).length > 0 && (
-                      <p className="mt-1 text-[12px] text-shop-muted sm:text-[13px]">
+                      <p className="mt-1 text-[12px] text-shop-muted sm:text-[12px]">
                         {Object.entries(item.options)
                           .map(([key, value]) => `${key}: ${value}`)
                           .join(" · ")}
                       </p>
                     )}
 
-                    <p className="mt-0.5 text-[12px] text-shop-muted sm:text-[13px]">
+                    <p className="mt-0.5 text-[12px] text-shop-muted sm:text-[12px]">
                       {formatPrice(item.price)} each
                     </p>
 
@@ -242,18 +242,18 @@ export default function CartPage() {
                           aria-label={`Decrease quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.key, Math.max(1, item.quantity - 1))}
                           disabled={item.quantity <= 1}
-                          className="flex h-8 w-8 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9] sm:h-9 sm:w-9 sm:text-[17px]"
+                          className="flex h-8 w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9] sm:h-9 sm:w-9 sm:text-[16px]"
                         >
                           −
                         </button>
-                        <span className="w-7 text-center text-[13px] font-semibold text-shop-ink sm:text-[14px]">
+                        <span className="w-7 text-center text-[12px] font-semibold text-shop-ink sm:text-[13px]">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           aria-label={`Increase quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                          className="flex h-8 w-8 items-center justify-center text-[16px] text-shop-body hover:text-shop-ink sm:h-9 sm:w-9 sm:text-[17px]"
+                          className="flex h-8 w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink sm:h-9 sm:w-9 sm:text-[16px]"
                         >
                           +
                         </button>
@@ -265,7 +265,7 @@ export default function CartPage() {
                           removeItem(item.key);
                           notify("Item removed");
                         }}
-                        className="text-[13px] text-shop-muted underline underline-offset-4 hover:text-shop-sale sm:text-[14px]"
+                        className="text-[12px] text-shop-muted underline underline-offset-4 hover:text-shop-sale sm:text-[13px]"
                       >
                         Remove
                       </button>
@@ -285,9 +285,9 @@ export default function CartPage() {
             follows the shopper down a long basket so the total and the checkout
             button are never scrolled away from. */}
         <aside className="shop-panel lg:sticky lg:top-32">
-          <h2 className="text-[16px] font-extrabold text-shop-ink md:text-[17px]">Order summary</h2>
+          <h2 className="text-[15px] font-extrabold text-shop-ink md:text-[16px]">Order summary</h2>
 
-          <dl className="mt-3.5 space-y-2.5 text-[13px] md:text-[14px]">
+          <dl className="mt-3.5 space-y-2.5 text-[12px] md:text-[13px]">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-shop-muted">
                 Subtotal · {selectedCount} {selectedCount === 1 ? "item" : "items"}
@@ -322,9 +322,9 @@ export default function CartPage() {
               from the line items above it reads as a different kind of
               number. */}
           <div className="mt-4 flex items-baseline justify-between border-t border-shop-line pt-4">
-            <span className="text-[15px] font-bold text-shop-ink">Total</span>
+            <span className="text-[14px] font-bold text-shop-ink">Total</span>
             <div className="text-right">
-              <span className="price block text-[24px] text-shop-ink md:text-[26px]">
+              <span className="price block text-[23px] text-shop-ink md:text-[25px]">
                 {formatPrice(total)}
               </span>
               <span className="text-[11px] text-shop-muted">Incl. VAT</span>
@@ -340,7 +340,7 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`mt-4 block rounded-[10px] py-3.5 text-center text-[14px] font-bold ${
+            className={`mt-4 block rounded-[10px] py-3.5 text-center text-[13px] font-bold ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop w-full"
@@ -384,7 +384,7 @@ export default function CartPage() {
             <p className="text-[11px] leading-none text-shop-muted">
               {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"}
             </p>
-            <p className="price mt-1 text-[22px] leading-none text-shop-ink">
+            <p className="price mt-1 text-[21px] leading-none text-shop-ink">
               {formatPrice(total)}
             </p>
           </div>
@@ -392,7 +392,7 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`shrink-0 rounded-[10px] px-7 py-3 text-center text-[14px] font-bold ${
+            className={`shrink-0 rounded-[10px] px-7 py-3 text-center text-[13px] font-bold ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop"

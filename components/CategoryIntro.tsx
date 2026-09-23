@@ -142,11 +142,11 @@ export default function CategoryIntro({
     >
       {/* An `<h2>`, never a second `<h1>`. The heading above the grid is the
           page's subject; this is a section of it. */}
-      <h2 id="category-about" className="heading-black text-[16px] text-shop-ink md:text-[18px]">
+      <h2 id="category-about" className="heading-black text-[15px] text-shop-ink md:text-[17px]">
         Buying {lower} in Uganda
       </h2>
 
-      <div className="mt-2.5 max-w-[70ch] space-y-2.5 text-[13px] leading-[1.65] text-shop-body md:text-[14px]">
+      <div className="mt-2.5 max-w-[70ch] space-y-2.5 text-[12px] leading-[1.65] text-shop-body md:text-[13px]">
         <p>
           KandiUg lists{" "}
           <strong className="font-semibold text-shop-ink">
@@ -171,8 +171,8 @@ export default function CategoryIntro({
       <dl className="mt-5 max-w-[70ch] space-y-3">
         {faqs.map((faq) => (
           <div key={faq.q}>
-            <dt className="text-[13px] font-semibold text-shop-ink md:text-[14px]">{faq.q}</dt>
-            <dd className="mt-0.5 text-[13px] leading-[1.65] text-shop-body md:text-[14px]">
+            <dt className="text-[12px] font-semibold text-shop-ink md:text-[13px]">{faq.q}</dt>
+            <dd className="mt-0.5 text-[12px] leading-[1.65] text-shop-body md:text-[13px]">
               {faq.a}
             </dd>
           </div>

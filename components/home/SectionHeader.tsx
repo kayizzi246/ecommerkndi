@@ -118,7 +118,7 @@ export default function SectionHeader({
               quieter as a result. */}
           <h2
             id={id}
-            className={`heading-black text-[20px] md:text-[24px] ${
+            className={`heading-black text-[19px] md:text-[23px] ${
               tone === "dark" ? "text-white" : "text-shop-ink"
             }`}
           >
@@ -140,7 +140,7 @@ export default function SectionHeader({
               rechecked whenever the ground it names changes. */}
           {subtitle && (
             <p
-              className={`section-sub mt-0.5 text-[13px] ${
+              className={`section-sub mt-0.5 text-[12px] ${
                 tone === "dark" ? "!text-white/75" : ""
               }`}
             >
@@ -168,7 +168,7 @@ export default function SectionHeader({
              change: it is 7.4:1 here and it cannot fail on any dark ground the
              shop might pick next. The hover drops to 80% rather than shifting
              hue, since there is no darker white to move to. */
-          className={`flex shrink-0 items-center gap-1 text-[13px] font-semibold transition-colors ${
+          className={`flex shrink-0 items-center gap-1 text-[12px] font-semibold transition-colors ${
             tone === "dark"
               ? "text-white hover:text-white/80"
               : "text-shop-primary hover:text-shop-primary-dark"

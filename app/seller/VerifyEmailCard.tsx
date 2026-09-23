@@ -79,8 +79,8 @@ export default function VerifyEmailCard({
 
   return (
     <div className="border border-bfl-line bg-white p-7">
-      <h1 className="text-[24px] font-extrabold text-black">Check your email</h1>
-      <p className="mt-1.5 text-[14px] text-bfl-grey">
+      <h1 className="text-[23px] font-extrabold text-black">Check your email</h1>
+      <p className="mt-1.5 text-[13px] text-bfl-grey">
         We sent a six-digit code to <strong className="text-black">{email}</strong>. Enter it
         below to confirm the address is yours.
       </p>
@@ -93,7 +93,7 @@ export default function VerifyEmailCard({
         className="mt-6"
       >
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-semibold text-[#333]">
+          <span className="mb-1.5 block text-[12px] font-semibold text-[#333]">
             Verification code
           </span>
           <input
@@ -112,21 +112,21 @@ export default function VerifyEmailCard({
               if (digits.length === 6) verify(digits);
             }}
             placeholder="000000"
-            className="w-full border border-bfl-line px-3 py-3 text-center text-[26px] font-bold tracking-[10px] focus:border-black focus:outline-none disabled:opacity-60"
+            className="w-full border border-bfl-line px-3 py-3 text-center text-[25px] font-bold tracking-[10px] focus:border-black focus:outline-none disabled:opacity-60"
           />
         </label>
 
         {error && (
           <p
             role="alert"
-            className="mt-3 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[14px] text-shop-ink"
+            className="mt-3 border-l-2 border-shop-ink bg-shop-hairline px-3 py-2 text-[13px] text-shop-ink"
           >
             {error}
           </p>
         )}
 
         {notice && !error && (
-          <p className="mt-3 border-l-2 border-pop-green bg-pop-green-soft px-3 py-2 text-[14px] text-pop-green">
+          <p className="mt-3 border-l-2 border-pop-green bg-pop-green-soft px-3 py-2 text-[13px] text-pop-green">
             {notice}
           </p>
         )}
@@ -134,13 +134,13 @@ export default function VerifyEmailCard({
         <button
           type="submit"
           disabled={busy || code.length !== 6}
-          className="btn-bfl mt-4 w-full py-3 text-[15px] disabled:opacity-60"
+          className="btn-bfl mt-4 w-full py-3 text-[14px] disabled:opacity-60"
         >
           {busy ? "Checking…" : "Verify and continue"}
         </button>
       </form>
 
-      <div className="mt-5 border-t border-bfl-line pt-4 text-center text-[14px] text-bfl-grey">
+      <div className="mt-5 border-t border-bfl-line pt-4 text-center text-[13px] text-bfl-grey">
         <p>
           No email yet? Check your spam folder, then{" "}
           <button

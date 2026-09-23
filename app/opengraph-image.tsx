@@ -54,7 +54,7 @@ export default async function Image() {
           justifyContent: "center",
           padding: "80px",
           // The brand gradient, the same two stops the masthead's logo uses.
-          backgroundImage: "linear-gradient(135deg, #f2560a 0%, #d94a00 100%)",
+          backgroundImage: "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)",
           color: "#ffffff",
         }}
       >

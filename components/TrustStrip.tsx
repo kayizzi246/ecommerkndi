@@ -40,7 +40,7 @@ export default function TrustStrip({ className = "" }: { className?: string }) {
     >
       {promises.map((promise) => (
         <div key={promise.title} className="px-3 py-4 text-center">
-          <p className="text-[14px] font-semibold leading-tight text-shop-ink">{promise.title}</p>
+          <p className="text-[13px] font-semibold leading-tight text-shop-ink">{promise.title}</p>
           <p className="mt-1 text-[12px] leading-tight text-shop-muted">{promise.copy}</p>
         </div>
       ))}

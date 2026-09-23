@@ -464,7 +464,7 @@ export default function Header({
                 >
                   <path
                     d="M2 13h6M0 19h5M3 25h5"
-                    stroke="#f2560a"
+                    stroke="#d32f2f"
                     strokeWidth="2.4"
                     strokeLinecap="round"
                     opacity=".55"
@@ -492,12 +492,12 @@ export default function Header({
                        site that should carry a gradient: it is reproduced at
                        every size, in one colour on an invoice, and embroidered
                        on a shirt if the shop ever prints one. */
-                    fill="#f2560a"
+                    fill="#d32f2f"
                   />
                   <path
                     d="M17.5 12V9a4.5 4.5 0 0 1 9 0v3"
                     fill="none"
-                    stroke="#d94a00"
+                    stroke="#b71c1c"
                     strokeWidth="2.2"
                     strokeLinecap="round"
                   />
@@ -526,8 +526,8 @@ export default function Header({
                   logo does. A wordmark that kept its full size would be the
                   tallest thing in a row built to be slim. */}
               <span
-                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[22px] ${
-                  scrolled ? "text-[15px]" : "text-[19px]"
+                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] ${
+                  scrolled ? "text-[14px]" : "text-[18px]"
                 }`}
               >
                 {settings.brand.name}
