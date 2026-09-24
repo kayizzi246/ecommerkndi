@@ -374,7 +374,6 @@ export default async function ProductPage({
         isNew={isNew}
         freeDeliveryFrom={settings.commerce.free_delivery_from}
         returnsDays={settings.commerce.returns_days}
-        whatsapp={settings.support.whatsapp}
         ratingAverage={reviews.average_rating}
         ratingCount={reviews.rating_count}
         ratingBreakdown={ratingBreakdown}
