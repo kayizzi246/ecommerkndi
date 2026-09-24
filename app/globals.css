@@ -470,7 +470,7 @@
   --color-shop-canvas: #ffffff;
   --color-shop-panel: #ffffff;
   --color-shop-edge: #dedede;
-  --color-shop-photo: #f5f5f6; /* neutral, so contained photos blend (see .photo-contain) */
+  --color-shop-photo: #ffffff; /* white, so a photo shot on white has no visible box around it */
 
 
   /* ---- The accent shelves ----
@@ -1664,8 +1664,8 @@ h6,
   font-variant-numeric: tabular-nums;
 }
 
-/* Contained product photography: the whole product shows, centred on a soft
-   neutral ground, instead of being cropped to fill the frame. The padding keeps
+/* Contained product photography: the whole product shows, centred on a white
+   ground, instead of being cropped to fill the frame. The padding keeps
    an edge-to-edge packshot from touching the border, and `multiply` melts a
    photo's own white background into the ground so it never reads as a white
    box pasted on grey. */
