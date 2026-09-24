@@ -288,16 +288,19 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           <button
             type="button"
             onClick={add}
-            className="flex-1 rounded-full border border-shop-ink bg-white px-6 py-3.5 text-[14px] font-bold text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
+            className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-shop-ink bg-white px-6 text-[15px] font-bold text-shop-ink transition-colors hover:bg-shop-ink hover:text-white"
           >
+            <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 11h11.2L21 7H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+            </svg>
             Add to cart
           </button>
           <button
             type="button"
             onClick={buyNow}
-            className="flex-1 rounded-full bg-shop-primary px-6 py-2.5 text-center leading-tight text-white transition-colors hover:bg-shop-primary-dark"
+            className="btn-shop min-h-[52px] flex-1 !flex-col !gap-0 !rounded-xl px-6 py-2 text-center leading-tight"
           >
-            <span className="block text-[14px] font-bold">Buy now</span>
+            <span className="block text-[15px] font-bold">Buy now</span>
             {/* Full white, not white/90. White on the brand orange is already
                 only 2.9:1 (see the palette note in globals.css); dimming it
                 further to look "secondary" would have put the smallest text on

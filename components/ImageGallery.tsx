@@ -28,9 +28,8 @@ type Props = {
 
 /**
  * Product gallery, following the Next.js Commerce gallery: one large square
- * frame the product photo fills edge to edge with `object-cover`, a single
- * rounded arrow pill floating over its bottom edge, and a row of bordered
- * square thumbnails underneath that highlight the active shot.
+ * frame the whole product photo sits in with `object-contain`, arrows on either
+ * side, and a row of bordered square thumbnails that highlight the active shot.
  *
  * Clicking the frame opens a full-size lightbox.
  */
@@ -65,7 +64,7 @@ export default function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-[4/5] w-full items-center justify-center rounded-[4px] border border-shop-line bg-white text-sm text-shop-muted">
+      <div className="flex aspect-square w-full items-center justify-center rounded-xl border border-shop-line bg-shop-photo text-sm text-shop-muted">
         No image
       </div>
     );
@@ -115,7 +114,7 @@ export default function ImageGallery({
                   onClick={() => setActiveImage(src)}
                   aria-label={`View image ${i + 1}`}
                   aria-current={i === activeIndex}
-                  className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-[4px] border bg-white transition-colors hover:border-shop-primary ${
+                  className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-shop-photo transition-colors hover:border-shop-primary ${
                     i === activeIndex ? "border-2 border-shop-primary" : "border-shop-line"
                   }`}
                 >
@@ -125,7 +124,7 @@ export default function ImageGallery({
                     width={64}
                     height={64}
                     quality={90}
-                    className="h-full w-full object-cover"
+                    className="photo-contain h-full w-full"
                   />
                 </button>
               </li>
@@ -133,24 +132,17 @@ export default function ImageGallery({
           </ul>
         )}
 
-        {/* ---- Main frame: 4:5, where this was square ----
+        {/* ---- Main frame: square, with the whole photo contained ----
 
-             The gallery column ends where the description begins, and with a
-             square frame it ended about 200px short of it — a band of white
-             down the left of the page between the photograph and the first
-             tab, on the one screen where the photograph is the argument.
+             `object-cover` filled a 4:5 frame edge to edge and cropped the
+             sides off most supplier shots, which are square — the shopper saw a
+             slice of the product, and the only way to see all of it was the
+             lightbox. A shopper who cannot see the whole thing does not buy it.
 
-             Portrait rather than merely bigger. Most of this catalogue is
-             clothing, shoes and packaged goods shot upright, so 4:5 is the
-             shape the stock already is; a taller square would have added the
-             same height and then filled it with background. `object-cover` fills
-             the frame edge to edge; the lightbox still shows the whole shot.
-
-             The cap on the column moved with it (`ProductPurchase`, 560 → 640),
-             because height alone would have made the frame narrow and tall.
-             Both numbers are one decision: they are what puts the foot of the
-             gallery level with the description beside it. */}
-        <div className="relative aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-[4px] border border-shop-line bg-white">
+             The photo is now contained on a soft grey ground (`.photo-contain`,
+             blended with `multiply` so white backgrounds disappear into it), in
+             a square frame, because square is the shape the stock mostly is. */}
+        <div className="group relative aspect-square min-w-0 flex-1 overflow-hidden rounded-xl border border-shop-line bg-shop-photo">
         <button
           type="button"
           onClick={() => setLightbox(true)}
@@ -164,7 +156,7 @@ export default function ImageGallery({
             fill
             sizes="(min-width: 1024px) 680px, 100vw"
             quality={90}
-            className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
+            className={`photo-contain h-full w-full ${soldOut ? "opacity-45" : ""}`}
             priority
           />
         </button>
@@ -191,7 +183,7 @@ export default function ImageGallery({
                tapped should meet the same mark in the same colour here; it was
                the brand's burnt orange, which made the product page the one
                place the shop said "reduced" in a different voice. */
-            <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-3 py-1 text-[12px] font-bold text-white">
+            <span className="rounded-md bg-[color:var(--color-shop-price-was)] px-2.5 py-1 text-[13px] font-extrabold text-white shadow-sm">
               −{discount}%
             </span>
           )}
@@ -212,7 +204,7 @@ export default function ImageGallery({
           type="button"
           onClick={share}
           aria-label="Share this product"
-          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full border border-shop-line bg-white/70 px-3 text-[12px] text-shop-body backdrop-blur-md transition-colors hover:text-shop-ink"
+          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full bg-white px-3 text-[12px] font-medium text-shop-body shadow-sm ring-1 ring-black/5 transition-colors hover:text-shop-ink"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />
@@ -220,33 +212,35 @@ export default function ImageGallery({
           {copied ? "Copied" : "Share"}
         </button>
 
-        {/* Single arrow pill, centred on the bottom edge. */}
+        {/* Arrows on the left and right edges, where they sit over the ground
+            rather than across the product itself, plus a counter so the shopper
+            knows there is more to see. */}
         {images.length > 1 && (
-          <div className="absolute bottom-[15%] flex w-full justify-center">
-            <div className="mx-auto flex h-11 items-center rounded-full border border-shop-line bg-white/70 text-shop-ink backdrop-blur-md">
-              <button
-                type="button"
-                aria-label="Previous product image"
-                onClick={() => step(-1)}
-                className="flex h-full items-center justify-center px-6 transition-all ease-in-out hover:scale-110"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div className="mx-1 h-6 w-px bg-shop-line" />
-              <button
-                type="button"
-                aria-label="Next product image"
-                onClick={() => step(1)}
-                className="flex h-full items-center justify-center px-6 transition-all ease-in-out hover:scale-110"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <>
+            <button
+              type="button"
+              aria-label="Previous product image"
+              onClick={() => step(-1)}
+              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink shadow-md ring-1 ring-black/5 transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label="Next product image"
+              onClick={() => step(1)}
+              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink shadow-md ring-1 ring-black/5 transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-shop-ink/75 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white">
+              {activeIndex + 1} / {images.length}
+            </span>
+          </>
         )}
       </div>
 
@@ -265,7 +259,7 @@ export default function ImageGallery({
                 onClick={() => setActiveImage(src)}
                 aria-label={`View image ${i + 1}`}
                 aria-current={i === activeIndex}
-                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-[4px] border bg-white transition-colors hover:border-shop-primary ${
+                className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border bg-shop-photo transition-colors hover:border-shop-primary ${
                   i === activeIndex ? "border-2 border-shop-primary" : "border-shop-line"
                 }`}
               >
@@ -275,7 +269,7 @@ export default function ImageGallery({
                   width={64}
                   height={64}
                   quality={90}
-                  className="h-full w-full object-cover"
+                  className="photo-contain h-full w-full"
                 />
               </button>
             </li>

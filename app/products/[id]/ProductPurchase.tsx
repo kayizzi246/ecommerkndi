@@ -22,22 +22,6 @@ import { inkFor } from "@/lib/contrast";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
 
-/** The green check in front of each guarantee line. */
-function Tick() {
-  return (
-    <svg
-      aria-hidden
-      className="mt-[3px] h-3 w-3 shrink-0 text-shop-success"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
-    </svg>
-  );
-}
-
 /**
  * The interactive half of the product page: the gallery and the buy box share
  * `activeImage` so picking a colour swaps the shot. Everything that does not
@@ -215,9 +199,9 @@ export default function ProductPurchase({
              It does not. The description is a tabbed block further down the
              column, and at 480 square the gallery ended roughly 200px above it:
              the picture was not competing with the copy, it was leaving a band
-             of empty page between them. 640 with a 4:5 frame (see
-             `ImageGallery`) puts the foot of the photograph just above the
-             first tab, which is what the two numbers are for.
+             of empty page between them. The frame is square and contained now
+             (see `ImageGallery`), because a cropped 4:5 frame hid the sides of
+             most square supplier shots.
 
              What the old note got right and this keeps: past roughly this size
              a product photograph stops answering new questions. The shopper who
@@ -277,13 +261,19 @@ export default function ProductPurchase({
                in the picture, so it is set like one — 15px, regular, two lines
                of it, and the price beneath it is now unambiguously the loudest
                element in the column. */}
-          <h1 className="font-normal-heading line-clamp-2 text-[13px] leading-[20px] text-shop-ink md:text-[14px] md:leading-[22px]">
-            <span className="mr-1.5 inline-flex items-center gap-1 align-[1px] text-[12px] font-semibold text-shop-success">
-              <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
-              </svg>
-              Ships from Uganda
-            </span>
+          {/* The local-stock badge gets its own row now: "ships from Uganda"
+              is one of the strongest trust signals this page has — it means no
+              customs, no six-week wait — and set inline at the title's size it
+              read as part of the product name. */}
+          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-shop-successbg px-2.5 py-1 text-[12px] font-semibold text-shop-save">
+            <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
+            </svg>
+            Ships from Uganda
+          </p>
+          {/* 18–20px medium: large enough that the shopper is sure which item
+              they are buying, still a clear step below the price. */}
+          <h1 className="font-normal-heading line-clamp-3 text-[17px] !font-medium leading-[1.35] text-shop-ink md:text-[20px]">
             {product.name}
           </h1>
 
@@ -380,9 +370,9 @@ export default function ProductPurchase({
                column now that the title has stepped back. This is the number the
                page is built around and every other decision above is in service
                of reading it quickly. */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <span
-              className={`price text-[29px] leading-none ${
+              className={`price-display text-[30px] leading-none md:text-[34px] ${
                 soldOut
                   ? "text-shop-muted line-through"
                   : discount > 0
@@ -414,8 +404,8 @@ export default function ProductPurchase({
                     and as the −x% on the photograph. The three marks on this
                     page that say "reduced" are one colour; everything else the
                     page says — scarcity, backorder, the brand — stays orange. */}
-                <span className="rounded-full bg-[color:var(--color-shop-price-was)] px-2.5 py-1 text-[12px] font-bold text-white">
-                  Save {discount}%
+                <span className="rounded-md bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[12px] font-extrabold text-white">
+                  −{discount}%
                 </span>
               </>
             )}
@@ -439,12 +429,15 @@ export default function ProductPurchase({
               against their wallet, and it is the single line that most reliably
               moves a discounted product. */}
           {!soldOut && discount > 0 && (
-            <p className="price mt-1.5 text-[14px] text-shop-success">
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-shop-successbg px-2 py-1 text-[13px] font-semibold text-shop-save">
+              <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8ZM7.5 7.5h.01" />
+              </svg>
               You save {formatPrice(product.regular_price - product.price)}
             </p>
           )}
 
-          <p className="mt-1 flex items-center gap-1.5 text-[12px] text-shop-muted">
+          <p className="mt-2 flex items-center gap-1.5 text-[12px] text-shop-muted">
             Tax included. Shipping calculated at checkout.
             {discount > 0 && (
               <button
@@ -471,7 +464,7 @@ export default function ProductPurchase({
                and the colour made them look like promotions rather than terms.
                Grey, one line each, and the figures still come from wp-admin. */}
           {!soldOut && (
-            <div className="mt-3 rounded-lg bg-shop-surface px-3 py-2.5 text-[12px] leading-snug text-shop-body">
+            <div className="mt-4 rounded-xl border border-shop-line bg-shop-surface/60 px-3.5 py-3 text-[13px] leading-snug text-shop-body">
               <p className="flex items-start gap-2">
                 <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
@@ -586,7 +579,7 @@ export default function ProductPurchase({
                 onClick={withPageLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1faa53] bg-white text-[14px] font-semibold text-[#128c43] transition-colors hover:bg-[#1faa53] hover:text-white"
+                className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1faa53] bg-[#f0fbf4] text-[14px] font-bold text-[#128c43] transition-colors hover:bg-[#1faa53] hover:text-white"
               >
                 <svg aria-hidden className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z" />
@@ -602,9 +595,12 @@ export default function ProductPurchase({
                storefront is not price, it is not knowing whether their MoMo
                line works here — and answering that two clicks away answers it
                for nobody. Drawn inline as SVG, so no marks can fail to load. */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-shop-hairline pt-3">
-            <span className="text-[12px] font-semibold text-shop-body">
-              Pay with
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-shop-line px-3.5 py-2.5">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-shop-body">
+              <svg aria-hidden className="h-4 w-4 text-shop-save" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5V11Z" />
+              </svg>
+              Secure checkout · Pay with
             </span>
             <span className="flex flex-wrap items-center gap-1.5">
               <MtnMark />
@@ -646,42 +642,50 @@ export default function ProductPurchase({
                window, pay-on-delivery, the buyer protection in the policies — so
                nothing in this panel is a claim the business has not made
                elsewhere. */}
-          <div className="mt-3.5 rounded-lg border border-shop-line bg-white p-3.5">
-            <p className="flex items-center gap-2 text-[13px] font-semibold text-shop-ink">
+          <div className="mt-4 rounded-xl border border-shop-line bg-white p-3.5">
+            <p className="flex items-center gap-2 text-[13px] font-bold text-shop-ink">
               <svg aria-hidden className="h-[18px] w-[18px] shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
               </svg>
-              Why shop with us
+              Buyer protection on every order
             </p>
-            <div className="mt-2.5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
-              <div>
-                <p className="text-[12px] font-semibold text-shop-body">
-                  Payment &amp; privacy
-                </p>
-                <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
-                  <li className="flex items-start gap-1.5">
-                    <Tick /> Cash on delivery in selected areas
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Tick /> Card details never stored by the shop
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <p className="text-[12px] font-semibold text-shop-body">
-                  Delivery guarantee
-                </p>
-                <ul className="mt-1 space-y-1 text-[12px] text-shop-body">
-                  <li className="flex items-start gap-1.5">
-                    <Tick /> Refund if the item arrives damaged
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <Tick /> {returnsDays}-day returns, in original condition
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <ul className="mt-3 grid grid-cols-2 gap-2">
+              {[
+                {
+                  title: `${returnsDays}-day returns`,
+                  copy: "In original condition",
+                  icon: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5",
+                },
+                {
+                  title: "Damage refund",
+                  copy: "If it arrives damaged",
+                  icon: "M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Zm-3 9 2 2 4-4",
+                },
+                {
+                  title: "Secure payment",
+                  copy: "Card details never stored",
+                  icon: "M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5V11Zm7 4v2",
+                },
+                {
+                  title: "Cash on delivery",
+                  copy: "In selected areas",
+                  icon: "M3 7h18v10H3V7Zm9 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6 10v4m12-4v4",
+                },
+              ].map((item) => (
+                <li key={item.title} className="flex items-start gap-2.5 rounded-lg bg-shop-surface/70 p-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-shop-save ring-1 ring-shop-line">
+                    <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                    </svg>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[12px] font-bold leading-tight text-shop-ink">{item.title}</span>
+                    <span className="mt-0.5 block text-[11px] leading-tight text-shop-muted">{item.copy}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* What other buyers made of it. Below the action rather than beside

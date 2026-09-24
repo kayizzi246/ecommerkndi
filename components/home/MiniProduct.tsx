@@ -64,7 +64,7 @@ export default function MiniProduct({
             fill
             sizes={sizes}
             loading="lazy"
-            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.04]"
+            className="photo-contain transition-transform duration-300 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <span className="flex h-full items-center justify-center text-[10px] text-shop-faint">

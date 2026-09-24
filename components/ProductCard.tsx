@@ -754,11 +754,11 @@ export default function ProductCard({
                The columns do not move at any of these. Only the height changes,
                so nothing else in the grid has to be re-reasoned.
 
-               `object-cover` still crops, and now crops the sides rather than
-               the top and bottom, which for portrait stock is the crop that
-               keeps the subject. Anything genuinely landscape loses a little at
-               the edges, which is the trade; the alternative is letterboxing
-               every portrait shot to suit a minority of the catalogue. */}
+               The photo is CONTAINED now (`.photo-contain`), not cropped: a
+               shopper deciding from a tile has to see the whole product, and a
+               cropped packshot hides exactly the part they wanted to check. The
+               `multiply` blend melts white product backgrounds into the grey
+               frame, so letterboxing reads as ground rather than as bars. */}
           {/* Square, with the tile. A 10px-rounded photograph inside a
               square cell reads as a picture pasted onto the card rather than
               as the card's own face — and the cell is the object now, not the
@@ -786,7 +786,7 @@ export default function ProductCard({
                   {...(priority
                     ? { loading: "eager" as const, fetchPriority: "high" as const }
                     : { loading: "lazy" as const })}
-                  className={`object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] ${
+                  className={`photo-contain transition-transform duration-300 ease-out group-hover:scale-[1.03] ${
                     soldOut ? "opacity-50" : ""
                   } ${secondPhoto ? "group-hover:opacity-0" : ""}`}
                 />
@@ -806,7 +806,7 @@ export default function ProductCard({
                     fill
                     sizes={sizes}
                     loading="lazy"
-                    className="object-cover opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
+                    className="photo-contain opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
                   />
                 )}
               </>

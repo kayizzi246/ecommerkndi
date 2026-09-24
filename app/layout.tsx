@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -13,18 +13,19 @@ import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
 /**
- * ---- The shop's type: one face, Inter, everywhere ----
+ * ---- The shop's type: one face for reading, one for selling ----
  *
- * Inter is a neo-grotesque drawn specifically for interface use at small
- * sizes, which is what a page of 12–14px catalogue text is. Its figures are
- * even and narrow, so a column of UGX prices lines up down a grid and a long
- * price fits a phone tile. `--font-ui` and `--font-display` in `globals.css`
- * both point at it, which is what lets a headline and a price sit in the same
- * visual family instead of arguing.
+ * DM Sans carries the interface — body copy, labels, product names. It has a
+ * generous x-height and open counters, so the 12–14px a catalogue page runs at
+ * stays legible on a low-density Android screen.
  *
- * It is loaded as its VARIABLE file (one file covers 100–900), so every weight
- * this shop asks for — 400 body, 500–600 labels, 700 headings, 800 prices — is
- * already in the one download. Nothing here needs a `weight` array, and
+ * Plus Jakarta Sans is the display face — headings, section titles and every
+ * price. It is a touch wider and rounder than the body face, which gives the
+ * number a shopper is weighing a confident, finished look and separates it
+ * from the copy around it without needing more colour.
+ *
+ * Both are VARIABLE files, so every weight this shop asks for — 400 body,
+ * 500–600 labels, 700 headings, 800 prices — is already in the download, and
  * `font-synthesis-weight: none` in `globals.css` is safe because no weight in
  * use has to be faked.
  *
@@ -39,16 +40,22 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
  *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
  *     `@font-face`, so the swap does not reflow a price or a product name.
  *
- * `variable` rather than `className`: the family is handed to CSS as
- * `--font-inter`, and `globals.css` points `--font-ui` and `--font-display`
- * at it. Those two names are the seam that makes the next typeface change a
- * two-line edit here instead of a search through two hundred components. Do
- * not collapse them.
+ * `variable` rather than `className`: the families are handed to CSS as
+ * `--font-dm-sans` and `--font-jakarta`, and `globals.css` points `--font-ui`
+ * and `--font-display` at them. Those two names are the seam that makes the
+ * next typeface change an edit here instead of a search through two hundred
+ * components. Do not collapse them.
  */
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jakarta",
 });
 
 /**
@@ -228,8 +235,8 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `inter.variable` defines `--font-inter` on the root element, where
-      // every rule in globals.css can reach it. The class carries no
+      // The font `variable` classes define `--font-dm-sans` and `--font-jakarta`
+      // on the root element, where every rule in globals.css can reach them. They carry no
       // `font-family` of its own — the stylesheet decides what uses the face —
       // which is why the Seller Centre and admin shells pick it up too without
       // being touched.
@@ -241,7 +248,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${inter.variable} h-full`}
+      className={`${dmSans.variable} ${jakarta.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

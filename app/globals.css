@@ -470,7 +470,7 @@
   --color-shop-canvas: #ffffff;
   --color-shop-panel: #ffffff;
   --color-shop-edge: #dedede;
-  --color-shop-photo: #fbf7f4;
+  --color-shop-photo: #f5f5f6; /* neutral, so contained photos blend (see .photo-contain) */
 
 
   /* ---- The accent shelves ----
@@ -830,7 +830,7 @@
 
 /* ---- The type: Inter, one face, everywhere ----
  *
- * `--font-inter` is set by `next/font` in `app/layout.tsx`, where the
+ * `--font-dm-sans` and `--font-jakarta` are set by `next/font` in `app/layout.tsx`, where the
  * reasoning for the face — and the delivery it rides in on — is written out in
  * full. This is the other half: the stack behind it, and the scale it is set
  * at.
@@ -977,9 +977,9 @@
   --shell: 1720px;
 
   --font-ui:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", "Noto Sans", Arial, sans-serif;
-  /* ---- The display face: Inter ----
+  /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
    * `h1`–`h6`, `.section-title`, `.heading-black`, `.heading-800`,
@@ -1003,7 +1003,7 @@
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
   --font-display:
-    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —
@@ -1042,7 +1042,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ui);
-  font-size: 12px;
+  /* 13px, up from 12: a shopper who has to squint at a delivery term or a
+     returns line does not trust it, and DM Sans is set a hair smaller than the
+     face it replaced. */
+  font-size: 13px;
   /* 1.6 rather than 1.55. The difference is a pixel and a half on a 16px line,
      and it is the difference between a paragraph that reads and one that has to
      be got through — descenders on one line stop crowding the caps on the next.
@@ -1651,6 +1654,27 @@ h6,
 
 /* ---------- Component primitives ---------- */
 
+/* The product page's headline price. Tile prices stay on the reading face so
+   a long discounted row still fits a phone tile; the one price a shopper is
+   deciding on gets the display face, heavy and tightened. */
+.price-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Contained product photography: the whole product shows, centred on a soft
+   neutral ground, instead of being cropped to fill the frame. The padding keeps
+   an edge-to-edge packshot from touching the border, and `multiply` melts a
+   photo's own white background into the ground so it never reads as a white
+   box pasted on grey. */
+.photo-contain {
+  object-fit: contain;
+  padding: 6%;
+  mix-blend-mode: multiply;
+}
+
 /* Yellow primary action (ADD TO CART, checkout, seller CTAs). */
 .btn-bfl {
   background: var(--color-bfl-yellow);
@@ -1687,19 +1711,25 @@ h6,
   color: #fff;
   font-weight: 700;
   letter-spacing: 0;
-  border-radius: 8px;
+  border-radius: 10px;
+  /* A soft tinted shadow lifts the one button that takes money off the page,
+     so it reads as the action rather than as another coloured panel. */
+  box-shadow: 0 6px 16px -6px rgb(211 47 47 / 0.55);
   transition:
     background-color 0.18s ease,
+    box-shadow 0.18s ease,
     transform 0.18s ease;
 }
 .btn-shop:hover {
   background: var(--color-shop-primary-dark);
+  box-shadow: 0 10px 22px -8px rgb(183 28 28 / 0.6);
   transform: translateY(-1px);
 }
 .btn-shop:active {
   transform: translateY(0);
 }
 .btn-shop:disabled {
+  box-shadow: none;
   background: #e0ddd8;
   color: #96918a;
   cursor: not-allowed;
