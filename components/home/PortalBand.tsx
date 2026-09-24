@@ -1,5 +1,4 @@
 import Link from "next/link";
-import CountdownBlocks from "@/components/home/CountdownBlocks";
 import MiniProduct from "@/components/home/MiniProduct";
 import PortalAccount from "@/components/home/PortalAccount";
 import PortalCategories from "@/components/home/PortalCategories";
@@ -11,7 +10,7 @@ import type { CategoryNode, Product } from "@/lib/woocommerce";
  * The portal band — the three-column block under the hero.
  *
  *   1. WHERE things are   — the department column
- *   2. WHAT it costs      — the deepest cuts in the shop, prices showing
+ *   2. WHAT is new        — the newest products in the shop, prices showing
  *   3. WHO the shopper is — sign in, or their own four destinations
  *
  * The campaign panel that used to sit between the first two is the hero now
@@ -31,12 +30,12 @@ import type { CategoryNode, Product } from "@/lib/woocommerce";
 export default function PortalBand({
   settings,
   departments,
-  /** The discount pool behind the price panel. Six are drawn. */
-  deals,
+  /** The catalogue newest first, behind the "Just in" panel. Six are drawn. */
+  newest,
 }: {
   settings: SiteSettings;
   departments: CategoryNode[];
-  deals: Product[];
+  newest: Product[];
 }) {
   return (
     <section
@@ -52,29 +51,25 @@ export default function PortalBand({
     >
       <PortalCategories departments={departments} />
 
-      {/* ---- The price panel ----
+      {/* ---- The "Just in" panel ----
 
-          The shop's own deepest cuts with the prices showing. It draws nothing
-          when there are fewer than four discounts to show, so a shop running no
-          sale gets a two-column band rather than an empty promise. */}
-      {deals.length >= 4 && (
+          The newest products in the shop with the prices showing, so the first
+          thing a returning shopper meets is what has landed since last time.
+          It was the deepest discounts, which drew nothing when fewer than four
+          items were on sale — the panel was missing more often than not. It
+          still draws nothing below four products, so a near-empty catalogue
+          gets a two-column band rather than a half-filled row. */}
+      {newest.length >= 4 && (
         <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 ring-1 ring-shop-edge md:p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[12px] font-bold leading-tight text-shop-ink sm:text-[13px]">
-              Today&rsquo;s deepest cuts
+              Just in
               <span className="ml-1.5 hidden font-medium text-shop-muted sm:inline">
-                — the biggest reductions in the shop right now
+                — the newest products in the shop
               </span>
             </p>
-            {/* The clock runs to midnight on the READER'S own device rather than
-                to a fresh 24 hours from whenever they arrived. See the
-                component: the distinction is the whole honesty of it. The
-                digits are red — the same `--color-shop-price-was` the struck
-                prices below use — and the label beside them stays grey, so the
-                panel spends one extra hue rather than two. */}
-            <span className="flex shrink-0 items-center gap-1.5 rounded-lg px-1.5 py-0.5">
-              <span className="text-[10px] font-semibold text-shop-muted">Ends in</span>
-              <CountdownBlocks />
+            <span className="shrink-0 rounded-full bg-pop-green-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-shop-save">
+              New
             </span>
           </div>
 
@@ -87,7 +82,7 @@ export default function PortalBand({
               rendered and simply not drawn below md, so the markup is one thing
               with three items hidden rather than two layouts. */}
           <ul className="grid flex-1 grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-6 lg:flex-none">
-            {deals.slice(0, 6).map((product, index) => (
+            {newest.slice(0, 6).map((product, index) => (
               <li key={product.id} className={index >= 3 ? "hidden md:block" : undefined}>
                 <MiniProduct
                   product={product}
@@ -107,10 +102,10 @@ export default function PortalBand({
               </span>
             </span>
             <Link
-              href="/sale"
+              href="/search?sort=newest"
               className="text-[12px] font-semibold text-shop-primary hover:underline"
             >
-              All deals →
+              All new arrivals →
             </Link>
           </div>
         </div>

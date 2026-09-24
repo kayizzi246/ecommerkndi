@@ -130,7 +130,6 @@ export default async function Home() {
     settings,
     departments,
     trending,
-    deals,
     departmentRails,
     latest,
     latestTotalPages,
@@ -176,7 +175,7 @@ export default async function Home() {
       {/* ---- What is actually on this page, told to Google ----
 
            Every entry is a product this page renders, in the order a reader
-           meets them: the price panel's deals first, then the grid. Capped at 50
+           meets them: the "Just in" panel first, then the grid. Capped at 50
            by `itemListJsonLd` itself, which is the point at which a list stops
            summarising a page and starts dumping a catalogue — the sitemap is
            where the whole catalogue belongs.
@@ -191,7 +190,7 @@ export default async function Home() {
             itemListJsonLd(
               `${brand} — shop online in Uganda`,
               "/",
-              [...deals, ...forYou]
+              [...latest.slice(0, 6), ...forYou]
                 .filter(
                   (product, index, all) =>
                     all.findIndex((other) => other.id === product.id) === index
@@ -226,7 +225,7 @@ export default async function Home() {
             departments, the deepest cuts with prices showing, and the account. */}
         <ChannelRow />
 
-        <PortalBand settings={settings} departments={departments} deals={deals} />
+        <PortalBand settings={settings} departments={departments} newest={latest} />
 
         <PickedForYou
           latest={forYou}
