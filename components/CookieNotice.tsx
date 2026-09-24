@@ -67,7 +67,7 @@ export default function CookieNotice() {
       // Above the sign-in banner and the mobile tab bar, and clear of both:
       // bottom-left on a desktop so it never covers the cart, full width above
       // the tab bar on a phone.
-      className="banner-up fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-[440px] rounded-xl border border-shop-line bg-white p-4 shadow-xl lg:inset-x-auto lg:left-5 lg:bottom-5 lg:mx-0"
+      className="banner-up fixed inset-x-3 bottom-[calc(64px+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-[440px] rounded-xl border border-shop-line bg-white p-4 lg:inset-x-auto lg:left-5 lg:bottom-5 lg:mx-0"
     >
       <p className="text-[13px] font-bold text-shop-ink">Cookies on Kandi</p>
       <p className="mt-1 text-[12px] leading-[1.5] text-shop-body">

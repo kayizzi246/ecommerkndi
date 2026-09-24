@@ -80,7 +80,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/50" />
 
-      <div className="relative flex max-h-[92vh] w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl sm:rounded-lg">
+      <div className="relative flex max-h-[92vh] w-full max-w-[560px] flex-col overflow-hidden bg-white sm:rounded-lg">
         {/* Progress */}
         <div className="flex items-center gap-3 border-b border-bfl-line px-6 py-4">
           <span className="flex h-8 w-8 items-center justify-center rounded-[3px] bg-bfl-yellow">

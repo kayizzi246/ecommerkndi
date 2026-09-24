@@ -436,14 +436,14 @@ export default function Header({
                    `max-w` cap at both steps: the file is an arbitrary upload,
                    so the height is what is being set and the width is only
                    being stopped from running away. */
-                /* 40px on a phone, up from 32. The wordmark was the smallest
+                /* 48px on a phone (36px once scrolled), up from 40. The wordmark was the smallest
                    thing in a row that also carries a cart total and a badge,
                    and on the one screen where the brand has to establish itself
                    in a single glance it was the quietest element in it. The
                    cap goes up with it so a wide wordmark is scaled by height
                    rather than clipped by the width limit. */
                 className={`w-auto object-contain md:h-11 md:max-w-[190px] ${
-                  scrolled ? "h-7 max-w-[110px]" : "h-10 max-w-[160px]"
+                  scrolled ? "h-9 max-w-[150px]" : "h-12 max-w-[210px]"
                 }`}
               />
             </span>
@@ -457,7 +457,7 @@ export default function Header({
                 <svg
                   // Scaled with the uploaded-logo branch above, so a shop that
                   // has not uploaded one gets the same masthead proportions.
-                  className="h-9 w-9 md:h-10 md:w-10"
+                  className="h-11 w-11 md:h-10 md:w-10"
                   viewBox="0 0 40 40"
                   role="img"
                   aria-label={brandName(settings)}
@@ -527,7 +527,7 @@ export default function Header({
                   tallest thing in a row built to be slim. */}
               <span
                 className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] ${
-                  scrolled ? "text-[14px]" : "text-[18px]"
+                  scrolled ? "text-[17px]" : "text-[22px]"
                 }`}
               >
                 {settings.brand.name}

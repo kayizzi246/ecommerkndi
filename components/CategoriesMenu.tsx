@@ -203,7 +203,7 @@ export default function CategoriesMenu({ departments }: { departments: CategoryN
               the page edge do the separating, and a hairline box around
               something this wide draws attention to the container instead of
               the contents. */}
-          <div className="max-h-[76vh] w-[calc(100vw-4rem)] max-w-[calc(var(--shell)-4rem)] overflow-y-auto rounded-b-lg bg-white px-7 py-7 shadow-[0_16px_40px_rgba(23,23,23,0.13)] ring-1 ring-shop-ink/[0.05]">
+          <div className="max-h-[76vh] w-[calc(100vw-4rem)] max-w-[calc(var(--shell)-4rem)] overflow-y-auto rounded-b-lg bg-white px-7 py-7 border border-t-0 border-shop-line">
             {/* Five columns at every width this panel is shown at, which is
                 `lg` and up — the grid MUST agree with `COLUMN_COUNT` or the
                 packing is wrong. A responsive `grid-cols-3 xl:grid-cols-5`

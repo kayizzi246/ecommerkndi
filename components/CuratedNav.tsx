@@ -307,7 +307,7 @@ function MegaPanel({
       /* `left-0 right-0` against the nav's own `relative`, so the panel spans
          the navigation bar regardless of which label opened it. `z-50` clears
          the sticky masthead above it. */
-      className="absolute left-0 right-0 top-full z-50 border-t border-shop-line bg-white shadow-[0_12px_28px_-12px_rgb(0_0_0/0.25)]"
+      className="absolute left-0 right-0 top-full z-50 border-t border-shop-line border-b bg-white"
     >
       <div className="mx-auto flex max-w-[var(--shell)] gap-8 px-6 py-6">
         {/* ---- The categories ---- */}

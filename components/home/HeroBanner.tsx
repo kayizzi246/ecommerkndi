@@ -139,7 +139,7 @@ export default function HeroBanner({ settings }: { settings: SiteSettings }) {
            already owns, and nothing else. White type on it: the headline is
            display size, where 3:1 is the bar and the gradient clears it at its
            lightest stop; the smaller lines sit on the darker half. */
-        <div className="relative isolate flex min-h-[300px] flex-col justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#f2560a] via-[#e3401a] to-[#c62828] px-5 py-10 text-white md:min-h-[400px] md:px-12 md:py-14 lg:min-h-[440px]">
+        <div className="relative isolate flex min-h-[300px] flex-col justify-center overflow-hidden rounded-2xl bg-shop-primary px-5 py-10 text-white md:min-h-[400px] md:px-12 md:py-14 lg:min-h-[440px]">
           {/* Soft discs, bottom right. The panel is a flat gradient otherwise,
               and a flat gradient at this size reads as an image that failed to
               load; these are what say it was drawn on purpose. */}

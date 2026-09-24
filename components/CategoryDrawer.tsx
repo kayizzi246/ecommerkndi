@@ -112,7 +112,7 @@ export default function CategoryDrawer({
         // dimmed page down the right edge is what says "this is a layer over
         // the shop" instead of "the shop has navigated somewhere" — and it is
         // the target a shopper flicks at to dismiss without hunting for an X.
-        className={`absolute bottom-0 left-0 top-0 flex w-[86%] max-w-[360px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`absolute bottom-0 left-0 top-0 flex w-[86%] max-w-[360px] flex-col border-r border-shop-line bg-white transition-transform duration-300 ease-in-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         role="dialog"

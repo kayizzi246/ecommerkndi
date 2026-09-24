@@ -230,6 +230,7 @@ export default async function Home() {
 
         <PickedForYou
           latest={forYou}
+          newest={latest}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
         />

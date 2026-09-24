@@ -48,13 +48,22 @@ export type PickedTab = {
 };
 
 const FOR_YOU = "for-you";
+/**
+ * "New in" — the catalogue newest first, with nothing ahead of it. "For you"
+ * leads with the shop's featured picks, which pushes a product listed this
+ * morning several screens down; this tab is where it shows first.
+ */
+const NEW_IN = "new-in";
 
 export default function PickedForYou({
   latest,
+  newest,
   latestTotalPages,
   tabs,
 }: {
   latest: Product[];
+  /** Newest-first page one of the catalogue, without the featured picks. */
+  newest: Product[];
   latestTotalPages: number;
   tabs: PickedTab[];
 }) {
@@ -91,6 +100,21 @@ export default function PickedForYou({
           For you
         </button>
 
+        {newest.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setActive(NEW_IN)}
+            aria-pressed={active === NEW_IN}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+              active === NEW_IN
+                ? "bg-shop-primary text-white"
+                : "bg-shop-surface text-shop-body hover:bg-shop-primary-soft hover:text-shop-primary-ink"
+            }`}
+          >
+            New in
+          </button>
+        )}
+
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -108,8 +132,12 @@ export default function PickedForYou({
         ))}
       </div>
 
-      {active === FOR_YOU || !department ? (
-        <InfiniteProducts initialProducts={latest} totalPages={latestTotalPages} />
+      {/* Each endless grid is keyed, so switching between them starts the
+          other's own listing rather than carrying pages loaded for this one. */}
+      {active === NEW_IN ? (
+        <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages} />
+      ) : active === FOR_YOU || !department ? (
+        <InfiniteProducts key={FOR_YOU} initialProducts={latest} totalPages={latestTotalPages} />
       ) : (
         <>
           {/* The same six-column ramp `InfiniteProducts` lays out, and it has to

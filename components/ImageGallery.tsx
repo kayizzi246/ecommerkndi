@@ -183,7 +183,7 @@ export default function ImageGallery({
                tapped should meet the same mark in the same colour here; it was
                the brand's burnt orange, which made the product page the one
                place the shop said "reduced" in a different voice. */
-            <span className="rounded-md bg-[color:var(--color-shop-price-was)] px-2.5 py-1 text-[13px] font-extrabold text-white shadow-sm">
+            <span className="rounded-md bg-[color:var(--color-shop-price-was)] px-2.5 py-1 text-[13px] font-extrabold text-white">
               −{discount}%
             </span>
           )}
@@ -204,7 +204,7 @@ export default function ImageGallery({
           type="button"
           onClick={share}
           aria-label="Share this product"
-          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full bg-white px-3 text-[12px] font-medium text-shop-body shadow-sm ring-1 ring-black/5 transition-colors hover:text-shop-ink"
+          className="absolute right-4 top-4 flex h-9 items-center gap-2 rounded-full bg-white px-3 text-[12px] font-medium text-shop-body ring-1 ring-shop-line transition-colors hover:text-shop-ink"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3 8 7m4-4 4 4M5 13v6h14v-6" />
@@ -221,7 +221,7 @@ export default function ImageGallery({
               type="button"
               aria-label="Previous product image"
               onClick={() => step(-1)}
-              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink shadow-md ring-1 ring-black/5 transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
+              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink ring-1 ring-shop-line transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -231,7 +231,7 @@ export default function ImageGallery({
               type="button"
               aria-label="Next product image"
               onClick={() => step(1)}
-              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink shadow-md ring-1 ring-black/5 transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
+              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-shop-ink ring-1 ring-shop-line transition hover:scale-105 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -408,7 +408,7 @@ export default function SearchBar({
         <div
           id="search-suggestions"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-shop-line bg-white shadow-lg"
+          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-shop-line bg-white"
         >
           {term.length === 0 ? (
             <div className="p-4">

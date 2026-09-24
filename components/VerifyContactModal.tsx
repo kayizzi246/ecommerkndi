@@ -284,7 +284,7 @@ export default function VerifyContactModal({
         aria-modal="true"
         aria-labelledby="verify-title"
         onKeyDown={trapFocus}
-        className="w-full max-w-[420px] rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl"
+        className="w-full max-w-[420px] rounded-t-2xl bg-white p-5 sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="verify-title" className="text-[17px] font-extrabold text-shop-ink">

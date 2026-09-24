@@ -99,7 +99,7 @@ export default function AccountMenu() {
       )}
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[300px] rounded-xl border border-shop-line bg-white p-4 text-left shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-3 w-[300px] rounded-xl border border-shop-line bg-white p-4 text-left">
           {customer ? (
             <>
               <div className="flex items-center gap-3 border-b border-bfl-line pb-3">

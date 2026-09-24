@@ -65,7 +65,7 @@ export default function DeliveryPromise({ className = "" }: { className?: string
       </div>
 
       {picking && (
-        <ul className="absolute right-3 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-shop-line bg-white py-1 shadow-lg">
+        <ul className="absolute right-3 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-shop-line bg-white py-1">
           {CITIES.map((option) => (
             <li key={option}>
               <button

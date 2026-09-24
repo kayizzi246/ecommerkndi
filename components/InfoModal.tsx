@@ -38,7 +38,7 @@ export default function InfoModal({ open, title, onClose, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl"
+        className="relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white"
       >
         <div className="flex items-center justify-between border-b border-shop-line px-5 py-4">
           <h2 className="text-[15px] font-extrabold text-shop-ink">{title}</h2>

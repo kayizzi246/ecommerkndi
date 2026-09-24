@@ -354,7 +354,7 @@ export default function DeliveryPicker({
               /* Above the field's own row and anything after it. The checkout
                  has a sticky summary at the top and a sticky pay bar at the
                  bottom; a dropdown that slides under either is unusable. */
-              className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-xl border border-shop-line bg-white shadow-lg"
+              className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-xl border border-shop-line bg-white"
             >
               {/* Keyed by label AND index: the label alone is not guaranteed
                   unique — two Kyengeras in different districts tidy to the same

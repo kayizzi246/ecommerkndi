@@ -73,7 +73,7 @@ export default function DailyDeals({
      */
     <section
       aria-labelledby="daily-deals-heading"
-      className="overflow-hidden bg-gradient-to-b from-pop-red-soft via-white to-white pt-3 md:rounded-2xl md:pt-4"
+      className="overflow-hidden bg-white pt-3 md:rounded-2xl md:pt-4"
     >
       {/* 12px, matching `SectionHeader` — this rail draws its own heading rather
           than using that component, so the homepage's spacing ratio has to be
