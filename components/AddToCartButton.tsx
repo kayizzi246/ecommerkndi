@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
+import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
 import { formatPrice } from "@/lib/currency";
@@ -21,6 +22,8 @@ const SIZE_SYSTEMS = ["EU", "UK", "US"];
 export default function AddToCartButton({ product, onOptionChange }: Props) {
   const { addItem } = useCart();
   const { notify } = useToast();
+  const { isWishlisted, toggle: toggleWishlist } = useWishlist();
+  const saved = isWishlisted(product.id);
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [sizeSystem, setSizeSystem] = useState(SIZE_SYSTEMS[0]);
@@ -256,19 +259,45 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             </button>
           </div>
 
+          {/* ---- Save for later, and it actually saves ----
+               This heart used to show a "Saved" toast and store nothing, so a
+               shopper who saved something to come back for found an empty
+               wishlist when they did. It writes to the same wishlist the tiles
+               use now, and says "Saved" on the button so the state is visible. */}
           <button
             type="button"
-            aria-label="Save to wishlist"
-            onClick={() => notify("Saved to your wishlist ♥")}
-            className="flex w-12 shrink-0 items-center justify-center rounded-lg border border-shop-line text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+            aria-pressed={saved}
+            aria-label={saved ? "Remove from wishlist" : "Save to wishlist"}
+            onClick={() => {
+              toggleWishlist({
+                productId: product.id,
+                name: product.name,
+                image: product.image,
+                price: product.price,
+              });
+              if (!saved) notify("Saved — find it in your wishlist anytime", { image: product.image });
+            }}
+            className={`flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3.5 text-[13px] font-semibold transition-colors ${
+              saved
+                ? "border-shop-primary bg-shop-primary-soft text-shop-primary-ink"
+                : "border-shop-line text-shop-body hover:border-shop-ink hover:text-shop-ink"
+            }`}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <svg
+              aria-hidden
+              className="h-5 w-5"
+              fill={saved ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="1.6"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
               />
             </svg>
+            {saved ? "Saved" : "Save"}
           </button>
         </div>
 

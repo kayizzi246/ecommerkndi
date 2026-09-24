@@ -164,14 +164,16 @@ export default function ProductPurchase({
            the two buttons are all short, so the extra width goes into the
            product NAME, which is the one string on the page long enough to take
            it — and a title running 700px across the top of a 480px photograph
-           reads as a page whose columns have come apart. 1200 is the same cap
-           the cart and the Seller Centre sit on, and it puts the buy box at
-           roughly 640: wide enough for the delivery line to stay on one row,
-           narrow enough that the title wraps like a title. */}
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8 lg:gap-y-6">
+           reads as a page whose columns have come apart. 1360 gives the
+           photograph the larger share — the product is what sells — and still
+           leaves the buy box near 580: wide enough for the delivery line to
+           stay on one row, narrow enough that the title wraps like a title. */}
+      <div className="mx-auto flex max-w-[1360px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[54%_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
         {/* ---- Gallery ----
-             44% of the row, capped at 640px including the thumbnail rail — so
-             the frame itself lands near 560 × 700.
+             54% of the row, capped at 780px including the thumbnail rail — so
+             the square frame itself lands near 650 × 650.
+
+             (History: this was 44% / 640 with a 4:5 frame.)
 
              It was 52% and 720px, then 560, and now 640. The 720 → 560 move was
              made on the argument that the gallery was "competing for the same
@@ -191,7 +193,7 @@ export default function ProductPurchase({
              where the detail actually lives — so the frame grows to fill its
              column and stops there. */}
         <div className="w-full lg:col-start-1 lg:row-start-1">
-          <div className="mx-auto w-full max-w-[640px] lg:mx-0">
+          <div className="mx-auto w-full max-w-[780px] lg:mx-0">
             <ImageGallery
               images={images}
               productName={product.name}

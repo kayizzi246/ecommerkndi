@@ -27,10 +27,10 @@ export default function ProductPageSkeleton() {
           <div className="shimmer h-3 w-32 rounded" />
         </div>
 
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-4 lg:grid lg:grid-cols-[44%_1fr] lg:items-start lg:gap-x-8">
+        <div className="mx-auto flex max-w-[1360px] flex-col gap-4 lg:grid lg:grid-cols-[54%_1fr] lg:items-start lg:gap-x-10">
           {/* Gallery */}
           <div className="w-full">
-            <div className="mx-auto w-full max-w-[560px] lg:mx-0">
+            <div className="mx-auto w-full max-w-[780px] lg:mx-0">
               <div className="shimmer aspect-square w-full rounded-xl" />
               {/* The thumbnail rail under it — four, which is the commonest
                   count in this catalogue. */}

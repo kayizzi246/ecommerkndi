@@ -106,7 +106,7 @@ export default function ImageGallery({
            becomes a single scrolling row instead. */}
       <div className="flex gap-3">
         {images.length > 1 && (
-          <ul className="hidden w-[64px] shrink-0 flex-col gap-2 lg:flex">
+          <ul className="hidden w-[76px] shrink-0 flex-col gap-2 lg:flex">
             {images.map((src, i) => (
               <li key={src}>
                 <button
@@ -121,10 +121,10 @@ export default function ImageGallery({
                   <Image
                     src={src}
                     alt=""
-                    width={64}
-                    height={64}
+                    width={80}
+                    height={80}
                     quality={90}
-                    className="photo-contain h-full w-full"
+                    className="h-full w-full object-cover"
                   />
                 </button>
               </li>
@@ -132,16 +132,12 @@ export default function ImageGallery({
           </ul>
         )}
 
-        {/* ---- Main frame: square, with the whole photo contained ----
+        {/* ---- Main frame: square, the photo filling it ----
 
-             `object-cover` filled a 4:5 frame edge to edge and cropped the
-             sides off most supplier shots, which are square — the shopper saw a
-             slice of the product, and the only way to see all of it was the
-             lightbox. A shopper who cannot see the whole thing does not buy it.
-
-             The photo is now contained on a soft grey ground (`.photo-contain`,
-             blended with `multiply` so white backgrounds disappear into it), in
-             a square frame, because square is the shape the stock mostly is. */}
+             `object-cover` fills the frame edge to edge so the product reads
+             large. Square rather than 4:5, because square is the shape most of
+             the stock is shot in, so cover crops little or nothing; the
+             lightbox still shows the whole shot. */}
         <div className="group relative aspect-square min-w-0 flex-1 overflow-hidden rounded-xl border border-shop-line bg-shop-photo">
         <button
           type="button"
@@ -154,9 +150,9 @@ export default function ImageGallery({
             src={activeImage || images[0]}
             alt={`${productName} — image ${activeIndex + 1}`}
             fill
-            sizes="(min-width: 1024px) 680px, 100vw"
+            sizes="(min-width: 1024px) 760px, 100vw"
             quality={90}
-            className={`photo-contain h-full w-full ${soldOut ? "opacity-45" : ""}`}
+            className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
             priority
           />
         </button>
@@ -269,7 +265,7 @@ export default function ImageGallery({
                   width={64}
                   height={64}
                   quality={90}
-                  className="photo-contain h-full w-full"
+                  className="h-full w-full object-cover"
                 />
               </button>
             </li>
