@@ -139,7 +139,11 @@ function buildRows(allDepartments: CategoryNode[]): Row[] {
     });
   }
 
-  for (const shortcut of SHORTCUTS) {
+  // Super Deals leads the column in orange, the way the reference opens its
+  // own with the running campaign; the other shortcuts fill what is left.
+  const [sale, ...others] = SHORTCUTS;
+  rows.unshift(sale);
+  for (const shortcut of others) {
     if (rows.length >= ROWS) break;
     rows.push(shortcut);
   }
@@ -162,7 +166,7 @@ export default function PortalCategories({
       // `overflow-visible` is load-bearing: the flyout is an absolutely
       // positioned child that has to escape this box to the right, and a panel
       // that clipped it would render the whole hover interaction as a 2px sliver.
-      className="hidden h-full flex-col overflow-visible rounded-2xl bg-white p-3 md:flex"
+      className="hidden h-full flex-col overflow-visible rounded-2xl bg-shop-surface p-3 md:flex"
     >
       <p className="mb-1 px-2 text-[12px] font-bold text-shop-ink">
         All categories
@@ -175,8 +179,13 @@ export default function PortalCategories({
               href={row.href ?? `/category/${row.slug}`}
               className="flex items-center gap-1.5 rounded-lg px-2 py-[5.5px] transition-colors group-hover:bg-shop-primary-soft"
             >
-              <span className="min-w-0 flex-1 truncate text-[12px] leading-tight">
-                <span className="font-semibold text-shop-ink transition-colors group-hover:text-shop-primary">
+              <RowIcon name={row.name} hot={row.key === "x-sale"} />
+              <span className="min-w-0 flex-1 truncate text-[13px] leading-tight">
+                <span
+                  className={`font-semibold transition-colors group-hover:text-[#ff5000] ${
+                    row.key === "x-sale" ? "text-[#ff5000]" : "text-shop-ink"
+                  }`}
+                >
                   {row.name}
                 </span>
                 {/* A department names two of its children — "Men / Shoes /
@@ -261,5 +270,39 @@ export default function PortalCategories({
         All departments →
       </Link>
     </nav>
+  );
+}
+
+/** Line icons for the column, chosen from the row name. */
+const ICONS: { match: RegExp; d: string }[] = [
+  { match: /deal|sale/i, d: "M13 2 4 14h7l-1 8 9-12h-7l1-8Z" },
+  { match: /new/i, d: "M12 5v14M5 12h14" },
+  { match: /best|popular/i, d: "M5 20V10M12 20V4M19 20v-7" },
+  { match: /rated|top/i, d: "m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" },
+  { match: /low|cheap|price/i, d: "M3 12V4h8l10 10-8 8L3 12Zm5-4h.01" },
+  { match: /home|decor|furniture/i, d: "M3 11 12 4l9 7v9H3v-9Zm6 9v-6h6v6" },
+  { match: /candle|scent/i, d: "M12 3c1.5 2 2 3 2 4a2 2 0 1 1-4 0c0-1 .5-2 2-4ZM9 11h6v10H9z" },
+  { match: /women|lad/i, d: "M9 3h6l-1 5 4 13H6l4-13-1-5Z" },
+  { match: /men/i, d: "M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3h-2a2 2 0 0 1-4 0H8Z" },
+  { match: /kid|baby|child/i, d: "M12 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 17a6 6 0 0 1 12 0" },
+  { match: /shoe/i, d: "M3 16h18v3H3zM3 16l1-8 5 2 3 3 7 1 2 2" },
+];
+const FALLBACK = "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z";
+
+function RowIcon({ name, hot }: { name: string; hot: boolean }) {
+  const d = ICONS.find((icon) => icon.match.test(name))?.d ?? FALLBACK;
+  return (
+    <svg
+      aria-hidden
+      className={`h-4 w-4 shrink-0 ${hot ? "text-[#ff5000]" : "text-shop-body"}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <path d={d} />
+    </svg>
   );
 }

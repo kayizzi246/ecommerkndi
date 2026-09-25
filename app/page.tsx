@@ -133,6 +133,8 @@ export default async function Home() {
     departmentRails,
     latest,
     latestTotalPages,
+    deals,
+    bestSellers,
   } = await buildHomeFeed();
 
   /** Brand plus suffix, spaced — for the closing about block. */
@@ -225,7 +227,13 @@ export default async function Home() {
             departments, the deepest cuts with prices showing, and the account. */}
         <ChannelRow />
 
-        <PortalBand settings={settings} departments={departments} newest={latest} />
+        <PortalBand
+          settings={settings}
+          departments={departments}
+          newest={latest}
+          deals={deals}
+          bestSellers={bestSellers}
+        />
 
         <PickedForYou
           latest={forYou}

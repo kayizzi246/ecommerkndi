@@ -63,7 +63,7 @@ export default function PortalAccount({
   return (
     <aside
       aria-label="Your account"
-      className="hidden h-full flex-col rounded-2xl bg-white p-4 xl:flex"
+      className="hidden h-full flex-col rounded-2xl bg-shop-surface p-4 xl:flex"
     >
       <div className="flex items-center gap-2.5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-shop-primary-soft">
@@ -91,7 +91,7 @@ export default function PortalAccount({
         </span>
 
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-bold text-shop-ink">
+          <p className="truncate text-[15px] font-bold text-shop-ink">
             {customer ? `${greeting}, ${customer.name.split(" ")[0]}` : greeting}
           </p>
           {/* Wraps to two lines rather than truncating. The column is 235px and
@@ -110,17 +110,18 @@ export default function PortalAccount({
       {customer ? (
         <Link
           href="/account"
-          className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[12px]"
+          className="mt-3.5 block w-full rounded-full bg-[#ff5000] py-2.5 text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
         >
           My account
         </Link>
       ) : (
         <>
+          <p className="mt-3 text-[15px] font-semibold text-shop-ink">Log in to Kandi for more</p>
           <Link
             href="/account"
-            className="btn-shop mt-3.5 block w-full rounded-full py-2 text-center text-[12px]"
+            className="mt-2.5 block w-full rounded-full bg-[#ff5000] py-2.5 text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
           >
-            Sign in
+            Log in now
           </Link>
           {/* Register is a link rather than a second button. Two pills of equal
               weight make the shopper choose between them before they have read
@@ -128,7 +129,7 @@ export default function PortalAccount({
               one plainly available. */}
           <p className="mt-2 text-center text-[12px] text-shop-muted">
             New here?{" "}
-            <Link href="/account" className="font-semibold text-shop-primary hover:underline">
+            <Link href="/account" className="font-semibold text-[#ff5000] hover:underline">
               Create an account
             </Link>
           </p>
@@ -139,18 +140,21 @@ export default function PortalAccount({
           shopper is signed in or not — a signed-out tap lands on the sign-in
           screen and comes back, which is a shorter path than hiding them and
           making somebody find them after. */}
-      <ul className="mt-4 grid grid-cols-2 gap-x-2 gap-y-3 pt-3.5">
+      <ul className="mt-4 grid grid-cols-4 gap-1">
         {[
-          { label: "Orders", href: "/account/orders" },
-          { label: "Saved", href: "/account/wishlist" },
-          { label: "Stores", href: "/sellers" },
-          { label: "Reviews", href: "/account/reviews" },
+          { label: "Orders", href: "/account/orders", d: "M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" },
+          { label: "Saved", href: "/account/wishlist", d: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" },
+          { label: "Stores", href: "/sellers", d: "M4 9h16l-1-5H5L4 9Zm1 0v11h14V9M9 20v-6h6v6" },
+          { label: "Reviews", href: "/account/reviews", d: "m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" },
         ].map((item) => (
           <li key={item.label}>
             <Link
               href={item.href}
-              className="block truncate text-center text-[12px] font-medium text-shop-body transition-colors hover:text-shop-primary"
+              className="flex flex-col items-center gap-1 text-[12px] text-shop-body transition-colors hover:text-[#ff5000]"
             >
+              <svg aria-hidden className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" viewBox="0 0 24 24">
+                <path d={item.d} />
+              </svg>
               {item.label}
             </Link>
           </li>

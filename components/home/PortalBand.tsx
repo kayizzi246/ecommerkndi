@@ -1,5 +1,4 @@
-import Link from "next/link";
-import MiniProduct from "@/components/home/MiniProduct";
+import HeroMosaic from "@/components/home/HeroMosaic";
 import PortalAccount from "@/components/home/PortalAccount";
 import PortalCategories from "@/components/home/PortalCategories";
 import { formatPrice } from "@/lib/currency";
@@ -32,10 +31,14 @@ export default function PortalBand({
   departments,
   /** The catalogue newest first, behind the "Just in" panel. Six are drawn. */
   newest,
+  deals,
+  bestSellers,
 }: {
   settings: SiteSettings;
   departments: CategoryNode[];
   newest: Product[];
+  deals: Product[];
+  bestSellers: Product[];
 }) {
   return (
     <section
@@ -51,65 +54,9 @@ export default function PortalBand({
     >
       <PortalCategories departments={departments} />
 
-      {/* ---- The "Just in" panel ----
-
-          The newest products in the shop with the prices showing, so the first
-          thing a returning shopper meets is what has landed since last time.
-          It was the deepest discounts, which drew nothing when fewer than four
-          items were on sale — the panel was missing more often than not. It
-          still draws nothing below four products, so a near-empty catalogue
-          gets a two-column band rather than a half-filled row. */}
-      {newest.length >= 4 && (
-        <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 md:p-3.5">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[12px] font-bold leading-tight text-shop-ink sm:text-[13px]">
-              Just in
-              <span className="ml-1.5 hidden font-medium text-shop-muted sm:inline">
-                — the newest products in the shop
-              </span>
-            </p>
-            <span className="shrink-0 rounded-full bg-pop-green-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em] text-shop-save">
-              New
-            </span>
-          </div>
-
-          {/* ---- Three on a phone, six from md ----
-
-              Three across a 360px screen inside a panel that pays its own
-              padding is a ~105px cell, which is the size a price is still read
-              at. The middle track is the widest thing on the band from md, so
-              it takes six — the fourth, fifth and sixth are still fetched and
-              rendered and simply not drawn below md, so the markup is one thing
-              with three items hidden rather than two layouts. */}
-          <ul className="grid flex-1 grid-cols-3 gap-1.5 sm:gap-2 md:grid-cols-6 lg:flex-none">
-            {newest.slice(0, 6).map((product, index) => (
-              <li key={product.id} className={index >= 3 ? "hidden md:block" : undefined}>
-                <MiniProduct
-                  product={product}
-                  sizes="(max-width: 640px) 30vw, (max-width: 768px) 30vw, (max-width: 1280px) 14vw, 150px"
-                />
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-auto flex items-center justify-between gap-3 pt-2.5">
-            {/* The threshold, read from wp-admin, so a shop that changes it
-                changes this line with it. */}
-            <span className="hidden text-[11px] text-shop-muted md:inline">
-              Free delivery over{" "}
-              <span className="font-semibold text-shop-ink">
-                {formatPrice(settings.commerce.free_delivery_from)}
-              </span>
-            </span>
-            <Link
-              href="/search?sort=newest"
-              className="text-[12px] font-semibold text-shop-primary hover:underline"
-            >
-              All new arrivals →
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* The Taobao-style mosaic: two campaign banners and a promise strip,
+          then four small shelves. See `HeroMosaic`. */}
+      <HeroMosaic deals={deals} newest={newest} bestSellers={bestSellers} />
 
       <PortalAccount
         freeDeliveryLabel={formatPrice(settings.commerce.free_delivery_from)}
