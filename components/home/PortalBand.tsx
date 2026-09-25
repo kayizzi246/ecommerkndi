@@ -60,7 +60,7 @@ export default function PortalBand({
           still draws nothing below four products, so a near-empty catalogue
           gets a two-column band rather than a half-filled row. */}
       {newest.length >= 4 && (
-        <div className="flex h-full flex-col rounded-2xl bg-shop-surface p-2.5 md:p-3.5">
+        <div className="flex h-full flex-col rounded-2xl bg-white p-2.5 md:p-3.5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[12px] font-bold leading-tight text-shop-ink sm:text-[13px]">
               Just in

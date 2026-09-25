@@ -120,7 +120,7 @@ export default function PortalCategories({
       // `overflow-visible` is load-bearing: the flyout is an absolutely
       // positioned child that has to escape this box to the right, and a panel
       // that clipped it would render the whole hover interaction as a 2px sliver.
-      className="hidden h-full flex-col overflow-visible rounded-2xl bg-shop-surface p-3 md:flex"
+      className="hidden h-full flex-col overflow-visible rounded-2xl bg-white p-3 md:flex"
     >
       <p className="mb-1 px-2 text-[12px] font-bold text-shop-ink">
         All categories
