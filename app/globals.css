@@ -3102,3 +3102,24 @@ summary::-webkit-details-marker {
     font-size: 16px;
   }
 }
+
+/* ---- Phone grid: tiles touch, and the price is heavier ----
+ * The gutters added when the tile hairlines came out are taken back on a
+ * phone: the masonry columns sit edge to edge, as they did before.
+ * The tile price goes to 900. Arial has no weight above bold, so the fallback
+ * does the work — Roboto on Android has a true Black — and a hairline stroke
+ * in the text colour thickens it the same amount on iOS. */
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    column-gap: 0;
+    row-gap: 0;
+    padding-inline: 0;
+  }
+  .product-grid-flush > * {
+    margin-bottom: 0;
+  }
+  .tile-type .price {
+    font-weight: 900;
+    -webkit-text-stroke: 0.3px currentColor;
+  }
+}
