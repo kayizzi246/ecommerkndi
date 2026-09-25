@@ -373,24 +373,16 @@ export default function ProductCard({
    * they differ by HUE now rather than by fill, so "Choice" and "Super Deal" can
    * never collapse into the same black rectangle again the way they did when a
    * token was retired underneath them. */
+  /* The purple programme badge at the foot of the tile. A reduction is
+     not in this cascade any more — it is the orange "Sale" chip leading the
+     name instead. */
   const chip = product.featured
-    ? { label: "Choice", className: "bg-pop-violet-soft text-pop-violet" }
-    : discount >= 30
-      ? /* Red, where this was the brand orange. It is the only one of the four
-           chips that is about the PRICE, and the price marks on this tile — the
-           corner percentage and the reduced figure — are red; an orange deal
-           chip beside a red percentage was the tile saying one thing in two
-           voices. The other three chips keep their own hues, which is what
-           stops the row of them collapsing into one colour again. */
-        { label: "Super Deal", className: "bg-shop-price-was-soft text-[color:var(--color-shop-price-was)]" }
-      : /* New sits above "Top rated" and below the two deal chips: a shopper
-           who has been here before is looking for what changed, and a new
-           listing has no rating yet to win the slot on anyway. */
-        isNew
-        ? { label: "New", className: "bg-pop-green-soft text-shop-save" }
-        : topRated
-          ? { label: "Top rated", className: "bg-pop-blue-soft text-pop-blue" }
-          : null;
+    ? "Choice"
+    : isNew
+      ? "New"
+      : topRated
+        ? "Top rated"
+        : null;
 
   /* The ribbon on the photograph. "Selling fast" outranks the sales tiers
      because it is the only one of these words that is about right now: a
@@ -1125,7 +1117,7 @@ export default function ProductCard({
           the separation is being made twice. Taking one of them back is the
           cheapest height on the tile: it is paid once per row, on every row of
           every screen a shopper scrolls. */}
-      <div className="flex flex-1 flex-col gap-0 pt-1">
+      <div className="tile-type flex flex-1 flex-col gap-0 pt-1">
         <Link href={href} className="block">
           {/* ---- Two lines, plain weight, and a fixed box ----
 
@@ -1210,12 +1202,13 @@ export default function ProductCard({
               place there is height to spare. 18 on 14 is 1.29, the same ratio
               the phone runs at, so a name now reads the same way at every
               width. */}
-          <h3 className="product-name line-clamp-2 min-h-[34px] text-[12px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
-            {chip && (
-              <span
-                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
-              >
-                {chip.label}
+          <h3 className="product-name line-clamp-2 min-h-[36px] text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[38px] sm:text-[14px] sm:leading-[19px]">
+            {discount > 0 && !soldOut && (
+              <span className="tile-sale-chip mr-1 align-[1px]">
+                <svg aria-hidden className="h-[9px] w-[9px]" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M11.3 1.5c.3 2.6-.9 4.2-2.3 5.6C7.6 8.5 6 10 6 12.6 6 15.6 8.2 18 11 18s5-2.2 5-5.3c0-1.9-.8-3.4-1.8-4.6-.2 1.3-.9 2.2-1.9 2.6.6-3.4-.3-7-1-9.2Z" />
+                </svg>
+                Sale
               </span>
             )}
             {product.name}
@@ -1584,6 +1577,18 @@ export default function ProductCard({
             above the pin flows from the top and can appear and disappear
             freely, which is where a conditional row belongs. */}
         {!soldOut && <TileFreeDelivery price={product.price} />}
+
+        {/* The programme badge — Choice, New or Top rated — in solid purple. */}
+        {chip && (
+          <p className="pt-1">
+            <span className="tile-badge">
+              <svg aria-hidden className="h-[10px] w-[10px]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
+              </svg>
+              {chip}
+            </span>
+          </p>
+        )}
       </div>
 
       {/* ---- The whole tile is the link ----

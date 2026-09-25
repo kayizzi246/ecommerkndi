@@ -2958,3 +2958,99 @@ summary::-webkit-details-marker {
   height: 3px;
   background: var(--color-bfl-yellow);
 }
+
+/* ---- Stronger, slightly larger tile type ----
+ * One step up on every text row of a tile, and the greys darkened so nothing
+ * on the card reads washed out: the name goes to true near-black, the sold
+ * count and struck price from light grey to a mid grey that still sits below
+ * the price, and the price itself to black at 800. */
+.tile-type .product-name {
+  color: #111111;
+}
+.tile-type .price {
+  font-size: 14px;
+}
+.tile-type .was-price {
+  font-size: 11px;
+  color: #555555;
+}
+.tile-type .meta-note {
+  font-size: 12px;
+}
+.tile-type .text-shop-muted {
+  color: #555555;
+}
+.tile-type .text-shop-body {
+  color: #222222;
+}
+@media (min-width: 640px) {
+  .tile-type .price {
+    font-size: 16px;
+  }
+  .tile-type .was-price {
+    font-size: 12px;
+  }
+}
+
+/* ---- Tile type ----
+ * The text block of a product tile in one plain neo-grotesque (Arial /
+ * Helvetica), the marketplace-reference face. */
+.tile-type,
+.tile-type :is(.product-name, .price, .was-price, .meta-note) {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+.tile-sale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 3px;
+  background: #fb7701;
+  color: #fff;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+.tile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 2px;
+  background: #5b2d8e;
+  color: #fff;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+/* ---- No borders or shadows on the storefront ----
+ * The tile, panel and sheet hairlines and the hover outline are gone. With no
+ * ring left between tiles, the flush grid gets gutters so neighbouring cards
+ * still read as separate products. */
+.tile-card,
+.tile-card:hover,
+.product-grid-flush .tile-card:hover,
+.shop-panel,
+.feature-sheet {
+  box-shadow: none !important;
+}
+.product-grid-flush {
+  column-gap: 10px;
+  row-gap: 16px;
+}
+@media (min-width: 40rem) {
+  .product-grid-flush {
+    column-gap: 16px;
+    row-gap: 24px;
+  }
+}
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    column-gap: 10px;
+    padding-inline: 10px;
+  }
+  .product-grid-flush > * {
+    margin-bottom: 14px;
+  }
+}
