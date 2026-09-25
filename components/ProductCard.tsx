@@ -4,6 +4,8 @@ import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileCartButton from "@/components/TileCartButton";
+import TileFreeDelivery from "@/components/TileFreeDelivery";
+import TileDeliveryEta from "@/components/TileDeliveryEta";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
@@ -44,6 +46,9 @@ function listedRecently(dateCreated: string | null | undefined): boolean {
   const listedAt = Date.parse(dateCreated);
   return Number.isFinite(listedAt) && Date.now() - listedAt < NEW_FOR_DAYS * 86_400_000;
 }
+
+/** The most colour swatches a tile previews before it counts the rest. */
+const MAX_SWATCHES = 5;
 
 /**
  * Lifetime units sold that earn the "Bestseller" ribbon.
@@ -117,17 +122,6 @@ function compactSold(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return String(value);
-}
-
-/** "UGX 45,000" with the currency set small, the way the reference sets "£". */
-function PriceFigure({ value }: { value: number }) {
-  const [currency, ...figure] = formatPrice(value).split(" ");
-  return (
-    <>
-      <span className="tile-price-currency">{currency}</span>
-      {figure.join(" ")}
-    </>
-  );
 }
 
 /**
@@ -294,6 +288,11 @@ export default function ProductCard({
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
+  /* The reduction as money rather than as a ratio — see the row itself for
+     why the tile carries both. Guarded on `on_sale` through `discount` so a
+     bad `regular_price` in WooCommerce cannot print a negative saving. */
+  const saving =
+    discount > 0 ? Math.max(0, product.regular_price - product.price) : 0;
 
   const soldOut = product.stock_status === "outofstock";
   const lowStock =
@@ -374,15 +373,24 @@ export default function ProductCard({
    * they differ by HUE now rather than by fill, so "Choice" and "Super Deal" can
    * never collapse into the same black rectangle again the way they did when a
    * token was retired underneath them. */
-  /* The purple programme badge under the stars. The reduction itself is now
-     the "Sale" chip leading the name, so it is not repeated here. */
   const chip = product.featured
-    ? "Choice"
-    : isNew
-      ? "New"
-      : topRated
-        ? "Top rated"
-        : null;
+    ? { label: "Choice", className: "bg-pop-violet-soft text-pop-violet" }
+    : discount >= 30
+      ? /* Red, where this was the brand orange. It is the only one of the four
+           chips that is about the PRICE, and the price marks on this tile — the
+           corner percentage and the reduced figure — are red; an orange deal
+           chip beside a red percentage was the tile saying one thing in two
+           voices. The other three chips keep their own hues, which is what
+           stops the row of them collapsing into one colour again. */
+        { label: "Super Deal", className: "bg-shop-price-was-soft text-[color:var(--color-shop-price-was)]" }
+      : /* New sits above "Top rated" and below the two deal chips: a shopper
+           who has been here before is looking for what changed, and a new
+           listing has no rating yet to win the slot on anyway. */
+        isNew
+        ? { label: "New", className: "bg-pop-green-soft text-shop-save" }
+        : topRated
+          ? { label: "Top rated", className: "bg-pop-blue-soft text-pop-blue" }
+          : null;
 
   /* The ribbon on the photograph. "Selling fast" outranks the sales tiers
      because it is the only one of these words that is about right now: a
@@ -395,11 +403,23 @@ export default function ProductCard({
       ? "Selling fast"
       : (RIBBON_TIERS.find((tier) => product.total_sales >= tier.at)?.label ?? null);
 
-  /* The orange line under the price: scarcity first, then the sales tier. */
-  const proofLine = lowStock
-    ? `Only ${product.stock_quantity} left`
-    : ribbon;
+  /* ---- Colour swatches ----
+     The one variant a shopper judges from the grid. Sizes are not previewed —
+     a size is checked once a product is wanted, on the page where it is chosen
+     — but colour decides whether the product is wanted at all, and a tile that
+     hides it sends the shopper into the PDP to find out the shot was the only
+     colour there is.
 
+     Two or more options, or nothing: a swatch row on a product that comes in
+     one colour is a control that cannot be used.
+
+     `option.value || option.name` matches `ColorSwatch` on the product page —
+     sellers set either a hex or a plain colour word, and CSS takes both. */
+  const colorOptions =
+    product.attributes?.find((attribute) => attribute.name.toLowerCase() === "color")?.options ??
+    [];
+  const swatches = colorOptions.length > 1 ? colorOptions.slice(0, MAX_SWATCHES) : [];
+  const extraSwatches = colorOptions.length - swatches.length;
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
@@ -806,6 +826,125 @@ export default function ProductCard({
             Sold out
           </span>
         )}
+        {/* ---- The discount flag ----
+             A percentage on the photograph, and the argument for it is narrow
+             enough to be worth writing down, because it was deliberately
+             removed once.
+
+             What was removed was a 56px orange medallion stamped across the
+             middle of every discounted product. That was correct to kill: it
+             covered the merchandise, and orange is this shop's brand colour, so
+             a grid of forty of them read as decoration rather than as a
+             number. What replaced it — the percentage beside the price — is
+             where the number *means* the most, sitting between what the item
+             costs and what it cost.
+
+             But the price block is the last thing read, and on a rail that a
+             thumb flicks past in under a second it is often the only thing not
+             read at all. The discount is the single strongest reason to stop,
+             and it was the one signal with no presence in the part of the tile
+             a shopper actually looks at.
+
+             So it is back — as a corner flag, not a medallion: 11px, top
+             right, out of the subject of the shot, and only on products with a
+             genuine reduction. It does not replace the figure beside the
+             price; that stays, because the two do different jobs — this one
+             stops the scroll, that one closes the sale.
+
+             ---- The flag is brand orange, not sale red ----
+
+             It was red, on the argument that red is the discount colour and
+             orange is the brand, so red is the one that says "reduced". That
+             held while red appeared nowhere else on a tile. It stopped holding
+             once the tile carried a red flag, a red Super Deal chip and a red
+             price all at once, on a page whose masthead, nav, buttons and
+             promo bar are orange: two saturated colour families a few degrees
+             apart, which reads as unresolved rather than as emphasis.
+
+             `shop-primary-ink` rather than `shop-primary` is not a nicety.
+             The palette note at the top of `globals.css` is explicit — white
+             on #f2560a is ~3.4:1 and fails AA at small sizes, and this label is
+             11px. #a84006 puts it at ~6.2:1, which is better than the red it
+             replaces managed (4.0:1). The whole deal language — this flag, the
+             Super Deal chip and the discounted price — is now that one colour.
+
+             ---- And it is red again, with the Super Deal chip ----
+
+             The shopkeeper's call, and the reasoning above is not wrong so
+             much as it is now outvoted by the thing it was protecting: a deal
+             has to LOOK like a deal, and on a page whose masthead, buttons and
+             promo bar are all orange, an orange discount flag is one more
+             orange object rather than the loudest one. Red is the colour every
+             marketplace in this market uses for a reduction, and it is the
+             only hue on the tile that is not already spoken for by the brand.
+
+             `shop-sale-price` rather than `shop-sale`: #dc2626 clears 4.8:1
+             with white on it where the #e53935 error red manages 4.0:1, and
+             this label is 11px.
+
+             ---- Yellow, with the chip ----
+
+             The deal language was one token: this flag, the Super Deal chip and
+             the discounted price were all the same red, which is the part the
+             old orange arrangement got right. Red then came out of the palette
+             entirely, `shop-sale-price` resolved to ink, and the flag became a
+             black box in the corner of every reduced photograph — heavier than
+             anything else on the tile, for the least important thing on it.
+
+             It is `bfl-yellow` now, which is where the deal language went: the
+             Super Deal chip, the Super Deals shelf and this flag are one hue
+             again. Ink type on it rather than white, for the same reason as the
+             chip — black on #facc15 is 11:1 and white on it is 1.6:1.
+
+             It also solves the collision the old note worried about. Red used
+             to mean both "reduced" and "nearly gone", so a discounted product
+             with two left carried it in three places; yellow means the deal and
+             nothing else, and the stock line keeps its own voice. */}
+        {!soldOut && discount > 0 && (
+          /* ---- And the deal language came back to orange ----
+
+             The note above is the full history: red, then orange, then yellow.
+             Yellow won on the argument that orange was "one more orange object"
+             on an orange page — which was decided when the tile had no card and
+             the flag was the only thing drawn on a bare photograph.
+
+             The tile is a white card on a cream page now, and yellow lost the
+             argument on sight: #facc15 next to #f2560a, on a warm ground, is two
+             saturated warm hues a few degrees apart, which is the one pairing
+             that reads as an accident rather than as a system. Four of those in
+             a row is what made the old homepage look cluttered rather than
+             cheap. One warm hue, used for the brand AND for the deal, is fewer
+             things to learn and a calmer page.
+
+             Ink type on the orange rather than white, and that part is not
+             taste: white on #f2560a is ~3.4:1 and this label is 11px, where
+             near-black on it is ~5.2:1. It also happens to look better — a dark
+             number on a bright chip is what a price sticker looks like.
+
+             The shape stays as the note above describes it: a pill, 800 weight,
+             a hair of padding, and a warm shadow so it lifts off the photograph
+             rather than sitting flat on it.
+
+             ---- 2026-09-04: red, and this time it is the last round ----
+
+             The shopkeeper's call again, and the history above is five rounds
+             of the same question — red, orange, yellow, orange — asked once per
+             mark. What ended it is not a better hue but a single token: every
+             percentage and every reduced price in the shop now resolves to
+             `--color-shop-price-was` (see its note in globals.css), so the
+             corner flag, the mini tile's flag, the −x% on the product
+             photograph, the "Save x%" chip and the price itself cannot drift
+             apart again the way they did each time one of them was repointed.
+
+             White type rather than the ink this carried on orange: white on
+             #c62828 is 5.5:1 where near-black is 3.9:1, so the polarity flips
+             back with the ground. That is the same trade the yellow round made
+             in the opposite direction, and it is why a fill change here is
+             never only a fill change. */
+          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white">
+            −{discount}%
+          </span>
+        )}
 
         {/* The reference card carries no heart, so it appears on hover — and on
             focus, so it stays reachable from the keyboard. Wishlisting is real
@@ -838,7 +977,45 @@ export default function ProductCard({
           />
         </div>
 
+        {/* ---- The bestseller ribbon ----
 
+            On the photograph, bottom left, opposite the cart button and clear
+            of the discount flag in the top right.
+
+            It is here rather than in the title's chip slot because the chip
+            slot holds exactly one label and it is already spoken for on these
+            products — a bestseller is very often also featured or discounted,
+            so a fourth entry in that cascade would simply never render. The
+            two positions also do different work: the chip is read with the
+            name, this is read with the picture, which is the half of the tile a
+            thumb flicking a rail actually sees.
+
+            Near-black rather than orange. The deal language on a tile is brand
+            orange — the corner flag, the Super Deal chip — and this is not a
+            deal, it is what other shoppers did. A second orange object on the
+            same photograph would read as another discount. */}
+        {!soldOut && ribbon && (
+          /* `rounded-lg` and a touch more padding, in step with the discount
+             flag in the opposite corner. The two are the only marks on a
+             resting photograph and they are read as a pair — one saying what
+             the shop has done to the price, one saying what other shoppers
+             have done about it — so a shape shared between them is what stops
+             the picture looking like it collected two unrelated stickers. */
+          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-bold leading-none text-shop-primary-ink ring-1 ring-shop-primary/15 backdrop-blur-sm">
+            {ribbon}
+          </span>
+        )}
+
+        {/* Add-to-bag rides the corner of the photograph rather than sitting in
+            the text below it. It buys back a whole line of the tile, and it is
+            where a thumb already is after tapping the picture. */}
+        {/* Ringed rather than shadowed, for the reason on the wishlist button
+            above: a white disc on a white product shot needs a drawn edge. */}
+        {/* `z-20`, above the whole-card link — see the wishlist note. Adding to
+            the basket from a tile must not be a navigation. */}
+        <div className="absolute bottom-2 right-2 z-20 rounded-full bg-white/95 ring-1 ring-black/5 backdrop-blur-sm">
+          <TileCartButton product={product} />
+        </div>
       </div>
 
       {/* ---- Detail ----
@@ -948,87 +1125,465 @@ export default function ProductCard({
           the separation is being made twice. Taking one of them back is the
           cheapest height on the tile: it is paid once per row, on every row of
           every screen a shopper scrolls. */}
-      {/* ---- Detail, on the marketplace-grid model ----
-
-           One neutral sans (Arial/Helvetica, via `.tile-type` in globals.css)
-           for every row, in this order:
-
-             name (one line, with a "Sale" chip leading it on a reduction)
-             price · sold count · cart button
-             Was: original price            — reductions only
-             orange proof line              — bestseller tier or low stock
-             stars · review count
-             programme badge                — Choice / Top rated / New
-
-           Delivery, swatches and the saving chip are on the product page. */}
-      <div className="tile-type flex flex-1 flex-col pt-1.5">
+      <div className="flex flex-1 flex-col gap-0 pt-1">
         <Link href={href} className="block">
-          <h3 className="product-name truncate text-[13px] leading-[18px] text-[#222] transition-colors hover:text-shop-primary">
-            {discount > 0 && !soldOut && (
-              <span className="tile-sale-chip mr-1 align-[1px]">
-                <svg aria-hidden className="h-[9px] w-[9px]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M11.3 1.5c.3 2.6-.9 4.2-2.3 5.6C7.6 8.5 6 10 6 12.6 6 15.6 8.2 18 11 18s5-2.2 5-5.3c0-1.9-.8-3.4-1.8-4.6-.2 1.3-.9 2.2-1.9 2.6.6-3.4-.3-7-1-9.2Z" />
-                </svg>
-                Sale
+          {/* ---- Two lines, plain weight, and a fixed box ----
+
+              This was one truncated line, and the argument for that is kept
+              below because it was sound about the thing it was measuring. What
+              it got wrong is what a truncated line does to a real catalogue:
+              these names arrive from suppliers at forty to eighty characters —
+              "STY Men Cross-body Bag + Wallet + A Free Gift Set- Black" — and
+              one line at this width shows about the first twenty of them. A
+              row of tiles all reading "2 Pack Of Men's Faux Leather…" is a grid
+              a shopper cannot tell apart without opening things, which is the
+              one job the name has.
+
+              Two lines is what the marketplaces this grid is modelled on all
+              use, and it is the point at which a supplier title has said which
+              product it is. Three would start showing the keyword stuffing.
+
+              `min-h-[36px]` is the load-bearing half. `line-clamp-2` is a
+              ceiling, not a height, so a one-line name would leave its tile
+              16px shorter than its neighbours and the prices in a row would
+              land on two different lines — the exact misalignment the old
+              single line was reserving space to avoid. The box is fixed at both
+              ends instead: 2 × 18px leading, whether the name fills it or not.
+
+              The weight goes back to 600 with the second line, and the two
+              changes belong together: a two-line block at 400 reads as a
+              paragraph under a photograph, where the same two lines at 600 read
+              as one object with a name. `.product-name` carries the family and
+              the weight — it is unlayered, so it beats a `font-*` utility here
+              and `globals.css` is the only place that number can be changed.
+
+              ---- The earlier argument, for one line, kept ----
+
+              "Two lines were reserved here so that a short name still held the
+              second one and the price below it never moved. The price is
+              bottom-pinned now, so the second line was buying nothing and
+              costing 16px on every tile — and a truncated second line is where
+              a supplier's keyword-stuffed title does its worst reading."
+
+              The 16px is real and it is what this change spends. It buys the
+              difference between a grid of distinguishable products and a grid
+              of identical prefixes. */}
+          {/* 2 x 17px rather than 2 x 18px. The box has to stay fixed at both
+              ends — a one-line name in a flexible box drops its tile and lands
+              the prices in a row on two different lines — so the saving comes
+              from the leading rather than from the line count. 17px on 13px
+              type is still a comfortable 1.31, and it is two pixels off every
+              tile in the grid. */}
+          {/* ---- 13/17 on a phone, 14/18 from `sm` up, at weight 500 ----
+
+              Up from 12/15 and 12/14 at weight 400 — 300 on a phone. The long
+              note above argued the name down to that, and the half of it that
+              is still true is kept: on the scan the name is not a claim, and it
+              should not compete with the price, the saving and the stock line.
+
+              What the note measured was the name's weight in the hierarchy.
+              What it did not measure was whether the name could be read at all.
+              At 12px in the lightest step of a variable face, on the smallest
+              tile in the grid, inside a two-line clamp holding a supplier's
+              keyword-stuffed title, the row that says WHICH product this is was
+              the hardest thing on the card to take in. That is not quiet; the
+              information is simply not getting through, and a shopper who
+              cannot tell two duvet sets apart does not buy either.
+
+              The hierarchy still holds at the new values. `.price` is 800 and
+              red on a reduction, the saving is a green chip, and the name is
+              500 — three steps down and the only uncoloured row in the block.
+
+              `min-h` is exactly 2 × the leading at BOTH sizes — 34/17 on a
+              phone, 36/18 from `sm` up — and that pairing is load-bearing:
+              `line-clamp-2` is a ceiling rather than a height, so any slack in
+              the box is slack a one-line name collects and a two-line name does
+              not, and the prices across a row stop landing on the same line.
+              The two numbers in each pair move together or that guarantee
+              quietly stops holding. It is the first thing to check if a grid
+              row ever looks ragged again.
+
+              The desktop pair is now the LOOSER of the two, where it used to be
+              the tighter one. That inversion is deliberate: the old 14px
+              leading on 12px type was 1.17, which was described here as the
+              floor, and it was bought to save height on a big screen — the one
+              place there is height to spare. 18 on 14 is 1.29, the same ratio
+              the phone runs at, so a name now reads the same way at every
+              width. */}
+          <h3 className="product-name line-clamp-2 min-h-[34px] text-[12px] leading-[17px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
+            {chip && (
+              <span
+                className={`mr-1 inline-flex items-center rounded-[3px] px-1 text-[9px] font-bold leading-[14px] ${chip.className}`}
+              >
+                {chip.label}
               </span>
             )}
             {product.name}
           </h3>
         </Link>
 
-        <div className="flex items-center gap-1.5 pt-1">
-          <p className="flex min-w-0 flex-1 items-baseline gap-x-1.5 overflow-hidden whitespace-nowrap">
-            <span
-              className={`tile-price ${discount > 0 ? "text-[#fb7701]" : "text-[#222]"}`}
-            >
-              <PriceFigure value={product.price} />
+        {/* ---- The price comes straight after the name ----
+
+           It used to be the LAST thing in the block, pinned to the bottom of
+           the tile with `mt-auto` so that every price in a grid row landed on
+           the same line. That is a real property and it is not free: it means
+           the gap between the name and the price is however much the tile has
+           left over, so on a product with no rating, no swatches and no
+           delivery line the two sat an inch apart with nothing between them —
+           and the shopper's eye had to cross that gap on every tile.
+
+           Name then price, touching, is what every marketplace this shop is
+           measured against does, and the reason is that they are one thought:
+           what it is, what it costs. Everything else on the tile — who else
+           bought it, what colours it comes in, how fast it arrives — is
+           evidence for a decision those two lines have already framed, so it
+           belongs after them.
+
+           The alignment that `mt-auto` bought is given up deliberately. It only
+           ever paid off on a row of tiles whose text blocks happened to differ,
+           and the price of it was a hole in every sparse tile in the grid. */}
+
+        {/* ---- The money, and the last thing in the tile ----
+
+             All on one line: what it costs, what it cost, and the reduction. A
+             discounted price turns red — the one place red is allowed — because
+             at a glance the colour is the discount.
+
+             `mt-auto` is what holds the grid together now that every row above
+             it can be absent. A grid row stretches its tiles to a common
+             height, so pinning the price to the bottom of each one puts all the
+             prices in a row on the same line — which is the alignment the fixed
+             row heights used to buy, at no cost in space.
+
+             The size and weight live in `.price` and `.was-price` — the shop's
+             type scale — so a tile cannot drift away from the product page.
+
+             ---- Why the struck-through original disappears below `sm` ----
+
+             On a 382px phone showing 2.5 tiles a tile is about 150px wide, and
+             the three figures — "UGX 120,000  UGX 300,000  −10%" — need roughly
+             double that. `whitespace-nowrap` stops a price ever breaking
+             mid-number, and below `sm` the original and the percentage are
+             dropped rather than squeezed: the discount is already on the
+             photograph as a corner flag, so nothing is lost and the resting
+             price gets the whole width to itself. */}
+        {/* ---- What the shopper keeps, in money ----
+
+             A reduction is on the tile twice already — the corner flag says
+             "−35%" and the struck-through original says what it was — and both
+             of those are ratios a shopper has to do arithmetic on. This is the
+             same fact as the number they would arrive at: what stays in their
+             pocket.
+
+             It is the row worth adding because a percentage is a comparison
+             and a sum is a decision. "−35%" is read against other tiles;
+             "Save UGX 19,000" is read against what else that money buys, which
+             is the thought that ends in a purchase.
+
+             Only on discounted tiles, so it costs nothing on the rest — and it
+             sits ABOVE the price rather than in it, because that row is
+             `overflow-hidden` and a third figure inside it is what produced
+             the sliced "−(" the percentage was removed for.
+
+             Green, and it is the only green in the grid. The price below is
+             red and the corner flag and chip are orange, so this row is the
+             one place on a tile where a third hue is doing work rather than
+             decorating: red is what it costs, green is what it saves. That
+             pairing is the oldest one in retail and it needs no explaining.
+
+             `shop-save` rather than `shop-success` — 11px bold needs the
+             darker step to clear AA. See the token in `globals.css`. */}
+        {saving > 0 && (
+          <p className="pt-[3px]">
+            {/* ---- Green again, and this time it is drawn rather than asserted ----
+
+                The note above spends a paragraph on why this row is green —
+                "red is what it costs, green is what it saves, the oldest
+                pairing in retail" — and then set it in `text-shop-muted`,
+                which is the grey used for sold counts and secondary labels.
+                The reasoning and the class had drifted apart, so the one line
+                on the tile that was supposed to be the reward read as
+                small print.
+
+                It is a chip rather than coloured text because the row it sits
+                in is otherwise all greys and the saving is competing with a
+                price directly below it at 13px/700. `shop-successbg` is the
+                palest green in the palette and `shop-save` is the 4.6:1 step
+                that clears AA at this size — the same pair the trust ribbon
+                uses, so the shop has one green rather than a family of them.
+
+                It stays off the price row itself. That row is
+                `overflow-hidden` to keep tile heights honest, and a third
+                figure inside it is what produced the sliced "−(" the
+                percentage was removed for. */}
+            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-px text-[10px] font-bold leading-[14px] text-shop-save">
+              Save {formatPrice(saving)}
             </span>
-            {product.total_sales > 0 && (
-              <span className="truncate text-[12px] text-[#777]">
-                {compactSold(product.total_sales)}+ sold
+          </p>
+        )}
+        <p className="flex items-baseline gap-x-1.5 overflow-hidden pt-px">
+          {/* ---- The resting price is near-black, not orange ----
+               It was orange for a while, on the argument that one saturated
+               colour repeated in the same position on every tile gives the eye
+               something to track down the page.
+
+               What that argument missed is how many prices are on a screen at
+               once here. Forty orange numbers is not one accent repeated, it is
+               a second colour field competing with the photographs, and orange
+               is also the brand — the masthead, the buttons and the links all
+               use it, so a price set in it stops reading as information and
+               starts reading as decoration.
+
+               Near-black is what the product page has always used for a resting
+               price, so the grid and the PDP agree.
+
+               ---- A reduced price is RED ----
+
+               The argument above is about the RESTING price and it is
+               untouched: forty orange numbers would still be a second colour
+               field, so a price with no reduction behind it stays near-black.
+
+               A reduced price is the other case. Only some tiles carry one, so
+               it is the exception on the page rather than a colour field, and
+               that is the condition under which a colour reads as information.
+               Red is the colour every marketplace this shop competes with uses
+               for it, and a shopper does not have to learn it.
+
+               This went orange for a while, on the argument that a tile
+               carrying a red flag, a red chip and a red price on an orange
+               site was running two colour families at once. That is a real
+               risk and the answer is to ration the OTHER two — the corner flag
+               and the Super Deal chip are brand orange, so the red on a tile
+               is the price and nothing else.
+
+               ---- And now every price is ink, reduced or not ----
+
+               That whole argument was about WHICH red a reduced price should
+               take. There is no red in the palette any more, so the question
+               dissolved: `shop-sale-price` resolves to ink, which is what a
+               resting price was already set in, and the ternary that chose
+               between them was choosing between one colour and itself.
+
+               Removed rather than left as a no-op. A conditional whose branches
+               are identical is worse than no conditional: it reads as a
+               distinction the tile is still making, and the next person to
+               touch this row would spend time working out why it appears not to
+               work.
+
+               Nothing is lost. "Reduced" is still said three times on the tile
+               — the orange corner flag, the struck-through original beside this
+               number, and the "Save UGX x" line under it — and none of those
+               ever depended on the price's own colour. */}
+          {/* Red when it is a reduction, ink when it is just the price.
+
+               An earlier pass removed a ternary here because both of its
+               branches resolved to ink — a distinction the tile appeared to be
+               making and was not. The distinction is real again: a reduced
+               price is set in the price-was red beside its struck original,
+               which is the oldest price-tag convention there is and the one
+               shoppers read without being taught. A resting price stays ink,
+               so the red still means something when it appears. */}
+          <span
+            className={`price whitespace-nowrap ${
+              discount > 0 ? "text-[color:var(--color-shop-price-was)]" : "text-shop-ink"
+            }`}
+          >
+            {formatPrice(product.price)}
+          </span>
+          {/* ---- The struck-through original, and NOT the percentage ----
+
+               The row carried "UGX 145,000  UGX 160,000  −9%" and the third
+               figure was being cut in half: the row is `overflow-hidden` to
+               keep the tile's height honest, and three figures need about
+               double the width of a tile in a six-column grid. What a shopper
+               saw was a sliced "−(".
+
+               The percentage is the one that goes, because it is the only thing
+               in the tile said twice — the corner flag on the photograph is the
+               same number, in the same red, where it is read first. Dropping it
+               here costs no information and gives the two figures that ARE
+               distinct the whole width.
+
+               The original still disappears below `sm`, where a 150px phone
+               tile has room for one price and nothing else. */}
+          {discount > 0 && (
+            <span className="was-price hidden whitespace-nowrap sm:inline">
+              {formatPrice(product.regular_price)}
+            </span>
+          )}
+        </p>
+
+        {/* ---- When it arrives, directly under what it costs ----
+
+            The two facts a shopper weighs against each other are the price and
+            the wait, so they sit together and in that order. Everything below
+            this — the stock warning, the sold count, the rating — is
+            corroboration, read only once those two have passed.
+
+            It is a client component because the date is the viewer's clock and
+            these pages are statically generated: a date rendered on the server
+            is wrong by the next morning. It holds its own height while it
+            waits, so the grid does not jump on hydration. See the note in
+            `TileDeliveryEta`. */}
+        <TileDeliveryEta stockStatus={product.stock_status} />
+
+        {/* The corroboration, under the two lines that matter. */}
+
+        {/* The stock warning, on the products that have one and nowhere else. */}
+        {(soldOut || lowStock) && (
+          <p className="truncate text-[11px] font-medium leading-[14px] text-shop-body">
+            {soldOut ? (
+              "Back in stock soon"
+            ) : (
+              <span className="inline-flex items-center gap-1.5 align-top">
+                {/* ---- Orange, where the dot and the bar below were ink ----
+
+                    `shop-sale` resolved to #111827 when red came out of the
+                    palette, so the scarcity mark and the bar under it were
+                    drawn in the same near-black as the product name and the
+                    price. On a tile that is otherwise photograph and figures,
+                    a 3px black rule under the price does not read as "nearly
+                    gone" — it reads as a border that escaped, and in the
+                    redesigned grid it was the one mark on a tile that looked
+                    like a mistake.
+
+                    Brand orange is the right colour for it and it is the only
+                    hue left with nothing else to do: yellow is the deal
+                    language (the corner flag, the Super Deal chip, the deals
+                    shelf), green is the saving, ink is type. Scarcity is the
+                    remaining thing a tile says, and orange is what the shop
+                    already spends on urgency in the masthead. */}
+                <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-primary" aria-hidden />
+                Only {product.stock_quantity} left
               </span>
             )}
           </p>
-          <div className="relative z-20">
-            <TileCartButton product={product} />
+        )}
+
+        {/* ---- The stock bar ----
+
+            The same fact as the line above it, drawn instead of counted, and
+            the pair is the point: "Only 2 left" is a number a shopper has to
+            weigh against nothing, and a bar two-fifths full is a quantity they
+            read without stopping. Every marketplace this shop competes with
+            runs one, and this is the one urgency device on the tile that is
+            not a claim — it is `stock_quantity` out of the threshold that put
+            the warning there, so a bar can never say "nearly gone" about a
+            product with plenty in the back.
+
+            It is honest about its scale, which is the part that is usually
+            faked. The full width is `LOW_STOCK_AT`, not some invented
+            starting stock: the bar begins at the moment the product becomes
+            scarce and empties from there, so five left is a full bar and one
+            left is a fifth. Nothing here is ever drawn from a figure the shop
+            does not have. */}
+        {lowStock && product.stock_quantity !== null && (
+          <span
+            aria-hidden
+            className="mt-1 block h-[3px] w-full max-w-[90px] overflow-hidden rounded-full bg-shop-hairline sm:mt-0.5"
+          >
+            <span
+              className="block h-full bg-shop-primary"
+              style={{ width: `${Math.max(12, (product.stock_quantity / LOW_STOCK_AT) * 100)}%` }}
+            />
+          </span>
+        )}
+
+        {/* Rating and units sold — the two numbers a shopper uses to decide
+            whether anyone else has taken the risk first.
+
+            The sold count leads and the stars follow, which is the reference's
+            order and the right one here: sales are the number nearly every
+            product has, and a rating is the one most of this catalogue is still
+            missing, so leading with the stars left a row that began with a gap
+            on the majority of tiles.
+
+            `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
+            1.3 leading would otherwise open a 15.6px box under a tile that is
+            trying to be short. */}
+        {/* ---- The store name came off the tile ----
+
+            It used to ride the right-hand end of this row, and the argument for
+            it was a good one: this is a marketplace, the tiles in one grid come
+            from different shops, and the store is what a shopper uses to judge
+            a listing they know nothing else about.
+
+            What that argument missed is what the row does on the tiles with no
+            numbers in it. `product.seller` was one of the three conditions that
+            drew this row at all, so a product with no sales and no reviews —
+            most of a young catalogue — rendered a row containing nothing but a
+            store name pushed to the right by `ml-auto`, floating under a name
+            it was not aligned with. Down a grid of forty tiles the eye reads
+            that as forty rows of debris at forty different heights, which is
+            the opposite of what a store name was added to buy.
+
+            It is also the same words over and over. This catalogue is stocked
+            by a handful of shops, so "Sports Kicks" was printing on most tiles
+            on the screen — and a fact repeated on every tile stops being a way
+            to tell them apart, which was the entire point of showing it.
+
+            Nothing is lost: the store is named on the product page, where the
+            decision is actually made, and it has its own shop page linked from
+            there. The row now appears only when it has a NUMBER to carry, which
+            is what makes the block below the name uniform from tile to tile. */}
+        {(product.total_sales > 0 || product.rating_count > 0) && (
+          <div className="flex items-center gap-x-2 overflow-hidden py-px">
+            {product.total_sales > 0 && (
+              <span className="meta-note shrink-0 leading-none text-shop-muted">
+                {compactSold(product.total_sales)} sold
+              </span>
+            )}
+            {product.rating_count > 0 && (
+              <span className="flex shrink-0 items-center gap-1">
+                <Stars rating={product.average_rating} />
+                <span className="meta-note leading-none text-shop-body">
+                  {product.average_rating.toFixed(1)}
+                </span>
+              </span>
+            )}
           </div>
-        </div>
-
-        {discount > 0 && (
-          <p className="truncate pt-0.5 text-[12px] leading-[16px] text-[#777]">
-            Was: <span className="line-through">{formatPrice(product.regular_price)}</span>
-          </p>
         )}
 
-        {soldOut ? (
-          <p className="truncate pt-0.5 text-[12px] leading-[16px] text-[#777]">Back in stock soon</p>
-        ) : (
-          proofLine && (
-            <p className="truncate pt-0.5 text-[12px] uppercase leading-[16px] text-[#fb7701]">
-              {proofLine}
-            </p>
-          )
-        )}
+        {/* The colours it comes in, when it comes in more than one. Dots rather
+            than the names: at 12px "Charcoal / Off-white / Sand" is unreadable
+            and the colour itself is the label.
 
-        {product.rating_count > 0 && (
-          <div className="flex items-center gap-1 pt-0.5">
-            <Stars rating={product.average_rating} />
-            <span className="text-[12px] leading-none text-[#555]">
-              {product.rating_count.toLocaleString("en-US")}
+            `aria-hidden` on the dots with the names in one visually-hidden
+            string beside them — five unlabelled circles are noise to a screen
+            reader, and the useful form of this row is the sentence, not the
+            swatches. Not interactive here: choosing happens on the product
+            page, and a tile that let a colour be picked would be promising a
+            preview it cannot show. */}
+        {swatches.length > 0 && (
+          <div className="flex items-center gap-1 py-px">
+            <span className="sr-only">
+              Colours: {colorOptions.map((option) => option.name).join(", ")}
             </span>
+            {swatches.map((option) => (
+              <span
+                key={option.name}
+                aria-hidden
+                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: option.value || option.name.toLowerCase() }}
+              />
+            ))}
+            {extraSwatches > 0 && (
+              <span aria-hidden className="meta-note leading-none text-shop-muted">
+                +{extraSwatches}
+              </span>
+            )}
           </div>
         )}
 
-        {chip && (
-          <p className="pt-1">
-            <span className="tile-badge">
-              <svg aria-hidden className="h-[10px] w-[10px]" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
-              </svg>
-              {chip}
-            </span>
-          </p>
-        )}
+        {/* Free delivery, on the items that clear the threshold on their own.
+
+            Above the money block rather than inside it, deliberately: the block
+            below is bottom-pinned by `mt-auto` so that every price in a grid
+            row lands on the same line, and a row rendered underneath the price
+            would lift it off that line on some tiles and not others. Everything
+            above the pin flows from the top and can appear and disappear
+            freely, which is where a conditional row belongs. */}
+        {!soldOut && <TileFreeDelivery price={product.price} />}
       </div>
 
       {/* ---- The whole tile is the link ----

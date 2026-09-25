@@ -44,7 +44,7 @@ export default function TileCartButton({
         // An outlined square beside the price. Quiet at rest so it does not
         // compete with forty others in a grid, orange on hover, and it presses
         // in on tap so the action is felt on a phone as well as seen.
-        : "flex h-[26px] w-[40px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all duration-150 active:scale-95";
+        : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-150 active:scale-95";
 
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
@@ -70,7 +70,7 @@ export default function TileCartButton({
   const filled =
     variant === "bar"
       ? `${base} bg-shop-primary text-white hover:bg-shop-primary-dark`
-      : variant === "icon" ? `${base} border-[#222] bg-white text-[#222] hover:border-[#fb7701] hover:text-[#fb7701]` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
+      : variant === "icon" ? `${base} border-shop-primary/30 bg-white text-shop-primary hover:bg-shop-primary hover:text-white` : `${base} bg-shop-flame text-white hover:bg-shop-primary`;
 
   if (needsOptions) {
     return (
@@ -103,11 +103,10 @@ export default function TileCartButton({
   );
 }
 
-function CartIcon({ className = "h-[18px] w-[18px]" }: { className?: string }) {
+function CartIcon({ className = "h-[19px] w-[19px]" }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2.2l2 11.5h11.1L20 9" />
-      <path strokeLinecap="round" d="M12.5 7v6M9.5 10h6" />
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h2.2l2 10.5h11.1L20 9H6.2" />
       <circle cx="9" cy="20" r="1.2" />
       <circle cx="17.5" cy="20" r="1.2" />
     </svg>

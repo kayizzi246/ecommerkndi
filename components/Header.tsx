@@ -214,7 +214,7 @@ export default function Header({
     // the shadow was there for.
     <>
     <header
-      className={`sticky top-0 z-40 bg-shop-primary transition-transform duration-300 ease-out motion-reduce:transition-none ${
+      className={`sticky top-0 z-40 border-b border-shop-line bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
         slidUp ? "-translate-y-full" : "translate-y-0"
       }`}
     >
@@ -306,27 +306,7 @@ export default function Header({
            them needs 28px of air above and below to be found, and the height
            saved is height the first row of products gets on the opening
            screen. The scrolled state comes down with it, to py-1.5. */}
-      {/* ---- The promise strip ----
-           Black, desktop only, and only at rest: the three terms a first-time
-           shopper wants answered before searching, in the marketplace-reference
-           arrangement. Collapses away with the rest of the chrome on scroll. */}
-      {!scrolled && (
-        <div className="hidden bg-black text-white md:block">
-          <div className="mx-auto grid max-w-[var(--shell)] grid-cols-3 px-8 py-2">
-            {[
-              { title: "Free delivery", copy: `On orders over ${formatPrice(settings.commerce.free_delivery_from)}`, tone: "text-[#2fd33a]" },
-              { title: "Pay on delivery", copy: "Cash, MTN or Airtel Money", tone: "text-[#ffc400]" },
-              { title: `${settings.commerce.returns_days}-day returns`, copy: "Courier covered if it is faulty", tone: "text-white" },
-            ].map((promise) => (
-              <p key={promise.title} className="flex flex-col items-center text-center leading-tight">
-                <span className={`text-[14px] font-bold ${promise.tone}`}>{promise.title}</span>
-                <span className="text-[12px] text-white/80">{promise.copy}</span>
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="masthead-strong bg-shop-primary text-white">
+      <div className="border-b border-shop-line bg-white">
       <div
         className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-4 gap-y-2 px-4 md:flex-nowrap md:px-8 md:py-2 ${
           scrolled ? "py-1.5" : "py-2"
@@ -546,12 +526,12 @@ export default function Header({
                   logo does. A wordmark that kept its full size would be the
                   tallest thing in a row built to be slim. */}
               <span
-                className={`font-heading font-bold leading-none tracking-[-0.03em] text-white md:text-[21px] ${
+                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] ${
                   scrolled ? "text-[17px]" : "text-[22px]"
                 }`}
               >
                 {settings.brand.name}
-                <span className="text-white/85">{settings.brand.suffix}</span>
+                <span className="text-shop-ink">{settings.brand.suffix}</span>
               </span>
             </>
           )}
@@ -651,7 +631,7 @@ export default function Header({
             type="button"
             onClick={openDrawer}
             aria-label="Open cart"
-            className="flex items-center gap-2 text-white transition-opacity hover:opacity-80"
+            className="flex items-center gap-2 text-shop-ink transition-colors hover:text-shop-primary"
           >
             <span className="relative">
               <svg className="h-[21px] w-[21px]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -664,7 +644,7 @@ export default function Header({
                   cleanly out of the white cart glyph behind it. An orange fill
                   would be invisible here — it was the contrast against a white
                   row that made the old badge a badge at all. */}
-              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold text-shop-primary">
+              <span className="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-shop-primary px-1 text-[11px] font-bold text-white ring-2 ring-white">
                 {count > 9 ? "9+" : count}
               </span>
             </span>
@@ -676,7 +656,7 @@ export default function Header({
               {count > 0 && (
                 <>
                   <br />
-                  <span className="price text-[12px] text-white">
+                  <span className="price text-[12px] text-shop-ink">
                     {formatPrice(subtotal)}
                   </span>
                 </>
@@ -689,7 +669,7 @@ export default function Header({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="Menu"
             aria-expanded={menuOpen}
-            className="text-white transition-opacity hover:opacity-80 lg:hidden"
+            className="text-shop-ink transition-colors hover:text-shop-primary lg:hidden"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -722,7 +702,7 @@ export default function Header({
              judgement made half way — the row is worth its height on a desktop
              and is not worth it on a phone, and the scroll state was never the
              thing that decided that. */
-          className={`hidden bg-white text-shop-body md:block`}
+          className={`hidden border-b border-shop-line bg-white text-shop-body md:block`}
         >
           <div className="mx-auto flex max-w-[var(--shell)] items-center gap-2 px-4 md:px-8">
             {/* The mega-menu is a hover surface, which needs a pointer; below lg
