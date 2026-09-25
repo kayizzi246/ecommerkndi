@@ -1,6 +1,4 @@
 import { buildHomeFeed } from "@/lib/home-feed";
-import ChannelRow from "@/components/home/ChannelRow";
-import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
@@ -128,7 +126,6 @@ export default async function Home() {
    */
   const {
     settings,
-    departments,
     trending,
     departmentRails,
     latest,
@@ -223,9 +220,32 @@ export default async function Home() {
 
             No hero banner: the channel strip says where to go, then the band —
             departments, the deepest cuts with prices showing, and the account. */}
-        <ChannelRow />
-
-        <PortalBand settings={settings} departments={departments} newest={latest} />
+        {/* ---- The opening, on the marketplace-reference model ----
+            A solid green reassurance bar, then straight into the grid under
+            "Explore your interests". The channel strip and the portal band
+            are retired from this page; their destinations stay in the
+            masthead and department bar. */}
+        <div className="phone-gutter">
+          <Link
+            href="/help"
+            className="flex items-center gap-3 bg-[#0a8a00] px-4 py-2.5 text-white md:rounded-md md:px-5"
+          >
+            <span className="flex items-center gap-2 text-[14px] font-bold">
+              <svg aria-hidden className="h-[18px] w-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z" />
+              </svg>
+              Why choose {brand}?
+            </span>
+            <span className="ml-auto hidden items-center gap-6 text-[13px] font-semibold md:flex">
+              <span>Pay on delivery</span>
+              <span>Vetted sellers</span>
+              <span>{settings.commerce.returns_days}-day returns</span>
+            </span>
+            <svg aria-hidden className="ml-auto h-4 w-4 md:ml-0" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m9 6 6 6-6 6" />
+            </svg>
+          </Link>
+        </div>
 
         <PickedForYou
           latest={forYou}

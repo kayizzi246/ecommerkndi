@@ -2958,3 +2958,98 @@ summary::-webkit-details-marker {
   height: 3px;
   background: var(--color-bfl-yellow);
 }
+
+/* ---- Tile type, on the marketplace-grid model ----
+ * The whole text block of a product tile in one plain neo-grotesque (Arial /
+ * Helvetica), the way the reference grid sets it: a regular-weight one-line
+ * name, a heavy price with a small currency, grey sold/was figures, an orange
+ * proof line and a purple programme badge. The tile itself goes flat — no
+ * hairline, a square photo with a small radius — and the gap separates tiles. */
+.tile-card,
+.tile-card:hover {
+  box-shadow: none;
+  background: transparent;
+}
+@media (min-width: 40rem) {
+  .tile-frame {
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+  }
+}
+.tile-type,
+.tile-type .product-name {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.tile-price {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.tile-price-currency {
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+@media (min-width: 40rem) {
+  .tile-price {
+    font-size: 19px;
+  }
+  .tile-price-currency {
+    font-size: 12px;
+  }
+}
+.tile-sale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 3px;
+  background: #fb7701;
+  color: #fff;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.tile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 2px;
+  background: #5b2d8e;
+  color: #fff;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* ---- Flat storefront: no hairlines, and gaps do the separating ----
+ * The tiles are flat now (no card, no ring), so the grid needs real gutters —
+ * the reference runs ~18px across and a wider step down. Panels and sheets
+ * lose their hairline rings for the same reason: the storefront carries no
+ * borders, shadows, glows or gradients. */
+.product-grid-flush {
+  column-gap: 10px;
+  row-gap: 22px;
+}
+@media (min-width: 40rem) {
+  .product-grid-flush {
+    column-gap: 18px;
+    row-gap: 32px;
+  }
+}
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    column-gap: 10px;
+    padding-inline: 10px;
+  }
+  .product-grid-flush > * {
+    margin-bottom: 18px;
+  }
+}
+.product-grid-flush .tile-card:hover,
+.shop-panel,
+.feature-sheet {
+  box-shadow: none !important;
+}
