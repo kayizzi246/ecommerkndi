@@ -3054,3 +3054,41 @@ summary::-webkit-details-marker {
     margin-bottom: 14px;
   }
 }
+
+/* ---- Phone type, one step up ----
+ * Below 640px every main text style gains about a pixel. Sizes only — the
+ * spacing scale is rem-based off `html`, which is left alone so tiles, gaps
+ * and padding keep their current measurements. The tile name keeps its
+ * two-line box locked: `min-height` is exactly twice the new leading. */
+@media (max-width: 39.99rem) {
+  body {
+    font-size: 14px;
+  }
+  .meta-note {
+    font-size: 12px;
+  }
+  .nav-label,
+  .category-name {
+    font-size: 13px;
+  }
+  .price {
+    font-size: 13px;
+  }
+  .was-price {
+    font-size: 11px;
+  }
+  .tile-type .product-name {
+    font-size: 14px;
+    line-height: 19px;
+    min-height: 38px;
+  }
+  .tile-type .price {
+    font-size: 15px;
+  }
+  .tile-type .was-price {
+    font-size: 12px;
+  }
+  .tile-type .meta-note {
+    font-size: 13px;
+  }
+}
