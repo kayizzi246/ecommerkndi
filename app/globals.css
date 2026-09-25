@@ -3139,3 +3139,13 @@ summary::-webkit-details-marker {
   line-height: 20px;
   min-height: 40px;
 }
+
+/* ---- Tighter grid gutters from `sm` up ----
+ * 8px across and 12px down, from 16 and 24: close enough that a row reads as
+ * one shelf, still enough to separate borderless tiles. Phones stay flush. */
+@media (min-width: 40rem) {
+  .product-grid-flush {
+    column-gap: 8px;
+    row-gap: 12px;
+  }
+}
