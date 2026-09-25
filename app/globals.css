@@ -3130,3 +3130,12 @@ summary::-webkit-details-marker {
 .tile-type .product-name {
   font-family: var(--font-ui);
 }
+
+/* ---- Tile names one step larger: 15/20 at every width ----
+ * Was 14/19. `min-height` stays exactly twice the leading, so every name
+ * still holds two lines and the prices across a row stay level. */
+.tile-type .product-name {
+  font-size: 15px;
+  line-height: 20px;
+  min-height: 40px;
+}
