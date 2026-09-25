@@ -457,14 +457,14 @@ export default function Header({
                    `max-w` cap at both steps: the file is an arbitrary upload,
                    so the height is what is being set and the width is only
                    being stopped from running away. */
-                /* 48px on a phone (36px once scrolled), up from 40. The wordmark was the smallest
+                /* 48px on a phone (44px once scrolled), up from 40. The wordmark was the smallest
                    thing in a row that also carries a cart total and a badge,
                    and on the one screen where the brand has to establish itself
                    in a single glance it was the quietest element in it. The
                    cap goes up with it so a wide wordmark is scaled by height
                    rather than clipped by the width limit. */
                 className={`w-auto object-contain md:h-11 md:max-w-[190px] ${
-                  scrolled ? "h-9 max-w-[150px]" : "h-12 max-w-[210px]"
+                  scrolled ? "h-11 max-w-[165px]" : "h-12 max-w-[210px]"
                 }`}
               />
             </span>
@@ -548,7 +548,7 @@ export default function Header({
                   tallest thing in a row built to be slim. */}
               <span
                 className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] ${
-                  scrolled ? "text-[17px]" : "text-[22px]"
+                  scrolled ? "text-[20px]" : "text-[22px]"
                 }`}
               >
                 {settings.brand.name}
