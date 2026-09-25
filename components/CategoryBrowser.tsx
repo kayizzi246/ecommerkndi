@@ -96,7 +96,7 @@ export default function CategoryBrowser({
           exists to serve. */}
       <nav
         aria-label="Departments"
-        className="no-scrollbar sticky top-0 max-h-[100dvh] w-[104px] shrink-0 overflow-y-auto overscroll-contain border-r border-shop-line bg-[#f7f7f7]"
+        className="no-scrollbar sticky top-[var(--header-h,0px)] max-h-[calc(100dvh-var(--header-h,0px))] w-[104px] shrink-0 overflow-y-auto overscroll-contain border-r border-shop-line bg-[#f7f7f7]"
       >
         <ul>
           {departments.map((department, index) => {

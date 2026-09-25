@@ -141,6 +141,23 @@ export default function Header({
    */
   const lastY = useRef(0);
 
+  /* The masthead publishes its own height as `--header-h`, so anything else
+     that sticks to the top of a phone screen (the /categories department
+     rail) can sit under it rather than behind it. It changes as the row
+     collapses on scroll, hence an observer rather than a one-off measure. */
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const element = headerRef.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const publish = () =>
+      root.style.setProperty("--header-h", `${element.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     // Reading scrollY in the handler and acting in a frame keeps this off the
     // scroll thread; the listener is passive so it can never block one.
@@ -214,8 +231,12 @@ export default function Header({
     // the shadow was there for.
     <>
     <header
+      ref={headerRef}
       className={`sticky top-0 z-40 border-b border-shop-line bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
-        slidUp ? "-translate-y-full" : "translate-y-0"
+        /* Desktop only. On a phone the masthead stays pinned so the search
+           field is always one tap away while scrolling the grid — it already
+           collapses to a single slim logo-and-search row once scrolled. */
+        slidUp ? "md:-translate-y-full" : "translate-y-0"
       }`}
     >
       {/* ---- The announcement strip is gone ----

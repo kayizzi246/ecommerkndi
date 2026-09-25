@@ -3092,3 +3092,13 @@ summary::-webkit-details-marker {
     font-size: 13px;
   }
 }
+
+/* ---- The search field is 16px on a phone ----
+ * iOS Safari zooms the whole page in when a focused input is under 16px, and
+ * never zooms back out, which left the masthead cropped after every search.
+ * 16px below 640px stops that; desktop keeps 13px. */
+@media (max-width: 39.99rem) {
+  .search-input {
+    font-size: 16px;
+  }
+}

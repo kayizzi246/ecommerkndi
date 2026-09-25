@@ -354,7 +354,7 @@ export default function SearchBar({
                 // which is what replays the animation — a CSS animation on a
                 // persistent node only ever runs once.
                 key={prompt}
-                className="ticker-line block truncate text-[13px] text-shop-muted"
+                className="ticker-line block truncate text-[16px] text-shop-muted sm:text-[13px]"
               >
                 {SEARCH_PROMPTS[prompt]}
               </span>
