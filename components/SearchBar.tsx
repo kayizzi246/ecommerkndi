@@ -328,7 +328,7 @@ export default function SearchBar({
             placeholder={placeholder ?? "Search for products, brands and more"}
             /* `.search-input` is the scale's search row — 400 at 14px — rather
                than the 15px this had picked up on its own. */
-            className={`search-input w-full bg-transparent py-2.5 focus:outline-none ${
+            className={`search-input w-full bg-transparent py-2.5 leading-[20px] focus:outline-none ${
               // Hide the real placeholder only while the animated one is
               // covering it, so the two can never be legible at once.
               showPrompt ? "placeholder:text-transparent" : "placeholder:text-shop-muted"
@@ -391,9 +391,13 @@ export default function SearchBar({
           <button
             type="submit"
             aria-label="Search"
-            className="flex h-10 w-12 shrink-0 items-center justify-center self-stretch bg-shop-primary text-white transition-colors hover:bg-shop-primary-dark"
+            /* On a phone the button is inset — a rounded square with 3px of the
+               field around it — so it sits inside the pill rather than
+               stretching to whatever height the 16px input gives the row.
+               From `sm` it is the full-height block at the field's end. */
+            className="m-[3px] flex h-[34px] w-[42px] shrink-0 items-center justify-center self-center rounded-md bg-shop-primary text-white transition-colors hover:bg-shop-primary-dark sm:m-0 sm:h-10 sm:w-12 sm:self-stretch sm:rounded-none"
           >
-            <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+            <svg className="h-[18px] w-[18px] sm:h-[19px] sm:w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
