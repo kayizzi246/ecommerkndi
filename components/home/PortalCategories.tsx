@@ -68,7 +68,23 @@ const ROWS = 10;
  * why the row count is a ceiling rather than a target: a shop with nothing
  * beneath its departments correctly gets four rows again.
  */
-function buildRows(departments: CategoryNode[]): Row[] {
+/**
+ * The tree with every empty branch cut off.
+ *
+ * A department with nothing in it anywhere beneath it — Men and Kids, on the
+ * live catalogue — was still listed first in this column, and its row, its
+ * "/ Hoodies / Jewelry" subtitle and every link in its flyout opened an empty
+ * page. A node survives only if it, or something under it, has a product.
+ */
+function stockedTree(nodes: CategoryNode[]): CategoryNode[] {
+  return nodes.flatMap((node) => {
+    const children = stockedTree(node.children);
+    return (node.count ?? 0) > 0 || children.length > 0 ? [{ ...node, children }] : [];
+  });
+}
+
+function buildRows(allDepartments: CategoryNode[]): Row[] {
+  const departments = stockedTree(allDepartments);
   const rows: Row[] = departments.map((department) => ({
     key: `d${department.id}`,
     name: department.name,

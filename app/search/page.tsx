@@ -37,6 +37,13 @@ type Search = {
   brand?: string;
 };
 
+/** The sort orders the homepage channels link to without a search term. */
+const BROWSE_TITLES: Record<string, string> = {
+  newest: "New in",
+  popular: "Best sellers",
+  rating: "Top rated",
+};
+
 export default async function SearchPage({
   searchParams,
 }: {
@@ -61,9 +68,16 @@ export default async function SearchPage({
   // whole result set rather than to whichever 24 rows this page happened to
   // get. Without that, "price: low to high" ordered page 1 among itself and
   // left cheaper products stranded on page 2.
-  const { products, total, total_pages } = query
+  /* ---- Browsing by sort, with no term ----
+     The homepage channels link here with a sort and no search word —
+     `?sort=newest`, `?sort=popular`, `?sort=rating` — and those pages
+     rendered "What are you looking for?" with nothing in them, because
+     products were only fetched when there was a term. A recognised sort is
+     now enough on its own: it lists the whole catalogue in that order. */
+  const browseTitle = BROWSE_TITLES[sort ?? ""];
+  const { products, total, total_pages } = query || browseTitle
     ? await getProductsSafe({
-        search: query,
+        ...(query ? { search: query } : {}),
         page,
         per_page: 24,
         ...(scope ? { category: scope } : {}),
@@ -119,7 +133,7 @@ export default async function SearchPage({
           <div className="phone-gutter mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
             <div>
               <h1 className="section-title text-[19px] text-shop-ink md:text-[23px]">
-                {query ? `“${query}”` : "Search"}
+                {query ? `“${query}”` : (browseTitle ?? "Search")}
               </h1>
               <p className="section-sub mt-1 text-[13px]">
                 {filtered
@@ -176,7 +190,7 @@ export default async function SearchPage({
               filters={search}
               sort={sort}
               gridClassName={PRODUCT_GRID}
-              doneLabel="That is every match for this search."
+              doneLabel={query ? "That is every match for this search." : "That is everything for now."}
             />
           )}
         </div>
