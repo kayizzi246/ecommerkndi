@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { sellerApi, type SellerProduct } from "@/lib/seller";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import ImageUploader from "./ImageUploader";
+import CategoryPicker from "@/components/seller/CategoryPicker";
 
 type Props = {
   product: SellerProduct;
@@ -30,6 +31,10 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
   const [regular, setRegular] = useState(String(product.regular_price || ""));
   const [sale, setSale] = useState(product.sale_price ? String(product.sale_price) : "");
   const [stock, setStock] = useState(String(product.stock_quantity ?? 0));
+  // The listing's current category, as a slug. Sent only if the seller changes
+  // it, so an older plugin build without `category_slugs` cannot clear it.
+  const originalCategory = product.category_slugs?.[0] ?? "";
+  const [category, setCategory] = useState(originalCategory);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +101,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
         sale_price: saleNumber,
         stock_quantity: Math.max(0, Number(stock) || 0),
         ...(photosChanged ? { image_urls: photos } : {}),
+        ...(category && category !== originalCategory ? { category } : {}),
       });
       onSaved(saved);
     } catch (caught) {
@@ -151,6 +157,16 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
               className="field-shop text-[14px]"
             />
           </label>
+
+          <div>
+            <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">Category</span>
+            <CategoryPicker value={category} onChange={setCategory} />
+            <p className="mt-1.5 text-[12px] text-shop-muted">
+              {category
+                ? "Shoppers find this listing under the department chosen here."
+                : "Pick a department so shoppers can find this listing when they browse."}
+            </p>
+          </div>
 
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-semibold text-shop-ink">SKU</span>

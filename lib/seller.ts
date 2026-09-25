@@ -132,6 +132,8 @@ export type SellerProduct = {
   /** Every photo at full size, main first. What the editor loads and sends back. */
   images: string[];
   categories: string[];
+  /** Category slugs, parallel to `categories`. Absent from older plugin builds. */
+  category_slugs?: string[];
   units_sold: number;
   created_at: string;
 };

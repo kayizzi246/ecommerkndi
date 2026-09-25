@@ -1474,11 +1474,13 @@ if ( ! function_exists( 'kandi_format_seller_product' ) ) :
 function kandi_format_seller_product( $product ) {
 	$image_id = $product->get_image_id();
 
-	$categories = array();
-	$terms      = get_the_terms( $product->get_id(), 'product_cat' );
+	$categories     = array();
+	$category_slugs = array();
+	$terms          = get_the_terms( $product->get_id(), 'product_cat' );
 	if ( $terms && ! is_wp_error( $terms ) ) {
 		foreach ( $terms as $term ) {
-			$categories[] = $term->name;
+			$categories[]     = $term->name;
+			$category_slugs[] = $term->slug;
 		}
 	}
 
@@ -1512,6 +1514,10 @@ function kandi_format_seller_product( $product ) {
 		'image'          => $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : '',
 		'images'         => array_values( array_filter( $images ) ),
 		'categories'     => $categories,
+		// Slugs beside the names: a name is ambiguous in this tree ("Shoes"
+		// under three departments), and the seller editor preselects its
+		// category picker from these.
+		'category_slugs' => $category_slugs,
 		'units_sold'     => (int) get_post_meta( $product->get_id(), 'total_sales', true ),
 		'created_at'     => $product->get_date_created() ? $product->get_date_created()->date( 'c' ) : null,
 	);
@@ -2623,6 +2629,20 @@ add_action( 'rest_api_init', function () {
 				}
 
 				$product->save();
+
+				// Moving a listing to another department. Same rule as creating
+				// one: existing categories only, resolved by slug first, and an
+				// unknown value is ignored rather than minting a new term.
+				$category = sanitize_text_field( $body['category'] ?? '' );
+				if ( '' !== $category ) {
+					$term = term_exists( $category, 'product_cat' );
+					if ( ! $term ) {
+						$term = term_exists( sanitize_title( $category ), 'product_cat' );
+					}
+					if ( $term && ! is_wp_error( $term ) ) {
+						wp_set_object_terms( $product_id, (int) $term['term_id'], 'product_cat' );
+					}
+				}
 
 				// Photos are replaced wholesale, and only when the key is present:
 				// an editor that never touched the gallery sends nothing, so a

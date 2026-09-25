@@ -72,9 +72,14 @@ export default function CategoryPicker({
    * effect, which is React's own answer to state that has to follow a prop: an
    * effect would paint the empty picker first and correct it a frame later.
    */
-  const [syncedFrom, setSyncedFrom] = useState(value);
-  if (value !== syncedFrom) {
-    setSyncedFrom(value);
+  /* Keyed on the category list as well as the value. The editor opens with a
+     saved slug before the list has loaded, and resolving it against an empty
+     tree gave an empty path that was never revisited — the listing's current
+     category simply did not show. Re-syncing once the list arrives fixes it. */
+  const syncKey = `${value}|${categories.length}`;
+  const [syncedFrom, setSyncedFrom] = useState("");
+  if (syncKey !== syncedFrom) {
+    setSyncedFrom(syncKey);
     const chosen = path[path.length - 1]?.slug ?? "";
     if (value !== chosen) setPath(categoryPath(tree, value));
   }
@@ -98,7 +103,7 @@ export default function CategoryPicker({
 
     setPath(next);
     const slug = next[next.length - 1]?.slug ?? "";
-    setSyncedFrom(slug);
+    setSyncedFrom(`${slug}|${categories.length}`);
     onChange(slug);
   };
 
