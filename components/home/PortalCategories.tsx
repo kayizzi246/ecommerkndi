@@ -36,7 +36,28 @@ type Row = {
   /** The department this sits under. Absent on a department's own row. */
   under?: string;
   children: CategoryNode[];
+  /** A shortcut row links here instead of to `/category/{slug}`. */
+  href?: string;
+  /** Faint text after a shortcut's name. */
+  note?: string;
 };
+
+/**
+ * Rows that always have products behind them, used to fill the column below
+ * the stocked categories. The catalogue has only a handful of categories with
+ * anything in them, and a four-row column under "All categories" read as a
+ * shop with nothing to sell. Each of these is a listing of the whole catalogue
+ * — deals, or a sort of everything — so none can open an empty page. They
+ * fill only the space the real categories leave; as more categories are
+ * stocked, they push these out.
+ */
+const SHORTCUTS: Row[] = [
+  { key: "x-sale", name: "Super Deals", slug: "", href: "/sale", note: "Biggest price cuts", children: [] },
+  { key: "x-new", name: "New in", slug: "", href: "/search?sort=newest", note: "Just added", children: [] },
+  { key: "x-popular", name: "Best sellers", slug: "", href: "/search?sort=popular", note: "Most bought", children: [] },
+  { key: "x-rated", name: "Top rated", slug: "", href: "/search?sort=rating", note: "Loved by shoppers", children: [] },
+  { key: "x-cheap", name: "Lowest prices", slug: "", href: "/search?sort=price_asc", note: "Cheapest first", children: [] },
+];
 
 /**
  * How many rows the column carries.
@@ -118,6 +139,11 @@ function buildRows(allDepartments: CategoryNode[]): Row[] {
     });
   }
 
+  for (const shortcut of SHORTCUTS) {
+    if (rows.length >= ROWS) break;
+    rows.push(shortcut);
+  }
+
   return rows.slice(0, ROWS);
 }
 
@@ -146,7 +172,7 @@ export default function PortalCategories({
         {rows.map((row) => (
           <li key={row.key} className="group relative">
             <Link
-              href={`/category/${row.slug}`}
+              href={row.href ?? `/category/${row.slug}`}
               className="flex items-center gap-1.5 rounded-lg px-2 py-[5.5px] transition-colors group-hover:bg-shop-primary-soft"
             >
               <span className="min-w-0 flex-1 truncate text-[12px] leading-tight">
@@ -159,7 +185,9 @@ export default function PortalCategories({
                     catalogue has three categories called "Shoes" and two called
                     "Boots", so a bare section name is a row a shopper cannot
                     place. */}
-                {row.under ? (
+                {row.note ? (
+                  <span className="text-shop-faint"> · {row.note}</span>
+                ) : row.under ? (
                   <span className="text-shop-faint"> in {row.under}</span>
                 ) : (
                   row.children.length > 0 && (

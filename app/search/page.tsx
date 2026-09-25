@@ -42,6 +42,7 @@ const BROWSE_TITLES: Record<string, string> = {
   newest: "New in",
   popular: "Best sellers",
   rating: "Top rated",
+  price_asc: "Lowest prices",
 };
 
 export default async function SearchPage({
