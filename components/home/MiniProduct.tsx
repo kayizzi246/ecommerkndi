@@ -55,7 +55,7 @@ export default function MiniProduct({
       aria-label={`${product.name} — ${formatPrice(product.price)}`}
       className="group block"
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-photo ring-1 ring-shop-edge">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-photo">
         {product.image ? (
           <Image
             quality={90}

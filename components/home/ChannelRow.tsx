@@ -71,7 +71,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Super Deals",
     href: "/sale",
-    tint: "bg-shop-primary-soft text-shop-primary-ink ring-shop-primary/25",
+    tint: "bg-shop-primary-soft text-shop-primary-ink",
     icon: (
       <Glyph>
         <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
@@ -81,7 +81,7 @@ const CHANNELS: Channel[] = [
   {
     label: "New in",
     href: "/search?sort=newest",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M12 3v18M3 12h18" />
@@ -91,7 +91,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Best sellers",
     href: "/search?sort=popular",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M6 20V10M12 20V4M18 20v-7" />
@@ -101,7 +101,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Top rated",
     href: "/search?sort=rating",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8L12 3.5Z" />
@@ -111,7 +111,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Shop by store",
     href: "/sellers",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 9h16l-1 11H5L4 9Z" />
@@ -122,7 +122,7 @@ const CHANNELS: Channel[] = [
   {
     label: "All categories",
     href: "/categories",
-    tint: "bg-white text-shop-ink hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-ink hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 5h7v7H4V5ZM13 5h7v7h-7V5ZM4 14h7v5H4v-5ZM13 14h7v5h-7v-5Z" />
@@ -132,7 +132,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Free delivery",
     href: "/shipping",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M3 7h11v9H3V7ZM14 10h4l3 3v3h-7v-6Z" />
@@ -144,7 +144,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Track order",
     href: "/track-order",
-    tint: "bg-white text-shop-body hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (
       <Glyph>
         <circle cx="12" cy="12" r="8.5" />
@@ -155,7 +155,7 @@ const CHANNELS: Channel[] = [
   {
     label: "Sell on Kandi",
     href: "/sell",
-    tint: "bg-white text-shop-ink hover:text-shop-primary",
+    tint: "bg-shop-surface text-shop-ink hover:text-shop-primary",
     icon: (
       <Glyph>
         <path d="M4 20h16M7 20V9M12 20V4M17 20v-7" />
@@ -188,7 +188,7 @@ export default function ChannelRow() {
           <li key={channel.label} className="shrink-0">
             <Link
               href={channel.href}
-              className={`group flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-[12px] font-semibold ring-1 ring-shop-edge transition-colors hover:ring-shop-primary md:text-[12px] ${channel.tint}`}
+              className={`group flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-[12px] font-semibold transition-colors md:text-[12px] ${channel.tint}`}
             >
               {channel.icon}
               <span className="whitespace-nowrap">{channel.label}</span>

@@ -63,7 +63,7 @@ export default function PortalAccount({
   return (
     <aside
       aria-label="Your account"
-      className="hidden h-full flex-col rounded-2xl bg-white p-4 ring-1 ring-shop-edge xl:flex"
+      className="hidden h-full flex-col rounded-2xl bg-shop-surface p-4 xl:flex"
     >
       <div className="flex items-center gap-2.5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-shop-primary-soft">
@@ -139,7 +139,7 @@ export default function PortalAccount({
           shopper is signed in or not — a signed-out tap lands on the sign-in
           screen and comes back, which is a shorter path than hiding them and
           making somebody find them after. */}
-      <ul className="mt-4 grid grid-cols-2 gap-x-2 gap-y-3 border-t border-shop-hairline pt-3.5">
+      <ul className="mt-4 grid grid-cols-2 gap-x-2 gap-y-3 pt-3.5">
         {[
           { label: "Orders", href: "/account/orders" },
           { label: "Saved", href: "/account/wishlist" },
