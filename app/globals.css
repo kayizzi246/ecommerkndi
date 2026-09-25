@@ -3123,3 +3123,10 @@ summary::-webkit-details-marker {
     -webkit-text-stroke: 0.3px currentColor;
   }
 }
+
+/* ---- Product names in DM Sans ----
+ * The rest of the tile stays in Arial (`.tile-type` above); the name alone
+ * goes back to the shop's UI face, so it matches the name everywhere else. */
+.tile-type .product-name {
+  font-family: var(--font-ui);
+}
