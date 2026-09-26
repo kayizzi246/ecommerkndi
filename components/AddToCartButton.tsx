@@ -345,7 +345,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           same option validation applies as the main button. */}
       <div
         aria-hidden={actionVisible}
-        className={`fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white/95 backdrop-blur-md transition-transform duration-300 lg:bottom-0 ${
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white transition-transform duration-300 lg:bottom-0 ${
           actionVisible ? "pointer-events-none translate-y-full" : "translate-y-0"
         }`}
       >

@@ -814,7 +814,7 @@ export default function ProductCard({
         </Link>
 
         {soldOut && (
-          <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold leading-none text-shop-body ring-1 ring-shop-line backdrop-blur-sm">
+          <span className="absolute left-2 top-2 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-shop-body ring-1 ring-shop-line">
             Sold out
           </span>
         )}
@@ -964,7 +964,7 @@ export default function ProductCard({
                grey halo to the photograph, and the button is still findable on
                any ground. This is the same reasoning as the cart badge's ring
                in the masthead. */
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-shop-body ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:text-shop-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-shop-body ring-1 ring-black/5 transition-colors hover:text-shop-primary"
             iconClassName="w-[16px] h-[16px]"
           />
         </div>
@@ -993,7 +993,7 @@ export default function ProductCard({
              the shop has done to the price, one saying what other shoppers
              have done about it — so a shape shared between them is what stops
              the picture looking like it collected two unrelated stickers. */
-          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-bold leading-none text-shop-primary-ink ring-1 ring-shop-primary/15 backdrop-blur-sm">
+          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-full bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-shop-primary-ink ring-1 ring-shop-primary/15">
             {ribbon}
           </span>
         )}
@@ -1005,7 +1005,7 @@ export default function ProductCard({
             above: a white disc on a white product shot needs a drawn edge. */}
         {/* `z-20`, above the whole-card link — see the wishlist note. Adding to
             the basket from a tile must not be a navigation. */}
-        <div className="absolute bottom-2 right-2 z-20 rounded-full bg-white/95 ring-1 ring-black/5 backdrop-blur-sm">
+        <div className="absolute bottom-2 right-2 z-20 rounded-full bg-white ring-1 ring-black/5">
           <TileCartButton product={product} />
         </div>
       </div>

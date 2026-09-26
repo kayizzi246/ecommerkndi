@@ -73,12 +73,12 @@ function Wordmark({ settings }: { settings: SiteSettings }) {
 
 export function SellHeader({ settings }: { settings: SiteSettings }) {
   return (
-    // Sticky and translucent, which is the one piece of behaviour that matters
-    // here: the primary action has to stay reachable from anywhere on a page
-    // this long, and a reader who has scrolled to the FAQ is exactly the reader
-    // most likely to act. `backdrop-blur` rather than a solid fill so the page
-    // still reads as one surface passing underneath.
-    <header className="sticky top-0 z-40 border-b border-shop-line/70 bg-white/85 backdrop-blur-md">
+    // Sticky, which is the one piece of behaviour that matters here: the
+    // primary action has to stay reachable from anywhere on a page this long,
+    // and a reader who has scrolled to the FAQ is exactly the reader most
+    // likely to act. A solid fill, not a frosted one, so nothing blurs
+    // behind it while the page scrolls.
+    <header className="sticky top-0 z-40 border-b border-shop-line/70 bg-white">
       <div className="mx-auto flex h-[72px] max-w-[1200px] items-center gap-6 px-4 md:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Wordmark settings={settings} />

@@ -75,7 +75,7 @@ export default function MobileBottomNav() {
      * of the home indicator on an iPhone, and it belongs on the bar, not on a
      * gap below it.
      */
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
       {/* 64px, up from 60 — the icons inside went from 20px to 24px and from a
           1.5 to a 2 stroke, and the row needed the four pixels back so the
           label underneath does not crowd them.

@@ -94,7 +94,7 @@ export default function ContactRail({ support }: { support: Support }) {
         aria-label="Back to top"
         aria-hidden={!scrolled}
         tabIndex={scrolled ? 0 : -1}
-        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-shop-line bg-white/95 py-2 pl-3 pr-3.5 text-[12px] font-semibold text-shop-body backdrop-blur transition-all duration-200 active:scale-95 lg:hidden ${
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-shop-line bg-white py-2 pl-3 pr-3.5 text-[12px] font-semibold text-shop-body transition-all duration-200 active:scale-95 lg:hidden ${
           scrolled
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none translate-y-2 opacity-0"

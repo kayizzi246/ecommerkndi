@@ -648,7 +648,7 @@ export default function CheckoutPage() {
            bar, and above the form. Open, it scrolls internally rather than
            growing past the viewport — a summary of eight items that covers the
            whole screen when tapped is worse than one that scrolls away. */}
-      <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface/95 backdrop-blur lg:hidden">
+      <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
           <span className="flex items-center gap-2 text-[14px] text-shop-ink">
             Order summary
@@ -1032,7 +1032,7 @@ export default function CheckoutPage() {
            same handler and the same validation as the desktop button. The form
            column carries `pb-28` on phones so the last field is not underneath
            this. */}
-      <div className="checkout-paybar fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-transform duration-200 lg:hidden">
+      <div className="checkout-paybar fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] transition-transform duration-200 lg:hidden">
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] text-shop-muted">

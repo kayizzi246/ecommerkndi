@@ -63,7 +63,7 @@ export default function CartDrawer() {
         aria-label="Close cart"
         tabIndex={drawerOpen ? 0 : -1}
         onClick={closeDrawer}
-        className={`absolute inset-0 cursor-default bg-black/30 backdrop-blur-[1px] transition-opacity duration-300 ${
+        className={`absolute inset-0 cursor-default bg-black/30 transition-opacity duration-300 ${
           drawerOpen ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -73,7 +73,7 @@ export default function CartDrawer() {
         role="dialog"
         aria-modal={drawerOpen}
         aria-label="Shopping cart"
-        className={`absolute bottom-0 right-0 top-0 flex h-full w-full flex-col border-l border-shop-line bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-in-out sm:w-[400px] ${
+        className={`absolute bottom-0 right-0 top-0 flex h-full w-full flex-col border-l border-shop-line bg-white transition-transform duration-300 ease-in-out sm:w-[400px] ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

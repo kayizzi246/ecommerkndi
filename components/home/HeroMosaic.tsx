@@ -60,8 +60,6 @@ export default function HeroMosaic({
     .sort((a, b) => b.average_rating - a.average_rating);
   const cheapest = [...newest].sort((a, b) => a.price - b.price);
 
-  const dealHero = pick(onSale.length > 0 ? onSale : newest, 1)[0];
-  const newHero = pick(newest, 1)[0];
   const strip = pick(sellers, 4);
 
   const shelves: Shelf[] = [
@@ -80,41 +78,34 @@ export default function HeroMosaic({
       {/* ---- Row 1: two banners and the promise strip ---- */}
       <Link
         href="/sale"
-        className="relative flex min-h-[150px] flex-col overflow-hidden rounded-2xl p-3.5 text-white md:min-h-[168px]"
+        className="flex min-h-[150px] flex-col rounded-2xl p-4 text-white transition-[filter] hover:brightness-105 md:min-h-[168px]"
         style={{ background: ORANGE }}
       >
-        <span className="relative z-10 text-[18px] font-extrabold leading-tight md:text-[20px]">
+        <span className="text-[26px] font-black uppercase leading-[0.95] tracking-tight md:text-[32px]">
           Super Deals
         </span>
-        <span className="relative z-10 mt-1 text-[13px] font-semibold leading-snug text-white/95">
+        <span className="mt-1.5 text-[16px] font-extrabold leading-tight md:text-[19px]">
           {maxDiscount > 0 ? `Up to ${maxDiscount}% off today` : "Today's best prices"}
         </span>
-        <span className="relative z-10 mt-auto inline-flex w-fit rounded-full bg-white px-3 py-1 text-[12px] font-bold" style={{ color: ORANGE }}>
+        <span className="mt-auto inline-flex w-fit rounded-full bg-white px-4 py-1.5 text-[14px] font-black" style={{ color: ORANGE }}>
           Shop now →
         </span>
-        {dealHero?.image && (
-          <span className="absolute -bottom-2 -right-2 h-[62%] w-[55%]">
-            <Image src={dealHero.image} alt="" fill sizes="160px" className="object-contain" />
-          </span>
-        )}
       </Link>
 
       <Link
         href="/search?sort=newest"
-        className="relative flex min-h-[150px] flex-col overflow-hidden rounded-2xl bg-[#fbe6cf] p-3.5 md:min-h-[168px]"
+        className="flex min-h-[150px] flex-col rounded-2xl bg-[#fbe6cf] p-4 transition-[filter] hover:brightness-[1.03] md:min-h-[168px]"
       >
-        <span className="relative z-10 w-fit rounded-[4px] px-1.5 py-px text-[11px] font-bold text-white" style={{ background: ORANGE }}>
+        <span className="w-fit rounded-[4px] px-2 py-0.5 text-[12px] font-black uppercase text-white" style={{ background: ORANGE }}>
           New in
         </span>
-        <span className="relative z-10 mt-1.5 text-[17px] font-bold leading-tight text-[#3d2b1f] md:text-[19px]">
+        <span className="mt-2 text-[24px] font-black leading-[1] tracking-tight text-[#2a1a0f] md:text-[29px]">
           Just landed this week
         </span>
-        <span className="relative z-10 mt-1 text-[12px] text-[#6b5444]">Fresh from Kandi sellers</span>
-        {newHero?.image && (
-          <span className="absolute -bottom-2 -right-2 h-[58%] w-[52%]">
-            <Image src={newHero.image} alt="" fill sizes="160px" className="object-contain" />
-          </span>
-        )}
+        <span className="mt-1.5 text-[14px] font-bold text-[#6b5444]">Fresh from Kandi sellers</span>
+        <span className="mt-auto inline-flex w-fit rounded-full px-4 py-1.5 text-[14px] font-black text-white" style={{ background: ORANGE }}>
+          See what&apos;s new →
+        </span>
       </Link>
 
       <div className="col-span-2 flex flex-col rounded-2xl bg-shop-surface p-3">
