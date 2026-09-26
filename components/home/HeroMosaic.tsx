@@ -195,7 +195,7 @@ function PriceThumb({ product }: { product: Product }) {
         />
       )}
       <span
-        className="absolute bottom-1.5 left-1/2 max-w-[92%] -translate-x-1/2 truncate whitespace-nowrap rounded-md px-1.5 py-px text-[11px] font-bold text-white md:text-[12px]"
+        className="absolute bottom-1.5 left-1/2 max-w-[92%] -translate-x-1/2 truncate whitespace-nowrap rounded px-1 py-px text-[10px] font-bold text-white md:text-[11px]"
         style={{ background: ORANGE }}
       >
         {formatPrice(product.price)}
