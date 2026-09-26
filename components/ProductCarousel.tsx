@@ -70,15 +70,17 @@ export default function ProductCarousel({
         {/* Same 40% as the homepage rails, so a phone shows 2.5 tiles here too
             — the recommendation rail and the merchandising rails must not
             disagree about how big a product is. `sizes` mirrors the widths, so
-            the browser asks for a file the tile can actually use. */}
+            the browser asks for a file the tile can actually use. From lg
+            the row shows six and a half: the cut tile at the edge says there is
+            more to scroll to. */}
         {products.map((product) => (
           <div
             key={product.id}
-            className="w-[43%] shrink-0 snap-start sm:w-[32%] md:w-[24%] lg:w-[19%]"
+            className="w-[43%] shrink-0 snap-start sm:w-[32%] md:w-[24%] lg:w-[calc((100%-72px)/6.5)]"
           >
             <ProductCard
               product={product}
-              sizes="(max-width: 640px) 40vw,(max-width: 768px) 31vw, (max-width: 1024px) 23vw, 18vw"
+              sizes="(max-width: 640px) 40vw,(max-width: 768px) 31vw, (max-width: 1024px) 23vw, 15vw"
             />
           </div>
         ))}
