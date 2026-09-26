@@ -1943,3 +1943,79 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 } );
+
+/* -------------------------------------------------------------------------
+ * Best-selling sub-departments, created once.
+ *
+ * The seller form only offers categories that already exist — sellers can no
+ * longer invent terms — so a department a seller needs has to be made here.
+ * These are the lines that move fastest: watches for both Men and Women, and
+ * the everyday Home Decor pieces.
+ *
+ * Only children are created, and only under a top-level department that is
+ * already there; a missing department is left for a person to add. A child
+ * that already exists under that parent is never duplicated. Bump the version
+ * after editing the list and the missing ones are added on the next load.
+ * ---------------------------------------------------------------------- */
+
+if ( ! function_exists( 'kandi_category_seed_list' ) ) :
+	function kandi_category_seed_list() {
+		return array(
+			'Men'        => array( 'Watches', 'Shirts & T-shirts', 'Trousers & Jeans', 'Bags & Wallets', 'Perfumes', 'Belts' ),
+			'Women'      => array( 'Watches', 'Dresses', 'Handbags', 'Perfumes', 'Wigs & Hair', 'Beauty & Makeup' ),
+			'Home Decor' => array( 'Wall Clocks', 'Wall Art', 'Vases & Flowers', 'Lamps & Lighting', 'Rugs & Carpets', 'Bedding & Curtains', 'Kitchen & Dining' ),
+		);
+	}
+endif;
+
+if ( ! function_exists( 'kandi_find_category' ) ) :
+	/**
+	 * The term called $name under $parent, or null. Where imports left several
+	 * with the same label, the one holding the most products wins — the same
+	 * rule the storefront uses to collapse duplicates.
+	 */
+	function kandi_find_category( $name, $parent ) {
+		$terms = get_terms( array(
+			'taxonomy'   => 'product_cat',
+			'name'       => $name,
+			'parent'     => (int) $parent,
+			'hide_empty' => false,
+		) );
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return null;
+		}
+		usort( $terms, function ( $a, $b ) {
+			return (int) $b->count - (int) $a->count;
+		} );
+		return $terms[0];
+	}
+endif;
+
+if ( ! function_exists( 'kandi_seed_categories' ) ) :
+	function kandi_seed_categories() {
+		$version = '2026-09-26';
+		if ( get_option( 'kandi_category_seed_version' ) === $version || ! taxonomy_exists( 'product_cat' ) ) {
+			return;
+		}
+
+		foreach ( kandi_category_seed_list() as $department => $children ) {
+			$parent = kandi_find_category( $department, 0 );
+			if ( ! $parent ) {
+				continue;
+			}
+			foreach ( $children as $child ) {
+				if ( kandi_find_category( $child, $parent->term_id ) ) {
+					continue;
+				}
+				wp_insert_term( $child, 'product_cat', array(
+					'parent' => (int) $parent->term_id,
+					'slug'   => sanitize_title( $parent->slug . '-' . $child ),
+				) );
+			}
+		}
+
+		update_option( 'kandi_category_seed_version', $version, false );
+	}
+endif;
+
+add_action( 'init', 'kandi_seed_categories', 20 );
