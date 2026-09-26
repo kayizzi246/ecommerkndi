@@ -2985,7 +2985,7 @@ summary::-webkit-details-marker {
 }
 @media (min-width: 640px) {
   .tile-type .price {
-    font-size: 16px;
+    font-size: 15px;
   }
   .tile-type .was-price {
     font-size: 12px;
@@ -3083,7 +3083,7 @@ summary::-webkit-details-marker {
     min-height: 38px;
   }
   .tile-type .price {
-    font-size: 15px;
+    font-size: 14px;
   }
   .tile-type .was-price {
     font-size: 12px;
@@ -3131,13 +3131,14 @@ summary::-webkit-details-marker {
   font-family: var(--font-ui);
 }
 
-/* ---- Tile names one step larger: 15/20 at every width ----
- * Was 14/19. `min-height` stays exactly twice the leading, so every name
+/* ---- Tile names: 14/19 at every width ----
+ * Was 15/20, taken back down a step to read a little lighter.
+ * `min-height` stays exactly twice the leading, so every name
  * still holds two lines and the prices across a row stay level. */
 .tile-type .product-name {
-  font-size: 15px;
-  line-height: 20px;
-  min-height: 40px;
+  font-size: 14px;
+  line-height: 19px;
+  min-height: 38px;
 }
 
 /* ---- Tighter grid gutters from `sm` up ----
