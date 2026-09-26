@@ -112,34 +112,9 @@ export default function Header({
    */
 
 
-  /**
-   * Whether the masthead is currently slid up out of the way.
-   *
-   * The behaviour every large marketplace has converged on: scrolling DOWN
-   * takes the header away, scrolling UP brings it straight back. It is worth
-   * being precise about why, because "sticky" and this are not the same idea.
-   *
-   * A permanently pinned masthead is a tax paid on every screen of a catalogue.
-   * On a phone the compact row is still ~56px of a ~700px viewport — eight per
-   * cent of the screen spent, on every scroll, on chrome the shopper is not
-   * using while they are reading a grid. But removing it outright is worse,
-   * because the moment they DO want it they want it immediately, and a
-   * scroll-to-top is a long way from the bottom of an endless product grid.
-   *
-   * Direction is the signal that resolves that. Scrolling down means "show me
-   * more products"; scrolling up means, near enough always, "I want to get
-   * back to something" — and the masthead is what they are reaching for.
-   */
-  const [hidden, setHidden] = useState(false);
-
-  /**
-   * The scroll position the last decision was made at.
-   *
-   * A ref, not state: it changes on every frame of every scroll and nothing
-   * renders from it, so putting it in state would re-render the whole masthead
-   * a hundred times a second to store a number.
-   */
-  const lastY = useRef(0);
+  /* The masthead stays pinned and never slides away on scroll. It used to hide
+     on the way down and slide back on the way up, and that moving layer made
+     its type and department tabs render soft mid-scroll. */
 
   /* The masthead publishes its own height as `--header-h`, so anything else
      that sticks to the top of a phone screen (the /categories department
@@ -179,23 +154,6 @@ export default function Header({
           const next = current ? y > 60 : y > 120;
           return next;
         });
-
-        /* ---- Direction ----
-           Only acted on past a few pixels of travel. A thumb resting on a phone
-           screen produces a continuous dribble of one-pixel scroll events in
-           both directions, and a header that answered every one of them would
-           shudder rather than slide. 8px is below what anyone would call a
-           deliberate scroll and well above that noise. */
-        const travelled = y - lastY.current;
-        if (Math.abs(travelled) < 8) return;
-        lastY.current = y;
-
-        /* Never hidden in the top stretch of the page, whatever the direction.
-           The header has not had time to be in the way yet, and hiding it there
-           makes the shop feel like it is flinching away from the shopper. 140px
-           is past the announcement strip and the logo row, so the first thing
-           this can do is get out of the way of the products. */
-        setHidden(travelled > 0 && y > 140);
       });
     };
     onScroll();
@@ -205,12 +163,6 @@ export default function Header({
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);
-
-  /* An open menu pins the header down.
-     Sliding the masthead away while its own dropdown is open would take the
-     dropdown with it, and the shopper did not scroll — they opened a menu and
-     then moved the page under it. */
-  const slidUp = hidden && !menuOpen;
 
   return (
     // Once the department bar folds away on a phone there is no rule between
@@ -232,12 +184,7 @@ export default function Header({
     <>
     <header
       ref={headerRef}
-      className={`sticky top-0 z-40 border-b border-shop-line bg-white transition-transform duration-300 ease-out motion-reduce:transition-none ${
-        /* Desktop only. On a phone the masthead stays pinned so the search
-           field is always one tap away while scrolling the grid — it already
-           collapses to a single slim logo-and-search row once scrolled. */
-        slidUp ? "md:-translate-y-full" : "translate-y-0"
-      }`}
+      className="sticky top-0 z-40 border-b border-shop-line bg-white"
     >
       {/* ---- The announcement strip is gone ----
 
@@ -808,9 +755,9 @@ export default function Header({
            This sat inside the header and rendered as a panel roughly 180px
            tall, clipped straight across the second category row.
 
-           Nothing was wrong with the drawer. The header carries
-           `transition-transform` and `translate-y-0` so it can slide away on
-           scroll, and ANY transform other than `none` makes that element the
+           Nothing was wrong with the drawer. The header carried
+           `transition-transform` and `translate-y-0` back when it slid away
+           on scroll, and ANY transform other than `none` makes that element the
            containing block for `position: fixed` descendants. So the drawer's
            `fixed inset-0` stopped meaning "the viewport" and started meaning
            "the masthead" — which is exactly as tall as the piece of drawer that

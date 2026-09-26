@@ -168,10 +168,11 @@ export default function ProductPurchase({
            photograph the larger share — the product is what sells — and still
            leaves the buy box near 580: wide enough for the delivery line to
            stay on one row, narrow enough that the title wraps like a title. */}
-      <div className="mx-auto flex max-w-[1360px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[54%_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
+      <div className="mx-auto flex max-w-[1360px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[46%_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
         {/* ---- Gallery ----
-             54% of the row, capped at 780px including the thumbnail rail — so
-             the square frame itself lands near 650 × 650.
+             46% of the row, capped at 600px including the thumbnail rail — so
+             the square frame itself lands near 520 × 520. It was 54% / 780
+             (a ~650 frame), which pushed the buy box too far right.
 
              (History: this was 44% / 640 with a 4:5 frame.)
 
@@ -193,7 +194,7 @@ export default function ProductPurchase({
              where the detail actually lives — so the frame grows to fill its
              column and stops there. */}
         <div className="w-full lg:col-start-1 lg:row-start-1">
-          <div className="mx-auto w-full max-w-[780px] lg:mx-0">
+          <div className="mx-auto w-full max-w-[600px] lg:mx-0">
             <ImageGallery
               images={images}
               productName={product.name}
