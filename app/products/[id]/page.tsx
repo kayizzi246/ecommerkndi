@@ -377,6 +377,8 @@ export default async function ProductPage({
         ratingAverage={reviews.average_rating}
         ratingCount={reviews.rating_count}
         ratingBreakdown={ratingBreakdown}
+        whatsapp={settings.support.whatsapp}
+        productUrl={absolute(productPath(product))}
       >
       {/* Nested rather than placed after the row, so it lands in the left
           column under the gallery instead of in a full-width band below a
