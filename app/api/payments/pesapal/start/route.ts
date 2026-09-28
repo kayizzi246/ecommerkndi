@@ -18,7 +18,14 @@
  */
 
 import { cookies } from "next/headers";
-import { pesapalConfig, resolveIpnId, submitOrder, type BillingAddress } from "@/lib/pesapal";
+import {
+  knownIpnUrl,
+  pesapalConfig,
+  resolveIpnId,
+  submitOrder,
+  warmPesapal,
+  type BillingAddress,
+} from "@/lib/pesapal";
 import {
   PAYMENT_TOKEN_COOKIE,
   paymentTokensEnforced,
@@ -174,15 +181,24 @@ async function startDirectly(purpose: PaymentPurpose) {
   const config = pesapalConfig();
   if (!config) return null;
 
-  const quoteResponse = await fetch(wpUrl("/payments/quote"), {
-    method: "POST",
-    headers: wpHeaders(),
-    body: JSON.stringify({
-      kind: purpose.kind,
-      id: purpose.kind === "order" ? purpose.orderId : purpose.sellerId,
+  /* ---- In parallel, not one after another ----
+     Asking WordPress what is owed and signing in to Pesapal (plus finding the
+     IPN id) do not depend on each other, and each is a round trip. Run side by
+     side, the payment window opens after the slower of the two rather than
+     after both added together. Both Pesapal steps are usually already cached
+     by the warm-up `/api/checkout` starts while the order is created. */
+  const [quoteResponse] = await Promise.all([
+    fetch(wpUrl("/payments/quote"), {
+      method: "POST",
+      headers: wpHeaders(),
+      body: JSON.stringify({
+        kind: purpose.kind,
+        id: purpose.kind === "order" ? purpose.orderId : purpose.sellerId,
+      }),
+      cache: "no-store",
     }),
-    cache: "no-store",
-  });
+    warmPesapal(knownIpnUrl()),
+  ]);
 
   const quote = (await quoteResponse.json().catch(() => null)) as Quote | null;
   if (!quoteResponse.ok || !quote?.reference || !(quote.amount > 0)) {

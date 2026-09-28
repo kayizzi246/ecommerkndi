@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { preconnect } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -98,6 +99,13 @@ export default function CheckoutPage() {
   /** The WooCommerce order awaiting payment, so we can route on success. */
   const [pendingOrder, setPendingOrder] = useState<{ id: number; total: number } | null>(null);
   const [pesapalReady, setPesapalReady] = useState(true);
+  /** True between the order being saved and the payment window opening. */
+  const [openingPayment, setOpeningPayment] = useState(false);
+
+  /* Starts the DNS lookup and TLS handshake with Pesapal while the shopper is
+     still filling in the form, so the payment window's first request does not
+     pay for them. */
+  preconnect("https://pay.pesapal.com");
   /** Priced by the server from the shopper's location; null until they pick one. */
   const [delivery, setDelivery] = useState<DeliveryResult | null>(null);
 
@@ -125,8 +133,8 @@ export default function CheckoutPage() {
    * guess, and the shopper knows their own gate.
    */
   const [addressFields, setAddressFields] = useState({
-    first_name: "",
-    last_name: "",
+    /** One "Your name" box; split into first/last only when the order is sent. */
+    name: "",
     phone: "",
     /**
      * Controlled like the rest, and it did not used to be.
@@ -141,8 +149,13 @@ export default function CheckoutPage() {
      */
     email: "",
     address_1: "",
+    /** Never typed any more: filled from the location the shopper picked. */
     city: "",
   });
+
+  /* Email is optional and most shoppers skip it, so it is a link that opens the
+     box rather than a box everyone has to look past. */
+  const [showEmail, setShowEmail] = useState(false);
 
   /**
    * Which fields the shopper has finished with, so a half-typed phone number is
@@ -258,17 +271,30 @@ export default function CheckoutPage() {
     setError(null);
     setSubmitting(true);
 
-    const form = new FormData(event.currentTarget);
+    /* ---- Fewer boxes, same order ----
+       The form asks for a name, a phone and a location. WooCommerce still wants
+       first/last name, a street and a town, so they are derived here: the name
+       is split on its first space, and the street and town fall back to the
+       place the shopper picked on the map when nothing more was typed. */
+    const [firstName, ...rest] = addressFields.name.trim().split(/\s+/);
+    const place = delivery?.place ?? delivery?.label ?? "";
     const customer = {
-      first_name: String(form.get("first_name") ?? ""),
-      last_name: String(form.get("last_name") ?? ""),
-      phone: String(form.get("phone") ?? ""),
-      email: String(form.get("email") ?? ""),
-      address_1: String(form.get("address_1") ?? ""),
-      city: String(form.get("city") ?? ""),
-      notes: String(form.get("notes") ?? ""),
+      first_name: firstName ?? "",
+      last_name: rest.join(" "),
+      phone: addressFields.phone,
+      email: addressFields.email.trim(),
+      address_1: addressFields.address_1.trim() || place,
+      city: addressFields.city.trim() || delivery?.address?.city || place,
+      notes: "",
       country: "UG",
     };
+
+    if (!customer.first_name) {
+      setTouched((current) => ({ ...current, name: true }));
+      setError("Add your name so the rider knows who to ask for.");
+      setSubmitting(false);
+      return;
+    }
 
     if (!delivery) {
       setError("Add your delivery location so we can work out the cost.");
@@ -399,6 +425,7 @@ export default function CheckoutPage() {
         return;
       }
 
+      setOpeningPayment(true);
       const payment = await fetch("/api/payments/pesapal/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -458,6 +485,7 @@ export default function CheckoutPage() {
       setError("Network error. Check your connection and try again.");
     } finally {
       setSubmitting(false);
+      setOpeningPayment(false);
       // Cloudflare accepts a Turnstile token exactly once, so the widget is
       // reset whatever happened. A shopper correcting a phone number and
       // pressing the button again must not be handed back a token their browser
@@ -664,7 +692,7 @@ export default function CheckoutPage() {
       {/* Form column */}
       <div className="order-1 bg-white">
         <div className="mx-auto w-full max-w-[560px] px-4 pb-28 pt-6 md:px-8 lg:ml-auto lg:mr-0 lg:px-14 lg:pb-10 lg:pt-10">
-          <nav className="mb-8 flex items-center gap-2 text-[12px] text-shop-muted">
+          <nav className="mb-5 flex items-center gap-2 text-[12px] text-shop-muted">
             <Link href="/cart" className="hover:text-shop-ink">
               Cart
             </Link>
@@ -674,16 +702,40 @@ export default function CheckoutPage() {
             <span>Payment</span>
           </nav>
 
+          {/* ---- Three questions, not nine ----
+               Name, phone, and where. Last name, town, country and a notes box
+               used to sit here too, and every extra box on a phone is a reason
+               to leave: the town comes from the location picked below, the
+               country is always Uganda, and a surname is optional anyway. */}
           <section>
-            <StepHeading
-              step={1}
-              title="How we reach you"
-              sub="We call this number before delivering."
-            />
+            <StepHeading step={1} title="Your details" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
+                <label className={labelClass} htmlFor="name">
+                  Your name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  required
+                  autoComplete="name"
+                  autoCapitalize="words"
+                  enterKeyHint="next"
+                  value={addressFields.name}
+                  onChange={(event) => setField("name")(event.target.value)}
+                  onBlur={markTouched("name")}
+                  placeholder="Sarah Nakato"
+                  className={`field-shop ${
+                    touched.name && !addressFields.name.trim() ? "border-shop-sale" : ""
+                  }`}
+                />
+                {touched.name && !addressFields.name.trim() && (
+                  <FieldError>We need a name for the rider to ask for.</FieldError>
+                )}
+              </div>
+              <div>
                 <label className={labelClass} htmlFor="phone">
-                  Phone number <span className="text-shop-sale">*</span>
+                  Phone number
                 </label>
                 <input
                   id="phone"
@@ -694,6 +746,7 @@ export default function CheckoutPage() {
                      number pad up on a phone, which is most of this shop. */
                   inputMode="tel"
                   autoComplete="tel"
+                  enterKeyHint="next"
                   value={addressFields.phone}
                   onChange={(event) => setField("phone")(event.target.value)}
                   onBlur={markTouched("phone")}
@@ -710,13 +763,16 @@ export default function CheckoutPage() {
                   <p id="phone-hint" className={hintClass}>
                     {phoneValid
                       ? `We'll call ${formatUgPhone(addressFields.phone)}`
-                      : "MTN or Airtel. We call this number to deliver."}
+                      : "The rider calls this number."}
                   </p>
                 )}
               </div>
-              <div>
+            </div>
+
+            {showEmail || addressFields.email ? (
+              <div className="mt-4">
                 <label className={labelClass} htmlFor="email">
-                  Email <span className="font-normal text-shop-muted">(optional)</span>
+                  Email <span className="font-normal text-shop-muted">(optional, for your receipt)</span>
                 </label>
                 <input
                   id="email"
@@ -725,28 +781,32 @@ export default function CheckoutPage() {
                   inputMode="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  aria-describedby="email-hint"
                   value={addressFields.email}
                   onChange={(event) => setField("email")(event.target.value)}
                   className="field-shop"
                 />
-                <p id="email-hint" className={hintClass}>
-                  For your receipt and order tracking.
-                </p>
               </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowEmail(true)}
+                className="mt-3 text-[13px] font-semibold text-shop-primary underline-offset-4 hover:underline"
+              >
+                + Add email for a receipt (optional)
+              </button>
+            )}
           </section>
 
-          <section className="mt-10">
+          <section className="mt-8">
             <StepHeading
               step={2}
-              title="Where we deliver it"
-              sub="We price delivery from your location."
+              title="Delivery location"
+              sub="Tap “Use my location” or type your area — we price delivery from it."
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
                 delivery" is the line that loses carts. */}
-            <div className="mb-5">
+            <div className="mb-4">
               <DeliveryPicker
                 subtotal={subtotal}
                 value={delivery}
@@ -759,8 +819,9 @@ export default function CheckoutPage() {
                     // clearing a street the shopper typed would be a step back.
                     address_1: parts.street || current.address_1,
                     city: parts.city || current.city,
-                    first_name: parts.first_name || current.first_name,
-                    last_name: parts.last_name || current.last_name,
+                    name:
+                      current.name ||
+                      [parts.first_name, parts.last_name].filter(Boolean).join(" "),
                     phone: parts.phone || current.phone,
                     email: parts.email || current.email,
                   }))
@@ -768,141 +829,23 @@ export default function CheckoutPage() {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={labelClass} htmlFor="first_name">
-                  First name <span className="text-shop-sale">*</span>
-                </label>
-                <input
-                  id="first_name"
-                  name="first_name"
-                  required
-                  autoComplete="given-name"
-                  value={addressFields.first_name}
-                  onChange={(event) => setField("first_name")(event.target.value)}
-                  onBlur={markTouched("first_name")}
-                  placeholder="Sarah"
-                  aria-describedby="first_name-hint"
-                  className={`field-shop ${
-                    touched.first_name && !addressFields.first_name.trim()
-                      ? "border-shop-sale"
-                      : ""
-                  }`}
-                />
-                {touched.first_name && !addressFields.first_name.trim() ? (
-                  <FieldError>We need a name for the rider to ask for.</FieldError>
-                ) : (
-                  <p id="first_name-hint" className={hintClass}>
-                    Who the rider asks for.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="last_name">
-                  Last name <span className="font-normal text-shop-muted">(optional)</span>
-                </label>
-                <input
-                  id="last_name"
-                  name="last_name"
-                  autoComplete="family-name"
-                  value={addressFields.last_name}
-                  onChange={(event) => setField("last_name")(event.target.value)}
-                  placeholder="Nakato"
-                  className="field-shop"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass} htmlFor="address_1">
-                  Street, building or landmark <span className="text-shop-sale">*</span>
-                </label>
-                <input
-                  id="address_1"
-                  name="address_1"
-                  required
-                  autoComplete="street-address"
-                  value={addressFields.address_1}
-                  onChange={(event) => setField("address_1")(event.target.value)}
-                  onBlur={markTouched("address_1")}
-                  placeholder="Plot 12 Bukoto Street, blue gate opposite Shell"
-                  aria-describedby="address_1-hint"
-                  className={`field-shop ${
-                    touched.address_1 && !addressFields.address_1.trim()
-                      ? "border-shop-sale"
-                      : ""
-                  }`}
-                />
-                {touched.address_1 && !addressFields.address_1.trim() ? (
-                  <FieldError>
-                    Tell the rider where to stop — a road and a landmark is enough.
-                  </FieldError>
-                ) : (
-                  /* Naming the landmark in the hint rather than only in the
-                     placeholder: half of Kampala has no numbered street, and
-                     "opposite the mosque" is what actually gets a parcel to a
-                     gate. A placeholder disappears the moment anyone types. */
-                  <p id="address_1-hint" className={hintClass}>
-                    A landmark helps most — &ldquo;next to Cafe Javas, green gate&rdquo;.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="city">
-                  Town or suburb <span className="text-shop-sale">*</span>
-                </label>
-                <input
-                  id="city"
-                  name="city"
-                  required
-                  autoComplete="address-level2"
-                  value={addressFields.city}
-                  onChange={(event) => setField("city")(event.target.value)}
-                  onBlur={markTouched("city")}
-                  placeholder="Muyenga"
-                  aria-describedby="city-hint"
-                  className={`field-shop ${
-                    touched.city && !addressFields.city.trim() ? "border-shop-sale" : ""
-                  }`}
-                />
-                {touched.city && !addressFields.city.trim() ? (
-                  <FieldError>Which town or suburb?</FieldError>
-                ) : (
-                  <p id="city-hint" className={hintClass}>
-                    Kampala, Wakiso, Entebbe…
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="country">
-                  Country
-                </label>
-                <input
-                  id="country"
-                  value="Uganda"
-                  readOnly
-                  aria-describedby="country-hint"
-                  className="field-shop bg-shop-surface text-shop-muted"
-                />
-
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass} htmlFor="notes">
-                  Anything the rider should know{" "}
-                  <span className="font-normal text-shop-muted">(optional)</span>
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={3}
-                  placeholder="Call when you reach the gate. Deliver after 5pm."
-                  aria-describedby="notes-hint"
-                  className="field-shop resize-y"
-                />
-
-              </div>
-            </div>
+            <label className={labelClass} htmlFor="address_1">
+              Directions for the rider{" "}
+              <span className="font-normal text-shop-muted">(optional)</span>
+            </label>
+            <input
+              id="address_1"
+              name="address_1"
+              autoComplete="street-address"
+              enterKeyHint="done"
+              value={addressFields.address_1}
+              onChange={(event) => setField("address_1")(event.target.value)}
+              placeholder="e.g. Blue gate opposite Shell"
+              className="field-shop"
+            />
           </section>
 
-          <section className="mt-10">
+          <section className="mt-8">
             <StepHeading
               step={3}
               title="How you pay"
@@ -1007,7 +950,11 @@ export default function CheckoutPage() {
               disabled={submitting}
               className="btn-shop mt-6 hidden w-full py-4 text-[15px] lg:block"
             >
-              {submitting ? "Placing order…" : `Pay ${formatPrice(total)}`}
+              {openingPayment
+                ? "Opening payment…"
+                : submitting
+                  ? "Placing order…"
+                  : `Pay ${formatPrice(total)}`}
             </button>
 
             <p className="mt-6 text-[12px] text-shop-muted">
@@ -1052,7 +999,7 @@ export default function CheckoutPage() {
             disabled={submitting}
             className="btn-shop ml-auto shrink-0 px-8 py-3.5 text-[14px]"
           >
-            {submitting ? "Placing…" : "Pay now"}
+            {openingPayment ? "Opening payment…" : submitting ? "Placing…" : "Pay now"}
           </button>
         </div>
       </div>

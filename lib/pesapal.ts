@@ -212,6 +212,29 @@ export async function resolveIpnId(config: PesapalConfig, ipnUrl: string): Promi
   return cachedIpnId;
 }
 
+/**
+ * Signs in to Pesapal and resolves the IPN id ahead of time, so the payment
+ * start that follows a moment later finds both already cached and makes one
+ * call to Pesapal instead of three. Never throws: a warm-up that fails just
+ * means the real start does the work itself.
+ */
+export async function warmPesapal(ipnUrl?: string): Promise<void> {
+  const config = pesapalConfig();
+  if (!config) return;
+  try {
+    await getToken(config);
+    if (ipnUrl) await resolveIpnId(config, ipnUrl);
+  } catch (error) {
+    console.warn("[kandi-store] pesapal warm-up failed:", error);
+  }
+}
+
+/** The IPN address, when the site URL is known without asking WordPress. */
+export function knownIpnUrl(): string | undefined {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  return site ? `${site}/api/payments/pesapal/ipn` : undefined;
+}
+
 /* ------------------------------------------------------------ submit order */
 
 export type BillingAddress = {

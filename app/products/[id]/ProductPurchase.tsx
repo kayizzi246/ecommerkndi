@@ -264,7 +264,7 @@ export default function ProductPurchase({
           </p>
           {/* 18–20px medium: large enough that the shopper is sure which item
               they are buying, still a clear step below the price. */}
-          <h1 className="font-normal-heading line-clamp-3 text-[17px] !font-medium leading-[1.35] text-shop-ink md:text-[20px]">
+          <h1 className="product-name font-normal-heading line-clamp-3 text-[17px] !font-medium leading-[1.35] text-shop-ink md:text-[20px]">
             {product.name}
           </h1>
 

@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { knownIpnUrl, warmPesapal } from "@/lib/pesapal";
 import { quoteDelivery } from "@/lib/delivery";
 import { codZoneFor } from "@/lib/cod-zones";
 import { cookies } from "next/headers";
@@ -465,6 +466,16 @@ async function placeOrder(request: Request): Promise<Response> {
         { status: 502 }
       );
     }
+  }
+
+  /* ---- Warm Pesapal while WooCommerce writes the order ----
+     A card or mobile money order goes straight on to `/api/payments/pesapal/
+     start`. Signing in to Pesapal now, alongside the order write, means that
+     call finds the token cached and opens the payment window sooner. `after`
+     keeps the warm-up alive if it outlasts this response. */
+  if (body.awaiting_payment) {
+    const warming = warmPesapal(knownIpnUrl());
+    after(() => warming);
   }
 
   try {

@@ -135,9 +135,9 @@ export default function PesapalModal({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-0 sm:p-4"
     >
-      <div className="flex h-[92vh] w-full max-w-[520px] flex-col overflow-hidden rounded-xl bg-white">
+      <div className="flex h-full w-full max-w-[520px] flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] sm:h-[92vh] sm:rounded-xl">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-shop-line px-5 py-3.5">
           <div className="min-w-0">
             <p className="truncate text-[14px] font-semibold text-shop-ink">{title}</p>
@@ -166,9 +166,13 @@ export default function PesapalModal({
 
         <div className="relative min-h-0 flex-1">
           {!loaded && (
-            <p className="absolute inset-0 flex items-center justify-center text-[13px] text-shop-muted">
-              Loading payment options…
-            </p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[13px] text-shop-muted">
+              <span
+                aria-hidden
+                className="h-8 w-8 animate-spin rounded-full border-[3px] border-shop-line border-t-shop-primary motion-reduce:animate-none"
+              />
+              Opening secure payment…
+            </div>
           )}
           <iframe
             src={url}

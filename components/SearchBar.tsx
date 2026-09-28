@@ -27,6 +27,29 @@ type StoreHit = {
 /** Shown on focus before anything is typed, so the panel is never empty. */
 const POPULAR = ["Sneakers", "Adidas", "Shorts", "Formal shoes", "Women"];
 
+/** Where the last few searches are kept, newest first. Per browser only. */
+const RECENT_KEY = "kandi_recent_searches";
+const RECENT_MAX = 6;
+
+function readRecent(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(raw)
+      ? raw.filter((v): v is string => typeof v === "string").slice(0, RECENT_MAX)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecent(list: string[]) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+  } catch {
+    /* Private mode or storage full: recent searches are only a convenience. */
+  }
+}
+
 /** Splits a label around the typed term so the match can be emboldened. */
 function highlight(label: string, term: string) {
   const at = label.toLowerCase().indexOf(term.toLowerCase());
@@ -107,6 +130,8 @@ export default function SearchBar({
   const [prompt, setPrompt] = useState(0);
   /** Category slug the query is limited to; "" means the whole catalogue. */
   const [scope, setScope] = useState("");
+  /** The shopper's own last searches, offered again on focus. */
+  const [recent, setRecent] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -157,7 +182,7 @@ export default function SearchBar({
       } finally {
         setLoading(false);
       }
-    }, 250);
+    }, 180);
     return () => clearTimeout(timer);
   }, [term]);
 
@@ -192,6 +217,12 @@ export default function SearchBar({
   };
 
   const goToSearch = (value: string) => {
+    const clean = value.trim();
+    if (clean) {
+      const next = [clean, ...recent.filter((r) => r.toLowerCase() !== clean.toLowerCase())];
+      setRecent(next.slice(0, RECENT_MAX));
+      writeRecent(next);
+    }
     setOpen(false);
     setCursor(-1);
     inputRef.current?.blur();
@@ -237,11 +268,66 @@ export default function SearchBar({
     }
   };
 
-  const showPanel = open && (term.length >= 2 || (focused && term.length === 0));
+  /* ---- Full-screen search on a phone ----
+     On a phone the dropdown used to hang under the masthead with half of it
+     behind the keyboard. While the search is open it now takes the whole
+     screen: the field pinned at the top with a back arrow, and the suggestions
+     filling everything above the keyboard. The page stops scrolling underneath
+     and the bottom tab bar steps aside (`body.search-open` in globals.css). */
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639.98px)");
+    const sync = () => setPhone(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+  const fullScreen = phone && open;
+
+  /* Full screen keeps its panel even if the keyboard is dismissed, so the
+     shopper is never left looking at an empty white page. */
+  const showPanel =
+    open && (term.length >= 2 || (term.length === 0 && (focused || fullScreen)));
+
+  useEffect(() => {
+    if (!fullScreen) return;
+    document.body.classList.add("search-open");
+    return () => document.body.classList.remove("search-open");
+  }, [fullScreen]);
+
+  const closeSearch = () => {
+    setOpen(false);
+    setCursor(-1);
+    inputRef.current?.blur();
+  };
 
   return (
-    <div ref={boxRef} className="relative w-full">
-      <form onSubmit={submit} role="search">
+    <div ref={boxRef} className="relative min-h-11 w-full">
+      <div
+        className={
+          fullScreen
+            ? "fixed inset-0 z-[90] flex flex-col bg-white px-3 pb-[env(safe-area-inset-bottom)] pt-3"
+            : ""
+        }
+      >
+      <form
+        onSubmit={submit}
+        role="search"
+        className={fullScreen ? "flex items-center gap-1" : ""}
+      >
+        {fullScreen && (
+          <button
+            type="button"
+            aria-label="Close search"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={closeSearch}
+            className="flex h-11 w-9 shrink-0 items-center justify-center text-shop-ink"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19 8 12l7-7" />
+            </svg>
+          </button>
+        )}
         {/* ---- A rounded pill in the brand colour ----
             One 44px capsule: the department chip on the left, the query in the
             middle, and a solid brand button inset on the right with 3px of
@@ -250,7 +336,7 @@ export default function SearchBar({
             ring on focus, so the most-used control in the shop never fades
             into a white masthead. */}
         <div
-          className={`flex h-11 items-center gap-1 rounded-full border-2 bg-white p-[3px] transition-[border-color,box-shadow] duration-200 ${
+          className={`flex h-11 min-w-0 flex-1 items-center gap-1 rounded-full border-2 bg-white p-[3px] transition-[border-color,box-shadow] duration-200 ${
             focused
               ? "border-shop-primary shadow-[0_0_0_4px_rgba(211,47,47,0.12)]"
               : "border-shop-primary/70 hover:border-shop-primary"
@@ -290,7 +376,13 @@ export default function SearchBar({
           <div className="relative ml-3 min-w-0 flex-1 sm:ml-2">
           <input
             ref={inputRef}
-            type="text"
+            type="search"
+            /* The phone keyboard's action key reads "Search", and nothing
+               auto-corrects a brand name or capitalises the first letter. */
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={query}
             role="combobox"
             aria-expanded={showPanel}
@@ -303,6 +395,7 @@ export default function SearchBar({
               setOpen(true);
             }}
             onFocus={() => {
+              setRecent(readRecent());
               setFocused(true);
               setOpen(true);
             }}
@@ -316,7 +409,7 @@ export default function SearchBar({
             placeholder={placeholder ?? "Search for products, brands and more"}
             /* `.search-input` is the scale's search row — 400 at 14px — rather
                than the 15px this had picked up on its own. */
-            className={`search-input w-full bg-transparent py-2.5 leading-[20px] focus:outline-none ${
+            className={`search-input w-full appearance-none bg-transparent [&::-webkit-search-cancel-button]:hidden py-2.5 leading-[20px] focus:outline-none ${
               // Hide the real placeholder only while the animated one is
               // covering it, so the two can never be legible at once.
               showPrompt ? "placeholder:text-transparent" : "placeholder:text-shop-muted"
@@ -359,9 +452,9 @@ export default function SearchBar({
                 setCursor(-1);
                 inputRef.current?.focus();
               }}
-              className="mr-1 shrink-0 rounded-full p-1 text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
+              className="mr-1 shrink-0 rounded-full p-1.5 text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className="h-5 w-5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
               </svg>
             </button>
@@ -401,10 +494,68 @@ export default function SearchBar({
         <div
           id="search-suggestions"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-shop-line bg-white"
+          className={
+            fullScreen
+              ? "-mx-3 mt-3 flex-1 overflow-y-auto overscroll-contain border-t border-shop-line bg-white"
+              : "absolute left-0 right-0 top-full z-50 mt-2 max-h-[70vh] overflow-y-auto rounded-xl border border-shop-line bg-white"
+          }
         >
+          {/* One tap to search exactly what was typed, at the top where the
+              thumb already is, rather than only at the foot of the list. */}
+          {term.length >= 2 && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => goToSearch(term)}
+              className="flex w-full items-center gap-3 border-b border-shop-hairline px-4 py-3.5 text-left text-[15px] text-shop-ink transition-colors hover:bg-shop-surface sm:py-2.5 sm:text-[13px]"
+            >
+              <svg className="h-5 w-5 shrink-0 text-shop-muted sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+              </svg>
+              <span className="min-w-0 flex-1 truncate">
+                Search for <strong className="font-semibold">&ldquo;{term}&rdquo;</strong>
+              </span>
+            </button>
+          )}
           {term.length === 0 ? (
             <div className="p-4">
+              {recent.length > 0 && (
+                <div className="mb-5">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
+                      Recent searches
+                    </p>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setRecent([]);
+                        writeRecent([]);
+                      }}
+                      className="p-1 text-[12px] font-semibold text-shop-primary"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <ul>
+                    {recent.map((label) => (
+                      <li key={label}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => goToSearch(label)}
+                          className="flex w-full items-center gap-3 py-2.5 text-left text-[15px] text-shop-body hover:text-shop-ink sm:py-1.5 sm:text-[13px]"
+                        >
+                          <svg className="h-4 w-4 shrink-0 text-shop-muted" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                          <span className="truncate">{label}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-shop-muted">
                 Popular right now
               </p>
@@ -415,7 +566,7 @@ export default function SearchBar({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => goToSearch(label)}
-                    className="rounded-full border border-shop-line px-3 py-1.5 text-[12px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink"
+                    className="rounded-full border border-shop-line px-4 py-2 text-[14px] text-shop-body transition-colors hover:border-shop-ink hover:text-shop-ink sm:px-3 sm:py-1.5 sm:text-[12px]"
                   >
                     {label}
                   </button>
@@ -508,7 +659,7 @@ export default function SearchBar({
                       onMouseEnter={() => setCursor(i + stores.length)}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => goToProduct(s.id)}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors sm:py-2.5 ${
                         i + stores.length === cursor ? "bg-shop-surface" : ""
                       }`}
                     >
@@ -519,7 +670,7 @@ export default function SearchBar({
                         className="h-11 w-11 shrink-0 rounded-lg border border-shop-line bg-white object-contain p-1"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="line-clamp-1 block text-[13px] text-shop-body">
+                        <span className="line-clamp-2 block text-[14px] leading-snug text-shop-body sm:line-clamp-1 sm:text-[13px]">
                           {highlight(s.name, term)}
                         </span>
                         {s.category && (
@@ -549,6 +700,7 @@ export default function SearchBar({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

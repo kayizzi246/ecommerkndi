@@ -3150,3 +3150,42 @@ summary::-webkit-details-marker {
     row-gap: 12px;
   }
 }
+
+/* ---- Full-screen search on a phone ----
+ * `SearchBar` puts this on <body> while its phone overlay is open: the page
+ * underneath stops scrolling and the bottom tab bar steps aside, so nothing
+ * sits over the suggestions. */
+body.search-open {
+  overflow: hidden;
+}
+body.search-open nav.fixed.bottom-0 {
+  display: none;
+}
+
+/* ---- Phone type: the phone's own face ----
+ * Below 640px product names, and the tile text around them, use the system
+ * UI font — Roboto on Android, San Francisco on iPhone. It is the face the
+ * shopper reads every other app in, it is already on the device (nothing to
+ * download or swap in), and it stays crisp at 13–14px on a low-density
+ * screen, where the mixed DM Sans name and Arial price read as two styles. */
+@media (max-width: 39.99rem) {
+  .product-name,
+  .tile-type,
+  .tile-type :is(.product-name, .price, .was-price, .meta-note) {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI",
+      "Helvetica Neue", Arial, sans-serif;
+  }
+  .product-name {
+    font-weight: 400;
+    color: #1a1a1a;
+  }
+  .tile-type .product-name {
+    font-size: 13.5px;
+    line-height: 18px;
+    min-height: 36px;
+  }
+  .tile-type .price {
+    font-weight: 700;
+    -webkit-text-stroke: 0;
+  }
+}
