@@ -458,6 +458,11 @@ export function siteJsonLd(
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: brandName,
+      /* Google picks the site name it shows above a result from THIS block,
+         not from the store above, and it reads `alternateName` here as the
+         other names the site goes by. Without it a search for "kandiug" had
+         only the domain to match against. */
+      ...(aliases.length > 0 ? { alternateName: aliases } : {}),
       url,
       potentialAction: {
         "@type": "SearchAction",

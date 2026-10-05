@@ -51,58 +51,6 @@ function listedRecently(dateCreated: string | null | undefined): boolean {
 const MAX_SWATCHES = 5;
 
 /**
- * Lifetime units sold that earn the "Bestseller" ribbon.
- *
- * 100, and the number is doing the same job as `TOP_RATED_AT`: a label most of
- * the catalogue carries is a label a shopper stops seeing. On a shop this size
- * a hundred units is a product that genuinely moves, and the ribbon appears on
- * a handful of tiles per screen rather than on most of them.
- *
- * Deliberately a threshold on real sales rather than a flag an admin can tick.
- * "Bestseller" as an editable checkbox is a claim; as a count it is a fact, and
- * the shop already has `featured` for the shopkeeper's own picks — that is what
- * the "Choice" chip is.
- */
-const BESTSELLER_AT = 100;
-
-/**
- * The social-proof ribbon, in tiers.
- *
- * One line of small words on the photograph — "Trending", "Bestseller",
- * "Popular in Uganda" — of the kind every marketplace runs, and every one of
- * them here is a threshold on `total_sales` rather than a phrase somebody typed
- * into a field. That is the whole design constraint: a shop can print any of
- * these words on any product, and the moment it does they stop being read.
- *
- * The tiers are wide apart on purpose, so the strongest word is also the rarest
- * one on a screen:
- *
- *   300+  Trending           — the top of the catalogue by units moved
- *   100+  Bestseller         — a product that genuinely sells
- *    40+  Popular in Uganda  — enough shoppers to be worth saying so
- *
- * "Popular in Uganda" rather than "Popular": every shopper here is in Uganda
- * and every seller is too, so the country is not a filter — it is the shop
- * saying the people who bought this are your neighbours, which is the one thing
- * a Kampala marketplace can say that AliExpress cannot.
- *
- * ---- What is deliberately NOT in this list ----
- *
- * "Most viewed", which was asked for. The storefront has no per-product view
- * count: `lib/seller.ts` carries views for the SELLER dashboard, from the
- * plugin's own analytics, and nothing of the sort reaches a tile. The label
- * would have had to be drawn from sales or from reviews and called views,
- * which is a made-up number in a shop where every other figure on the tile is
- * real. It needs a view counter on the product first — a field in `toProduct`
- * and something incrementing it — and then it is three lines here.
- */
-const RIBBON_TIERS: { at: number; label: string }[] = [
-  { at: 300, label: "Trending" },
-  { at: BESTSELLER_AT, label: "Bestseller" },
-  { at: 40, label: "Popular in Uganda" },
-];
-
-/**
  * What it takes to be called "Top rated" on a tile.
  *
  * Two thresholds rather than one, because either alone is meaningless. A 5.0
@@ -288,12 +236,6 @@ export default function ProductCard({
   const discount = product.on_sale
     ? discountPercent(product.regular_price, product.price)
     : 0;
-  /* The reduction as money rather than as a ratio — see the row itself for
-     why the tile carries both. Guarded on `on_sale` through `discount` so a
-     bad `regular_price` in WooCommerce cannot print a negative saving. */
-  const saving =
-    discount > 0 ? Math.max(0, product.regular_price - product.price) : 0;
-
   const soldOut = product.stock_status === "outofstock";
   const lowStock =
     !soldOut && product.stock_quantity !== null && product.stock_quantity <= LOW_STOCK_AT;
@@ -383,17 +325,6 @@ export default function ProductCard({
       : topRated
         ? "Top rated"
         : null;
-
-  /* The ribbon on the photograph. "Selling fast" outranks the sales tiers
-     because it is the only one of these words that is about right now: a
-     product that has sold well AND is nearly out is the one case where the two
-     facts together say something neither says alone. Below the lowest tier
-     there is no ribbon at all — see `RIBBON_TIERS` for why that matters more
-     than any of the words on it. */
-  const ribbon =
-    lowStock && product.total_sales >= 40
-      ? "Selling fast"
-      : (RIBBON_TIERS.find((tier) => product.total_sales >= tier.at)?.label ?? null);
 
   /* ---- Colour swatches ----
      The one variant a shopper judges from the grid. Sizes are not previewed —
@@ -814,7 +745,7 @@ export default function ProductCard({
         </Link>
 
         {soldOut && (
-          <span className="absolute left-2 top-2 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-shop-body ring-1 ring-shop-line">
+          <span className="absolute left-2 top-2 rounded-[3px] bg-white px-1.5 py-[3px] text-[11px] font-semibold leading-none text-shop-body ring-1 ring-shop-line">
             Sold out
           </span>
         )}
@@ -933,7 +864,7 @@ export default function ProductCard({
              back with the ground. That is the same trade the yellow round made
              in the opposite direction, and it is why a fill change here is
              never only a fill change. */
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[11px] font-extrabold leading-none text-white">
+          <span className="pointer-events-none absolute right-2 top-2 rounded-[3px] bg-[color:var(--color-shop-price-was)] px-1.5 py-[3px] text-[11px] font-bold leading-none text-white">
             −{discount}%
           </span>
         )}
@@ -968,35 +899,6 @@ export default function ProductCard({
             iconClassName="w-[16px] h-[16px]"
           />
         </div>
-
-        {/* ---- The bestseller ribbon ----
-
-            On the photograph, bottom left, opposite the cart button and clear
-            of the discount flag in the top right.
-
-            It is here rather than in the title's chip slot because the chip
-            slot holds exactly one label and it is already spoken for on these
-            products — a bestseller is very often also featured or discounted,
-            so a fourth entry in that cascade would simply never render. The
-            two positions also do different work: the chip is read with the
-            name, this is read with the picture, which is the half of the tile a
-            thumb flicking a rail actually sees.
-
-            Near-black rather than orange. The deal language on a tile is brand
-            orange — the corner flag, the Super Deal chip — and this is not a
-            deal, it is what other shoppers did. A second orange object on the
-            same photograph would read as another discount. */}
-        {!soldOut && ribbon && (
-          /* `rounded-lg` and a touch more padding, in step with the discount
-             flag in the opposite corner. The two are the only marks on a
-             resting photograph and they are read as a pair — one saying what
-             the shop has done to the price, one saying what other shoppers
-             have done about it — so a shape shared between them is what stops
-             the picture looking like it collected two unrelated stickers. */
-          <span className="pointer-events-none absolute bottom-2 left-2 max-w-[calc(100%-56px)] truncate rounded-full bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-shop-primary-ink ring-1 ring-shop-primary/15">
-            {ribbon}
-          </span>
-        )}
 
         {/* Add-to-bag rides the corner of the photograph rather than sitting in
             the text below it. It buys back a whole line of the tile, and it is
@@ -1203,14 +1105,6 @@ export default function ProductCard({
               the phone runs at, so a name now reads the same way at every
               width. */}
           <h3 className="product-name line-clamp-2 min-h-[36px] text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[38px] sm:text-[14px] sm:leading-[19px]">
-            {discount > 0 && !soldOut && (
-              <span className="tile-sale-chip mr-1 align-[1px]">
-                <svg aria-hidden className="h-[9px] w-[9px]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M11.3 1.5c.3 2.6-.9 4.2-2.3 5.6C7.6 8.5 6 10 6 12.6 6 15.6 8.2 18 11 18s5-2.2 5-5.3c0-1.9-.8-3.4-1.8-4.6-.2 1.3-.9 2.2-1.9 2.6.6-3.4-.3-7-1-9.2Z" />
-                </svg>
-                Sale
-              </span>
-            )}
             {product.name}
           </h3>
         </Link>
@@ -1260,60 +1154,6 @@ export default function ProductCard({
              dropped rather than squeezed: the discount is already on the
              photograph as a corner flag, so nothing is lost and the resting
              price gets the whole width to itself. */}
-        {/* ---- What the shopper keeps, in money ----
-
-             A reduction is on the tile twice already — the corner flag says
-             "−35%" and the struck-through original says what it was — and both
-             of those are ratios a shopper has to do arithmetic on. This is the
-             same fact as the number they would arrive at: what stays in their
-             pocket.
-
-             It is the row worth adding because a percentage is a comparison
-             and a sum is a decision. "−35%" is read against other tiles;
-             "Save UGX 19,000" is read against what else that money buys, which
-             is the thought that ends in a purchase.
-
-             Only on discounted tiles, so it costs nothing on the rest — and it
-             sits ABOVE the price rather than in it, because that row is
-             `overflow-hidden` and a third figure inside it is what produced
-             the sliced "−(" the percentage was removed for.
-
-             Green, and it is the only green in the grid. The price below is
-             red and the corner flag and chip are orange, so this row is the
-             one place on a tile where a third hue is doing work rather than
-             decorating: red is what it costs, green is what it saves. That
-             pairing is the oldest one in retail and it needs no explaining.
-
-             `shop-save` rather than `shop-success` — 11px bold needs the
-             darker step to clear AA. See the token in `globals.css`. */}
-        {saving > 0 && (
-          <p className="pt-[3px]">
-            {/* ---- Green again, and this time it is drawn rather than asserted ----
-
-                The note above spends a paragraph on why this row is green —
-                "red is what it costs, green is what it saves, the oldest
-                pairing in retail" — and then set it in `text-shop-muted`,
-                which is the grey used for sold counts and secondary labels.
-                The reasoning and the class had drifted apart, so the one line
-                on the tile that was supposed to be the reward read as
-                small print.
-
-                It is a chip rather than coloured text because the row it sits
-                in is otherwise all greys and the saving is competing with a
-                price directly below it at 13px/700. `shop-successbg` is the
-                palest green in the palette and `shop-save` is the 4.6:1 step
-                that clears AA at this size — the same pair the trust ribbon
-                uses, so the shop has one green rather than a family of them.
-
-                It stays off the price row itself. That row is
-                `overflow-hidden` to keep tile heights honest, and a third
-                figure inside it is what produced the sliced "−(" the
-                percentage was removed for. */}
-            <span className="inline-block max-w-full truncate rounded-md bg-shop-successbg px-1.5 py-px text-[10px] font-bold leading-[14px] text-shop-save">
-              Save {formatPrice(saving)}
-            </span>
-          </p>
-        )}
         <p className="flex items-baseline gap-x-1.5 overflow-hidden pt-px">
           {/* ---- The resting price is near-black, not orange ----
                It was orange for a while, on the argument that one saturated
@@ -1428,58 +1268,9 @@ export default function ProductCard({
             {soldOut ? (
               "Back in stock soon"
             ) : (
-              <span className="inline-flex items-center gap-1.5 align-top">
-                {/* ---- Orange, where the dot and the bar below were ink ----
-
-                    `shop-sale` resolved to #111827 when red came out of the
-                    palette, so the scarcity mark and the bar under it were
-                    drawn in the same near-black as the product name and the
-                    price. On a tile that is otherwise photograph and figures,
-                    a 3px black rule under the price does not read as "nearly
-                    gone" — it reads as a border that escaped, and in the
-                    redesigned grid it was the one mark on a tile that looked
-                    like a mistake.
-
-                    Brand orange is the right colour for it and it is the only
-                    hue left with nothing else to do: yellow is the deal
-                    language (the corner flag, the Super Deal chip, the deals
-                    shelf), green is the saving, ink is type. Scarcity is the
-                    remaining thing a tile says, and orange is what the shop
-                    already spends on urgency in the masthead. */}
-                <span className="live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-shop-primary" aria-hidden />
-                Only {product.stock_quantity} left
-              </span>
+                `Only ${product.stock_quantity} left`
             )}
           </p>
-        )}
-
-        {/* ---- The stock bar ----
-
-            The same fact as the line above it, drawn instead of counted, and
-            the pair is the point: "Only 2 left" is a number a shopper has to
-            weigh against nothing, and a bar two-fifths full is a quantity they
-            read without stopping. Every marketplace this shop competes with
-            runs one, and this is the one urgency device on the tile that is
-            not a claim — it is `stock_quantity` out of the threshold that put
-            the warning there, so a bar can never say "nearly gone" about a
-            product with plenty in the back.
-
-            It is honest about its scale, which is the part that is usually
-            faked. The full width is `LOW_STOCK_AT`, not some invented
-            starting stock: the bar begins at the moment the product becomes
-            scarce and empties from there, so five left is a full bar and one
-            left is a fifth. Nothing here is ever drawn from a figure the shop
-            does not have. */}
-        {lowStock && product.stock_quantity !== null && (
-          <span
-            aria-hidden
-            className="mt-1 block h-[3px] w-full max-w-[90px] overflow-hidden rounded-full bg-shop-hairline sm:mt-0.5"
-          >
-            <span
-              className="block h-full bg-shop-primary"
-              style={{ width: `${Math.max(12, (product.stock_quantity / LOW_STOCK_AT) * 100)}%` }}
-            />
-          </span>
         )}
 
         {/* Rating and units sold — the two numbers a shopper uses to decide

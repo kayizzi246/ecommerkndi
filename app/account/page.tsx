@@ -79,7 +79,7 @@ export default function AccountOverview() {
     <div className="space-y-5 md:space-y-8">
       <header>
         <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">
-          Hi {customer?.name.split(" ")[0]} 👋
+          Hi {customer?.name.split(" ")[0]}
         </h1>
         <p className="mt-1 text-[14px] text-shop-muted">
           Here is everything on your Kandi account.

@@ -2505,8 +2505,9 @@ h6,
  * 10px on a ~190px phone tile that is the outermost corner of a product shot
  * photographed on white — which is to say, the white. */
 .tile-frame {
-  aspect-ratio: 15 / 16;
-  border-radius: 10px;
+  /* Square from sm up, to take height off every row; matches Skeletons.tsx. */
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
 }
 
 @media (max-width: 39.99rem) {
@@ -2548,13 +2549,14 @@ h6,
    * further has to keep that: three ratios that converge stop staggering
    * anything. */
   .tile-frame-a {
-    aspect-ratio: 5 / 6;
+    /* Shortened again: 1.00 / 0.80 / 1.14 of their width. */
+    aspect-ratio: 1 / 1;
   }
   .tile-frame-b {
-    aspect-ratio: 16 / 15;
+    aspect-ratio: 5 / 4;
   }
   .tile-frame-c {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 7 / 8;
   }
 }
 
@@ -2692,25 +2694,7 @@ summary::-webkit-details-marker {
 /* The shine sweep and the panning gradient that lived here were removed: the
    storefront is flat — no shadows, glows or gradients. */
 
-/* The urgency dot beside "Only N left". Opacity only: a scaling dot next to
-   text drags the eye off the words it is meant to be qualifying. */
-@keyframes live-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
-}
-.live-dot {
-  animation: live-dot 1.6s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .live-dot {
-    animation: none;
-  }
   .flag-shine::after {
     display: none;
   }
@@ -2998,18 +2982,6 @@ summary::-webkit-details-marker {
 .tile-type,
 .tile-type :is(.product-name, .price, .was-price, .meta-note) {
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-}
-.tile-sale-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  border-radius: 3px;
-  background: #fb7701;
-  color: #fff;
-  padding: 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
 }
 .tile-badge {
   display: inline-flex;
