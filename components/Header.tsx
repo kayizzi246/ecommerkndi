@@ -89,28 +89,9 @@ export default function Header({
   // every render of the masthead.
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-  /**
-   * True once the page has been scrolled past the masthead's own height.
-   *
-   * On a phone the full masthead — promo strip, logo row, search, department
-   * bar — is close to 200px, and all of it is sticky, so a shopper scrolling a
-   * product grid was reading it through a letterbox. Past that first scroll the
-   * strip, the department bar, the logo, the cart and the menu toggle all fold
-   * away, leaving a single slim row holding nothing but the search field, edge
-   * to edge. Search is the one thing worth keeping pinned in a catalogue this
-   * size; cart and categories are both tabs on the fixed bottom bar already.
-   *
-   * Desktop is untouched — there is room for the whole masthead there.
-   */
-  const [scrolled, setScrolled] = useState(false);
-  /**
-   * Whether the phone-sized search field has been opened by hand.
-   *
-   * Only meaningful before the first scroll: past that the field is pinned and
-   * always on screen, so this is reset when the shopper scrolls into that state
-   * rather than leaving a stale flag behind them.
-   */
-
+  /* The masthead is the same height at every scroll position. It used to
+     shrink on a phone past 120px and grow back near the top, and that 50px
+     change in page height mid-scroll stopped scrolling up short of the top. */
 
   /* The masthead stays pinned and never slides away on scroll. It used to hide
      on the way down and slide back on the way up, and that moving layer made
@@ -131,37 +112,6 @@ export default function Header({
     const observer = new ResizeObserver(publish);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    // Reading scrollY in the handler and acting in a frame keeps this off the
-    // scroll thread; the listener is passive so it can never block one.
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-
-        /* Clamped at zero because iOS rubber-band scrolling reports negative
-           positions at the top of the page and beyond the bottom. Left raw,
-           the bounce at the end of a long grid reads as a direction change and
-           the header flaps. */
-        const y = Math.max(0, window.scrollY);
-
-        // Hysteresis: collapsing and expanding at the same pixel makes the row
-        // flicker for anyone resting at the boundary.
-        setScrolled((current) => {
-          const next = current ? y > 60 : y > 120;
-          return next;
-        });
-      });
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
   }, []);
 
   return (
@@ -276,9 +226,7 @@ export default function Header({
            screen. The scrolled state comes down with it, to py-1.5. */}
       <div className="border-b border-shop-line bg-white">
       <div
-        className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-4 gap-y-2 px-4 md:flex-nowrap md:px-8 md:py-2 ${
-          scrolled ? "py-1.5" : "py-2"
-        }`}
+        className={`mx-auto flex max-w-[var(--shell)] flex-wrap items-center gap-x-4 gap-y-2 px-4 md:flex-nowrap md:px-8 py-2 md:py-2`}
       >
         {/* ---- The logo stays, scrolled or not ----
 
@@ -410,9 +358,7 @@ export default function Header({
                    in a single glance it was the quietest element in it. The
                    cap goes up with it so a wide wordmark is scaled by height
                    rather than clipped by the width limit. */
-                className={`w-auto object-contain md:h-11 md:max-w-[190px] ${
-                  scrolled ? "h-11 max-w-[165px]" : "h-12 max-w-[210px]"
-                }`}
+                className={`w-auto object-contain md:h-11 md:max-w-[190px] h-12 max-w-[210px]`}
               />
             </span>
           ) : (
@@ -494,9 +440,7 @@ export default function Header({
                   logo does. A wordmark that kept its full size would be the
                   tallest thing in a row built to be slim. */}
               <span
-                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] ${
-                  scrolled ? "text-[20px]" : "text-[22px]"
-                }`}
+                className={`font-heading font-bold leading-none tracking-[-0.03em] text-shop-primary md:text-[21px] text-[22px]`}
               >
                 {settings.brand.name}
                 <span className="text-shop-ink">{settings.brand.suffix}</span>
@@ -560,9 +504,7 @@ export default function Header({
              and the field should grow into whatever the logo and the account
              cluster leave — which is exactly what `flex-1` is for. */}
         <div
-          className={`order-last block w-full min-w-0 basis-full md:order-none md:block md:flex-1 md:basis-auto ${
-            scrolled ? "order-none" : ""
-          }`}
+          className={`order-last block w-full min-w-0 basis-full md:order-none md:block md:flex-1 md:basis-auto`}
         >
           <SearchBar placeholder={searchPlaceholder} />
         </div>
@@ -579,9 +521,7 @@ export default function Header({
 
             `md:flex` so desktop keeps the cluster exactly as it was. */}
         <div
-          className={`shrink-0 items-center gap-5 md:ml-0 md:flex ${
-            scrolled ? "ml-0 hidden" : "ml-auto flex"
-          }`}
+          className={`shrink-0 items-center gap-5 md:ml-0 md:flex ml-auto flex`}
         >
           {/* The magnifier that used to sit here is gone. It existed to open a
               field that was hidden on a phone; the field is open on a phone
