@@ -87,7 +87,7 @@
   /* Gray-900. A step cooler and darker than the #171717 near-black it replaces,
      and the anchor of the grey ramp below — every text tone in the shop is now
      drawn from one family rather than a slate ramp sitting on gray hairlines. */
-  --foreground: #111827;
+  --foreground: #222222;
 }
 
 /* ---- Off-white on phones only ----
@@ -231,7 +231,7 @@
    * above describes them; only the hue and the top step have moved. `faint`
    * still fails AA on purpose and still may only carry a struck-through
    * was-price. */
-  --color-shop-ink: #0b0b0b; /* type, not fills */
+  --color-shop-ink: #222222; /* type, not fills */
   --color-shop-body: #414346;
   --color-shop-muted: #5d6066; /* ratings, sold counts, secondary labels */
   --color-shop-title: #26282b; /* product names — a step lighter than ink */
@@ -976,9 +976,11 @@
    */
   --shell: 1720px;
 
+  /* The device's own UI font (Segoe UI, San Francisco, Roboto), the way large
+     marketplaces set their type. Nothing to download. */
   --font-ui:
-    var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -1002,9 +1004,7 @@
    * back to `--font-ui`. A supplier's 90-character title is body copy that
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
-  --font-display:
-    var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —
      but the call sites are worth keeping tagged, because they are exactly the
@@ -1109,6 +1109,11 @@ body {
   --text-lg: 1rem; /* 16px */
   --text-xl: 1.125rem; /* 18px */
   --text-2xl: 1.25rem; /* 20px */
+  /* Lighter weight utilities: the store read too heavy. */
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
 }
 
 button,
@@ -1126,6 +1131,15 @@ textarea {
 :where(a, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--color-shop-primary);
   outline-offset: 3px;
+}
+/* The search pill's own red border and glow show focus, so the field inside it
+   draws no second box. */
+.search-input:focus,
+.search-input:focus-visible,
+.search-scope:focus,
+.search-scope:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Headings run heavy with the tracking pulled in a fraction — bold type sits too
@@ -1150,7 +1164,7 @@ h6,
      at a glance, and at 600 it sat close enough to the product titles beneath
      it that the eye had to stop and check. 700 is well within Inter's
      variable range, so nothing here is a synthesised bold. */
-  font-weight: 700;
+  font-weight: 600;
   /* Tightened, but only just.
 
      This was -0.03em, which pushed "Daily Deals" and "Trending now" into a
@@ -1262,7 +1276,7 @@ h6,
    * worst of both: the file documented an intention it was not carrying out,
    * and anybody reading it would have believed the price was two steps above
    * the product name when it was one. */
-  font-weight: 800;
+  font-weight: 700;
   /* ---- 16px on a phone, 18px from 640px up ----
    *
    * The scale's price row is 18px and that is the size on any screen with room
@@ -1414,7 +1428,7 @@ h6,
  * so the heaviest step here is a real file rather than a smeared 700. */
 .hero-display {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(23px, 2.8vw, 30px);
   line-height: 1.1;
   /* Tighter than the headings below it. At 32px and up the letterforms already
@@ -1504,7 +1518,7 @@ h6,
  * `app/layout.tsx`), so every step of 100–900 is already in the one download. */
 .product-name {
   font-family: var(--font-ui);
-  font-weight: 500;
+  font-weight: 400;
   /* ---- No `font-size` or `line-height` here, and that is the fix ----
    *
    * This rule carried `font-size: 12px; line-height: 16px` for two commits, and
@@ -1542,7 +1556,7 @@ h6,
      stop and work out which line was the label. The gap between a heading and
      its content has to be visible at a glance or it is not doing the job of a
      heading. */
-  font-weight: 700;
+  font-weight: 600;
   /* The scale's 20–24px, fluid between the two rather than fixed at either, so
      a rail title is 20 on a phone and 24 on a desktop without a breakpoint.
      Call sites that set their own `text-[Npx]` still win — this is the default
@@ -1571,7 +1585,7 @@ h6,
  * sections cannot drift apart again. */
 .section-sub {
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: 500;
   /* `--color-shop-body` rather than `--color-shop-muted`: 7.6:1 against the
      muted grey's 4.8:1. Bold grey text at 13px is still grey text, and the
      weight alone would not have made it comfortably readable. This is the rule
@@ -1601,7 +1615,7 @@ h6,
      where the spec puts it: 700–800 at 32–48px, for banner and campaign type.
      At the 18–24px these headings actually run, 800 was heavier than the table
      allows and closed the counters up besides. */
-  font-weight: 700;
+  font-weight: 600;
   /* -0.04em here was the tightest type on the site and the hardest to read:
      the two effects compound, because a heavier weight has already eaten the
      space between the letters before the tracking takes any more. */
@@ -1614,7 +1628,7 @@ h6,
    which are signage rather than content. */
 .heading-800 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.012em;
   /* A product title runs to two or three lines here; 1.25 keeps them apart. */
   line-height: 1.25;
@@ -1659,7 +1673,7 @@ h6,
    deciding on gets the display face, heavy and tightened. */
 .price-display {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1679,7 +1693,7 @@ h6,
 .btn-bfl {
   background: var(--color-bfl-yellow);
   color: #000;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   transition: background-color 0.15s ease;
@@ -1709,7 +1723,7 @@ h6,
   gap: 0.5rem;
   background: var(--color-shop-primary);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
   border-radius: 10px;
   /* Flat: no shadow or glow. The solid fill alone marks it as the action. */
@@ -1735,7 +1749,7 @@ h6,
   gap: 0.5rem;
   background: #fff;
   color: var(--color-shop-ink);
-  font-weight: 700;
+  font-weight: 600;
   border: 1px solid var(--color-shop-ink);
   border-radius: 8px;
   transition:
@@ -2992,7 +3006,7 @@ summary::-webkit-details-marker {
   color: #fff;
   padding: 0 5px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 16px;
 }
 
@@ -3050,9 +3064,9 @@ summary::-webkit-details-marker {
     font-size: 11px;
   }
   .tile-type .product-name {
-    font-size: 14px;
-    line-height: 19px;
-    min-height: 38px;
+    font-size: 12.5px;
+    line-height: 17px;
+    min-height: 34px;
   }
   .tile-type .price {
     font-size: 14px;
@@ -3091,8 +3105,8 @@ summary::-webkit-details-marker {
     margin-bottom: 0;
   }
   .tile-type .price {
-    font-weight: 900;
-    -webkit-text-stroke: 0.3px currentColor;
+    font-weight: 600;
+    -webkit-text-stroke: 0;
   }
 }
 
@@ -3108,9 +3122,9 @@ summary::-webkit-details-marker {
  * `min-height` stays exactly twice the leading, so every name
  * still holds two lines and the prices across a row stay level. */
 .tile-type .product-name {
-  font-size: 14px;
-  line-height: 19px;
-  min-height: 38px;
+  font-size: 13px;
+  line-height: 18px;
+  min-height: 36px;
 }
 
 /* ---- Tighter grid gutters from `sm` up ----
@@ -3152,12 +3166,12 @@ body.search-open nav.fixed.bottom-0 {
     color: #1a1a1a;
   }
   .tile-type .product-name {
-    font-size: 13.5px;
-    line-height: 18px;
-    min-height: 36px;
+    font-size: 12.5px;
+    line-height: 17px;
+    min-height: 34px;
   }
   .tile-type .price {
-    font-weight: 700;
+    font-weight: 600;
     -webkit-text-stroke: 0;
   }
 }

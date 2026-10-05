@@ -328,18 +328,12 @@ export default function SearchBar({
             </svg>
           </button>
         )}
-        {/* ---- A rounded pill in the brand colour ----
-            One 44px capsule: the department chip on the left, the query in the
-            middle, and a solid brand button inset on the right with 3px of
-            the field around it, so every part shares the same rounded ends.
-            The edge is the brand red at rest and full strength with a soft
-            ring on focus, so the most-used control in the shop never fades
-            into a white masthead. */}
+        {/* One plain capsule with a 2px black edge and a black button inset at
+            the right end. Focus is shown by the edge alone; nothing inside the
+            field draws its own box. */}
         <div
-          className={`flex h-11 min-w-0 flex-1 items-center gap-1 rounded-full border-2 bg-white p-[3px] transition-[border-color,box-shadow] duration-200 ${
-            focused
-              ? "border-shop-primary shadow-[0_0_0_4px_rgba(211,47,47,0.12)]"
-              : "border-shop-primary/70 hover:border-shop-primary"
+          className={`flex h-11 min-w-0 flex-1 items-center rounded-full border-[1.5px] bg-white p-[3px] ${
+            focused ? "border-[#222]" : "border-[#222]/80"
           }`}
         >
           {/* ---- Scope ----
@@ -360,7 +354,8 @@ export default function SearchBar({
             id="search-scope"
             value={scope}
             onChange={(event) => setScope(event.target.value)}
-            className="hidden h-full max-w-[140px] shrink-0 cursor-pointer truncate rounded-full border-0 bg-shop-surface pl-3.5 pr-2 text-[13px] font-medium text-shop-ink transition-colors hover:bg-[#e9eaed] focus:outline-none sm:block"
+            style={{ outline: "none" }}
+            className="search-scope hidden h-[26px] max-w-[130px] shrink-0 cursor-pointer truncate border-0 border-r border-r-[#d9d9d9] bg-transparent pl-4 pr-2 text-[13px] text-[#191919] focus:outline-none sm:block"
           >
             <option value="">All</option>
             {SCOPES.map((entry) => (
@@ -373,7 +368,7 @@ export default function SearchBar({
           {/* The input and its animated prompt share a positioned box, so the
               prompt lands exactly on the placeholder rather than against the
               outer field — which starts 16px further left, before the padding. */}
-          <div className="relative ml-3 min-w-0 flex-1 sm:ml-2">
+          <div className="relative ml-4 min-w-0 flex-1 sm:ml-3">
           <input
             ref={inputRef}
             type="search"
@@ -401,6 +396,7 @@ export default function SearchBar({
             }}
             onBlur={() => setFocused(false)}
             onKeyDown={onKeyDown}
+            style={{ outline: "none", boxShadow: "none" }}
             /* The static placeholder is still set, and still carries the real
                instruction. The animated line below sits on top of it and is
                `aria-hidden`, so a screen reader hears one stable prompt rather
@@ -476,7 +472,7 @@ export default function SearchBar({
                field around it — so it sits inside the pill rather than
                stretching to whatever height the 16px input gives the row.
                From `sm` it is the full-height block at the field's end. */
-            className="flex h-full w-[42px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-shop-primary text-[13px] font-bold text-white transition-colors hover:bg-shop-primary-dark sm:w-auto sm:px-5"
+            className="flex h-full w-[42px] shrink-0 items-center justify-center rounded-full bg-[#222] text-white transition-colors hover:bg-[#333] sm:w-[64px]"
           >
             <svg className="h-[18px] w-[18px] sm:h-[19px] sm:w-[19px]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
               <path
@@ -485,7 +481,6 @@ export default function SearchBar({
                 d="m21 21-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
               />
             </svg>
-            <span className="hidden sm:inline">Search</span>
           </button>
         </div>
       </form>

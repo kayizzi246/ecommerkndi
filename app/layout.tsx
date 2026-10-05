@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -12,51 +11,7 @@ import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
-/**
- * ---- The shop's type: one face for reading, one for selling ----
- *
- * DM Sans carries the interface — body copy, labels, product names. It has a
- * generous x-height and open counters, so the 12–14px a catalogue page runs at
- * stays legible on a low-density Android screen.
- *
- * Plus Jakarta Sans is the display face — headings, section titles and every
- * price. It is a touch wider and rounder than the body face, which gives the
- * number a shopper is weighing a confident, finished look and separates it
- * from the copy around it without needing more colour.
- *
- * Both are VARIABLE files, so every weight this shop asks for — 400 body,
- * 500–600 labels, 700 headings, 800 prices — is already in the download, and
- * `font-synthesis-weight: none` in `globals.css` is safe because no weight in
- * use has to be faked.
- *
- * ---- The delivery, which is why a webfont is affordable at all ----
- *
- *   • `next/font/google` downloads the files at BUILD time and serves them from
- *     this origin. No request reaches Google from a shopper's browser, so there
- *     is no third-party DNS lookup or handshake on the critical path, and
- *     nothing to add to the CSP in next.config.ts.
- *   • `display: "swap"` paints text immediately in the fallback and repaints
- *     when the face lands. Nobody waits on a blank page.
- *   • `adjustFontFallback` (on by default) generates a metric-matched fallback
- *     `@font-face`, so the swap does not reflow a price or a product name.
- *
- * `variable` rather than `className`: the families are handed to CSS as
- * `--font-dm-sans` and `--font-jakarta`, and `globals.css` points `--font-ui`
- * and `--font-display` at them. Those two names are the seam that makes the
- * next typeface change an edit here instead of a search through two hundred
- * components. Do not collapse them.
- */
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-dm-sans",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-jakarta",
-});
+/* Type is the system UI font stack, set in globals.css (--font-ui). */
 
 /**
  * ---- The shop is light-only, said to the browser rather than to the reader ----
@@ -235,11 +190,6 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // The font `variable` classes define `--font-dm-sans` and `--font-jakarta`
-      // on the root element, where every rule in globals.css can reach them. They carry no
-      // `font-family` of its own — the stylesheet decides what uses the face —
-      // which is why the Seller Centre and admin shells pick it up too without
-      // being touched.
       /* No `antialiased`. Tailwind's class is `-webkit-font-smoothing:
          antialiased`, which switches subpixel rendering OFF and draws every
          glyph in greyscale — the single biggest cause of the soft type this
@@ -248,7 +198,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${dmSans.variable} ${jakarta.variable} h-full`}
+      className="h-full"
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media
