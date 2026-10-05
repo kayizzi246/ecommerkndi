@@ -2563,14 +2563,13 @@ h6,
    * further has to keep that: three ratios that converge stop staggering
    * anything. */
   .tile-frame-a {
-    /* Shortened again: 1.00 / 0.80 / 1.14 of their width. */
     aspect-ratio: 1 / 1;
   }
   .tile-frame-b {
-    aspect-ratio: 5 / 4;
+    aspect-ratio: 1 / 1;
   }
   .tile-frame-c {
-    aspect-ratio: 7 / 8;
+    aspect-ratio: 1 / 1;
   }
 }
 
@@ -2611,32 +2610,9 @@ h6,
  * unlayered rule already outranks — but `display` is the one property where
  * losing silently would leave a two-column grid of unequal tiles rather than a
  * visibly broken page, which is the failure that ships. */
-@media (max-width: 39.99rem) {
-  .product-grid-flush {
-    display: block !important;
-    /* Two, matching the `grid-cols-2` that takes over at 640px. The two have to
-       agree or the grid changes column count at the breakpoint for no reason a
-       shopper could name — and a masonry that re-flows on rotation is the one
-       way this layout draws attention to itself. */
-    columns: 2;
-    column-gap: 0;
-    background: transparent;
-  }
-
-  /* Each cell is one unbreakable block in its column. Without `break-inside` a
-     tile splits across the column boundary and its price ends up under a
-     different photograph, which is the one way this layout fails badly.
-
-     No `display` here, deliberately. The cells are sometimes an `<li>` and
-     sometimes `ProductCard`'s own `<article>`, which is a `flex h-full flex-col`
-     that bottom-pins its price — forcing them all to `block` would unpin it. A
-     multi-column child does not need a particular display to be laid out; it
-     needs `break-inside` so it is not sliced in half at a column boundary. */
-  .product-grid-flush > * {
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
-  }
-}
+/* Phones use the same CSS grid as larger screens. The old two-column masonry
+   (CSS `columns`) rebalanced every time the feed appended products, so tiles
+   jumped between columns mid-scroll. */
 
 /* The lift comes off inside a flush grid. A cell that rises 2px opens a 2px
  * hole in the sheet and drags the hairline out of true with its neighbours,
@@ -3122,9 +3098,9 @@ summary::-webkit-details-marker {
  * `min-height` stays exactly twice the leading, so every name
  * still holds two lines and the prices across a row stay level. */
 .tile-type .product-name {
-  font-size: 13px;
-  line-height: 18px;
-  min-height: 36px;
+  font-size: 14.5px;
+  line-height: 20px;
+  min-height: 40px;
 }
 
 /* ---- Tighter grid gutters from `sm` up ----
@@ -3132,8 +3108,8 @@ summary::-webkit-details-marker {
  * one shelf, still enough to separate borderless tiles. Phones stay flush. */
 @media (min-width: 40rem) {
   .product-grid-flush {
-    column-gap: 8px;
-    row-gap: 12px;
+    column-gap: 6px;
+    row-gap: 8px;
   }
 }
 
@@ -3166,9 +3142,9 @@ body.search-open nav.fixed.bottom-0 {
     color: #1a1a1a;
   }
   .tile-type .product-name {
-    font-size: 12.5px;
-    line-height: 17px;
-    min-height: 34px;
+    font-size: 14px;
+    line-height: 19px;
+    min-height: 38px;
   }
   .tile-type .price {
     font-weight: 600;

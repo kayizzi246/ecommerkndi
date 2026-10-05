@@ -555,7 +555,7 @@ export default function ProductCard({
        was eight pixels a side taken off the picture to produce a margin nobody
        was looking at — the card's hairline already does the separating. Two
        pixels back on each edge is four pixels of image across every tile. */
-    <article className="tile-card group relative flex h-full flex-col p-1.5">
+    <article className="tile-card group relative flex h-full flex-col p-1">
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
