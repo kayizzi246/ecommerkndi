@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import VariantSheet, { type SheetIntent } from "@/components/VariantSheet";
+import BuyNowLabel from "@/components/BuyNowLabel";
 
 /**
  * A buy bar that appears once the real Add to cart has scrolled out of view.
@@ -125,12 +126,12 @@ export default function StickyBuyBar({
             buttons the room they need to be tappable. */}
         <div className="hidden min-w-0 flex-1 sm:block">
           <p className="line-clamp-1 text-[12px] text-shop-title">{product.name}</p>
-          <p className="price text-[16px] leading-none text-shop-flame">
+          <p className="price text-[19px] font-extrabold leading-none text-shop-flame">
             {formatPrice(product.price)}
           </p>
         </div>
 
-        <p className="price shrink-0 text-[16px] leading-none text-shop-flame sm:hidden">
+        <p className="price shrink-0 text-[18px] font-extrabold leading-none text-shop-flame sm:hidden">
           {formatPrice(product.price)}
         </p>
 
@@ -153,9 +154,9 @@ export default function StickyBuyBar({
             <button
               type="button"
               onClick={() => act("buy")}
-              className="btn-shop flex-1 whitespace-nowrap px-4 py-3 text-[13px] sm:flex-none sm:px-6"
+              className="btn-shop btn-buy-now flex-1 whitespace-nowrap px-4 py-3 text-[14px] font-bold sm:flex-none sm:px-6"
             >
-              Buy now
+              <BuyNowLabel />
             </button>
           </div>
         )}

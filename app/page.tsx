@@ -3,6 +3,7 @@ import ChannelRow from "@/components/home/ChannelRow";
 import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import TrustStrip from "@/components/TrustStrip";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
@@ -54,15 +55,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     alternates: { canonical: "/" },
     title: {
-      absolute: `KandiUg Online Shopping in Uganda | ${brand}`,
+      absolute: `KandiUg Online Shopping in Kampala, Uganda | ${brand}`,
     },
     description:
       `KandiUg (${brand}) is a Ugandan online marketplace for shoes, fashion, ` +
-      `electronics and home. Fast delivery countrywide, pay on delivery, ` +
+      `electronics and home. Fast delivery in Kampala and countrywide, pay on delivery, ` +
       `${settings.commerce.returns_days}-day returns.`,
     openGraph: {
       type: "website",
-      title: `KandiUg Online Shopping in Uganda`,
+      title: `KandiUg Online Shopping in Kampala, Uganda`,
       description:
         `Shop shoes, fashion, electronics and more on KandiUg. Fast delivery ` +
         `across Uganda, pay on delivery, ${settings.commerce.returns_days}-day returns.`,
@@ -234,6 +235,12 @@ export default async function Home() {
           deals={deals}
           bestSellers={bestSellers}
         />
+
+        {/* Why a first-time shopper can trust Kandi UG with their money, said
+            before the product grid rather than only at the foot of the page. */}
+        <div className="phone-gutter">
+          <TrustStrip />
+        </div>
 
         <PickedForYou
           latest={forYou}

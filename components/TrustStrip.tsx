@@ -29,14 +29,17 @@ export default function TrustStrip({ className = "" }: { className?: string }) {
     freeDeliveryFrom > 0
       ? { title: "Free Delivery", copy: `on ${formatPrice(freeDeliveryFrom)}+ orders`, icon: TRUCK }
       : { title: "Nationwide Delivery", copy: "1–3 business days", icon: TRUCK },
-    { title: "Free Return", copy: `within ${returnsDays} days`, icon: RETURN },
+    /* "Easy Returns", not "Free Return": a return is only free when the item is
+       faulty or wrong (see /returns), and a shopper who reads "free" and is then
+       charged for the courier stops trusting everything else on the page. */
+    { title: "Easy Returns", copy: `${returnsDays} days to change your mind`, icon: RETURN },
     /* This tile read "100% Authentic / international brands", and it was the
        only one of the three the shop could not stand behind. The other two
        state terms the checkout enforces; that one asserted a fact about goods
        nobody here has authenticated, and did it with a percentage to sound
        measured. What the shop does do is vet each seller before they can list,
        which is a real process with a real page behind it. */
-    { title: "Vetted Sellers", copy: "checked before they can list", icon: BADGE },
+    { title: "Trusted Sellers", copy: "every seller is checked by us", icon: BADGE },
   ];
 
   return (

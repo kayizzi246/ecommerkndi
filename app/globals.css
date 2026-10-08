@@ -1164,7 +1164,7 @@ h6,
      at a glance, and at 600 it sat close enough to the product titles beneath
      it that the eye had to stop and check. 700 is well within Inter's
      variable range, so nothing here is a synthesised bold. */
-  font-weight: 600;
+  font-weight: 700;
   /* Tightened, but only just.
 
      This was -0.03em, which pushed "Daily Deals" and "Trending now" into a
@@ -1428,7 +1428,7 @@ h6,
  * so the heaviest step here is a real file rather than a smeared 700. */
 .hero-display {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   font-size: clamp(23px, 2.8vw, 30px);
   line-height: 1.1;
   /* Tighter than the headings below it. At 32px and up the letterforms already
@@ -1556,7 +1556,7 @@ h6,
      stop and work out which line was the label. The gap between a heading and
      its content has to be visible at a glance or it is not doing the job of a
      heading. */
-  font-weight: 600;
+  font-weight: 700;
   /* The scale's 20–24px, fluid between the two rather than fixed at either, so
      a rail title is 20 on a phone and 24 on a desktop without a breakpoint.
      Call sites that set their own `text-[Npx]` still win — this is the default
@@ -1615,7 +1615,7 @@ h6,
      where the spec puts it: 700–800 at 32–48px, for banner and campaign type.
      At the 18–24px these headings actually run, 800 was heavier than the table
      allows and closed the counters up besides. */
-  font-weight: 600;
+  font-weight: 700;
   /* -0.04em here was the tightest type on the site and the hardest to read:
      the two effects compound, because a heavier weight has already eaten the
      space between the letters before the tracking takes any more. */
@@ -1628,7 +1628,7 @@ h6,
    which are signage rather than content. */
 .heading-800 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.012em;
   /* A product title runs to two or three lines here; 1.25 keeps them apart. */
   line-height: 1.25;
@@ -3093,14 +3093,16 @@ summary::-webkit-details-marker {
   font-family: var(--font-ui);
 }
 
-/* ---- Tile names: 14/19 at every width ----
- * Was 15/20, taken back down a step to read a little lighter.
- * `min-height` stays exactly twice the leading, so every name
- * still holds two lines and the prices across a row stay level. */
+/* ---- Tile names: 13/18, in a softer grey ----
+ * Smaller and lighter, so the photograph and the price lead the tile and the
+ * name reads as a caption under them. `min-height` stays exactly twice the
+ * leading, so every name still holds two lines and the prices across a row
+ * stay level. */
 .tile-type .product-name {
-  font-size: 14.5px;
-  line-height: 20px;
-  min-height: 40px;
+  font-size: 13px;
+  line-height: 18px;
+  min-height: 36px;
+  color: #4a4a4a;
 }
 
 /* ---- Tighter grid gutters from `sm` up ----
@@ -3142,12 +3144,120 @@ body.search-open nav.fixed.bottom-0 {
     color: #1a1a1a;
   }
   .tile-type .product-name {
-    font-size: 14px;
-    line-height: 19px;
-    min-height: 38px;
+    font-size: 12.5px;
+    line-height: 17px;
+    min-height: 34px;
+    color: #4a4a4a;
   }
   .tile-type .price {
     font-weight: 600;
     -webkit-text-stroke: 0;
+  }
+}
+
+/* ---- The phone grid is staggered again, without the jumping ----
+ * The old masonry used CSS `columns`, which rebalance on every feed append and
+ * made tiles hop between columns mid-scroll. This keeps the ordinary two-column
+ * grid and drops the right-hand column by a fixed amount instead, so the rows
+ * read as a staggered brick pattern and a tile never changes column when more
+ * products load.
+ *
+ * `position: relative; top` rather than `transform`: the hover rule on
+ * `.product-grid-flush .tile-card` resets `transform`, and `top` moves the
+ * cell without changing the row heights the grid has laid out. The grid's
+ * bottom padding gives the last offset tile room so it is not cut into by
+ * whatever comes next. Phones only — from `sm` up the grid is three or more
+ * columns and stays level. */
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    padding-bottom: 40px;
+  }
+  .product-grid-flush > :nth-child(even) {
+    position: relative;
+    top: 40px;
+  }
+}
+
+/* ---- Buy now / Gula kati ----
+ * The two words share one grid cell (see `BuyNowLabel`), so the button keeps
+ * the width of the longer word and nothing around it moves. Each word holds
+ * for about two seconds, then slides up and out as the other slides in. The
+ * Luganda runs half a cycle behind the English, so exactly one is showing at
+ * any moment. */
+.buy-now-swap {
+  display: inline-grid;
+  justify-items: center;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.buy-now-word {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  animation: buy-now-swap 5s ease-in-out infinite;
+}
+.buy-now-word-lg {
+  animation-delay: -2.5s;
+}
+@keyframes buy-now-swap {
+  0%,
+  42% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  50.01%,
+  92% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A light sweeps across the Buy now button every few seconds, to pull the eye
+   to the one action the page is for without making the button flash. */
+.btn-buy-now {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-buy-now::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: buy-now-shine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes buy-now-shine {
+  0%,
+  60% {
+    transform: translateX(-100%);
+  }
+  80%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buy-now-word,
+  .btn-buy-now::after {
+    animation: none;
+  }
+  .buy-now-word-lg {
+    display: none;
   }
 }

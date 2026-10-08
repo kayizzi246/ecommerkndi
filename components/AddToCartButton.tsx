@@ -10,6 +10,7 @@ import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
 import { formatPrice } from "@/lib/currency";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
+import BuyNowLabel from "@/components/BuyNowLabel";
 
 type Props = {
   product: Product;
@@ -327,9 +328,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           <button
             type="button"
             onClick={buyNow}
-            className="btn-shop min-h-[52px] flex-1 !flex-col !gap-0 !rounded-xl px-6 py-2 text-center leading-tight"
+            className="btn-shop btn-buy-now min-h-[52px] flex-1 !flex-col !gap-0 !rounded-xl px-6 py-2 text-center leading-tight"
           >
-            <span className="block text-[15px] font-bold">Buy now</span>
+            <BuyNowLabel className="text-[15px] font-bold" />
             {/* Full white, not white/90. White on the brand orange is already
                 only 2.9:1 (see the palette note in globals.css); dimming it
                 further to look "secondary" would have put the smallest text on
@@ -359,7 +360,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-[12px] font-normal text-shop-ink">{product.name}</p>
-            <p className="text-[13px] text-shop-muted">{formatPrice(product.price)}</p>
+            <p className="price text-[17px] font-extrabold leading-tight text-shop-ink">
+              {formatPrice(product.price)}
+            </p>
           </div>
           <button
             type="button"

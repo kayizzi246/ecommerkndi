@@ -57,6 +57,64 @@ function StepHeading({ step, title, sub }: { step: number; title: string; sub?: 
   );
 }
 
+/**
+ * Why a shopper can hand over money here, said right above the button.
+ *
+ * Every line is something the shop actually does: the returns window comes from
+ * wp-admin, payments run through Pesapal, and the rider calls the number on the
+ * order. A promise this block cannot keep would cost more trust than it buys.
+ */
+function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
+  const points = [
+    {
+      title: "Safe payment",
+      body: "Mobile money and card payments go through Pesapal. We never see your PIN.",
+      icon: "M12 3 4.5 6v5.25c0 4.6 3.2 8.6 7.5 9.75 4.3-1.15 7.5-5.15 7.5-9.75V6L12 3Zm-3 9 2.25 2.25L15.75 9.75",
+    },
+    {
+      title: "We call before we come",
+      body: "The rider phones you before delivery, so you are never surprised at the gate.",
+      icon: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a1.125 1.125 0 0 0-1.173.417l-.97 1.293a12.035 12.035 0 0 1-7.143-7.143l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z",
+    },
+    {
+      title: `${returnsDays}-day returns`,
+      body: "Wrong size or changed your mind? Send it back and get your money.",
+      icon: "M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3",
+    },
+  ];
+
+  return (
+    <div className="mt-6 rounded-xl border border-shop-line bg-shop-surface p-4">
+      <p className="text-[14px] font-bold text-shop-ink">Why shop with Kandi UG</p>
+      <ul className="mt-3 space-y-3">
+        {points.map((point) => (
+          <li key={point.title} className="flex items-start gap-3">
+            <svg
+              aria-hidden
+              className="mt-0.5 h-5 w-5 shrink-0 text-shop-success"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d={point.icon} />
+            </svg>
+            <span className="text-[13px] leading-5 text-shop-body">
+              <strong className="font-bold text-shop-ink">{point.title}.</strong> {point.body}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 border-t border-shop-line pt-3 text-[12px] leading-5 text-shop-muted">
+        Questions before you order?{" "}
+        <Link href="/contact" className="font-semibold text-shop-primary hover:underline">
+          Talk to our team
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 type PaymentValue = "cod" | "mobile" | "card";
 
 const PAYMENT_METHODS: {
@@ -187,7 +245,7 @@ export default function CheckoutPage() {
      Both figures come from wp-admin through `useCommerceTerms`, the same
      setting `getDeliveryRates` prices against on the server, so the line below
      cannot promise a threshold the quote will not honour. */
-  const { freeDeliveryFrom } = useCommerceTerms();
+  const { freeDeliveryFrom, returnsDays } = useCommerceTerms();
   const freeDeliveryShortfall =
     freeDeliveryFrom > 0 && subtotal < freeDeliveryFrom
       ? freeDeliveryFrom - subtotal
@@ -233,6 +291,10 @@ export default function CheckoutPage() {
    * overwritten. */
   const effectiveMethod: PaymentValue =
     method === "cod" && !codAllowed && pesapalReady ? "mobile" : method;
+
+  /* "Pay now" on a cash-on-delivery order reads as "money leaves your phone
+     now", which is exactly what that shopper chose not to do. */
+  const payingOnDelivery = effectiveMethod === "cod";
 
   // Whether the shop can take card / mobile money at all. Asked once, so the
   // unavailable options are visibly disabled rather than failing on submit.
@@ -678,13 +740,15 @@ export default function CheckoutPage() {
            whole screen when tapped is worse than one that scrolls away. */}
       <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
-          <span className="flex items-center gap-2 text-[14px] text-shop-ink">
-            Order summary
+          <span className="flex items-center gap-2 text-[14px] font-semibold text-shop-ink">
+            Your order ({count})
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
             </svg>
           </span>
-          <span className="text-[19px] font-semibold text-shop-ink">{formatPrice(subtotal)}</span>
+          {/* The total, matching the pay bar below. Showing the subtotal here
+              and the total there put two different amounts on one screen. */}
+          <span className="text-[19px] font-extrabold text-shop-ink">{formatPrice(total)}</span>
         </summary>
         <div className="max-h-[60vh] overflow-y-auto px-4 pb-6">{summary}</div>
       </details>
@@ -697,9 +761,9 @@ export default function CheckoutPage() {
               Cart
             </Link>
             <span aria-hidden>›</span>
-            <span className="text-shop-ink">Information</span>
+            <span className="font-semibold text-shop-ink">Checkout</span>
             <span aria-hidden>›</span>
-            <span>Payment</span>
+            <span>Order confirmed</span>
           </nav>
 
           {/* ---- Three questions, not nine ----
@@ -708,7 +772,7 @@ export default function CheckoutPage() {
                to leave: the town comes from the location picked below, the
                country is always Uganda, and a surname is optional anyway. */}
           <section>
-            <StepHeading step={1} title="Your details" />
+            <StepHeading step={1} title="Your name and phone number" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="name">
@@ -800,8 +864,8 @@ export default function CheckoutPage() {
           <section className="mt-8">
             <StepHeading
               step={2}
-              title="Delivery location"
-              sub="Tap “Use my location” or type your area — we price delivery from it."
+              title="Where should we deliver?"
+              sub="Tap “Use my location” or type your area. We show the delivery cost before you pay."
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
@@ -848,8 +912,8 @@ export default function CheckoutPage() {
           <section className="mt-8">
             <StepHeading
               step={3}
-              title="How you pay"
-              sub="Secure and encrypted."
+              title="How do you want to pay?"
+              sub="Pick one. Your payment is safe and encrypted."
             />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
@@ -940,6 +1004,8 @@ export default function CheckoutPage() {
                 most shoppers never see more than a moment's spinner. Placed
                 above the button rather than below it so a challenge that does
                 appear is not off the bottom of a phone screen. */}
+            <CheckoutTrust returnsDays={returnsDays} />
+
             <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileNonce} />
 
             {/* Hidden on a phone, where the sticky bar at the foot of the
@@ -948,17 +1014,23 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 hidden w-full py-4 text-[15px] lg:block"
+              className="btn-shop mt-6 hidden w-full py-4 text-[16px] font-bold lg:block"
             >
               {openingPayment
                 ? "Opening payment…"
                 : submitting
                   ? "Placing order…"
-                  : `Pay ${formatPrice(total)}`}
+                  : payingOnDelivery
+                    ? `Place order · pay ${formatPrice(total)} on delivery`
+                    : `Pay ${formatPrice(total)}`}
             </button>
 
             <p className="mt-6 text-[12px] text-shop-muted">
-              By placing this order you agree to our terms of sale.
+              By placing this order you agree to our{" "}
+              <Link href="/terms" className="underline underline-offset-2">
+                terms of sale
+              </Link>
+              .
             </p>
           </section>
         </div>
@@ -983,6 +1055,7 @@ export default function CheckoutPage() {
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] text-shop-muted">
+              {payingOnDelivery ? "Pay on delivery · " : "Total · "}
               {count} {count === 1 ? "item" : "items"}
               {delivery?.deliverable && !delivery.free ? " + delivery" : ""}
             </p>
@@ -997,9 +1070,15 @@ export default function CheckoutPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="btn-shop ml-auto shrink-0 px-8 py-3.5 text-[14px]"
+            className="btn-shop ml-auto shrink-0 px-7 py-3.5 text-[15px] font-bold"
           >
-            {openingPayment ? "Opening payment…" : submitting ? "Placing…" : "Pay now"}
+            {openingPayment
+              ? "Opening payment…"
+              : submitting
+                ? "Placing…"
+                : payingOnDelivery
+                  ? "Place order"
+                  : "Pay now"}
           </button>
         </div>
       </div>

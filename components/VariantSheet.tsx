@@ -8,6 +8,7 @@ import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
+import BuyNowLabel from "@/components/BuyNowLabel";
 
 export type SheetIntent = "cart" | "buy";
 
@@ -239,8 +240,12 @@ export default function VariantSheet({
         </div>
 
         <div className="sticky bottom-0 mt-5 border-t border-shop-line bg-white px-4 py-3">
-          <button type="button" onClick={confirm} className="btn-shop w-full py-3.5 text-[14px]">
-            {intent === "buy" ? "Buy now" : "Add to cart"}
+          <button
+            type="button"
+            onClick={confirm}
+            className={`btn-shop w-full py-3.5 text-[14px] ${intent === "buy" ? "btn-buy-now font-bold" : ""}`}
+          >
+            {intent === "buy" ? <BuyNowLabel /> : "Add to cart"}
           </button>
         </div>
       </div>

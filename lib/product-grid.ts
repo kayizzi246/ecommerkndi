@@ -27,23 +27,14 @@
  *
  * ---- Staggered on a phone, ruled from `sm` up ----
  *
- * Below 640px this stops being a grid at all. `.product-grid-flush` (globals.css)
- * swaps `display: grid` for CSS multi-column, and `ProductCard` gives each
- * photograph one of three frame ratios picked off the product id — so the two
- * phone columns pack independently and a tall tile pushes only its own column
- * down. That is the staggered/masonry arrangement the app uses, and a phone is
- * where it earns its place: two columns of wildly different stock, and the
- * alternative is cropping every shot to one box.
+ * Below 640px it stays a two-column grid, and `.product-grid-flush`
+ * (globals.css) drops the right-hand column by a fixed offset so the rows read
+ * as a staggered brick pattern. An earlier CSS-columns masonry was dropped
+ * because it rebalanced on every feed append and tiles jumped columns
+ * mid-scroll; an offset grid never moves a tile once it has landed.
  *
- * From `sm` up the class does nothing to `display` and the `grid-cols-*`
- * utilities below govern as they always have — an even, ruled sheet. A
- * six-column masonry on a monitor reads as a layout fault rather than as a
- * catalogue, and the wider the screen the more the ragged column feet show.
- *
- * The trade on the phone half is reading order: multi-column fills column one
- * top to bottom before column two, so the DOM order runs down the columns
- * rather than across the rows. For a catalogue — an unordered set of products
- * a shopper scans — that is the natural order anyway.
+ * From `sm` up the grid is level — a staggered six-column sheet on a monitor
+ * reads as a layout fault rather than as a catalogue.
  *
  * ---- No gutters at all, at any width ----
  *
