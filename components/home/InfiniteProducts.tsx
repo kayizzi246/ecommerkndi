@@ -41,14 +41,17 @@ export default function InfiniteProducts({
   excludeId,
   /** What the footer says once there is nothing left. */
   doneLabel,
+  personalize = false,
 }: {
   initialProducts: Product[];
   totalPages: number;
   query?: ProductFeedQuery;
   excludeId?: number;
   doneLabel?: string;
+  /** Scatter categories and favour the shopper's interests — see `useProductFeed`. */
+  personalize?: boolean;
 }) {
-  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId });
+  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId, personalize });
 
   if (feed.products.length === 0) return null;
 

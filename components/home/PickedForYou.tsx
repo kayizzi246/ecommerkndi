@@ -137,7 +137,12 @@ export default function PickedForYou({
       {active === NEW_IN ? (
         <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages} />
       ) : active === FOR_YOU || !department ? (
-        <InfiniteProducts key={FOR_YOU} initialProducts={latest} totalPages={latestTotalPages} />
+        <InfiniteProducts
+          key={FOR_YOU}
+          initialProducts={latest}
+          totalPages={latestTotalPages}
+          personalize
+        />
       ) : (
         <>
           {/* The same six-column ramp `InfiniteProducts` lays out, and it has to

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { Product } from "@/lib/woocommerce";
+import { arrangeProducts } from "@/lib/arrange-feed";
+import { readInterests, topInterests, type Interests } from "@/lib/interests";
 
 /**
  * The loader behind every infinite grid in the shop.
@@ -79,6 +81,7 @@ export function useProductFeed({
   startPage = 1,
   excludeId,
   refine,
+  personalize = false,
 }: {
   /** The page the server rendered — usually page one. */
   initialProducts: Product[];
@@ -111,8 +114,68 @@ export function useProductFeed({
    * render; callers wrap it in `useCallback`.
    */
   refine?: (products: Product[]) => Product[];
+  /**
+   * Mix and personalise the order (`lib/arrange-feed.ts`): categories are
+   * scattered so neighbours differ, and the shopper's favourite categories
+   * turn up more often, with extra products from them blended into each new
+   * page. Only for unsorted feeds such as the homepage "For you" grid — a
+   * listing the shopper sorted by price must stay in that order.
+   */
+  personalize?: boolean;
 }): ProductFeed {
-  const [products, setProducts] = useState(initialProducts);
+  /* Pure scatter on the first render, which needs no browser data, so the
+     server and the browser agree on the first page. */
+  const [products, setProducts] = useState(() =>
+    personalize ? arrangeProducts(initialProducts, null) : initialProducts
+  );
+  /** The shopper's interests, read once when the grid mounts. */
+  const interests = useRef<Interests | null>(null);
+  /** Products from their favourite categories, waiting to be blended in. */
+  const boostPool = useRef<Product[]>([]);
+
+  useEffect(() => {
+    if (!personalize) return;
+    const read = readInterests();
+    const favourites = topInterests(read, 2);
+    if (favourites.length === 0) return;
+    interests.current = read;
+
+    // The first page is re-dealt with their interests once, straight after
+    // load, before the grid has usually been scrolled to. Later pages are
+    // arranged as they arrive, so a tile never moves once it is on screen.
+    let cancelled = false;
+    // On the next frame rather than inside the effect body: the interests come
+    // from browser storage, an outside source, and the result is applied the
+    // way any subscription's callback would apply it.
+    const frame = requestAnimationFrame(() => {
+      if (!cancelled) setProducts((current) => arrangeProducts(current, read));
+    });
+
+    Promise.all(
+      favourites.map((slug) =>
+        fetch(feedUrl(1, 12, { category: slug }))
+          .then((response) => (response.ok ? response.json() : { products: [] }))
+          .then((payload: { products?: Product[] }) => payload.products ?? [])
+          .catch(() => [] as Product[])
+      )
+    ).then((lists) => {
+      if (cancelled) return;
+      // Alternate between the favourite categories rather than all of one first.
+      const merged: Product[] = [];
+      for (let i = 0; i < 12; i++) {
+        for (const list of lists) if (list[i]) merged.push(list[i]);
+      }
+      boostPool.current = merged.filter(
+        (product) => product.id !== excludeId && product.stock_status !== "outofstock"
+      );
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+    // Once per mount: the grid is keyed by its tab, so a new feed remounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [page, setPage] = useState(startPage);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -149,11 +212,20 @@ export function useProductFeed({
       const payload = (await response.json()) as { products: Product[] };
       const arriving = refine ? refine(payload.products) : payload.products;
 
+      // Taken out of the pool before the state update, so a re-run of the
+      // updater (React may call it twice in development) cannot lose them.
+      const boosted = personalize ? boostPool.current.splice(0, 4) : [];
+
       setProducts((current) => {
         const seen = new Set(current.map((product) => product.id));
+        const fresh = [...arriving, ...boosted].filter((p) => {
+          if (seen.has(p.id) || p.id === excludeId) return false;
+          seen.add(p.id);
+          return true;
+        });
         return [
           ...current,
-          ...arriving.filter((p) => !seen.has(p.id) && p.id !== excludeId),
+          ...(personalize ? arrangeProducts(fresh, interests.current, current) : fresh),
         ];
       });
       setPage(next);
@@ -162,7 +234,7 @@ export function useProductFeed({
     } finally {
       setLoading(false);
     }
-  }, [loading, done, page, perPage, stableQuery, excludeId, refine]);
+  }, [loading, done, page, perPage, stableQuery, excludeId, refine, personalize]);
 
   useEffect(() => {
     const node = sentinel.current;

@@ -123,7 +123,7 @@ export default function ImageGallery({
                     alt=""
                     width={80}
                     height={80}
-                    quality={90}
+                    quality={75}
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -145,17 +145,59 @@ export default function ImageGallery({
           aria-label="Open full-size image"
           className="absolute inset-0 h-full w-full cursor-zoom-in"
         >
-          <Image
-            key={activeImage}
-            src={activeImage || images[0]}
-            alt={`${productName} — image ${activeIndex + 1}`}
-            fill
-            sizes="(min-width: 1024px) 760px, 100vw"
-            quality={90}
-            className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
-            priority
-          />
+          {/* ---- Fast first photo ----
+               Quality 75 rather than 90: about 40% fewer bytes for a WebP that
+               looks the same on a phone, which on a Ugandan mobile connection is
+               the difference between the photo and an empty box. The first shot
+               is preloaded from <head> (it is the page's largest element); a
+               shot picked later is fetched at high priority. */}
+          {activeIndex <= 0 ? (
+            <Image
+              key={activeImage}
+              src={activeImage || images[0]}
+              alt={`${productName} — image 1`}
+              fill
+              sizes="(min-width: 1024px) 760px, 100vw"
+              quality={75}
+              className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
+              preload
+            />
+          ) : (
+            <Image
+              key={activeImage}
+              src={activeImage ?? images[0]}
+              alt={`${productName} — image ${activeIndex + 1}`}
+              fill
+              sizes="(min-width: 1024px) 760px, 100vw"
+              quality={75}
+              className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
+              fetchPriority="high"
+            />
+          )}
         </button>
+
+        {/* ---- The next and previous shots, fetched in the background ----
+             Same size and quality as the frame, so they land in the browser
+             cache under exactly the URL the frame will ask for — tapping an
+             arrow or swiping then shows the next photo instantly instead of
+             starting a download. Lazy and invisible, so they only load after
+             the photo on show. */}
+        {images.length > 1 &&
+          [images[(activeIndex + 1) % images.length], images[(activeIndex - 1 + images.length) % images.length]]
+            .filter((src, i, all) => src && src !== activeImage && all.indexOf(src) === i)
+            .map((src) => (
+              <Image
+                key={`warm-${src}`}
+                src={src}
+                alt=""
+                aria-hidden
+                fill
+                sizes="(min-width: 1024px) 760px, 100vw"
+                quality={75}
+                loading="lazy"
+                className="pointer-events-none -z-10 opacity-0"
+              />
+            ))}
 
         {/* Sold out, across the middle of the frame.
             Centred rather than tucked in a corner with the other flags: this is
@@ -264,7 +306,7 @@ export default function ImageGallery({
                   alt=""
                   width={64}
                   height={64}
-                  quality={90}
+                  quality={75}
                   className="h-full w-full object-cover"
                 />
               </button>

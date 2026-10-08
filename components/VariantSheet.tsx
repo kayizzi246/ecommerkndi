@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
 import BuyNowLabel from "@/components/BuyNowLabel";
+import { recordInterest, INTEREST } from "@/lib/interests";
 
 export type SheetIntent = "cart" | "buy";
 
@@ -129,6 +130,7 @@ export default function VariantSheet({
       },
       quantity
     );
+    recordInterest(product, INTEREST.cart);
 
     if (intent === "buy") {
       // Straight to checkout. A "Buy now" that drops somebody on the cart page

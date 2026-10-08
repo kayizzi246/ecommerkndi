@@ -19,6 +19,7 @@ import BackInStockForm from "@/components/BackInStockForm";
 import Link from "next/link";
 import { storeHref } from "@/lib/store-routes";
 import { inkFor } from "@/lib/contrast";
+import { recordInterest, INTEREST } from "@/lib/interests";
 
 type Modal = "delivery" | "sizing" | "rrp" | null;
 
@@ -96,6 +97,13 @@ export default function ProductPurchase({
       slug: product.slug,
     });
   }, [addProduct, product.id, product.name, product.image, product.price, product.slug]);
+
+  // A look at this product counts toward its categories in the homepage feed.
+  useEffect(() => {
+    recordInterest(product, INTEREST.view);
+    // Once per product, not on every re-render of the same one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
 
 
   const discount = product.on_sale

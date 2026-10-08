@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import VariantSheet, { type SheetIntent } from "@/components/VariantSheet";
 import BuyNowLabel from "@/components/BuyNowLabel";
+import { recordInterest, INTEREST } from "@/lib/interests";
 
 /**
  * A buy bar that appears once the real Add to cart has scrolled out of view.
@@ -89,6 +90,7 @@ export default function StickyBuyBar({
       },
       1
     );
+    recordInterest(product, INTEREST.cart);
 
     if (intent === "buy") {
       router.push("/checkout");

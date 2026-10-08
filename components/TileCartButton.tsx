@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import type { Product } from "@/lib/woocommerce";
+import { recordInterest, INTEREST } from "@/lib/interests";
 
 type Variant = "icon" | "bar" | "pill";
 
@@ -94,6 +95,7 @@ export default function TileCartButton({
           },
           1
         );
+        recordInterest(product, INTEREST.cart);
         notify("Added to cart", { image: product.image, showBagLink: true });
       }}
       className={filled}

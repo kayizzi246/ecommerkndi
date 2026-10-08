@@ -11,6 +11,7 @@ import { matchVariation, variationPrice } from "@/lib/variation-match";
 import { formatPrice } from "@/lib/currency";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
 import BuyNowLabel from "@/components/BuyNowLabel";
+import { recordInterest, INTEREST } from "@/lib/interests";
 
 type Props = {
   product: Product;
@@ -151,6 +152,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
       },
       quantity
     );
+    recordInterest(product, INTEREST.cart);
     notify("Added to cart", { image: product.image, showBagLink: true });
     return true;
   };
