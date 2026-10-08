@@ -516,6 +516,12 @@ export default async function ProductPage({
         ]}
       />
       </ProductPurchase>
+      </div>
+
+      {/* The rails and grids below run at the full shop width: in the 1200px
+          product column they showed five cramped tiles with their prices cut
+          off. Only the product itself sits in the narrower column. */}
+      <div className="mx-auto max-w-[var(--shell)] px-4 md:px-8">
 
       {/* ---- You may also like ----
            An endless grid rather than the five-tile rail this used to be.
