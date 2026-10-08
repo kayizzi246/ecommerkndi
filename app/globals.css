@@ -976,11 +976,11 @@
    */
   --shell: 1720px;
 
-  /* The device's own UI font (Segoe UI, San Francisco, Roboto), the way large
-     marketplaces set their type. Nothing to download. */
+  /* Open Sans, loaded by next/font in app/layout.tsx, for the whole shop. The
+     device fonts behind it only show for the moment before it arrives. */
   --font-ui:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans", sans-serif;
+    var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -2971,7 +2971,7 @@ summary::-webkit-details-marker {
  * Helvetica), the marketplace-reference face. */
 .tile-type,
 .tile-type :is(.product-name, .price, .was-price, .meta-note) {
-  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-family: var(--font-ui);
 }
 .tile-badge {
   display: inline-flex;
@@ -3136,8 +3136,7 @@ body.search-open nav.fixed.bottom-0 {
   .product-name,
   .tile-type,
   .tile-type :is(.product-name, .price, .was-price, .meta-note) {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI",
-      "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-ui);
   }
   .product-name {
     font-weight: 400;

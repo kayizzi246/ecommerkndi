@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Open_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -11,7 +12,19 @@ import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
-/* Type is the system UI font stack, set in globals.css (--font-ui). */
+/* ---- One face for the whole shop: Open Sans ----
+   The face AliExpress sets its storefront in. It stays open and legible at the
+   11–13px a phone tile runs at, its figures are wide and plain so a UGX price
+   reads at a glance, and it looks the same on every phone rather than
+   changing with each device's own font. Self-hosted by next/font (no request
+   to Google), variable so every weight is one file, and `swap` so text shows
+   at once in the fallback rather than waiting on the download. The family is
+   exposed as `--font-open-sans` and `--font-ui` in globals.css points at it. */
+const openSans = Open_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-open-sans",
+});
 
 /**
  * ---- The shop is light-only, said to the browser rather than to the reader ----
@@ -198,7 +211,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className="h-full"
+      className={`h-full ${openSans.variable}`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media
