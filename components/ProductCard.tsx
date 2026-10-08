@@ -73,34 +73,6 @@ function compactSold(value: number): string {
 }
 
 /**
- * Five dark stars, filled to the rating.
- *
- * Dark rather than gold: on a card this dense the stars are a measurement, not
- * a decoration, and a row of gold pulls the eye off the price sitting directly
- * above it. Half-steps are rounded to the nearest whole star — at 11px a half
- * star is indistinguishable from a full one anyway.
- */
-function Stars({ rating }: { rating: number }) {
-  const filled = Math.round(rating);
-
-  return (
-    <span className="flex items-center gap-[1px]" aria-label={`Rated ${rating.toFixed(1)} of 5`}>
-      {Array.from({ length: 5 }, (_, index) => (
-        <svg
-          key={index}
-          aria-hidden
-          className={`h-[11px] w-[11px] ${index < filled ? "text-shop-ink" : "text-shop-line"}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
-        </svg>
-      ))}
-    </span>
-  );
-}
-
-/**
  * The one product card the whole store uses — every grid, rail and carousel.
  *
  * Chrome-free, on the Taobao model: no border, no shadow, no card background,
@@ -1154,7 +1126,155 @@ export default function ProductCard({
              dropped rather than squeezed: the discount is already on the
              photograph as a corner flag, so nothing is lost and the resting
              price gets the whole width to itself. */}
-        <p className="flex items-baseline gap-x-1.5 overflow-hidden pt-px">
+
+        {/* ---- When it arrives, directly under what it costs ----
+
+            The two facts a shopper weighs against each other are the price and
+            the wait, so they sit together and in that order. Everything below
+            this — the stock warning, the sold count, the rating — is
+            corroboration, read only once those two have passed.
+
+            It is a client component because the date is the viewer's clock and
+            these pages are statically generated: a date rendered on the server
+            is wrong by the next morning. It holds its own height while it
+            waits, so the grid does not jump on hydration. See the note in
+            `TileDeliveryEta`. */}
+        {/* Bold green "Free shipping" when the item qualifies on its own,
+            otherwise its delivery date. */}
+        {!soldOut && (
+          <TileFreeDelivery
+            price={product.price}
+            fallback={<TileDeliveryEta stockStatus={product.stock_status} />}
+          />
+        )}
+
+        {/* The corroboration, under the two lines that matter. */}
+
+        {/* The stock warning, on the products that have one and nowhere else. */}
+        {(soldOut || lowStock) && (
+          <p className="truncate text-[11px] font-medium leading-[14px] text-shop-body">
+            {soldOut ? (
+              "Back in stock soon"
+            ) : (
+                `Only ${product.stock_quantity} left`
+            )}
+          </p>
+        )}
+
+        {/* Rating and units sold — the two numbers a shopper uses to decide
+            whether anyone else has taken the risk first.
+
+            The sold count leads and the stars follow, which is the reference's
+            order and the right one here: sales are the number nearly every
+            product has, and a rating is the one most of this catalogue is still
+            missing, so leading with the stars left a row that began with a gap
+            on the majority of tiles.
+
+            `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
+            1.3 leading would otherwise open a 15.6px box under a tile that is
+            trying to be short. */}
+        {/* ---- The store name came off the tile ----
+
+            It used to ride the right-hand end of this row, and the argument for
+            it was a good one: this is a marketplace, the tiles in one grid come
+            from different shops, and the store is what a shopper uses to judge
+            a listing they know nothing else about.
+
+            What that argument missed is what the row does on the tiles with no
+            numbers in it. `product.seller` was one of the three conditions that
+            drew this row at all, so a product with no sales and no reviews —
+            most of a young catalogue — rendered a row containing nothing but a
+            store name pushed to the right by `ml-auto`, floating under a name
+            it was not aligned with. Down a grid of forty tiles the eye reads
+            that as forty rows of debris at forty different heights, which is
+            the opposite of what a store name was added to buy.
+
+            It is also the same words over and over. This catalogue is stocked
+            by a handful of shops, so "Sports Kicks" was printing on most tiles
+            on the screen — and a fact repeated on every tile stops being a way
+            to tell them apart, which was the entire point of showing it.
+
+            Nothing is lost: the store is named on the product page, where the
+            decision is actually made, and it has its own shop page linked from
+            there. The row now appears only when it has a NUMBER to carry, which
+            is what makes the block below the name uniform from tile to tile. */}
+        {(product.total_sales > 0 || product.rating_count > 0) && (
+          <div className="flex items-center gap-x-1.5 overflow-hidden pt-1 text-[13px] leading-4 text-[#555555]">
+            {product.total_sales > 0 && (
+              <span className="shrink-0">{compactSold(product.total_sales)} sold</span>
+            )}
+            {product.total_sales > 0 && product.rating_count > 0 && (
+              <span aria-hidden className="text-[#cccccc]">|</span>
+            )}
+            {product.rating_count > 0 && (
+              <span
+                className="flex shrink-0 items-center gap-0.5 text-[#222222]"
+                aria-label={`Rated ${product.average_rating.toFixed(1)} of 5`}
+              >
+                <svg aria-hidden className="h-3.5 w-3.5 text-[#ffb800]" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
+                </svg>
+                {product.average_rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* The colours it comes in, when it comes in more than one. Dots rather
+            than the names: at 12px "Charcoal / Off-white / Sand" is unreadable
+            and the colour itself is the label.
+
+            `aria-hidden` on the dots with the names in one visually-hidden
+            string beside them — five unlabelled circles are noise to a screen
+            reader, and the useful form of this row is the sentence, not the
+            swatches. Not interactive here: choosing happens on the product
+            page, and a tile that let a colour be picked would be promising a
+            preview it cannot show. */}
+        {swatches.length > 0 && (
+          <div className="flex items-center gap-1 py-px">
+            <span className="sr-only">
+              Colours: {colorOptions.map((option) => option.name).join(", ")}
+            </span>
+            {swatches.map((option) => (
+              <span
+                key={option.name}
+                aria-hidden
+                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ backgroundColor: option.value || option.name.toLowerCase() }}
+              />
+            ))}
+            {extraSwatches > 0 && (
+              <span aria-hidden className="meta-note leading-none text-shop-muted">
+                +{extraSwatches}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Free delivery, on the items that clear the threshold on their own.
+
+            Above the money block rather than inside it, deliberately: the block
+            below is bottom-pinned by `mt-auto` so that every price in a grid
+            row lands on the same line, and a row rendered underneath the price
+            would lift it off that line on some tiles and not others. Everything
+            above the pin flows from the top and can appear and disappear
+            freely, which is where a conditional row belongs. */}
+
+        {/* The programme badge — Choice, New or Top rated — in solid purple. */}
+        {chip && (
+          <p className="pt-1">
+            <span className="tile-badge">
+              <svg aria-hidden className="h-[10px] w-[10px]" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
+              </svg>
+              {chip}
+            </span>
+          </p>
+        )}
+
+        {/* The price, big and black at the foot of the tile, pinned with
+            `mt-auto` so every price in a row lands on one line. */}
+        <p className="mt-auto flex items-baseline gap-x-1.5 overflow-hidden pt-1.5">
           {/* ---- The resting price is near-black, not orange ----
                It was orange for a while, on the argument that one saturated
                colour repeated in the same position on every tile gives the eye
@@ -1217,9 +1337,7 @@ export default function ProductCard({
                shoppers read without being taught. A resting price stays ink,
                so the red still means something when it appears. */}
           <span
-            className={`price whitespace-nowrap ${
-              discount > 0 ? "text-[color:var(--color-shop-price-was)]" : "text-shop-ink"
-            }`}
+            className="price whitespace-nowrap text-[#111111]"
           >
             {formatPrice(product.price)}
           </span>
@@ -1245,141 +1363,6 @@ export default function ProductCard({
             </span>
           )}
         </p>
-
-        {/* ---- When it arrives, directly under what it costs ----
-
-            The two facts a shopper weighs against each other are the price and
-            the wait, so they sit together and in that order. Everything below
-            this — the stock warning, the sold count, the rating — is
-            corroboration, read only once those two have passed.
-
-            It is a client component because the date is the viewer's clock and
-            these pages are statically generated: a date rendered on the server
-            is wrong by the next morning. It holds its own height while it
-            waits, so the grid does not jump on hydration. See the note in
-            `TileDeliveryEta`. */}
-        <TileDeliveryEta stockStatus={product.stock_status} />
-
-        {/* The corroboration, under the two lines that matter. */}
-
-        {/* The stock warning, on the products that have one and nowhere else. */}
-        {(soldOut || lowStock) && (
-          <p className="truncate text-[11px] font-medium leading-[14px] text-shop-body">
-            {soldOut ? (
-              "Back in stock soon"
-            ) : (
-                `Only ${product.stock_quantity} left`
-            )}
-          </p>
-        )}
-
-        {/* Rating and units sold — the two numbers a shopper uses to decide
-            whether anyone else has taken the risk first.
-
-            The sold count leads and the stars follow, which is the reference's
-            order and the right one here: sales are the number nearly every
-            product has, and a rating is the one most of this catalogue is still
-            missing, so leading with the stars left a row that began with a gap
-            on the majority of tiles.
-
-            `leading-none` keeps the row to its text: 12px copy at `.meta-note`'s
-            1.3 leading would otherwise open a 15.6px box under a tile that is
-            trying to be short. */}
-        {/* ---- The store name came off the tile ----
-
-            It used to ride the right-hand end of this row, and the argument for
-            it was a good one: this is a marketplace, the tiles in one grid come
-            from different shops, and the store is what a shopper uses to judge
-            a listing they know nothing else about.
-
-            What that argument missed is what the row does on the tiles with no
-            numbers in it. `product.seller` was one of the three conditions that
-            drew this row at all, so a product with no sales and no reviews —
-            most of a young catalogue — rendered a row containing nothing but a
-            store name pushed to the right by `ml-auto`, floating under a name
-            it was not aligned with. Down a grid of forty tiles the eye reads
-            that as forty rows of debris at forty different heights, which is
-            the opposite of what a store name was added to buy.
-
-            It is also the same words over and over. This catalogue is stocked
-            by a handful of shops, so "Sports Kicks" was printing on most tiles
-            on the screen — and a fact repeated on every tile stops being a way
-            to tell them apart, which was the entire point of showing it.
-
-            Nothing is lost: the store is named on the product page, where the
-            decision is actually made, and it has its own shop page linked from
-            there. The row now appears only when it has a NUMBER to carry, which
-            is what makes the block below the name uniform from tile to tile. */}
-        {(product.total_sales > 0 || product.rating_count > 0) && (
-          <div className="flex items-center gap-x-2 overflow-hidden py-px">
-            {product.total_sales > 0 && (
-              <span className="meta-note shrink-0 leading-none text-shop-muted">
-                {compactSold(product.total_sales)} sold
-              </span>
-            )}
-            {product.rating_count > 0 && (
-              <span className="flex shrink-0 items-center gap-1">
-                <Stars rating={product.average_rating} />
-                <span className="meta-note leading-none text-shop-body">
-                  {product.average_rating.toFixed(1)}
-                </span>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* The colours it comes in, when it comes in more than one. Dots rather
-            than the names: at 12px "Charcoal / Off-white / Sand" is unreadable
-            and the colour itself is the label.
-
-            `aria-hidden` on the dots with the names in one visually-hidden
-            string beside them — five unlabelled circles are noise to a screen
-            reader, and the useful form of this row is the sentence, not the
-            swatches. Not interactive here: choosing happens on the product
-            page, and a tile that let a colour be picked would be promising a
-            preview it cannot show. */}
-        {swatches.length > 0 && (
-          <div className="flex items-center gap-1 py-px">
-            <span className="sr-only">
-              Colours: {colorOptions.map((option) => option.name).join(", ")}
-            </span>
-            {swatches.map((option) => (
-              <span
-                key={option.name}
-                aria-hidden
-                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10"
-                style={{ backgroundColor: option.value || option.name.toLowerCase() }}
-              />
-            ))}
-            {extraSwatches > 0 && (
-              <span aria-hidden className="meta-note leading-none text-shop-muted">
-                +{extraSwatches}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Free delivery, on the items that clear the threshold on their own.
-
-            Above the money block rather than inside it, deliberately: the block
-            below is bottom-pinned by `mt-auto` so that every price in a grid
-            row lands on the same line, and a row rendered underneath the price
-            would lift it off that line on some tiles and not others. Everything
-            above the pin flows from the top and can appear and disappear
-            freely, which is where a conditional row belongs. */}
-        {!soldOut && <TileFreeDelivery price={product.price} />}
-
-        {/* The programme badge — Choice, New or Top rated — in solid purple. */}
-        {chip && (
-          <p className="pt-1">
-            <span className="tile-badge">
-              <svg aria-hidden className="h-[10px] w-[10px]" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z" />
-              </svg>
-              {chip}
-            </span>
-          </p>
-        )}
       </div>
 
       {/* ---- The whole tile is the link ----

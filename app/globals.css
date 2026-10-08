@@ -3093,16 +3093,16 @@ summary::-webkit-details-marker {
   font-family: var(--font-ui);
 }
 
-/* ---- Tile names: 12.5/17, in a softer grey ----
+/* ---- Tile names: 14/19, near-black, regular (13/18 on a phone) ----
  * Smaller and lighter, so the photograph and the price lead the tile and the
  * name reads as a caption under them. `min-height` stays exactly twice the
  * leading, so every name still holds two lines and the prices across a row
  * stay level. */
 .tile-type .product-name {
-  font-size: 12.5px;
-  line-height: 17px;
-  min-height: 34px;
-  color: #4a4a4a;
+  font-size: 14px;
+  line-height: 19px;
+  min-height: 38px;
+  color: #222222;
 }
 
 /* ---- Tighter grid gutters from `sm` up ----
@@ -3143,10 +3143,10 @@ body.search-open nav.fixed.bottom-0 {
     color: #1a1a1a;
   }
   .tile-type .product-name {
-    font-size: 12px;
-    line-height: 16px;
-    min-height: 32px;
-    color: #4a4a4a;
+    font-size: 13px;
+    line-height: 18px;
+    min-height: 36px;
+    color: #222222;
   }
   .tile-type .price {
     font-weight: 600;
@@ -3260,15 +3260,16 @@ body.search-open nav.fixed.bottom-0 {
   padding: 6px 8px 8px;
 }
 
-/* Price: the loudest thing on the card, in bold black (red when reduced). */
+/* Price: the loudest thing on the card — big, extra-bold, black. */
 .tile-type .price {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 @media (max-width: 39.99rem) {
   .tile-type .price {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
   }
 }
 
