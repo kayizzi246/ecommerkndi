@@ -272,7 +272,7 @@ export default function ProductPurchase({
           </p>
           {/* 18–20px medium: large enough that the shopper is sure which item
               they are buying, still a clear step below the price. */}
-          <h1 className="product-name font-normal-heading line-clamp-3 text-[16px] !font-normal leading-[1.35] text-shop-ink md:text-[18px]">
+          <h1 className="product-name font-normal-heading line-clamp-3 text-[17px] !font-bold leading-[1.35] !text-[#111111] md:text-[18px]">
             {product.name}
           </h1>
 
@@ -284,14 +284,25 @@ export default function ProductPurchase({
 
                Every figure is from WooCommerce and each half disappears when
                there is nothing behind it. */}
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-shop-muted">
-              {product.total_sales > 0 && (
-                <span className="font-semibold text-shop-body">
-                  {product.total_sales} sold
-                </span>
+          {(product.rating_count > 0 || product.total_sales > 0) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-[#222222]">
+              {product.rating_count > 0 && (
+                <a href="#reviews" className="flex items-center gap-1.5 hover:underline">
+                  <StarRating rating={product.average_rating} size="md" showCount={false} />
+                  <span className="font-bold">{product.average_rating.toFixed(1)}</span>
+                  <span>
+                    {product.rating_count} {product.rating_count === 1 ? "Review" : "Reviews"}
+                  </span>
+                </a>
               )}
-              {product.total_sales > 0 && (product.seller || brand) && <span>|</span>}
+              {product.rating_count > 0 && product.total_sales > 0 && (
+                <span aria-hidden className="text-[#cccccc]">|</span>
+              )}
+              {product.total_sales > 0 && <span>{product.total_sales} sold</span>}
+            </div>
+          )}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-shop-muted">
               {product.seller ? (
                 /* ---- The store, wearing its own colours ----
 
@@ -339,14 +350,6 @@ export default function ProductPurchase({
               )}
             </div>
 
-            {product.rating_count > 0 && (
-              <a href="#reviews" className="flex shrink-0 items-center gap-1.5">
-                <span className="text-[13px] font-semibold text-shop-ink">
-                  {product.average_rating.toFixed(1)}
-                </span>
-                <StarRating rating={product.average_rating} size="md" showCount={false} />
-              </a>
-            )}
           </div>
 
           {/* ---- Earned, not decorated ----
@@ -369,32 +372,14 @@ export default function ProductPurchase({
                column now that the title has stepped back. This is the number the
                page is built around and every other decision above is in service
                of reading it quickly. */}
-          {/* ---- The deal banner ----
-               A red-to-orange band behind the price, the way AliExpress frames
-               its deals: the price is the loudest thing on the page and the
-               colour says "good deal" before the number is read. Plain when sold
-               out, where a celebratory banner over a price nobody can pay would
-               be a taunt. */}
-          {!soldOut && (
-            <div className="mt-4 flex items-center gap-2 rounded-t-xl bg-gradient-to-r from-[#e2231a] to-[#ff7a00] px-3.5 pt-2.5 text-white">
-              <span className="flex items-center gap-1.5 text-[13px] font-extrabold uppercase tracking-[0.04em]">
-                <svg aria-hidden className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-                </svg>
-                {discount > 0 ? "Super Deal" : "Kandi Low Price"}
-              </span>
-            </div>
-          )}
-          <div
-            className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${
-              soldOut
-                ? "mt-4"
-                : "rounded-b-xl bg-gradient-to-r from-[#e2231a] to-[#ff7a00] px-3.5 pb-3 pt-1.5 text-white"
-            }`}
-          >
+          {/* ---- Price ----
+               Big and red, with the saving in red beside it and the original
+               struck through in grey — the way the marketplaces this page is
+               modelled on set it. Grey and struck when sold out. */}
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-2">
             <span
-              className={`price-display text-[30px] leading-none md:text-[34px] ${
-                soldOut ? "text-shop-muted line-through" : "text-white"
+              className={`price-display text-[32px] font-extrabold leading-none md:text-[36px] ${
+                soldOut ? "text-shop-muted line-through" : "text-[#e2231a]"
               }`}
             >
               {formatPrice(product.price)}
@@ -408,18 +393,15 @@ export default function ProductPurchase({
               </span>
             )}
             {onBackorder && (
-              <span className="rounded-full bg-white px-2.5 py-1 text-[12px] font-semibold text-[#c2410c]">
+              <span className="rounded-full bg-[#fff4e5] px-2.5 py-1 text-[12px] font-semibold text-[#c2410c]">
                 On backorder
               </span>
             )}
             {!soldOut && discount > 0 && (
               <>
-                <span className="text-[16px] text-white/80 line-through">
+                <span className="text-[17px] font-bold text-[#e2231a]">{discount}% off</span>
+                <span className="text-[15px] text-[#999999] line-through">
                   {formatPrice(product.regular_price)}
-                </span>
-                {/* White chip on the red banner, in the red of the discount. */}
-                <span className="rounded-md bg-white px-2 py-1 text-[12px] font-extrabold text-[#e2231a]">
-                  −{discount}%
                 </span>
               </>
             )}
@@ -432,7 +414,7 @@ export default function ProductPurchase({
                 fastest way to teach shoppers to ignore every urgency signal the
                 shop prints. */}
             {!soldOut && !onBackorder && product.stock_quantity !== null && product.stock_quantity <= 10 && (
-              <span className="rounded-[4px] bg-[#ffd400] px-2 py-[3px] text-[12px] font-bold uppercase tracking-[0.03em] text-[#7a1e00]">
+              <span className="self-center rounded-[4px] bg-[#fff1f0] px-2 py-[3px] text-[12px] font-bold uppercase tracking-[0.03em] text-[#e2231a]">
                 Almost sold out
               </span>
             )}
