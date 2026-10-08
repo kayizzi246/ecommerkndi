@@ -3224,8 +3224,11 @@ body.search-open nav.fixed.bottom-0 {
  * which deliberately stays white, and the seller and admin areas are untouched.
  *
  * Kept together as one block so the whole look can be tuned or reverted here. */
-:root {
-  --color-shop-canvas: #f5f5f5;
+/* Grey on phones only; desktop keeps its white page. */
+@media (max-width: 39.99rem) {
+  :root {
+    --color-shop-canvas: #f5f5f5;
+  }
 }
 
 /* Cards, not a flush sheet: rounded, white, with the grey showing between. */
