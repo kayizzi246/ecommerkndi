@@ -369,14 +369,32 @@ export default function ProductPurchase({
                column now that the title has stepped back. This is the number the
                page is built around and every other decision above is in service
                of reading it quickly. */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {/* ---- The deal banner ----
+               A red-to-orange band behind the price, the way AliExpress frames
+               its deals: the price is the loudest thing on the page and the
+               colour says "good deal" before the number is read. Plain when sold
+               out, where a celebratory banner over a price nobody can pay would
+               be a taunt. */}
+          {!soldOut && (
+            <div className="mt-4 flex items-center gap-2 rounded-t-xl bg-gradient-to-r from-[#e2231a] to-[#ff7a00] px-3.5 pt-2.5 text-white">
+              <span className="flex items-center gap-1.5 text-[13px] font-extrabold uppercase tracking-[0.04em]">
+                <svg aria-hidden className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+                </svg>
+                {discount > 0 ? "Super Deal" : "Kandi Low Price"}
+              </span>
+            </div>
+          )}
+          <div
+            className={`flex flex-wrap items-center gap-x-3 gap-y-2 ${
+              soldOut
+                ? "mt-4"
+                : "rounded-b-xl bg-gradient-to-r from-[#e2231a] to-[#ff7a00] px-3.5 pb-3 pt-1.5 text-white"
+            }`}
+          >
             <span
               className={`price-display text-[30px] leading-none md:text-[34px] ${
-                soldOut
-                  ? "text-shop-muted line-through"
-                  : discount > 0
-                    ? "text-[color:var(--color-shop-price-was)]"
-                    : "text-shop-ink"
+                soldOut ? "text-shop-muted line-through" : "text-white"
               }`}
             >
               {formatPrice(product.price)}
@@ -390,20 +408,17 @@ export default function ProductPurchase({
               </span>
             )}
             {onBackorder && (
-              <span className="rounded-full bg-shop-primary-soft px-2.5 py-1 text-[12px] font-semibold text-shop-primary-ink">
+              <span className="rounded-full bg-white px-2.5 py-1 text-[12px] font-semibold text-[#c2410c]">
                 On backorder
               </span>
             )}
             {!soldOut && discount > 0 && (
               <>
-                <span className="text-[16px] text-shop-muted line-through">
+                <span className="text-[16px] text-white/80 line-through">
                   {formatPrice(product.regular_price)}
                 </span>
-                {/* Red, and the same red as the price it is standing beside
-                    and as the −x% on the photograph. The three marks on this
-                    page that say "reduced" are one colour; everything else the
-                    page says — scarcity, backorder, the brand — stays orange. */}
-                <span className="rounded-md bg-[color:var(--color-shop-price-was)] px-2 py-1 text-[12px] font-extrabold text-white">
+                {/* White chip on the red banner, in the red of the discount. */}
+                <span className="rounded-md bg-white px-2 py-1 text-[12px] font-extrabold text-[#e2231a]">
                   −{discount}%
                 </span>
               </>
@@ -417,7 +432,7 @@ export default function ProductPurchase({
                 fastest way to teach shoppers to ignore every urgency signal the
                 shop prints. */}
             {!soldOut && !onBackorder && product.stock_quantity !== null && product.stock_quantity <= 10 && (
-              <span className="rounded-[4px] border border-shop-primary px-2 py-[3px] text-[12px] font-bold uppercase tracking-[0.03em] text-shop-primary-ink">
+              <span className="rounded-[4px] bg-[#ffd400] px-2 py-[3px] text-[12px] font-bold uppercase tracking-[0.03em] text-[#7a1e00]">
                 Almost sold out
               </span>
             )}
@@ -463,9 +478,9 @@ export default function ProductPurchase({
                and the colour made them look like promotions rather than terms.
                Grey, one line each, and the figures still come from wp-admin. */}
           {!soldOut && (
-            <div className="mt-4 rounded-xl border border-shop-line bg-shop-surface/60 px-3.5 py-3 text-[13px] leading-snug text-shop-body">
-              <p className="flex items-start gap-2">
-                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <div className="mt-4 space-y-2 text-[13px] leading-snug text-shop-body">
+              <p className="flex items-start gap-2 rounded-lg bg-[#ecfdf3] px-3 py-2.5">
+                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
                 </svg>
                 {freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom ? (
@@ -487,8 +502,8 @@ export default function ProductPurchase({
                   <span>Delivery across Uganda in 1–3 business days.</span>
                 )}
               </p>
-              <p className="mt-1.5 flex items-start gap-2">
-                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <p className="flex items-start gap-2 rounded-lg bg-[#eff6ff] px-3 py-2.5">
+                <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-[#2563eb]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                 </svg>
                 {/* Not "Pay on delivery" any more. Cash on delivery is limited
@@ -652,8 +667,8 @@ export default function ProductPurchase({
                window, pay-on-delivery, the buyer protection in the policies — so
                nothing in this panel is a claim the business has not made
                elsewhere. */}
-          <div className="mt-4 rounded-xl border border-shop-line bg-white p-3.5">
-            <p className="flex items-center gap-2 text-[13px] font-bold text-shop-ink">
+          <div className="mt-4 overflow-hidden rounded-xl border border-[#bbf7d0] bg-white p-3.5">
+            <p className="-mx-3.5 -mt-3.5 mb-1 flex items-center gap-2 bg-gradient-to-r from-[#16a34a] to-[#22c55e] px-3.5 py-2.5 text-[13px] font-bold text-white [&_svg]:text-white">
               <svg aria-hidden className="h-[18px] w-[18px] shrink-0 text-shop-success" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
@@ -666,25 +681,40 @@ export default function ProductPurchase({
                   title: `${returnsDays}-day returns`,
                   copy: "In original condition",
                   icon: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5",
+                  tint: "#fff4e5",
+                  ink: "#ea580c",
                 },
                 {
                   title: "Damage refund",
                   copy: "If it arrives damaged",
                   icon: "M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3Zm-3 9 2 2 4-4",
+                  tint: "#fdf2f8",
+                  ink: "#db2777",
                 },
                 {
                   title: "Secure payment",
                   copy: "Card details never stored",
                   icon: "M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5V11Zm7 4v2",
+                  tint: "#eff6ff",
+                  ink: "#2563eb",
                 },
                 {
                   title: "Cash on delivery",
                   copy: "In selected areas",
                   icon: "M3 7h18v10H3V7Zm9 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6 10v4m12-4v4",
+                  tint: "#ecfdf3",
+                  ink: "#16a34a",
                 },
               ].map((item) => (
-                <li key={item.title} className="flex items-start gap-2.5 rounded-lg bg-shop-surface/70 p-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-shop-save ring-1 ring-shop-line">
+                <li
+                  key={item.title}
+                  className="flex items-start gap-2.5 rounded-lg p-2.5"
+                  style={{ backgroundColor: item.tint }}
+                >
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ backgroundColor: item.ink }}
+                  >
                     <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                     </svg>
