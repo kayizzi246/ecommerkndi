@@ -182,7 +182,7 @@ export default function ProductPurchase({
            photograph the larger share — the product is what sells — and still
            leaves the buy box near 580: wide enough for the delivery line to
            stay on one row, narrow enough that the title wraps like a title. */}
-      <div className="mx-auto flex max-w-[1360px] flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[46%_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
+      <div className="mx-auto flex w-full flex-col gap-4 rounded-lg bg-white p-0 lg:grid lg:grid-cols-[46%_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
         {/* ---- Gallery ----
              46% of the row, capped at 600px including the thumbnail rail — so
              the square frame itself lands near 520 × 520. It was 54% / 780

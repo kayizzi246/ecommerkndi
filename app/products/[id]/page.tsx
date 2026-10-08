@@ -332,7 +332,10 @@ export default async function ProductPage({
          grey frame around every one of them at exactly the moment the shopper
          is looking hardest. */
     <main className="bg-white pb-20 pt-3 lg:pb-12">
-      <div className="mx-auto max-w-[var(--shell)] px-4 md:px-8">
+      {/* 1200px rather than the full 1720px shell: on a wide screen the gallery
+          and buy box were stretched far apart, and a narrower column keeps the
+          photo, price and buttons in one glance. */}
+      <div className="mx-auto max-w-[1200px] px-4 md:px-8">
       <script
         type="application/ld+json"
         // The payload is built from our own typed data, never from user input,
