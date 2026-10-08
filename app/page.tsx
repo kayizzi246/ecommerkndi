@@ -2,9 +2,7 @@ import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
 import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
-import RecentlyViewed from "@/components/RecentlyViewed";
-import TrustStrip from "@/components/TrustStrip";
-import { brandName, getSiteSettings } from "@/lib/site-settings";
+import RecentlyViewed from "@/components/RecentlyViewed";import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
@@ -235,12 +233,6 @@ export default async function Home() {
           deals={deals}
           bestSellers={bestSellers}
         />
-
-        {/* Why a first-time shopper can trust Kandi UG with their money, said
-            before the product grid rather than only at the foot of the page. */}
-        <div className="phone-gutter">
-          <TrustStrip />
-        </div>
 
         <PickedForYou
           latest={forYou}

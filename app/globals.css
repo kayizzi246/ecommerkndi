@@ -3093,15 +3093,15 @@ summary::-webkit-details-marker {
   font-family: var(--font-ui);
 }
 
-/* ---- Tile names: 13/18, in a softer grey ----
+/* ---- Tile names: 12.5/17, in a softer grey ----
  * Smaller and lighter, so the photograph and the price lead the tile and the
  * name reads as a caption under them. `min-height` stays exactly twice the
  * leading, so every name still holds two lines and the prices across a row
  * stay level. */
 .tile-type .product-name {
-  font-size: 13px;
-  line-height: 18px;
-  min-height: 36px;
+  font-size: 12.5px;
+  line-height: 17px;
+  min-height: 34px;
   color: #4a4a4a;
 }
 
@@ -3144,9 +3144,9 @@ body.search-open nav.fixed.bottom-0 {
     color: #1a1a1a;
   }
   .tile-type .product-name {
-    font-size: 12.5px;
-    line-height: 17px;
-    min-height: 34px;
+    font-size: 12px;
+    line-height: 16px;
+    min-height: 32px;
     color: #4a4a4a;
   }
   .tile-type .price {
@@ -3175,47 +3175,6 @@ body.search-open nav.fixed.bottom-0 {
   .product-grid-flush > :nth-child(even) {
     position: relative;
     top: 40px;
-  }
-}
-
-/* ---- Buy now / Gula kati ----
- * The two words share one grid cell (see `BuyNowLabel`), so the button keeps
- * the width of the longer word and nothing around it moves. Each word holds
- * for about two seconds, then slides up and out as the other slides in. The
- * Luganda runs half a cycle behind the English, so exactly one is showing at
- * any moment. */
-.buy-now-swap {
-  display: inline-grid;
-  justify-items: center;
-  overflow: hidden;
-  vertical-align: middle;
-}
-.buy-now-word {
-  grid-area: 1 / 1;
-  white-space: nowrap;
-  animation: buy-now-swap 5s ease-in-out infinite;
-}
-.buy-now-word-lg {
-  animation-delay: -2.5s;
-}
-@keyframes buy-now-swap {
-  0%,
-  42% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-  50.01%,
-  92% {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -3253,11 +3212,67 @@ body.search-open nav.fixed.bottom-0 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .buy-now-word,
   .btn-buy-now::after {
     animation: none;
   }
-  .buy-now-word-lg {
-    display: none;
+}
+
+/* ---- The AliExpress look ----
+ * A light grey page with each product on its own white, softly rounded card,
+ * small even gaps between cards, a quiet two-line name and a big bold price.
+ * The grey is the storefront canvas only (`StoreChrome`), so the product page,
+ * which deliberately stays white, and the seller and admin areas are untouched.
+ *
+ * Kept together as one block so the whole look can be tuned or reverted here. */
+:root {
+  --color-shop-canvas: #f5f5f5;
+}
+
+/* Cards, not a flush sheet: rounded, white, with the grey showing between. */
+.product-grid-flush .tile-card {
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.product-grid-flush {
+  column-gap: 8px;
+  row-gap: 8px;
+}
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    column-gap: 6px;
+    row-gap: 6px;
+    padding-inline: 6px;
+  }
+}
+
+/* The photo runs to the card's edges at the top, the way AliExpress sets it,
+   and the text gets its own small inset below. */
+.product-grid-flush .tile-card {
+  padding: 0;
+}
+.product-grid-flush .tile-card .tile-frame {
+  border-radius: 0;
+}
+.product-grid-flush .tile-card .tile-type {
+  padding: 6px 8px 8px;
+}
+
+/* Price: the loudest thing on the card, in bold black (red when reduced). */
+.tile-type .price {
+  font-size: 17px;
+  font-weight: 700;
+}
+@media (max-width: 39.99rem) {
+  .tile-type .price {
+    font-size: 16px;
+    font-weight: 700;
+  }
+}
+
+/* A soft lift on hover, desktop only, in place of the red inset ring. */
+@media (hover: hover) and (min-width: 40rem) {
+  .product-grid-flush .tile-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
   }
 }

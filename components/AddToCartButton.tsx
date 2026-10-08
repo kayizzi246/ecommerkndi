@@ -28,11 +28,36 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [sizeSystem, setSizeSystem] = useState(SIZE_SYSTEMS[0]);
+  /* Every option starts on its first in-stock choice, so Add to cart and Buy
+     now work on the first tap. Starting blank meant both buttons answered
+     "Please select a colour" — a blocked sale whenever the swatches were hard
+     to read. The choice is shown and highlighted, and the shopper can change it. */
   const [selected, setSelected] = useState<Record<string, string | null>>(() => {
+    // One whole in-stock variation, so the pre-picked colour and size are a
+    // combination that can actually be bought.
+    const firstInStock = product.variations?.find((variation) => variation.is_in_stock);
     const initial: Record<string, string | null> = {};
-    product.attributes?.forEach(attr => initial[attr.name] = null);
+    product.attributes?.forEach((attr) => {
+      const fromVariation = firstInStock?.attributes[attr.name];
+      const known = attr.options.some((option) => option.name === fromVariation);
+      initial[attr.name] = known
+        ? (fromVariation as string)
+        : product.variations?.length
+          ? null
+          : (attr.options[0]?.name ?? null);
+    });
     return initial;
   });
+
+  // Tell the page about the starting choices too, so the gallery and the price
+  // follow them exactly as they would a tap.
+  useEffect(() => {
+    Object.entries(selected).forEach(([name, value]) => {
+      if (value) onOptionChange?.(name, value);
+    });
+    // Once, on mount: later changes go through `handleSelect`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   // Sticky buy bar: shown once the real Add to cart button scrolls out of view,

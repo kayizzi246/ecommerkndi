@@ -88,6 +88,11 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
     <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const available = isOptionAvailable(option.name);
+        const active = value === option.name;
+        /* A chip with the name, not a bare dot. Many colour names here are not
+           CSS colours ("Multicolor", "Pink blender"), and a bare dot for those
+           painted nothing — a row of blank white circles nobody could choose
+           between. The dot still shows the colour when there is one. */
         return (
           <button
             key={option.name}
@@ -95,17 +100,20 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
             disabled={!available}
             onClick={() => onChange(option.name)}
             title={option.name}
-            // A ring rather than a border, so the swatch colour keeps its full
-            // area and the selected state never resizes the dot.
-            className={`relative h-9 w-9 rounded-full transition-shadow disabled:cursor-not-allowed ${
-              value === option.name
-                ? "ring-2 ring-shop-ink ring-offset-2"
-                : "ring-1 ring-black/10 hover:ring-shop-line hover:ring-offset-2"
-            }`}
-            style={{ backgroundColor: option.value || option.name.toLowerCase() }}
-            aria-label={`Select color ${option.name}`}
+            aria-pressed={active}
+            aria-label={`Select colour ${option.name}`}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+              active
+                ? "border-shop-primary bg-shop-primary-soft font-semibold text-shop-ink"
+                : "border-shop-line bg-white text-shop-body hover:border-shop-primary"
+            } ${available ? "" : "line-through"}`}
           >
-            {!available && <span className="absolute inset-0 flex items-center justify-center"><span className="w-full h-px bg-white/80 rotate-45"></span><span className="w-full h-px bg-white/80 -rotate-45 absolute"></span></span>}
+            <span
+              aria-hidden
+              className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/15"
+              style={{ backgroundColor: option.value || option.name.toLowerCase() }}
+            />
+            {option.name}
           </button>
         );
       })}
