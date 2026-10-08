@@ -124,7 +124,7 @@ export default function ImageGallery({
                     width={80}
                     height={80}
                     quality={75}
-                    className="h-full w-full object-contain p-1"
+                    className="h-full w-full object-cover"
                   />
                 </button>
               </li>
@@ -132,12 +132,11 @@ export default function ImageGallery({
           </ul>
         )}
 
-        {/* ---- Main frame: square, the whole product showing ----
+        {/* ---- Main frame: square, the photo filling it ----
 
-             `photo-contain` fits the entire shot inside the frame with a little
-             padding. It used to crop to fill (`object-cover`), which cut the
-             sides off anything not shot square, such as a pair of shoes side by
-             side. A shopper has to see the whole thing they are buying. */}
+             `object-cover` fills the frame edge to edge so the product reads
+             large. A shot that is not square loses a little at its edges; the
+             full-screen lightbox still shows the whole of it. */}
         <div className="group relative aspect-square min-w-0 flex-1 overflow-hidden rounded-xl border border-shop-line bg-shop-photo">
         <button
           type="button"
@@ -159,7 +158,7 @@ export default function ImageGallery({
               fill
               sizes="(min-width: 1024px) 760px, 100vw"
               quality={75}
-              className={`h-full w-full photo-contain ${soldOut ? "opacity-45" : ""}`}
+              className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
               preload
             />
           ) : (
@@ -170,7 +169,7 @@ export default function ImageGallery({
               fill
               sizes="(min-width: 1024px) 760px, 100vw"
               quality={75}
-              className={`h-full w-full photo-contain ${soldOut ? "opacity-45" : ""}`}
+              className={`h-full w-full object-cover ${soldOut ? "opacity-45" : ""}`}
               fetchPriority="high"
             />
           )}
@@ -307,7 +306,7 @@ export default function ImageGallery({
                   width={64}
                   height={64}
                   quality={75}
-                  className="h-full w-full object-contain p-1"
+                  className="h-full w-full object-cover"
                 />
               </button>
             </li>
