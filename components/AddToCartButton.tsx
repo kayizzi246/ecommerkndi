@@ -180,7 +180,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (attr.name.toLowerCase() === 'color') {
           return (
             <div key={attr.name}>
-              <p className="mb-2.5 text-[13px] text-shop-muted">
+              <p className="mb-2.5 text-[14px] font-bold text-shop-ink">
                 Colour:{" "}
                 <span className="font-semibold text-shop-ink">
                   {selected[attr.name] || "Select a colour"}
@@ -204,7 +204,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         return (
           <div key={attr.name}>
             <div className="mb-2.5 flex items-baseline justify-between gap-4">
-              <p className="text-[13px] text-shop-muted">
+              <p className="text-[14px] font-bold text-shop-ink">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
                   {selected[attr.name] ?? `Select a ${attr.name.toLowerCase()}`}
@@ -258,7 +258,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
 
       {/* Quantity stepper, then a full-width primary action — the Shopify order. */}
       <div ref={actionRef}>
-        <p className="mb-2.5 text-[13px] text-shop-muted">Quantity</p>
+        <p className="mb-2.5 text-[14px] font-bold text-shop-ink">Quantity</p>
         <div className="flex items-stretch gap-3">
           <div className="flex items-center rounded-lg border border-shop-line">
             <button

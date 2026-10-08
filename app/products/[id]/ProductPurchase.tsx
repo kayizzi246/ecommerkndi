@@ -272,7 +272,10 @@ export default function ProductPurchase({
           </p>
           {/* 18–20px medium: large enough that the shopper is sure which item
               they are buying, still a clear step below the price. */}
-          <h1 className="product-name font-normal-heading line-clamp-3 text-[17px] !font-bold leading-[1.35] !text-[#111111] md:text-[18px]">
+          <h1
+            className="product-name font-normal-heading line-clamp-3 text-[17px] leading-[1.35] md:text-[19px]"
+            style={{ fontWeight: 700, color: "#111111" }}
+          >
             {product.name}
           </h1>
 
@@ -467,7 +470,7 @@ export default function ProductPurchase({
                 </svg>
                 {freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom ? (
                   <span>
-                    <strong className="font-semibold text-shop-ink">
+                    <strong className="font-bold text-shop-ink">
                       This item ships free.
                     </strong>{" "}
                     Delivery across Uganda in 1–3 business days.
@@ -493,7 +496,9 @@ export default function ProductPurchase({
                     promise made on the product page that the checkout then
                     withdraws is the most expensive kind of copy a shop can
                     run — the shopper has already chosen by then. */}
-                <span>Secure payment · {returnsDays}-day returns</span>
+                <span className="font-semibold text-shop-ink">
+                  Secure payment · {returnsDays}-day returns
+                </span>
               </p>
             </div>
           )}
@@ -556,8 +561,8 @@ export default function ProductPurchase({
               Available on backorder — ships as soon as it arrives
             </p>
           ) : product.stock_quantity !== null && product.stock_quantity <= 10 ? (
-            <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium text-shop-sale">
-              <span className="h-1.5 w-1.5 rounded-full bg-shop-sale" aria-hidden />
+            <p className="mt-2.5 flex items-center gap-2 text-[14px] font-bold text-[#e2231a]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#e2231a]" aria-hidden />
               Only {product.stock_quantity} left in stock
             </p>
           ) : (

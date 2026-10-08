@@ -104,9 +104,14 @@ export default function ImageGallery({
            every large marketplace does on a wide screen for exactly that
            reason. Below `lg` there is no width to spare for a side rail, so it
            becomes a single scrolling row instead. */}
-      <div className="flex gap-3">
+      <div className="flex items-start gap-3">
         {images.length > 1 && (
-          <ul className="hidden w-[76px] shrink-0 flex-col gap-2 lg:flex">
+          /* The rail is absolutely positioned inside a stretched column, so
+             it adds no height of its own: seven thumbnails used to make the
+             row taller than the square photo and stretch the photo with it.
+             It scrolls when there are more shots than fit. */
+          <div className="relative hidden w-[76px] shrink-0 self-stretch lg:block">
+          <ul className="no-scrollbar absolute inset-0 flex flex-col gap-2 overflow-y-auto">
             {images.map((src, i) => (
               <li key={src}>
                 <button
@@ -130,6 +135,7 @@ export default function ImageGallery({
               </li>
             ))}
           </ul>
+          </div>
         )}
 
         {/* ---- Main frame: square, the photo filling it ----
