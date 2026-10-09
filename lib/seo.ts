@@ -126,7 +126,7 @@ export function metaDescription(product: Product): string {
   const tail = [
     price ? `Price in Uganda: ${price}.` : "",
     stock,
-    "Fast delivery, pay on delivery.",
+    "Fast delivery in Kampala, pay on delivery.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -427,7 +427,18 @@ export function siteJsonLd(
     "@type": "OnlineStore",
     name: brandName,
     url,
-    areaServed: "UG",
+    /* Where the shop is and who it delivers to. The city is what lets Google
+       match "near me" and "in Kampala" searches to the store. */
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Kampala",
+      addressRegion: "Central Region",
+      addressCountry: "UG",
+    },
+    areaServed: [
+      { "@type": "City", name: "Kampala" },
+      { "@type": "Country", name: "Uganda" },
+    ],
     currenciesAccepted: "UGX",
   };
 
