@@ -395,15 +395,15 @@ export default async function CategoryPage({
                     These have to move if the column ramp, the rail width or
                     the gaps do. That is the standing cost of a grid that
                     tracks the window instead of a fixed shell — and all three
-                    just did: the ramp is 4 → 5 → 6, the rail sits 24px from
+                    just did: the ramp is 4 → 5 → 7, the rail sits 24px from
                     the grid rather than 32, and the gutters are 1px hairlines
                     rather than gaps. Which gives:
 
                       md   4 cols  (100vw − 64px padding − 224px rail − 24px
                                     gap − three 1px hairlines) ÷ 4
                       lg   5 cols  (100vw − 64 − 256 − 24 − four 1px) ÷ 5
-                      2xl  6 cols  (100vw − 64 − 256 − 24 − five 1px) ÷ 6 */
-                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 315px) / 4), (max-width: 1535px) calc((100vw - 348px) / 5), calc((100vw - 349px) / 6)"
+                      2xl  7 cols  (100vw − 64 − 256 − 24 − six 1px) ÷ 7 */
+                sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 315px) / 4), (max-width: 1535px) calc((100vw - 348px) / 5), calc((100vw - 350px) / 7)"
               />
 
               {/* Below the grid deliberately. A shopper who arrived knowing what

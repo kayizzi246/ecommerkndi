@@ -157,19 +157,17 @@ const GRID_SIZES =
   //   ≤640   2 cols  50vw
   //   ≤768   3       33vw
   //   ≤1024  4       25vw
-  //   ≤1536  5       20vw
-  //   ≤1720  6       17vw
-  //   above  6       275px, once the shell stops growing
+  //   ≤1535  5       20vw
+  //   ≤1720  7       15vw
+  //   above  7       236px, once the shell stops growing
   //
-  // The 1280 band is gone: it used to be the 5→6 step and the step is at 1536
-  // now. A breakpoint that changes nothing is a breakpoint that will be read as
-  // meaning something later.
+  // The 2xl step is seven columns; update this hint with that ramp.
   //
-  // Six columns of a bounded 1720px shell is a 275px tile: (1720 − 64px of
-  // container padding − five 1px hairlines) ÷ 6. The gutters are hairlines
+  // Seven columns of a bounded 1720px shell is a 236px tile: (1720 − 64px of
+  // container padding − six 1px hairlines) ÷ 7. The gutters are hairlines
   // rather than gaps now, so they no longer round to anything worth carrying
   // through this arithmetic.
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 20vw, (max-width: 1720px) 17vw, 275px";
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1535px) 20vw, (max-width: 1720px) 15vw, 236px";
 
 export default function ProductCard({
   product,
@@ -1076,10 +1074,21 @@ export default function ProductCard({
               place there is height to spare. 18 on 14 is 1.29, the same ratio
               the phone runs at, so a name now reads the same way at every
               width. */}
-          <h3 className="product-name line-clamp-2 min-h-[36px] text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:min-h-[38px] sm:text-[14px] sm:leading-[19px]">
+          <h3 className="product-name truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:text-[14px] sm:leading-[19px]">
             {product.name}
           </h3>
         </Link>
+
+        <p className="flex min-w-0 items-baseline gap-x-1.5 overflow-hidden">
+          <span className="price whitespace-nowrap text-[#111111]">
+            {formatPrice(product.price)}
+          </span>
+          {discount > 0 && (
+            <span className="was-price hidden whitespace-nowrap sm:inline">
+              {formatPrice(product.regular_price)}
+            </span>
+          )}
+        </p>
 
         {/* ---- The price comes straight after the name ----
 
@@ -1272,97 +1281,6 @@ export default function ProductCard({
           </p>
         )}
 
-        {/* The price, big and black at the foot of the tile, pinned with
-            `mt-auto` so every price in a row lands on one line. */}
-        <p className="mt-auto flex items-baseline gap-x-1.5 overflow-hidden pt-1.5">
-          {/* ---- The resting price is near-black, not orange ----
-               It was orange for a while, on the argument that one saturated
-               colour repeated in the same position on every tile gives the eye
-               something to track down the page.
-
-               What that argument missed is how many prices are on a screen at
-               once here. Forty orange numbers is not one accent repeated, it is
-               a second colour field competing with the photographs, and orange
-               is also the brand — the masthead, the buttons and the links all
-               use it, so a price set in it stops reading as information and
-               starts reading as decoration.
-
-               Near-black is what the product page has always used for a resting
-               price, so the grid and the PDP agree.
-
-               ---- A reduced price is RED ----
-
-               The argument above is about the RESTING price and it is
-               untouched: forty orange numbers would still be a second colour
-               field, so a price with no reduction behind it stays near-black.
-
-               A reduced price is the other case. Only some tiles carry one, so
-               it is the exception on the page rather than a colour field, and
-               that is the condition under which a colour reads as information.
-               Red is the colour every marketplace this shop competes with uses
-               for it, and a shopper does not have to learn it.
-
-               This went orange for a while, on the argument that a tile
-               carrying a red flag, a red chip and a red price on an orange
-               site was running two colour families at once. That is a real
-               risk and the answer is to ration the OTHER two — the corner flag
-               and the Super Deal chip are brand orange, so the red on a tile
-               is the price and nothing else.
-
-               ---- And now every price is ink, reduced or not ----
-
-               That whole argument was about WHICH red a reduced price should
-               take. There is no red in the palette any more, so the question
-               dissolved: `shop-sale-price` resolves to ink, which is what a
-               resting price was already set in, and the ternary that chose
-               between them was choosing between one colour and itself.
-
-               Removed rather than left as a no-op. A conditional whose branches
-               are identical is worse than no conditional: it reads as a
-               distinction the tile is still making, and the next person to
-               touch this row would spend time working out why it appears not to
-               work.
-
-               Nothing is lost. "Reduced" is still said three times on the tile
-               — the orange corner flag, the struck-through original beside this
-               number, and the "Save UGX x" line under it — and none of those
-               ever depended on the price's own colour. */}
-          {/* Red when it is a reduction, ink when it is just the price.
-
-               An earlier pass removed a ternary here because both of its
-               branches resolved to ink — a distinction the tile appeared to be
-               making and was not. The distinction is real again: a reduced
-               price is set in the price-was red beside its struck original,
-               which is the oldest price-tag convention there is and the one
-               shoppers read without being taught. A resting price stays ink,
-               so the red still means something when it appears. */}
-          <span
-            className="price whitespace-nowrap text-[#111111]"
-          >
-            {formatPrice(product.price)}
-          </span>
-          {/* ---- The struck-through original, and NOT the percentage ----
-
-               The row carried "UGX 145,000  UGX 160,000  −9%" and the third
-               figure was being cut in half: the row is `overflow-hidden` to
-               keep the tile's height honest, and three figures need about
-               double the width of a tile in a six-column grid. What a shopper
-               saw was a sliced "−(".
-
-               The percentage is the one that goes, because it is the only thing
-               in the tile said twice — the corner flag on the photograph is the
-               same number, in the same red, where it is read first. Dropping it
-               here costs no information and gives the two figures that ARE
-               distinct the whole width.
-
-               The original still disappears below `sm`, where a 150px phone
-               tile has room for one price and nothing else. */}
-          {discount > 0 && (
-            <span className="was-price hidden whitespace-nowrap sm:inline">
-              {formatPrice(product.regular_price)}
-            </span>
-          )}
-        </p>
       </div>
 
       {/* ---- The whole tile is the link ----

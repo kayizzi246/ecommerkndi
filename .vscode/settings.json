@@ -7,6 +7,10 @@
     "lib/flutter_flow/custom_functions.dart": true,
     "pubspec.yaml": true,
     "lib/flutter_flow/function_changes.json": true,
+    "app/globals.css": true,
+    "lib/product-grid.ts": true,
+    "components/ProductCard.tsx": true,
+    "app/category/**": true,
     ".vscode/settings.json": true
   }
 }

@@ -22,7 +22,7 @@
  * went back with it — the tile's padding and the corner discount flag were both
  * shrunk to survive 120px and have no reason to be small at 195px.
  *
- * `sm` is back in the ramp as the 2 → 3 step: 2 → 3 → 4 → 5 → 6, at sm, md, lg
+ * `sm` is back in the ramp as the 2 → 3 step: 2 → 3 → 4 → 5 → 7, at sm, md, lg
  * and 2xl.
  *
  * ---- Staggered on a phone, ruled from `sm` up ----
@@ -33,7 +33,7 @@
  * because it rebalanced on every feed append and tiles jumped columns
  * mid-scroll; an offset grid never moves a tile once it has landed.
  *
- * From `sm` up the grid is level — a staggered six-column sheet on a monitor
+ * From `sm` up the grid is level — a staggered seven-column sheet on a monitor
  * reads as a layout fault rather than as a catalogue.
  *
  * ---- No gutters at all, at any width ----
@@ -57,25 +57,20 @@
  * unlayered and a utility is not, so the class would win and the utility would
  * be a comment that looks like code.
  *
- * ---- Five across, and six once there is a monitor for it ----
+ * ---- Five across, and seven once there is a monitor for it ----
  *
- * `2xl` (1536px and up) takes a sixth column. That is the width where five
- * tiles of a 1720px shell are ~343px each — wider than the photograph needs and
- * wide enough that the grid starts reading as a shelf of six large objects
- * rather than as a catalogue. Below it, five.
+ * `2xl` (1536px and up) takes the grid to seven columns. At a 1720px shell,
+ * each tile is about 236px wide, keeping the page dense without shrinking the
+ * product photograph below a useful size. Below it, five.
  *
  * ---- Why five is the floor for a laptop ----
  *
  * The count has been five, then six, and is five again — asked for on the
- * screen it is actually read on. Six columns of a 1720px shell is a 266px
- * tile, and the tile carries a lot: two lines of name, a saving chip, a price
- * pair, a stock line and a rating row. At 266px those wrap and truncate; at
- * the 324px five columns give, they do not.
+ * screen it is actually read on. Seven columns at 1720px gives a 236px tile,
+ * which works with the compact, single-line product name and price rows.
  *
- * Six at a laptop width is only wider than five in the sense that it fits one
- * more picture on the screen. It is narrower in the sense that matters — the
- * picture itself, which is what a shopper is choosing from. At 1536px there is
- * room for both, which is why the column comes back there and not sooner.
+ * Seven at a laptop width would make the photos too small, so the extra two
+ * columns begin at 1536px, where the desktop grid has enough room.
  *
  * `sizes` follows this ramp in two places — `GRID_SIZES` in `ProductCard`, and
  * the spelled-out string on the category page, which is full-bleed and so does
@@ -84,10 +79,10 @@
  */
 export const PRODUCT_GRID =
   "product-grid-flush grid grid-cols-2 " +
-  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6";
+  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-7";
 
 /**
- * The same grid with one more column, for a single store's page.
+ * The grid with one extra `xl` column for a seller storefront.
  *
  * A separate constant rather than `PRODUCT_GRID` plus an `xl:grid-cols-7`
  * override. Both classes would set the same property at the same breakpoint,
@@ -96,13 +91,11 @@ export const PRODUCT_GRID =
  * dressed up as a rule, and it is the kind that works in development and lands
  * wrong once.
  *
- * One column ahead of the shared grid from xl up — six where the shop shows
- * five, seven where it shows six. The store page is full-width and its whole
- * job is showing everything one seller has, so the extra column earns its place
- * there and nowhere else; below xl there is no spare width to take it from.
+ * One column ahead of the shared grid from `xl` to `2xl`. Both cap at seven
+ * columns at `2xl`; keeping the same maximum preserves useful product-image
+ * size on wide screens.
  *
- * The offset is the invariant worth keeping, not the numbers. When the shared
- * ramp moves, this moves with it and stays exactly one ahead.
+ * The extra column begins at `xl`, where the store has room for it.
  */
 export const PRODUCT_GRID_WIDE =
   "product-grid-flush grid grid-cols-2 " +
