@@ -79,7 +79,7 @@
  */
 export const PRODUCT_GRID =
   "product-grid-flush grid grid-cols-2 " +
-  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-7";
+  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";
 
 /**
  * The grid with one extra `xl` column for a seller storefront.
@@ -99,4 +99,4 @@ export const PRODUCT_GRID =
  */
 export const PRODUCT_GRID_WIDE =
   "product-grid-flush grid grid-cols-2 " +
-  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7";
+  "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";
