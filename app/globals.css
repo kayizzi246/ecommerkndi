@@ -976,10 +976,10 @@
    */
   --shell: 1720px;
 
-  /* Inter, loaded by next/font in app/layout.tsx, for the whole shop. The
+  /* Poppins, loaded by next/font in app/layout.tsx, for the whole shop. The
      device fonts behind it only show for the moment before it arrives. */
   --font-ui:
-    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    var(--font-poppins), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
