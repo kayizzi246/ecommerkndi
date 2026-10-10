@@ -1074,12 +1074,12 @@ export default function ProductCard({
               place there is height to spare. 18 on 14 is 1.29, the same ratio
               the phone runs at, so a name now reads the same way at every
               width. */}
-          <h3 className="product-name truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:text-[14px] sm:leading-[19px]">
+          <h3 className="product-name mb-0 truncate text-[13px] leading-[18px] text-shop-ink transition-colors hover:text-shop-primary sm:text-[14px] sm:leading-[19px]">
             {product.name}
           </h3>
         </Link>
 
-        <p className="flex min-w-0 items-baseline gap-x-1.5 overflow-hidden">
+        <p className="mt-0 flex min-w-0 items-baseline gap-x-0 overflow-hidden">
           <span className="price whitespace-nowrap text-[#111111]">
             {formatPrice(product.price)}
           </span>

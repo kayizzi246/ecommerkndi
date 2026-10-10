@@ -3261,8 +3261,11 @@ body.search-open nav.fixed.bottom-0 {
 }
 
 /* Product grid type: single-line names, compact prices, and no gap between them. */
+.tile-type .product-name {
+  margin: 0;
+}
 .tile-type .price {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -3270,9 +3273,12 @@ body.search-open nav.fixed.bottom-0 {
   margin: 0;
   padding: 0;
 }
+.tile-type .product-name + p {
+  margin-top: 0;
+}
 @media (max-width: 39.99rem) {
   .tile-type .price {
-    font-size: 12px;
+    font-size: 11px;
   }
   .tile-type .product-name {
     font-size: 13px;
