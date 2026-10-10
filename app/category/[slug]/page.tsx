@@ -56,7 +56,10 @@ export async function generateMetadata({
    * intent half of the query — the searches worth having are transactional
    * ("bags in uganda", "buy bags online uganda"), not encyclopaedic.
    */
-  const title = `${name} in Kampala, Uganda`;
+  const title =
+    /shoes?/i.test(name)
+      ? `Buy ${name} in Uganda | KandiUg`
+      : `${name} in Kampala, Uganda`;
 
   /**
    * The description now leads with prices.
@@ -69,11 +72,13 @@ export async function generateMetadata({
    * that used to be typed here — the same fix applied across the storefront, so
    * this page cannot promise a window the checkout does not honour.
    */
-  const description = `Buy ${name.toLowerCase()} online in Kampala and across Uganda${
-    count > 0 ? ` — ${count} item${count === 1 ? "" : "s"} in stock` : ""
-  }. Low prices, fast delivery in Kampala, pay on delivery and ${
-    settings.commerce.returns_days
-  }-day returns.`;
+  const description = /shoes?/i.test(name)
+    ? `Buy ${name.toLowerCase()} in Uganda online from KandiUg. ${count > 0 ? `${count} item${count === 1 ? "" : "s"} available` : "Shop online"} with fast delivery in Kampala, pay on delivery and ${settings.commerce.returns_days}-day returns.`
+    : `Buy ${name.toLowerCase()} online in Kampala and across Uganda${
+        count > 0 ? ` — ${count} item${count === 1 ? "" : "s"} in stock` : ""
+      }. Low prices, fast delivery in Kampala, pay on delivery and ${
+        settings.commerce.returns_days
+      }-day returns.`;
 
   return {
     title,
