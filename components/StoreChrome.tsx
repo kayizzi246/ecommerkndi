@@ -125,12 +125,14 @@ export default function StoreChrome({
       <>
         <header className="border-b border-shop-line bg-white">
           <div className="mx-auto flex max-w-[var(--shell)] items-center gap-4 px-4 py-4 md:px-8">
+            {/* A big, plain way back: shoppers who want to change the basket
+                should never have to hunt for it. */}
             <Link
               href="/cart"
-              className="flex items-center gap-1.5 text-[13px] text-shop-body transition-colors hover:text-shop-ink"
+              className="flex items-center gap-2 rounded-full border-2 border-[#111111] bg-white py-2 pl-2.5 pr-4 text-[16px] font-[800] text-[#111111] transition-colors hover:bg-[#111111] hover:text-white"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              <svg aria-hidden className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m0 0 6-6m-6 6 6 6" />
               </svg>
               Back to cart
             </Link>

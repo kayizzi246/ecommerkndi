@@ -9,6 +9,7 @@ import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
+import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
 
 type Props = {
@@ -241,33 +242,14 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
 
       {/* Quantity stepper, then a full-width primary action — the Shopify order. */}
       <div ref={actionRef}>
-        <p className="mb-2.5 text-[14px] font-bold text-shop-ink">Quantity</p>
+        <p className="mb-2.5 text-[15px] font-[800] text-black">Quantity</p>
         <div className="flex items-stretch gap-3">
-          <div className="flex items-center rounded-lg border border-shop-line">
-            <button
-              type="button"
-              aria-label="Decrease quantity"
-              onClick={() => setQuantity((n) => Math.max(1, n - 1))}
-              disabled={quantity <= 1}
-              className="flex h-12 w-11 items-center justify-center text-[19px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
-            >
-              −
-            </button>
-            <span
-              aria-live="polite"
-              className="w-8 text-center text-[14px] font-semibold text-shop-ink"
-            >
-              {quantity}
-            </span>
-            <button
-              type="button"
-              aria-label="Increase quantity"
-              onClick={() => setQuantity((n) => Math.min(10, n + 1))}
-              disabled={quantity >= 10}
-              className="flex h-12 w-11 items-center justify-center text-[19px] text-shop-body transition-colors hover:text-shop-ink disabled:text-[#c9c9c9]"
-            >
-              +
-            </button>
+          <div className="flex items-center">
+            <QuantityStepper
+              name={product.name}
+              quantity={quantity}
+              onChange={(n) => setQuantity(Math.min(10, n))}
+            />
           </div>
 
           {/* ---- Save for later, and it actually saves ----

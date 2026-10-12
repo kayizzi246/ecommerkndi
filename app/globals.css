@@ -3954,3 +3954,12 @@ a.btn-shop {
   text-decoration: line-through;
   cursor: not-allowed;
 }
+
+/* Size buttons, bigger again: easier to read and to hit on a phone. */
+.size-chip {
+  min-width: 66px;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-size: 20px;
+}
