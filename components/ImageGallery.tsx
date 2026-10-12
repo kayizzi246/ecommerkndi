@@ -343,7 +343,7 @@ export default function ImageGallery({
             type="button"
             onClick={() => setLightbox(false)}
             aria-label="Close full-size image"
-            className="absolute right-5 top-5 text-3xl leading-none text-white/80 hover:text-white"
+            className="close-x absolute right-5 top-5 text-3xl leading-none text-white/80 hover:text-white"
           >
             ×
           </button>

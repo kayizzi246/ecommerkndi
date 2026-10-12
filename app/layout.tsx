@@ -285,6 +285,8 @@ export default async function RootLayout({
           terms={{
             freeDeliveryFrom: settings.commerce.free_delivery_from,
             returnsDays: settings.commerce.returns_days,
+            whatsapp: settings.support.whatsapp,
+            phone: settings.support.phone,
           }}
         >
           <CustomerSessionProvider>

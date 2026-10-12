@@ -238,7 +238,7 @@ export default function FilterSidebar({
               type="button"
               onClick={onClose}
               aria-label="Close filters"
-              className="text-lg leading-none text-shop-muted hover:text-shop-ink"
+              className="close-x text-lg leading-none text-shop-muted hover:text-shop-ink"
             >
               ×
             </button>

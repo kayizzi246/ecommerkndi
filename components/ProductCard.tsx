@@ -3,7 +3,7 @@ import Image from "next/image";
 import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
-import TileFreeDelivery from "@/components/TileFreeDelivery";
+import TileOffers from "@/components/TileOffers";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
@@ -673,7 +673,7 @@ export default function ProductCard({
           </p>
         )}
 
-        {!soldOut && <TileFreeDelivery price={product.price} />}
+        {!soldOut && <TileOffers price={product.price} />}
 
         {soldOut ? (
           <p className="tile-stock truncate">Back in stock soon</p>

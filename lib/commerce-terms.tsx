@@ -44,6 +44,10 @@ export type CommerceTerms = {
   freeDeliveryFrom: number;
   /** Days a shopper has to change their mind. */
   returnsDays: number;
+  /** Shop WhatsApp number from wp-admin; empty when none is set. */
+  whatsapp?: string;
+  /** Shop phone number from wp-admin. */
+  phone?: string;
 };
 
 /**

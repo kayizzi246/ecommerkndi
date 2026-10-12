@@ -6,350 +6,266 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import CartRecommendations from "@/components/cart/CartRecommendations";
-import { CheckoutLabel, SwapLabel } from "@/components/BuyNowLabel";
 import { useCommerceTerms } from "@/lib/commerce-terms";
+import { CheckoutLabel, SwapLabel } from "@/components/BuyNowLabel";
+import QuantityStepper from "@/components/QuantityStepper";
 
+/**
+ * The basket, built for a phone first.
+ *
+ * One column of plain white cards on the grey page: the free delivery bar, one
+ * card per item, then the summary with a single big Checkout button. Every
+ * item that is in the basket goes to checkout; there is no selecting, because
+ * checkout has always taken the whole basket and a box that looked like it
+ * left something out was a promise the order did not keep.
+ *
+ * WhatsApp is offered as a second way to order. Plenty of shoppers here would
+ * rather message a person than fill in a form, and a sale taken by message is
+ * still a sale.
+ */
 export default function CartPage() {
-  const { items, updateQuantity, removeItem } = useCart();
+  const { items, count, subtotal, updateQuantity, removeItem } = useCart();
   const { notify } = useToast();
+  const { freeDeliveryFrom, whatsapp } = useCommerceTerms();
 
-  // Shoppers tick the lines they want to check out.
-  const selectedItems = items;
-  const selectedSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const selectedCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
-  /* From wp-admin rather than a local constant — the same figure the checkout
-     prices against, so the bar below cannot promise what the next page refuses.
-     See `lib/commerce-terms.tsx`. */
-  const { freeDeliveryFrom } = useCommerceTerms();
   const freeDeliveryOn = freeDeliveryFrom > 0;
+  const qualifiesFree = freeDeliveryOn && subtotal >= freeDeliveryFrom;
+  const away = freeDeliveryOn ? Math.max(0, freeDeliveryFrom - subtotal) : 0;
+  const progress = freeDeliveryOn ? Math.min(100, (subtotal / freeDeliveryFrom) * 100) : 0;
 
-  const qualifiesFree = freeDeliveryOn && selectedSubtotal >= freeDeliveryFrom;
-
-  // No delivery figure here on purpose. The real fee is charged per kilometre
-  // from the shop, and it cannot be known until the shopper shares their
-  // location at checkout — so the cart shows goods only rather than quoting a
-  // number the next page would contradict.
-  const total = selectedSubtotal;
-
-  // Progress toward the free-delivery threshold, capped so the bar never overruns.
-  const freeProgress = freeDeliveryOn
-    ? Math.min(100, (selectedSubtotal / freeDeliveryFrom) * 100)
-    : 0;
-  const away = freeDeliveryOn ? Math.max(0, freeDeliveryFrom - selectedSubtotal) : 0;
+  const whatsappHref = whatsappOrderLink(
+    whatsapp,
+    items.map((item) => `${item.quantity} x ${item.name} (${formatPrice(item.price * item.quantity)})`),
+    formatPrice(subtotal)
+  );
 
   if (items.length === 0) {
     return (
-      /* The empty state takes the canvas as well. It is the same page and a
-         shopper reaches it by removing their last line, so a white screen here
-         after a tinted one a moment ago reads as a navigation error rather than
-         as an empty basket. */
-      <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-shop-surface">
-          <svg className="h-9 w-9 text-shop-muted" fill="none" stroke="currentColor" strokeWidth="1.2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+      <main className="mx-auto max-w-md px-4 py-20 text-center">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-white">
+          <svg aria-hidden className="h-10 w-10 text-shop-muted" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 11h11.2L21 7H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
           </svg>
         </div>
-        <h1 className="mb-3 section-title text-[19px] text-shop-ink">Your cart is empty</h1>
-        <p className="mb-8 text-[14px] text-shop-muted">
-          Discover this week&apos;s arrivals and find something you love.
-        </p>
-        <Link href="/" className="btn-shop px-10 py-3.5 text-[14px]">
-          Continue shopping
+        <h1 className="text-[22px] font-[800] text-black">Your cart is empty</h1>
+        <p className="mt-2 text-[15px] text-shop-body">Find something you like.</p>
+        <Link href="/" className="btn-shop mt-6 inline-flex rounded-full px-10 py-3.5 text-[16px] font-[800]">
+          Start shopping
         </Link>
       </main>
     );
   }
 
   return (
-    /* ---- The cart joins the shop's canvas-and-panels system ----
-
-       This was a centred column laid straight onto the white page, with the
-       free-delivery meter and the order summary drawn as `card-shop` boxes and
-       the line items as a bare `divide-y` list. That was coherent when every
-       page in the shop was white; the storefront's ground is a warm canvas now
-       and its blocks are panels, so a white cart with two hand-rolled cards on
-       it read as a page from the previous design.
-
-       `<main>` takes the canvas and stops being the centred container — a
-       ground has to reach both edges of the window, and this element was capped
-       at 1200px, so tinting it would have left two white margins down the sides.
-       The centring moves to the div inside it, which is what the homepage does
-       for the same reason. */
-    <main className="pb-28 lg:pb-16">
-      <div className="mx-auto max-w-[1200px] px-3 py-5 md:px-8 md:py-7">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 md:mb-5">
-        <h1 className="text-[22px] font-[800] text-black md:text-[26px]">
-          Your cart ({selectedCount})
-        </h1>
-        <Link
-          href="/"
-          className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink md:text-[13px]"
-        >
-          Continue shopping
-        </Link>
-      </div>
-
-      {/* Free-delivery progress. Suppressed rather than drawn empty when the
-          shop is not running a free-delivery offer at all. */}
-      {freeDeliveryOn && (
-        /* The shop panel rather than `card-shop`, which was this page's own
-           idea of a box: a different radius and a different border from the
-           twelve shelves on the homepage. One class across the shop means the
-           cart cannot drift away from the storefront again. */
-        <div className="shop-panel mb-4">
-          <p className="text-[12px] text-shop-body md:text-[13px]">
-            {qualifiesFree ? (
-              <span className="font-semibold text-shop-success">
-                You get free delivery.
-              </span>
-            ) : (
-              <>
-                Add{" "}
-                <span className="font-bold text-shop-ink">{formatPrice(away)}</span> more for
-                free delivery.
-              </>
-            )}
-          </p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-shop-surface">
-            <div
-              className={`h-full rounded-full transition-[width] duration-500 ${
-                qualifiesFree ? "bg-shop-success" : "bg-shop-primary"
-              }`}
-              style={{ width: `${freeProgress}%` }}
-            />
-          </div>
+    <main className="pb-32 lg:pb-16">
+      <div className="mx-auto max-w-[1100px] px-3 py-4 md:px-6 md:py-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h1 className="text-[22px] font-[800] text-black md:text-[26px]">Your cart ({count})</h1>
+          <Link href="/" className="text-[14px] font-bold text-shop-primary">
+            + Add more
+          </Link>
         </div>
-      )}
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_364px] lg:gap-6">
-        <div>
-          {/* Select-all bar */}
-          <div className="border-b border-shop-line" />
+        {freeDeliveryOn && (
+          <div className="mb-3 rounded-xl bg-white p-3.5">
+            <p className="text-[15px] font-bold text-black">
+              {qualifiesFree ? (
+                <span className="text-[#0a8a3a]">You get free delivery!</span>
+              ) : (
+                <>
+                  Add <span className="text-[#fb7701]">{formatPrice(away)}</span> more for free delivery
+                </>
+              )}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eceef1]">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${qualifiesFree ? "bg-[#0a8a3a]" : "bg-[#fb7701]"}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
-          {/* The lines get a panel of their own, so the basket reads as one
-              object rather than as a list floating on the page beside a boxed
-              summary — which is what it looked like once the page took a
-              ground. The select-all bar above is inside it for the same
-              reason: it is a control over these lines, not over the page. */}
-          <ul className="divide-y divide-shop-line">
-            {items.map((item) => {
-              return (
-                /* ---- The line, rebuilt for a 360px screen ----
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-5">
+          <div className="min-w-0">
+            <ul className="space-y-2.5">
+              {items.map((item) => {
+                const href = `/products/${item.productId}`;
+                return (
+                  <li key={item.key} className="relative flex gap-3 rounded-xl bg-white p-3">
+                    <Link
+                      href={href}
+                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white"
+                    >
+                      {item.image && (
+                        <Image src={item.image} alt={item.name} fill sizes="96px" className="object-contain" quality={85} />
+                      )}
+                    </Link>
 
-                   It was one desktop layout scaled down: a 16px checkbox, a
-                   16px gap, a 96px photograph, another 16px gap, and then the
-                   name and the line total sharing whatever was left on ONE
-                   row. On a phone that left is about 190px, so the name
-                   truncated after three words and the price it was competing
-                   with — the number the shopper came to this page to check —
-                   was squeezed against the right edge.
-
-                   The row breaks in two below sm: name on its own line, price
-                   under it at full weight. Everything else steps down one
-                   notch — the gaps, the photograph, the type — and steps back
-                   up at sm, where the desktop layout was never the problem. */
-                <li key={item.key} className="flex gap-2.5 py-3.5 sm:gap-4 sm:py-5">
-                  <Link
-                    href={`/products/${item.productId}`}
-                    className="relative h-[92px] w-[74px] shrink-0 overflow-hidden rounded-lg bg-shop-surface sm:h-[112px] sm:w-24 sm:rounded-xl"
-                  >
-                    {/* Guarded: an imageless product stores "" here, and
-                        `next/image` treats an empty src as a request for the
-                        current page. */}
-                    {item.image && (
-                      <Image src={item.image} alt={item.name} fill sizes="(max-width: 639px) 74px, 96px" className="object-cover" quality={90} />
-                    )}
-                  </Link>
-
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                      <Link
-                        href={`/products/${item.productId}`}
-                        className="line-clamp-2 text-[12px] font-medium leading-snug text-shop-ink hover:underline sm:line-clamp-none sm:text-[14px]"
-                      >
+                    <div className="flex min-w-0 flex-1 flex-col pr-9">
+                      <Link href={href} className="line-clamp-2 text-[15px] leading-snug text-black">
                         {item.name}
                       </Link>
-                      {/* The line total. Bold and a size up on a phone, where
-                          it is on its own row and is the only figure the
-                          shopper is checking against the summary below. */}
-                      <p className="price whitespace-nowrap text-[14px] text-shop-ink sm:text-[15px]">
+                      {item.options && Object.keys(item.options).length > 0 && (
+                        <p className="mt-0.5 truncate text-[13px] text-shop-muted">
+                          {Object.entries(item.options)
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(", ")}
+                        </p>
+                      )}
+                      <p className="price mt-1 text-[18px] font-[800] text-black">
                         {formatPrice(item.price * item.quantity)}
                       </p>
-                    </div>
+                      {item.quantity > 1 && (
+                        <p className="text-[12px] text-shop-muted">{formatPrice(item.price)} each</p>
+                      )}
 
-                    {item.options && Object.keys(item.options).length > 0 && (
-                      <p className="mt-1 text-[12px] text-shop-muted sm:text-[12px]">
-                        {Object.entries(item.options)
-                          .map(([key, value]) => `${key}: ${value}`)
-                          .join(" · ")}
-                      </p>
-                    )}
-
-                    <p className="mt-0.5 text-[12px] text-shop-muted sm:text-[12px]">
-                      {formatPrice(item.price)} each
-                    </p>
-
-                    <div className="mt-auto flex flex-wrap items-center gap-3 pt-2.5 sm:gap-4 sm:pt-3">
-                      <div className="flex items-center rounded-lg border border-shop-line">
-                        <button
-                          type="button"
-                          aria-label={`Decrease quantity of ${item.name}`}
-                          onClick={() => updateQuantity(item.key, Math.max(1, item.quantity - 1))}
-                          disabled={item.quantity <= 1}
-                          className="flex h-8 w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink disabled:text-[#c9c9c9] sm:h-9 sm:w-9 sm:text-[16px]"
-                        >
-                          −
-                        </button>
-                        <span className="w-7 text-center text-[12px] font-semibold text-shop-ink sm:text-[13px]">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={`Increase quantity of ${item.name}`}
-                          onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                          className="flex h-8 w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink sm:h-9 sm:w-9 sm:text-[16px]"
-                        >
-                          +
-                        </button>
+                      <div className="mt-2">
+                        <QuantityStepper
+                          name={item.name}
+                          quantity={item.quantity}
+                          onChange={(quantity) => updateQuantity(item.key, quantity)}
+                          onRemove={() => {
+                            removeItem(item.key);
+                            notify("Item removed");
+                          }}
+                        />
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          removeItem(item.key);
-                          notify("Item removed");
-                        }}
-                        className="text-[13px] font-bold text-shop-muted hover:text-shop-sale"
-                      >
-                        Remove
-                      </button>
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
 
-          <CartRecommendations excludeIds={items.map((item) => item.productId)} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeItem(item.key);
+                        notify("Item removed");
+                      }}
+                      aria-label={`Remove ${item.name}`}
+                      className="close-x absolute right-2 top-2"
+                    >
+                      <CloseIcon />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="hidden lg:block">
+              <CartRecommendations excludeIds={items.map((item) => item.productId)} />
+            </div>
+          </div>
+
+          <aside className="rounded-xl bg-white p-4 lg:sticky lg:top-32">
+            <h2 className="text-[20px] font-[800] text-black">Summary</h2>
+            <dl className="mt-3 space-y-2 text-[15px]">
+              <div className="flex justify-between gap-3">
+                <dt className="text-shop-body">Items ({count})</dt>
+                <dd className="font-bold text-black">{formatPrice(subtotal)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-shop-body">Delivery</dt>
+                <dd className={qualifiesFree ? "font-bold text-[#0a8a3a]" : "text-shop-body"}>
+                  {qualifiesFree ? "Free" : "At checkout"}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-3 flex items-baseline justify-between border-t border-shop-line pt-3">
+              <span className="text-[18px] font-[800] text-black">Total</span>
+              <span className="price text-[24px] font-[800] text-black">{formatPrice(subtotal)}</span>
+            </div>
+
+            <Link
+              href="/checkout"
+              className="btn-shop mt-4 flex w-full items-center justify-center rounded-full py-4 text-[18px] font-[800]"
+            >
+              <CheckoutLabel />
+            </Link>
+
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#25d366] py-3 text-[16px] font-[800] text-[#128c4a]"
+              >
+                <WhatsAppIcon />
+                Order on WhatsApp
+              </a>
+            )}
+
+            <ul className="mt-4 space-y-1.5 text-[14px] font-semibold text-black">
+              <li className="flex items-center gap-2">
+                <Tick /> Pay with MTN or Airtel Money
+              </li>
+              <li className="flex items-center gap-2">
+                <Tick /> We call you before delivery
+              </li>
+              <li className="flex items-center gap-2">
+                <Tick /> Easy returns
+              </li>
+            </ul>
+          </aside>
         </div>
 
-        {/* Order summary */}
-        {/* The summary is the second panel on the page and the one that has
-            to look like the end of a process. `lg:sticky` is unchanged — it
-            follows the shopper down a long basket so the total and the checkout
-            button are never scrolled away from. */}
-        <aside className="shop-panel lg:sticky lg:top-32">
-          <h2 className="text-[18px] font-[800] text-black">Summary</h2>
-
-          <dl className="mt-3.5 space-y-2.5 text-[12px] md:text-[13px]">
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-shop-muted">
-                Items ({selectedCount})
-              </dt>
-              <dd className="font-medium text-shop-ink">{formatPrice(selectedSubtotal)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-shop-muted">Delivery</dt>
-              <dd
-                className={
-                  qualifiesFree
-                    ? "font-medium text-shop-success"
-                    : "text-right text-[12px] text-shop-muted"
-                }
-              >
-                {qualifiesFree ? "Free" : "Shown at checkout"}
-              </dd>
-            </div>
-          </dl>
-
-          {/* ---- The total is the loudest thing in this panel ----
-
-              It was 21px at 600 — one step above the subtotal line above it,
-              which is not enough separation for the one number the whole page
-              exists to produce. Everything else in the summary came DOWN a
-              step in this pass, and this went up: 26px in `.price`, which is
-              the shop's 800-weight tabular face, so the figure a shopper is
-              about to agree to is unmistakably the largest number on screen.
-
-              `.price` rather than a font-weight utility because every other
-              number in the store is set in it — a total in a different face
-              from the line items above it reads as a different kind of
-              number. */}
-          <div className="mt-4 flex items-baseline justify-between border-t border-shop-line pt-4">
-            <span className="text-[16px] font-[800] text-black">Total</span>
-            <div className="text-right">
-              <span className="price block text-[23px] text-shop-ink md:text-[25px]">
-                {formatPrice(total)}
-              </span>
-            </div>
-          </div>
-
-          <Link
-            href="/checkout"
-            aria-disabled={selectedItems.length === 0}
-            className={`mt-4 flex w-full items-center justify-center rounded-full py-4 text-center text-[17px] font-[800] ${
-              selectedItems.length === 0
-                ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
-                : "btn-shop"
-            }`}
-          >
-            <CheckoutLabel />
-          </Link>
-          <p className="mt-2 text-center text-[12px] font-semibold text-shop-success">
-            Pay on delivery available
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-1.5 border-t border-shop-line pt-4 text-[11px] text-shop-muted">
-            {["Cash", "MTN MoMo", "Airtel Money", "Visa", "Mastercard"].map((label) => (
-              <span key={label} className="rounded-md border border-shop-line px-2 py-1">
-                {label}
-              </span>
-            ))}
-          </div>
-        </aside>
+        <div className="lg:hidden">
+          <CartRecommendations excludeIds={items.map((item) => item.productId)} />
+        </div>
       </div>
 
-      {/* ---- Sticky checkout, phones only ----
-           The summary card above sits at the bottom of the page on a phone,
-           below every line item — so on a cart of any size the one button that
-           matters is off screen for the whole visit. This keeps it in the
-           thumb's reach with the figure attached, because a checkout button
-           without a total makes people scroll back up to check before they
-           trust it.
-
-           The bottom navigation hides itself on this route, so nothing is
-           stacked underneath. */}
+      {/* The phone's checkout bar: the total and one button, always in reach.
+          The bottom nav steps aside on /cart, so this owns the bottom edge. */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="flex items-center gap-3 px-3 py-2.5">
-          {/* The figure on the phone bar is the same claim as the total in the
-              panel above, and on a phone it is the ONLY place that total is
-              visible without scrolling to the foot of the basket. So it is set
-              at the size the decision deserves — 22px in the 800-weight price
-              face — with the item count reduced to a label above it. */}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] leading-none text-shop-muted">
-              Total ({selectedCount})
-            </p>
-            <p className="price mt-1 text-[21px] leading-none text-shop-ink">
-              {formatPrice(total)}
+            <p className="text-[13px] font-semibold leading-none text-shop-body">Total ({count})</p>
+            <p className="price mt-1 truncate text-[20px] font-[800] leading-none text-black">
+              {formatPrice(subtotal)}
             </p>
           </div>
-
           <Link
             href="/checkout"
-            aria-disabled={selectedItems.length === 0}
-            className={`shrink-0 rounded-full px-6 py-3.5 text-center text-[16px] font-[800] ${
-              selectedItems.length === 0
-                ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
-                : "btn-shop"
-            }`}
+            className="btn-shop flex shrink-0 items-center justify-center rounded-full px-6 py-3.5 text-[17px] font-[800]"
           >
             <SwapLabel words={["Checkout", "Genda osasule"]} />
           </Link>
         </div>
       </div>
-      </div>
     </main>
+  );
+}
+
+/**
+ * A wa.me link with the basket written out, or null when the shop has no
+ * WhatsApp number. A local 07… or 03… number is turned into 256…, which is
+ * the only form wa.me accepts.
+ */
+function whatsappOrderLink(number: string | undefined, lines: string[], total: string): string | null {
+  let digits = (number ?? "").replace(/[^\d]/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("0")) digits = `256${digits.slice(1)}`;
+  const text = `Hello, I want to order:\n${lines.join("\n")}\nTotal: ${total}`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+function CloseIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function Tick() {
+  return (
+    <svg aria-hidden className="h-4 w-4 shrink-0 text-[#0a8a3a]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 5 5L20 7" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg aria-hidden className="h-5 w-5" fill="#25d366" viewBox="0 0 24 24">
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9c.3.1.5.2.5.3.1.2.1.7-.1 1.2Z" />
+    </svg>
   );
 }

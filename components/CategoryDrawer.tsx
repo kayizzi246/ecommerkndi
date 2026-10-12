@@ -139,7 +139,7 @@ export default function CategoryDrawer({
             type="button"
             onClick={close}
             aria-label="Close menu"
-            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"
+            className="close-x -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/20"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />

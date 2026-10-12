@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import QuantityStepper from "@/components/QuantityStepper";
 import { CheckoutLabel } from "@/components/BuyNowLabel";
 import { useEffect } from "react";
 import { useCart } from "@/lib/cart";
@@ -88,7 +89,7 @@ export default function CartDrawer() {
             aria-label="Close cart"
             tabIndex={drawerOpen ? 0 : -1}
             onClick={closeDrawer}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-shop-line text-shop-ink transition-colors hover:bg-shop-surface"
+            className="close-x flex h-10 w-10 items-center justify-center rounded-lg border border-shop-line text-shop-ink transition-colors hover:bg-shop-surface"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -186,7 +187,7 @@ export default function CartDrawer() {
                       aria-label={`Remove ${item.name} from cart`}
                       tabIndex={drawerOpen ? 0 : -1}
                       onClick={() => removeItem(item.key)}
-                      className="absolute left-0 top-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-500 text-white transition-colors hover:bg-shop-sale"
+                      className="close-x close-x-sm absolute left-0 top-3 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-500 text-white transition-colors hover:bg-shop-sale"
                     >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
                         <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
@@ -232,28 +233,14 @@ export default function CartDrawer() {
                       <p className="text-right text-[13px] font-semibold text-shop-ink">
                         {formatPrice(item.price * item.quantity)}
                       </p>
-                      <div className="ml-auto flex h-9 flex-row items-center rounded-full border border-shop-line">
-                        <button
-                          type="button"
-                          aria-label={`Reduce quantity of ${item.name}`}
-                          tabIndex={drawerOpen ? 0 : -1}
-                          onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                          className="flex h-full w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink"
-                        >
-                          −
-                        </button>
-                        <span className="w-6 text-center text-[13px] text-shop-ink">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={`Increase quantity of ${item.name}`}
-                          tabIndex={drawerOpen ? 0 : -1}
-                          onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                          className="flex h-full w-8 items-center justify-center text-[15px] text-shop-body hover:text-shop-ink"
-                        >
-                          +
-                        </button>
+                      <div className="ml-auto">
+                        <QuantityStepper
+                          size="sm"
+                          name={item.name}
+                          quantity={item.quantity}
+                          onChange={(quantity) => updateQuantity(item.key, quantity)}
+                          onRemove={() => removeItem(item.key)}
+                        />
                       </div>
                     </div>
                   </div>

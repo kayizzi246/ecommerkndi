@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import QuantityStepper from "@/components/QuantityStepper";
 
 /**
  * The basket, pinned down the right edge of the window while it has anything
@@ -68,7 +69,7 @@ export default function CartRail() {
                 type="button"
                 onClick={() => removeItem(item.key)}
                 aria-label={`Remove ${item.name}`}
-                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-shop-muted ring-1 ring-black/10 hover:text-black"
+                className="close-x close-x-sm absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-shop-muted ring-1 ring-black/10 hover:text-black"
               >
                 <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -76,18 +77,15 @@ export default function CartRail() {
               </button>
             </div>
             <p className="mt-1.5 text-[14px] font-bold text-black">{formatPrice(item.price * item.quantity)}</p>
-            <select
-              aria-label={`Quantity of ${item.name}`}
-              value={item.quantity}
-              onChange={(event) => updateQuantity(item.key, Number(event.target.value))}
-              className="mt-1 w-20 rounded border border-shop-line bg-white px-2 py-1 text-[13px]"
-            >
-              {Array.from({ length: Math.max(10, item.quantity) }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            <div className="mt-1 flex justify-center">
+              <QuantityStepper
+                size="sm"
+                name={item.name}
+                quantity={item.quantity}
+                onChange={(quantity) => updateQuantity(item.key, quantity)}
+                onRemove={() => removeItem(item.key)}
+              />
+            </div>
           </li>
         ))}
       </ul>

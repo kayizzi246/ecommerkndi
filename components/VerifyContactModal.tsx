@@ -294,7 +294,7 @@ export default function VerifyContactModal({
             type="button"
             onClick={onCancel}
             aria-label="Close"
-            className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[21px] leading-none text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
+            className="close-x -mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[21px] leading-none text-shop-muted transition-colors hover:bg-shop-surface hover:text-shop-ink"
           >
             ×
           </button>

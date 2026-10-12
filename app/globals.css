@@ -3513,3 +3513,193 @@ body.search-open nav.fixed.bottom-0 {
     border-radius: 8px;
   }
 }
+
+/* ---- The close / remove X, one size everywhere ----
+   A 40px round target with a heavy cross, so a thumb hits it first time and
+   nobody has to hunt for how to close a sheet or take an item out. Set on
+   the button with `close-x`; the cross inside may be an SVG or a "×". */
+.close-x {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: #eceef1;
+  color: #111111;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+.close-x:hover {
+  background: #dfe2e6;
+  color: #000000;
+}
+.close-x svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 3;
+}
+.close-x-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+}
+.close-x-sm svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- The rotating offer line on a product tile (TileOffers) ----
+   Three lines, each held for two seconds, rolled upward. The list carries the
+   first line again at the end, so 75% → 100% lands on an identical line and
+   the restart cannot be seen. */
+.tile-offers {
+  height: 18px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+.tile-offers-roll {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: tile-offers-roll 8s infinite;
+}
+.tile-offers-roll li {
+  height: 18px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 18px;
+}
+.tile-offer-green {
+  color: #0a8a3a;
+}
+.tile-offer-orange {
+  color: #e86a00;
+}
+.tile-offer-dark {
+  color: #222222;
+}
+@keyframes tile-offers-roll {
+  0%,
+  22% {
+    transform: translateY(0);
+  }
+  25%,
+  47% {
+    transform: translateY(-18px);
+  }
+  50%,
+  72% {
+    transform: translateY(-36px);
+  }
+  75%,
+  97% {
+    transform: translateY(-54px);
+  }
+  100% {
+    transform: translateY(-54px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-offers-roll {
+    animation: none;
+  }
+}
+
+/* ---- Quantity stepper (components/QuantityStepper.tsx) ----
+   A grey pill with two round white buttons. The minus turns into a red bin
+   at one, so the last item comes out with the same tap. */
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 9999px;
+  background: #f0f1f3;
+  padding: 3px;
+}
+.qty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  transition:
+    transform 0.1s ease,
+    background-color 0.15s ease;
+}
+.qty-btn:hover {
+  background: #111111;
+  color: #ffffff;
+}
+.qty-btn:active {
+  transform: scale(0.92);
+}
+.qty-btn:disabled {
+  color: #c4c4c4;
+  box-shadow: none;
+  background: transparent;
+}
+.qty-btn-bin {
+  color: #d32f2f;
+}
+.qty-btn-bin:hover {
+  background: #d32f2f;
+  color: #ffffff;
+}
+.qty-value {
+  min-width: 26px;
+  text-align: center;
+  font-weight: 800;
+  color: #000000;
+}
+.qty-stepper-md .qty-btn {
+  width: 38px;
+  height: 38px;
+}
+.qty-stepper-md .qty-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.qty-stepper-md .qty-value {
+  font-size: 17px;
+}
+.qty-stepper-sm .qty-btn {
+  width: 30px;
+  height: 30px;
+}
+.qty-stepper-sm .qty-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.qty-stepper-sm .qty-value {
+  font-size: 15px;
+}
+
+/* Form fields: 16px and semibold on every screen, so what a shopper types is
+   easy to read back, and phones never zoom in on focus. */
+.field-shop {
+  font-size: 16px;
+  font-weight: 600;
+}
+.field-shop::placeholder {
+  font-weight: 400;
+}
+
+/* White page on desktops and laptops; phones and tablets keep the light grey
+   that lifts the white product cards off the page. */
+@media (min-width: 64rem) {
+  :root {
+    --background: #ffffff;
+    --color-shop-canvas: #ffffff;
+  }
+}

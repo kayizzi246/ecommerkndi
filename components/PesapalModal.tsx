@@ -157,7 +157,7 @@ export default function PesapalModal({
               type="button"
               onClick={onClose}
               aria-label="Close payment window"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[21px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
+              className="close-x flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[21px] leading-none text-shop-muted hover:bg-shop-hairline hover:text-shop-ink"
             >
               ×
             </button>

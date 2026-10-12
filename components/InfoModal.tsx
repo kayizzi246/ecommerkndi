@@ -42,7 +42,7 @@ export default function InfoModal({ open, title, onClose, children }: Props) {
       >
         <div className="flex items-center justify-between border-b border-shop-line px-5 py-4">
           <h2 className="text-[15px] font-extrabold text-shop-ink">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-shop-muted hover:text-shop-ink">
+          <button type="button" onClick={onClose} aria-label="Close" className="close-x text-shop-muted hover:text-shop-ink">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
             </svg>
