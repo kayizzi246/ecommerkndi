@@ -169,6 +169,12 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "en_UG",
     },
     twitter: { card: "summary_large_image" },
+    // Google Search Console's HTML-tag check. Set GOOGLE_SITE_VERIFICATION in
+    // Vercel to the code Search Console gives (the `content` value only) and
+    // redeploy; with it unset no tag is printed.
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+      : {}),
     robots: {
       index: true,
       follow: true,

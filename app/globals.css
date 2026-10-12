@@ -3774,3 +3774,56 @@ body.search-open nav.fixed.bottom-0 {
   font-weight: 800;
   -webkit-text-stroke: 0.35px currentColor;
 }
+
+/* The small print on a tile, made very small: the rolling offer line, the
+   MTN / Airtel tags and the low-stock warning. They support the price;
+   they should not compete with it. */
+.tile-offers,
+.tile-offers-roll li {
+  height: 14px;
+}
+.tile-offers-roll li,
+.tile-offers-roll li[class] {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+}
+@keyframes tile-offers-roll {
+  0%,
+  22% {
+    transform: translateY(0);
+  }
+  25%,
+  47% {
+    transform: translateY(-14px);
+  }
+  50%,
+  72% {
+    transform: translateY(-28px);
+  }
+  75%,
+  100% {
+    transform: translateY(-42px);
+  }
+}
+.tile-momo {
+  padding: 0 3px;
+  border-radius: 2px;
+  font-size: 8px;
+  line-height: 11px;
+}
+.tile-urgent,
+.tile-stock {
+  font-size: 10px;
+  line-height: 14px;
+}
+@media (max-width: 39.99rem) {
+  .tile-offers-roll li,
+  .tile-offers-roll li[class] {
+    font-size: 10px;
+  }
+  .tile-urgent,
+  .tile-stock {
+    font-size: 10px;
+  }
+}
