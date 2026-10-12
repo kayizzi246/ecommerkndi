@@ -167,9 +167,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (attr.name.toLowerCase() === 'color') {
           return (
             <div key={attr.name}>
-              <p className="mb-2.5 text-[14px] font-bold text-shop-ink">
+              <p className="mb-2.5 text-[16px] font-[800] text-black">
                 Colour:{" "}
-                <span className="font-semibold text-shop-ink">
+                <span className="font-[800] text-black">
                   {selected[attr.name] || "Select a colour"}
                 </span>
               </p>

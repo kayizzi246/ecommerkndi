@@ -35,23 +35,21 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
 
   if (hasImages) {
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {options.map((option) => {
           const available = isOptionAvailable(option.name);
           const active = value === option.name;
           return (
+            <div key={option.name} className="flex w-[84px] flex-col items-center gap-1.5">
             <button
-              key={option.name}
               type="button"
               disabled={!available}
               onClick={() => onChange(option.name)}
               title={option.name}
               aria-label={`Select colour ${option.name}`}
               aria-pressed={active}
-              className={`relative h-[60px] w-[60px] overflow-hidden rounded-xl bg-shop-photo transition-shadow disabled:cursor-not-allowed ${
-                active
-                  ? "ring-2 ring-shop-primary ring-offset-2"
-                  : "ring-1 ring-shop-line hover:ring-shop-primary"
+              className={`color-photo relative h-[84px] w-[84px] overflow-hidden rounded-2xl bg-shop-photo disabled:cursor-not-allowed ${
+                active ? "color-photo-on" : ""
               } ${available ? "" : "opacity-45"}`}
             >
               {option.image ? (
@@ -59,7 +57,7 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
                   src={option.image}
                   alt=""
                   fill
-                  sizes="60px"
+                  sizes="84px"
                   className="object-cover"
                   quality={90}
                 />
@@ -78,6 +76,14 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
                 </span>
               )}
             </button>
+            <span
+              className={`w-full truncate text-center text-[13px] leading-4 ${
+                active ? "font-[800] text-black" : "font-semibold text-shop-body"
+              } ${available ? "" : "line-through"}`}
+            >
+              {option.name}
+            </span>
+            </div>
           );
         })}
       </div>
@@ -85,7 +91,7 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2.5">
       {options.map((option) => {
         const available = isOptionAvailable(option.name);
         const active = value === option.name;
@@ -102,15 +108,11 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
             title={option.name}
             aria-pressed={active}
             aria-label={`Select colour ${option.name}`}
-            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-              active
-                ? "border-shop-primary bg-shop-primary-soft font-semibold text-shop-ink"
-                : "border-shop-line bg-white text-shop-body hover:border-shop-primary"
-            } ${available ? "" : "line-through"}`}
+            className={`color-chip ${active ? "color-chip-on" : ""} ${available ? "" : "line-through"}`}
           >
             <span
               aria-hidden
-              className="h-4 w-4 shrink-0 rounded-full ring-1 ring-black/15"
+              className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/20"
               style={{ backgroundColor: option.value || option.name.toLowerCase() }}
             />
             {option.name}

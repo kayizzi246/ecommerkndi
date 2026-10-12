@@ -3963,3 +3963,73 @@ a.btn-shop {
   border-radius: 14px;
   font-size: 20px;
 }
+
+/* ---- Colour picker: big and obvious ----
+   Photo swatches are 84px with the colour's name under them; the chosen one
+   gets a thick black frame and the same yellow tick as the size buttons. */
+.color-photo {
+  border: 2px solid #d4d6da;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.color-photo:hover:not(:disabled) {
+  border-color: #111111;
+}
+.color-photo:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.color-photo-on {
+  border: 3px solid #111111;
+}
+.color-photo-on::after,
+.color-chip-on::after {
+  content: "✓";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #ffcc00;
+  color: #111111;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+.color-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px 0 12px;
+  border: 2px solid #d4d6da;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 16px;
+  font-weight: 700;
+  transition: border-color 0.15s ease;
+}
+.color-chip:hover:not(:disabled) {
+  border-color: #111111;
+}
+.color-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.color-chip-on,
+.color-chip-on:hover {
+  border: 3px solid #111111;
+  font-weight: 800;
+}
+
+/* Inside the photo swatch the tick sits within the corner: the swatch clips
+   its photo to the rounded edge, so anything outside would be cut off. */
+.color-photo-on::after {
+  top: 4px;
+  right: 4px;
+}
