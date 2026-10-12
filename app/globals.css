@@ -3504,3 +3504,12 @@ body.search-open nav.fixed.bottom-0 {
     -webkit-text-stroke: 0.35px currentColor;
   }
 }
+
+/* Rounded product photos on wider screens. Phones keep the photo square to
+   the card so the narrow tile loses no picture to the corners. */
+@media (min-width: 40rem) {
+  .tile-card .tile-frame,
+  .product-grid-flush .tile-card .tile-frame {
+    border-radius: 8px;
+  }
+}
