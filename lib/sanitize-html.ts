@@ -81,9 +81,15 @@ const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
  */
 const SAFE_SCHEME = /^(?:https?:|mailto:|tel:|\/|#|\?|[^:]*$)/i;
 
+/**
+ * Text between tags is already HTML, so an `&` that opens a real entity
+ * (`&nbsp;`, `&rsquo;`, `&#8211;`) is left alone. Escaping it printed the
+ * entity itself on the page ("&nbsp;" under a description). An entity can
+ * only ever decode to text, never to markup, so keeping it is safe.
+ */
 function escapeText(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
+    .replace(/&(?!#\d+;|#x[0-9a-f]+;|[a-z][a-z0-9]*;)/gi, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }

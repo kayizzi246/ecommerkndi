@@ -3703,3 +3703,10 @@ body.search-open nav.fixed.bottom-0 {
     --color-shop-canvas: #ffffff;
   }
 }
+
+/* The product page price at 800. Helvetica stops at bold, so a stroke in the
+   price's own colour carries it the rest of the way. */
+.price-display {
+  font-weight: 800;
+  -webkit-text-stroke: 0.6px currentColor;
+}

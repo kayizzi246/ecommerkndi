@@ -273,8 +273,8 @@ export default function ProductPurchase({
           {/* 18–20px medium: large enough that the shopper is sure which item
               they are buying, still a clear step below the price. */}
           <h1
-            className="product-name font-normal-heading line-clamp-3 text-[17px] leading-[1.35] md:text-[19px]"
-            style={{ fontWeight: 700, color: "#111111" }}
+            className="product-name font-normal-heading line-clamp-3 text-[15px] leading-[1.4] md:text-[16px]"
+            style={{ fontWeight: 400, color: "#222222" }}
           >
             {product.name}
           </h1>
