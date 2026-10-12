@@ -83,7 +83,7 @@
    * distinct surface must draw an edge — a hairline border — rather than
    * assume the ground will separate it. `ProductCard` solves this with grid
    * gaps instead; see the note at the top of that file. */
-  --background: #ffffff;
+  --background: #f2f3f5;
   /* Gray-900. A step cooler and darker than the #171717 near-black it replaces,
      and the anchor of the grey ramp below — every text tone in the shop is now
      drawn from one family rather than a slate ramp sitting on gray hairlines. */
@@ -467,7 +467,7 @@
    * panels the same colour, `--color-shop-edge` is the only thing keeping a
    * grid of forty products from reading as one undivided field. It cannot be
    * lightened without giving the ground its step back. */
-  --color-shop-canvas: #ffffff;
+  --color-shop-canvas: #f2f3f5;
   --color-shop-panel: #ffffff;
   --color-shop-edge: #dedede;
   --color-shop-photo: #ffffff; /* white, so a photo shot on white has no visible box around it */
@@ -3227,7 +3227,7 @@ body.search-open nav.fixed.bottom-0 {
 /* Grey on phones only; desktop keeps its white page. */
 @media (max-width: 39.99rem) {
   :root {
-    --color-shop-canvas: #ffffff;
+    --color-shop-canvas: #f2f3f5;
   }
 }
 
@@ -3314,11 +3314,17 @@ body.search-open nav.fixed.bottom-0 {
 .tile-card:hover,
 .product-grid-flush .tile-card,
 .product-grid-flush .tile-card:hover {
-  background: transparent;
-  border-radius: 0;
+  background: #ffffff;
+  border-radius: 8px;
   box-shadow: none !important;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
+}
+@media (hover: hover) {
+  .tile-card:hover,
+  .product-grid-flush .tile-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  }
 }
 .tile-card .tile-frame,
 .product-grid-flush .tile-card .tile-frame {
@@ -3340,7 +3346,7 @@ body.search-open nav.fixed.bottom-0 {
 .tile-card .tile-info,
 .product-grid-flush .tile-card .tile-info {
   gap: 2px;
-  padding: 10px 0 0;
+  padding: 8px 10px 10px;
 }
 .tile-info .tile-name {
   min-height: 0;
@@ -3461,7 +3467,27 @@ body.search-open nav.fixed.bottom-0 {
    gives way first and the saving tag goes with it, leaving the price whole. */
 @media (max-width: 39.99rem) {
   .tile-info .tile-price {
-    font-size: 15px;
+    font-size: 17px;
+  }
+  .tile-info .tile-name {
+    font-size: 14px;
+    line-height: 19px;
+  }
+  .tile-sold,
+  .tile-rating,
+  .tile-urgent {
+    font-size: 13px;
+  }
+  .tile-was,
+  .tile-stock {
+    font-size: 12px;
+  }
+  .tile-photo-badge {
+    font-size: 12px;
+  }
+  .tile-card .tile-info,
+  .product-grid-flush .tile-card .tile-info {
+    padding: 8px 8px 10px;
   }
   .tile-off {
     display: none;
