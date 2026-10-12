@@ -27,7 +27,7 @@ export default function TileOffers({ price }: { price: number }) {
     free
       ? { text: "Free delivery", tone: "tile-offer-green" }
       : { text: "Fast delivery", tone: "tile-offer-green" },
-    { text: "MTN & Airtel Money", tone: "tile-offer-orange" },
+    { text: "MTN & Airtel Money", tone: "tile-offer-momo" },
     { text: `${returnsDays} day returns`, tone: "tile-offer-dark" },
   ];
 
@@ -36,7 +36,15 @@ export default function TileOffers({ price }: { price: number }) {
       <ul aria-hidden className="tile-offers-roll">
         {[...offers, offers[0]].map((offer, i) => (
           <li key={i} className={offer.tone}>
-            {offer.text}
+            {offer.tone === "tile-offer-momo" ? (
+              <>
+                <span className="tile-momo tile-momo-mtn">MTN</span>
+                <span className="tile-momo tile-momo-airtel">Airtel</span>
+                Money
+              </>
+            ) : (
+              offer.text
+            )}
           </li>
         ))}
       </ul>

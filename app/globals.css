@@ -3710,3 +3710,67 @@ body.search-open nav.fixed.bottom-0 {
   font-weight: 800;
   -webkit-text-stroke: 0.6px currentColor;
 }
+
+/* Offer line, smaller: the mobile money line carries the two networks'
+   own colours as tiny tags, MTN black on yellow and Airtel white on red. */
+.tile-offers {
+  height: 16px;
+}
+.tile-offers-roll li {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+@keyframes tile-offers-roll {
+  0%,
+  22% {
+    transform: translateY(0);
+  }
+  25%,
+  47% {
+    transform: translateY(-16px);
+  }
+  50%,
+  72% {
+    transform: translateY(-32px);
+  }
+  75%,
+  100% {
+    transform: translateY(-48px);
+  }
+}
+.tile-offer-momo {
+  color: #222222;
+}
+.tile-momo {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+}
+.tile-momo-mtn {
+  background: #ffcc00;
+  color: #000000;
+}
+.tile-momo-airtel {
+  background: #e40000;
+  color: #ffffff;
+}
+@media (max-width: 39.99rem) {
+  .tile-offers-roll li {
+    font-size: 11px;
+  }
+}
+
+/* Card prices at 800 on every screen, stroked because Helvetica stops at
+   bold. */
+.tile-info .tile-price {
+  font-weight: 800;
+  -webkit-text-stroke: 0.35px currentColor;
+}
