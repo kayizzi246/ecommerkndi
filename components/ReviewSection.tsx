@@ -99,7 +99,7 @@ export default function ReviewSection({ productId, initial }: Props) {
             </div>
           ) : (
             <p className="mb-8 rounded-xl border border-dashed border-shop-line bg-white p-6 text-center text-[14px] text-shop-muted">
-              No reviews yet — be the first to rate this product.
+              No reviews yet, be the first to rate this product.
             </p>
           )}
 

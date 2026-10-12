@@ -88,7 +88,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
       return;
     }
     if (photos.length === 0) {
-      setError("Keep at least one photo — a listing without a picture does not sell.");
+      setError("Keep at least one photo, a listing without a picture does not sell.");
       return;
     }
 
@@ -210,7 +210,7 @@ export default function ProductEditor({ product, onSaved, onClose }: Props) {
 
           {discount > 0 && (
             <p className="rounded-xl bg-pop-green-soft px-4 py-3 text-[13px] font-semibold text-pop-green">
-              Shoppers see {formatPrice(saleNumber ?? 0)} — a {discount}% saving on{" "}
+              Shoppers see {formatPrice(saleNumber ?? 0)} , a {discount}% saving on{" "}
               {formatPrice(regularNumber)}.
             </p>
           )}

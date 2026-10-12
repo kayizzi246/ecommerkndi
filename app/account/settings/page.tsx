@@ -73,7 +73,7 @@ export default function AccountSettings() {
             <p className="truncate text-[16px] font-semibold text-shop-ink">{customer.name}</p>
             <p className="truncate text-[14px] text-shop-muted">{customer.email}</p>
             <p className="mt-1 text-[12px] text-shop-muted">
-              Signed in with Google — manage your name and photo there.
+              Signed in with Google, manage your name and photo there.
             </p>
           </div>
         </div>

@@ -16,7 +16,7 @@ export default function AccountWishlist() {
     <div>
       <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">Wishlist</h1>
       <p className="mt-1 text-[14px] text-shop-muted">
-        Saved on this device — {items.length} {items.length === 1 ? "item" : "items"}.
+        Saved on this device, {items.length} {items.length === 1 ? "item" : "items"}.
       </p>
 
       {items.length === 0 ? (

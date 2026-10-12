@@ -333,7 +333,7 @@ export default function SellerShell({ children }: { children: React.ReactNode })
                   <p className="mt-1 text-[13px] leading-relaxed text-shop-body">
                     We sent a six-digit code to{" "}
                     <span className="font-semibold text-shop-ink">{seller.email}</span>. Everything
-                    here works without it — but we cannot pay you out until the address is
+                    here works without it, but we cannot pay you out until the address is
                     confirmed.
                   </p>
                 </div>

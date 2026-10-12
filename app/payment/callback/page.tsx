@@ -62,7 +62,7 @@ export default async function PaymentCallbackPage({
     // Not a lie and not a false promise: the IPN settles this independently, so
     // a failure here genuinely does not mean the payment was lost.
     message =
-      "We could not reach the payment service just now. If money left your account, your order is safe — we will confirm it shortly.";
+      "We could not reach the payment service just now. If money left your account, your order is safe, we will confirm it shortly.";
   }
 
   return (

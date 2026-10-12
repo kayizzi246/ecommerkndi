@@ -14,7 +14,7 @@ import ProductCard from "@/components/ProductCard";
 export const metadata: Metadata = {
   title: "All categories",
   description:
-    "Every department on KandiUg — browse clothing, shoes, electronics, home and more from Ugandan sellers.",
+    "Every department on KandiUg, browse clothing, shoes, electronics, home and more from Ugandan sellers.",
   alternates: { canonical: "/categories" },
 };
 

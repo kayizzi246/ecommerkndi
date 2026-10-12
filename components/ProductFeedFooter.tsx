@@ -42,7 +42,7 @@ export default function ProductFeedFooter({
           onClick={loadMore}
           className="rounded-lg border border-shop-line px-6 py-2.5 text-[13px] text-shop-ink transition-colors hover:border-shop-primary hover:text-shop-primary"
         >
-          Could not load more — try again
+          Could not load more, try again
         </button>
       )}
 

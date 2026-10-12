@@ -466,7 +466,7 @@ export const sellerApi = {
     if (!payload?.checked || !payload.seller) {
       throw new SellerApiError(
         "The seller backend answered the identity check without authenticating it. " +
-          "Another plugin or snippet on WordPress is registering kandi/v1/seller/* — " +
+          "Another plugin or snippet on WordPress is registering kandi/v1/seller/*, " +
           "remove it, then sign in again.",
         502,
         "kandi_identity_untrusted"

@@ -72,7 +72,7 @@ function Badge({
         className={`${shell} cursor-default border-shop-line bg-shop-hairline text-shop-muted`}
         // The badge is decorative until the app ships; the ribbon carries the
         // real message, so the whole thing reads as one label.
-        aria-label={`${name} — coming soon`}
+        aria-label={`${name}, coming soon`}
       >
         <span className="opacity-45 grayscale">{icon}</span>
         <span className="flex flex-col leading-none">

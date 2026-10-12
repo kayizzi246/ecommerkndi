@@ -5,7 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 export const metadata: Metadata = {
   alternates: { canonical: "/careers" },
   title: "Careers",
-  description: "Work with Kandi UG — what we look for and how to apply.",
+  description: "Work with Kandi UG, what we look for and how to apply.",
 };
 
 export default async function CareersPage() {
@@ -55,7 +55,7 @@ export default async function CareersPage() {
         <ul>
           <li>You do what you said you would do, when you said you would do it.</li>
           <li>You would rather tell a customer the awkward truth than an easy story.</li>
-          <li>You notice the small things — a wrong size, a scuffed box, a slow reply.</li>
+          <li>You notice the small things, a wrong size, a scuffed box, a slow reply.</li>
         </ul>
       </InfoSection>
 
@@ -64,7 +64,7 @@ export default async function CareersPage() {
           We do not always have a role open, but we always read applications. Email{" "}
           <a href={`mailto:${support.email}`}>{support.email}</a> with the subject line
           &ldquo;Careers&rdquo;, tell us what you would like to do and why, and attach a CV if you
-          have one. If you do not have a CV, a short message is fine — tell us what you have done
+          have one. If you do not have a CV, a short message is fine, tell us what you have done
           before.
         </p>
       </InfoSection>

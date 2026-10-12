@@ -75,7 +75,7 @@ export async function generateMetadata({
   const description = /shoes?/i.test(name)
     ? `Buy ${name.toLowerCase()} in Uganda online from KandiUg. ${count > 0 ? `${count} item${count === 1 ? "" : "s"} available` : "Shop online"} with fast delivery in Kampala, pay on delivery and ${settings.commerce.returns_days}-day returns.`
     : `Buy ${name.toLowerCase()} online in Kampala and across Uganda${
-        count > 0 ? ` — ${count} item${count === 1 ? "" : "s"} in stock` : ""
+        count > 0 ? `, ${count} item${count === 1 ? "" : "s"} in stock` : ""
       }. Low prices, fast delivery in Kampala, pay on delivery and ${
         settings.commerce.returns_days
       }-day returns.`;
@@ -332,7 +332,7 @@ export default async function CategoryPage({
               <p className="mx-auto mt-2 max-w-md text-[13px] text-shop-muted">
                 {filtered || products.length > 0
                   ? "Try widening the price range or clearing a filter."
-                  : "New stock lands every week — try another department in the meantime."}
+                  : "New stock lands every week, try another department in the meantime."}
               </p>
               <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[13px]">
                 Continue shopping

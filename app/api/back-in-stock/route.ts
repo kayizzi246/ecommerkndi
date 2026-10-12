@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       order: "",
       // The product id is in the subject rather than only the body so the
       // mailbox can be searched and sorted by it when a line is restocked.
-      subject: `Back in stock alert — #${productId}`,
+      subject: `Back in stock alert, #${productId}`,
       message:
         `${email} wants to be told when this comes back in stock.\n\n` +
         `Product: ${productName || "(name not sent)"}\n` +

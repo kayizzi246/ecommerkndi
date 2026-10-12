@@ -361,7 +361,7 @@ export default function FilterSidebar({
             aria-label="Minimum price"
             className="field-shop px-2.5 py-2 text-[13px]"
           />
-          <span className="text-shop-muted">–</span>
+          <span className="text-shop-muted">to</span>
           <input
             type="number"
             min={0}
@@ -386,7 +386,7 @@ export default function FilterSidebar({
         </button>
         {(currentMin || currentMax) && (
           <p className="mt-2 text-[12px] text-shop-muted">
-            Showing {currentMin ? formatPrice(Number(currentMin)) : "any"} –{" "}
+            Showing {currentMin ? formatPrice(Number(currentMin)) : "any"} to{" "}
             {currentMax ? formatPrice(Number(currentMax)) : "any"}
           </p>
         )}

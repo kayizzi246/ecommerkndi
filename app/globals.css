@@ -976,11 +976,11 @@
    */
   --shell: 1720px;
 
-  /* Poppins, loaded by next/font in app/layout.tsx, for the whole shop. The
-     device fonts behind it only show for the moment before it arrives. */
-  --font-ui:
-    var(--font-poppins), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* Helvetica for the whole shop. It is a system face, so nothing is
+     downloaded: Apple devices draw true Helvetica, and Windows and Android,
+     which do not ship it, fall back to Arial, which is metrically matched to
+     it and reads the same at tile sizes. */
+  --font-ui: Helvetica, "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -1083,10 +1083,9 @@ body {
    * If type ever needs to look lighter, the lever is the WEIGHT, not this.
    * Turning subpixel rendering off to simulate a lighter weight is paying for
    * it in sharpness on every screen that does not need the effect. */
-  /* Inter is loaded as its variable file, which covers 100–900 — every weight
-     this stylesheet and the components ask for — so a synthesised bold would
-     only ever be the browser smearing a real one. Turned off, any weight that
-     renders genuinely exists in the file. */
+  /* Helvetica and Arial both ship a real bold, so a synthesised one would only
+     ever be the browser smearing it. Turned off, any weight that renders
+     genuinely exists on the device. */
   font-synthesis-weight: none;
 }
 
@@ -1109,11 +1108,13 @@ body {
   --text-lg: 1rem; /* 16px */
   --text-xl: 1.125rem; /* 18px */
   --text-2xl: 1.25rem; /* 20px */
-  /* Lighter weight utilities: the store read too heavy. */
-  --font-weight-semibold: 500;
-  --font-weight-bold: 500;
-  --font-weight-extrabold: 600;
-  --font-weight-black: 600;
+  /* Helvetica and Arial ship a regular and a bold and little between, so a
+     500 renders as regular on most devices and the hierarchy vanishes. These
+     land on weights the system faces actually have. */
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
 }
 
 button,
@@ -3299,5 +3300,151 @@ body.search-open nav.fixed.bottom-0 {
 @media (hover: hover) and (min-width: 40rem) {
   .product-grid-flush .tile-card:hover {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+/* ---- The product tile, on the Temu card ----
+ *
+ * Last in the file on purpose: the tile rules above have been layered on top
+ * of each other many times, and this block is the one that decides how a card
+ * looks now. No card chrome at all: a square photograph straight on the page,
+ * then one line of name, the price row, the old price and the stars, all
+ * flush to the photograph's left edge. The grid's gaps do the separating. */
+.tile-card,
+.tile-card:hover,
+.product-grid-flush .tile-card,
+.product-grid-flush .tile-card:hover {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none !important;
+  padding: 0;
+  overflow: visible;
+}
+.tile-card .tile-frame,
+.product-grid-flush .tile-card .tile-frame {
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+}
+.product-grid-flush {
+  column-gap: 16px;
+  row-gap: 24px;
+}
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    column-gap: 8px;
+    row-gap: 16px;
+    padding-inline: 8px;
+  }
+}
+
+.tile-card .tile-info,
+.product-grid-flush .tile-card .tile-info {
+  gap: 2px;
+  padding: 10px 0 0;
+}
+.tile-info .tile-name {
+  min-height: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: #222222;
+}
+
+/* The price and its two lines, with the cart button standing to the right of
+   both and centred on them. */
+.tile-buy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tile-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0;
+}
+.tile-info .tile-price {
+  flex-shrink: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: 0;
+}
+.tile-sold {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: #555555;
+}
+.tile-off {
+  flex-shrink: 0;
+  border: 1px solid #fb7701;
+  border-radius: 2px;
+  padding: 0 3px;
+  font-size: 11px;
+  line-height: 15px;
+  color: #fb7701;
+}
+.tile-was {
+  margin: 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: #999999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: #555555;
+}
+.tile-stock {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 500;
+  color: #222222;
+}
+
+/* The round outlined cart button. */
+.tile-cart > :is(a, button, span) {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid #222222;
+  background: #ffffff;
+  color: #222222;
+}
+.tile-cart > :is(a, button):hover {
+  background: #222222;
+  color: #ffffff;
+}
+.tile-cart > span {
+  border-color: #d4d4d4;
+  color: #b3b3b3;
+}
+
+/* A phone tile is about 170px wide and a UGX price is long, so the sold count
+   gives way first and the saving tag goes with it, leaving the price whole. */
+@media (max-width: 39.99rem) {
+  .tile-info .tile-price {
+    font-size: 15px;
+  }
+  .tile-off {
+    display: none;
+  }
+  .tile-cart > :is(a, button, span) {
+    width: 30px;
+    height: 30px;
   }
 }

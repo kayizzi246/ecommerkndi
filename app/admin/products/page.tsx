@@ -177,7 +177,7 @@ export default function AdminProductsPage() {
         <div>
           <h1 className="text-[21px] leading-tight text-shop-ink">Products</h1>
           <p className="mt-1 text-[14px] text-shop-muted">
-            Every product in the shop — yours and your sellers&rsquo;. Changes go
+            Every product in the shop, yours and your sellers&rsquo;. Changes go
             live on the storefront straight away.
           </p>
         </div>
@@ -246,7 +246,7 @@ export default function AdminProductsPage() {
           </p>
           <p className="mx-auto mt-2 max-w-md text-[14px] text-shop-muted">
             {products.length === 0
-              ? "Add your first listing — it goes live on the shop immediately."
+              ? "Add your first listing, it goes live on the shop immediately."
               : "Try a different filter or clear the search."}
           </p>
           {products.length === 0 && (

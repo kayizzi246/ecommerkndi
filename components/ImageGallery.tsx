@@ -160,7 +160,7 @@ export default function ImageGallery({
             <Image
               key={activeImage}
               src={activeImage || images[0]}
-              alt={`${productName} — image 1`}
+              alt={`${productName}, image 1`}
               fill
               sizes="(min-width: 1024px) 760px, 100vw"
               quality={75}
@@ -171,7 +171,7 @@ export default function ImageGallery({
             <Image
               key={activeImage}
               src={activeImage ?? images[0]}
-              alt={`${productName} — image ${activeIndex + 1}`}
+              alt={`${productName}, image ${activeIndex + 1}`}
               fill
               sizes="(min-width: 1024px) 760px, 100vw"
               quality={75}
@@ -332,7 +332,7 @@ export default function ImageGallery({
           <div className="relative h-[85vh] w-full max-w-[900px]">
             <Image
               src={activeImage || images[0]}
-              alt={`${productName} — full size`}
+              alt={`${productName}, full size`}
               fill
               sizes="900px"
               quality={90}

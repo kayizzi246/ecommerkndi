@@ -40,7 +40,7 @@ type Step = "destination" | "code";
 export default function VerifyContactModal({
   open,
   title = "Verify your number",
-  intro = "We send a 6-digit code so we know the rider can reach you. It only takes a moment, and we will not ask again.",
+  intro = "We will send you a 6 digit code. You only do this once.",
   smsOnly = false,
   initialValue = "",
   onVerified,
@@ -190,7 +190,7 @@ export default function VerifyContactModal({
       setSentTo(data.sentTo ?? "");
       setStep("code");
     } catch {
-      setError("No connection. Check your internet and try again.");
+      setError("No internet. Try again.");
     } finally {
       setBusy(false);
     }
@@ -222,7 +222,7 @@ export default function VerifyContactModal({
 
       onVerified({ channel: data.channel ?? channel, value: data.contact ?? to });
     } catch {
-      setError("No connection. Check your internet and try again.");
+      setError("No internet. Try again.");
     } finally {
       setBusy(false);
     }
@@ -444,7 +444,7 @@ export default function VerifyContactModal({
               disabled={busy || code.length !== 6}
               className="btn-shop mt-4 w-full py-3 text-[14px] disabled:opacity-60"
             >
-              {busy ? "Checking…" : "Verify and continue"}
+              {busy ? "Checking…" : "Continue"}
             </button>
 
             <div className="mt-3 flex items-center justify-between gap-3 text-[12px]">

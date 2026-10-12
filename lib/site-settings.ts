@@ -93,7 +93,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
      has to break. */
   ticker: [
     "FREE delivery on orders over UGX 50,000",
-    "Pay on delivery — cash, MTN MoMo or Airtel Money",
+    "Pay on delivery: cash, MTN MoMo or Airtel Money",
     "14 days to send an item back",
     "Every seller vetted before they can list",
   ],
@@ -118,7 +118,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   support: {
     phone: "0200 804 020",
     email: "support@kandiug.com",
-    hours: "Monday to Saturday, 9am – 6pm",
+    hours: "Monday to Saturday, 9am to 6pm",
     address: "Kampala, Uganda",
     whatsapp: "",
   },

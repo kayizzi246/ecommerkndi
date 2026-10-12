@@ -144,7 +144,7 @@ export default function ReviewForm({ productId, existing, onSaved }: Props) {
       )}
       {saved && !error && (
         <p role="status" className="mt-3 text-[13px] font-medium text-shop-success">
-          Thanks — your review is live.
+          Thanks, your review is live.
         </p>
       )}
 

@@ -89,11 +89,11 @@ export default function AccountOverview() {
       {/* Stats — two up on a phone. One per row turned four short figures into
           four screens of scrolling before the shopper reached their orders. */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Stat label="Orders" value={loading ? "—" : String(orders!.length)} tone="text-shop-ink" />
-        <Stat label="On its way" value={loading ? "—" : String(inFlight)} tone="text-pop-blue" />
+        <Stat label="Orders" value={loading ? "…" : String(orders!.length)} tone="text-shop-ink" />
+        <Stat label="On its way" value={loading ? "…" : String(inFlight)} tone="text-pop-blue" />
         <Stat
           label="Total spent"
-          value={loading ? "—" : formatPrice(spent)}
+          value={loading ? "…" : formatPrice(spent)}
           tone="text-shop-primary"
         />
         <Stat label="Saved items" value={String(wishlistCount)} tone="text-pop-pink" />

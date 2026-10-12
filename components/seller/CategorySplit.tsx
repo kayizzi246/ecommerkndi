@@ -49,7 +49,7 @@ export default function CategorySplit({
       <div className="viz-root rounded border border-bfl-line bg-white p-4">
         <h2 className="text-[15px] font-extrabold text-[color:var(--text-primary)]">Revenue by category</h2>
         <p className="mt-6 text-center text-[13px] text-[color:var(--text-muted)]">
-          Nothing to split yet — your first sale will fill this in.
+          Nothing to split yet, your first sale will fill this in.
         </p>
       </div>
     );

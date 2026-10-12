@@ -71,7 +71,7 @@ export default function CookieNotice() {
     >
       <p className="text-[13px] font-bold text-shop-ink">Cookies on Kandi</p>
       <p className="mt-1 text-[12px] leading-[1.5] text-shop-body">
-        We only use what the shop needs to work — keeping you signed in and
+        We only use what the shop needs to work, keeping you signed in and
         remembering your basket. No advertising cookies, no third-party
         trackers, nothing sold to anyone.
       </p>

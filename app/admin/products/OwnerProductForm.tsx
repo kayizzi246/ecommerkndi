@@ -237,7 +237,7 @@ export default function OwnerProductForm({ product, categories, onSaved, onClose
 
           {discount > 0 && (
             <p className="rounded-lg bg-pop-green-soft px-4 py-3 text-[13px] font-semibold text-pop-green">
-              Shoppers see {formatPrice(saleNumber ?? 0)} — a {discount}% saving on{" "}
+              Shoppers see {formatPrice(saleNumber ?? 0)} , a {discount}% saving on{" "}
               {formatPrice(regularNumber)}.
             </p>
           )}

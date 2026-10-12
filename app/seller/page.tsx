@@ -145,7 +145,7 @@ export default function SellerOverviewPage() {
       {seller?.status === "pending" && (
         <div className="mb-6 rounded-2xl border border-pop-orange/30 bg-pop-orange-soft px-5 py-4 text-[14px] leading-relaxed text-pop-orange">
           <span className="font-semibold">Your store is awaiting approval.</span> You can prepare
-          listings now — they go live the moment our team approves your account.
+          listings now, they go live the moment our team approves your account.
         </div>
       )}
 
@@ -248,7 +248,7 @@ export default function SellerOverviewPage() {
             Your sales figures appear here
           </h2>
           <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] leading-relaxed text-shop-muted">
-            Revenue, best sellers and the split by category — all of it unlocks the moment your
+            Revenue, best sellers and the split by category, all of it unlocks the moment your
             store is approved and starts taking orders.
           </p>
           <Link
@@ -421,7 +421,7 @@ const TONE_ICON = {
   good: { symbol: "✓", className: "bg-pop-green" },
   warning: { symbol: "!", className: "bg-shop-flame" },
   critical: { symbol: "×", className: "bg-pop-red" },
-  neutral: { symbol: "–", className: "bg-shop-muted" },
+  neutral: { symbol: "to", className: "bg-shop-muted" },
 } as const;
 
 function HealthRow({

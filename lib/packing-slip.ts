@@ -90,7 +90,7 @@ function slipHtml(order: SellerOrder, storeName: string): string {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Packing slip — order ${esc(order.number)}</title>
+<title>Packing slip, order ${esc(order.number)}</title>
 <style>
   @page { margin: 14mm; }
   * { box-sizing: border-box; }
@@ -136,7 +136,7 @@ function slipHtml(order: SellerOrder, storeName: string): string {
     <p class="to">
       <strong>${esc(order.customer)}</strong><br>
       ${order.phone ? `${esc(formatUgPhone(order.phone))}<br>` : ""}
-      ${address || '<span class="muted">No street address — call the buyer.</span>'}
+      ${address || '<span class="muted">No street address, call the buyer.</span>'}
     </p>
     ${
       order.map_url

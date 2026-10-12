@@ -95,7 +95,7 @@ export default function HeroMosaic({
 
       <div className="col-span-2 flex flex-col rounded-2xl bg-shop-surface p-3">
         <Link href="/search?sort=popular" className="mb-2 block truncate text-[14px] font-bold text-shop-ink hover:text-[#ff5000]">
-          Pay on delivery — see it before you pay
+          Pay on delivery, see it before you pay
         </Link>
         <ul className="grid flex-1 grid-cols-4 gap-2">
           {strip.map((product) => (
@@ -182,7 +182,7 @@ function PriceThumb({ product }: { product: Product }) {
   return (
     <Link
       href={productPath(product)}
-      aria-label={`${product.name} — ${formatPrice(product.price)}`}
+      aria-label={`${product.name}, ${formatPrice(product.price)}`}
       className="group relative block aspect-square overflow-hidden rounded-xl bg-white"
     >
       {product.image && (

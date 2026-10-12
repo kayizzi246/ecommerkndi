@@ -78,4 +78,4 @@ export function formatDeliveryDayShort(day: Date): string {
  * A range rather than a date, because the shop does not know the day and a
  * precise-looking answer it cannot keep is worse than an honest window.
  */
-export const BACKORDER_WINDOW = "Ships in 3–5 days";
+export const BACKORDER_WINDOW = "Ships in 3 to 5 days";

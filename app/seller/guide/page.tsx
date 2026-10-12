@@ -29,7 +29,7 @@ export default function SellerGuidePage() {
         </h1>
         <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-shop-body">
           Ten minutes of reading, and you will know everything the job needs. Nothing here is
-          theory — it is what happens, in the order it happens.
+          theory, it is what happens, in the order it happens.
         </p>
       </header>
 
@@ -55,10 +55,10 @@ export default function SellerGuidePage() {
         <Section id="setup" title="1. Getting your store open">
           <Steps
             items={[
-              "Confirm your email. We send a six-digit code the moment you sign up — enter it and your account is live.",
+              "Confirm your email. We send a six-digit code the moment you sign up, enter it and your account is live.",
               "Send your documents: a photo of your national ID, and whether the business is formally registered. If it is, we ask for the certificate or TIN number. Nobody but our team sees any of this, and none of it appears on your store page.",
               "Pay your monthly seller fee, by MTN MoMo, Airtel Money or card. Charged every month you trade.",
-              "We check the documents — usually the same working day — and approve the store. You get an email when we do.",
+              "We check the documents, usually the same working day, and approve the store. You get an email when we do.",
             ]}
           />
           <Callout>
@@ -71,7 +71,7 @@ export default function SellerGuidePage() {
           <Steps
             items={[
               "Products → New listing. The form is one screen.",
-              "Photograph the actual item — not the supplier's picture. Daylight, plain wall or floor, no clutter. Four or five angles beats one perfect shot.",
+              "Photograph the actual item, not the supplier's picture. Daylight, plain wall or floor, no clutter. Four or five angles beats one perfect shot.",
               "Name it the way a shopper would search for it: what it is, the brand, the colour. Not ninety words of keywords.",
               "Set the price you want, and a sale price only if the higher price is genuinely what you were charging.",
               "Enter the stock you actually hold. Overselling and then cancelling is the fastest way to lose your rating.",
@@ -87,14 +87,14 @@ export default function SellerGuidePage() {
         <Section id="orders" title="3. When an order comes in">
           <Steps
             items={[
-              "You get an email the moment a shopper buys — with the items, the delivery address and what you will be paid.",
+              "You get an email the moment a shopper buys, with the items, the delivery address and what you will be paid.",
               "Open Orders and press Accept order. That tells the buyer their order is confirmed and being packed, so do it only when you have the stock in your hand.",
               "Pack it properly. The rider collects from you, or you drop it at the agreed point.",
               "The order is marked complete once it is delivered, and your earnings clear for payout.",
             ]}
           />
           <Callout>
-            If you cannot fulfil an order, say so the same day — call us rather than leaving it
+            If you cannot fulfil an order, say so the same day, call us rather than leaving it
             unaccepted. A late cancellation costs the shopper a wasted wait and costs you a rating.
           </Callout>
         </Section>
@@ -102,9 +102,9 @@ export default function SellerGuidePage() {
         <Section id="money" title="4. Getting paid">
           <Steps
             items={[
-              `Kandi keeps ${commission > 0 ? `${commission}%` : "a commission"} of each completed order. There are no listing fees and no monthly fees — if nothing sells, you pay nothing.`,
+              `Kandi keeps ${commission > 0 ? `${commission}%` : "a commission"} of each completed order. There are no listing fees and no monthly fees, if nothing sells, you pay nothing.`,
               "Earnings clear once an order is completed, not when it is placed. Earnings shows the difference between pending and payable at a glance.",
-              "Request a payout whenever you have cleared earnings. It goes to the mobile money number on your Settings page — check that number is right before you ask.",
+              "Request a payout whenever you have cleared earnings. It goes to the mobile money number on your Settings page, check that number is right before you ask.",
               "We settle payout requests weekly, and email you when the money goes out.",
             ]}
           />
@@ -124,7 +124,7 @@ export default function SellerGuidePage() {
         <Section id="selling-more" title="5. Selling more">
           <Steps
             items={[
-              "Photographs sell the product. The stores that do well here have their own clear pictures on a plain background — that alone outperforms a lower price with a bad photo.",
+              "Photographs sell the product. The stores that do well here have their own clear pictures on a plain background, that alone outperforms a lower price with a bad photo.",
               "Keep stock numbers honest and current. Out-of-stock listings still show but cannot be bought, and they drag the whole store down.",
               "Answer quickly. Accepting an order within the hour is the single biggest thing you control.",
               "Price against what is already on the shop, not against your cost. Shoppers compare within a category before they buy.",
@@ -135,7 +135,7 @@ export default function SellerGuidePage() {
         <Section id="rules" title="6. What closes a store">
           <ul className="space-y-2 text-[14px] leading-relaxed text-shop-body">
             {[
-              "Counterfeit or illegal goods — immediate, no warning.",
+              "Counterfeit or illegal goods, immediate, no warning.",
               "Taking payment outside Kandi, or asking a shopper to pay you directly.",
               "Repeatedly accepting orders you cannot fulfil.",
               "Photographs that are not of the item being sold.",

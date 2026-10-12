@@ -257,7 +257,7 @@ export default async function ProductPage({
       "Availability",
       product.stock_status === "instock"
         ? product.stock_quantity !== null && product.stock_quantity <= 20
-          ? `In stock — only ${product.stock_quantity} left`
+          ? `In stock, only ${product.stock_quantity} left`
           : "In stock"
         : product.stock_status === "onbackorder"
           ? "On backorder"
@@ -486,7 +486,7 @@ export default async function ProductPage({
                 <div>
                   <p className="mb-1.5 font-semibold text-shop-ink">Delivery</p>
                   <p>
-                    Standard delivery across Uganda takes 1–3 business days
+                    Standard delivery across Uganda takes 1 to 3 business days
                     {settings.commerce.free_delivery_from > 0 && (
                       <>
                         , and is free on orders over{" "}

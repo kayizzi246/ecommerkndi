@@ -62,7 +62,7 @@ export default function SellerOrdersPage() {
           entry.id === order.id ? { ...entry, accepted: true, status: newStatus } : entry
         )
       );
-      setNotice(`Order #${order.number} accepted — the buyer has been told it is being packed.`);
+      setNotice(`Order #${order.number} accepted, the buyer has been told it is being packed.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not accept that order.");
     } finally {
@@ -133,7 +133,7 @@ export default function SellerOrdersPage() {
 
   const acceptCell = (order: SellerOrder) =>
     CLOSED_STATUSES.includes(order.status) ? (
-      <span className="text-[12px] text-bfl-grey">—</span>
+      <span className="text-[12px] text-bfl-grey">…</span>
     ) : order.accepted ? (
       <span className="whitespace-nowrap text-[12px] font-semibold text-[#0a7a2f]">✓ Accepted</span>
     ) : (
@@ -354,7 +354,7 @@ export default function SellerOrdersPage() {
                   className="cursor-pointer border-b border-bfl-line hover:bg-bfl-surface"
                 >
                   <td className="px-4 py-3 font-semibold text-bfl-ink">#{order.number}</td>
-                  <td className="px-4 py-3 text-[#333]">{order.date ? shortDate(order.date) : "—"}</td>
+                  <td className="px-4 py-3 text-[#333]">{order.date ? shortDate(order.date) : "…"}</td>
                   <td className="px-4 py-3">
                     <p className="text-black">{order.customer}</p>
                     {/* The phone next to the name, because the single most

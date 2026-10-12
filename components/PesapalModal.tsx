@@ -235,7 +235,7 @@ export default function PesapalModal({
                   <div>
                     <p className="text-[17px] font-bold text-shop-ink">Order complete</p>
                     <p className="mt-1 text-[13px] text-shop-body">
-                      Thank you — we are getting it ready.
+                      Thank you, we are getting it ready.
                     </p>
                   </div>
                 </>

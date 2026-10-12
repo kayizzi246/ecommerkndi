@@ -298,7 +298,7 @@ export default function SellerProductsPage() {
     if (failed.length > 0) {
       const named = failed.slice(0, 3).join(", ");
       setError(
-        `${deleted} deleted. ${failed.length} could not be — ${named}${
+        `${deleted} deleted. ${failed.length} could not be, ${named}${
           failed.length > 3 ? ` and ${failed.length - 3} more` : ""
         }. Try those again.`
       );
@@ -468,10 +468,10 @@ export default function SellerProductsPage() {
                 // count on the button is bigger than the list underneath it, so
                 // it is spelled out rather than left to be discovered after.
                 selectedOffScreen > 0
-                ? ` — including ${selectedOffScreen} not shown by this filter`
+                ? `, including ${selectedOffScreen} not shown by this filter`
                 : " you selected"
               : bulkIsEverything
-                ? " — everything in your store"
+                ? ", everything in your store"
                 : " matching this filter"}
             ?
           </p>

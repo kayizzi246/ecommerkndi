@@ -160,7 +160,7 @@ export default function CategoryDrawer({
           <Band title="Our categories" seeAll="/categories" onClose={close}>
             {departments.length === 0 ? (
               <p className="px-4 py-4 text-[12px] text-shop-muted">
-                No departments yet — add product categories in WordPress and they
+                No departments yet, add product categories in WordPress and they
                 appear here.
               </p>
             ) : (

@@ -35,7 +35,7 @@ import { getSiteSettings, brandName } from "@/lib/site-settings";
  * letterboxed by all three, which is how a share card ends up as a logo
  * floating in grey bars.
  */
-export const alt = "KandiUg — online shopping in Uganda";
+export const alt = "KandiUg, online shopping in Uganda";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

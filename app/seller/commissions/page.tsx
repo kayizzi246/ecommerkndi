@@ -55,7 +55,7 @@ const longDate = (iso: string | null) =>
         month: "short",
         year: "numeric",
       })
-    : "—";
+    : "…";
 
 export default function SellerCommissionsPage() {
   const { seller } = useSellerSession();
@@ -369,7 +369,7 @@ export default function SellerCommissionsPage() {
                             )}
                           </>
                         ) : (
-                          payout.method || "—"
+                          payout.method || "…"
                         )}
                       </td>
                       <td className="px-4 py-3">

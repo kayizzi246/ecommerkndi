@@ -219,7 +219,7 @@ export default async function SellPage() {
     {
       icon: "tag",
       title: "No listing fees, ever",
-      copy: `List as many products as you like. We earn when you do — a flat ${seller.commission_rate}% of each item sold, and nothing else.`,
+      copy: `List as many products as you like. We earn when you do, a flat ${seller.commission_rate}% of each item sold, and nothing else.`,
     },
     {
       icon: "truck",
@@ -229,7 +229,7 @@ export default async function SellPage() {
     {
       icon: "wallet",
       title: "You are paid on your say-so",
-      copy: `Earnings clear once an order completes. Ask for a payout whenever you want it — settled every ${seller.payout_days} days to mobile money or your bank.`,
+      copy: `Earnings clear once an order completes. Ask for a payout whenever you want it, settled every ${seller.payout_days} days to mobile money or your bank.`,
     },
     {
       icon: "chart",
@@ -270,7 +270,7 @@ export default async function SellPage() {
   const feeCovers = [
     "Verifying your identity and your business, so a shopper can trust every store on the marketplace",
     "Setting up your store page, your seller account and your payout details",
-    "The first review of your listings — photographs, descriptions and pricing, read by a person",
+    "The first review of your listings, photographs, descriptions and pricing, read by a person",
     "Onboarding: someone walks you through your first listing and your first payout",
   ];
 
@@ -280,7 +280,7 @@ export default async function SellPage() {
   const apply = [
     "You have stock now, or can get it within a few days of a sale",
     "You sell genuine goods and photograph them yourself",
-    "You are in footwear or fashion — that is where the shoppers here are",
+    "You are in footwear or fashion, that is where the shoppers here are",
     "You can pack a parcel the day the order lands",
   ];
 
@@ -288,7 +288,7 @@ export default async function SellPage() {
     "You have nothing to sell yet and are testing an idea",
     "You are reselling goods you have never seen or handled",
     "Your photographs came from the supplier rather than from you",
-    "You deal in copies — a store selling them is closed the day we find out",
+    "You deal in copies, a store selling them is closed the day we find out",
   ];
 
   const faqs = [
@@ -354,7 +354,7 @@ export default async function SellPage() {
 
               <p className="mt-4 max-w-[50ch] text-[14px] leading-[1.6] text-shop-body md:text-[15px]">
                 Open a store on {brand.name} and list what you have. We run the storefront, take
-                the payments and deliver the parcel — you pack it. There is nothing to build and
+                the payments and deliver the parcel, you pack it. There is nothing to build and
                 nothing to host.
               </p>
 
@@ -519,7 +519,7 @@ export default async function SellPage() {
                 sections early. */}
             <p className="mt-7 border-l-2 border-shop-primary pl-4 text-[13px] leading-[1.7] text-shop-body">
               None of this is automatic. A person approves your store and a person reads your first
-              listings, which is slower than a form that lets anybody in — and it is the reason a
+              listings, which is slower than a form that lets anybody in, and it is the reason a
               shopper trusts the stores that get through it.
             </p>
           </div>
@@ -539,8 +539,8 @@ export default async function SellPage() {
               <div className="space-y-3.5 text-[13px] leading-[1.7] text-shop-body">
                 <p>
                   It is a subscription, not a deposit and not commission in advance. It pays for
-                  the shopfront your products sit in — the storefront, the photography standards,
-                  the delivery network and the support line — for as long as you are trading here.
+                  the shopfront your products sit in, the storefront, the photography standards,
+                  the delivery network and the support line, for as long as you are trading here.
                 </p>
                 <p>
                   Stop paying and nothing is lost. Your listings stop showing to shoppers when the

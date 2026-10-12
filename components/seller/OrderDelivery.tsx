@@ -49,7 +49,7 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
     <div className="rounded border border-bfl-line bg-white p-4">
       <p className="text-[12px] font-semibold text-black">Deliver to</p>
 
-      <p className="mt-2 text-[13px] font-semibold text-black">{order.customer || "—"}</p>
+      <p className="mt-2 text-[13px] font-semibold text-black">{order.customer || "…"}</p>
 
       {order.phone && (
         <p className="mt-0.5 text-[13px] text-[#333]" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -67,7 +67,7 @@ export default function OrderDelivery({ order }: { order: SellerOrder }) {
         </p>
       ) : (
         <p className="mt-1.5 text-[13px] text-bfl-grey">
-          No street address on this order — use the map pin or call the buyer.
+          No street address on this order, use the map pin or call the buyer.
         </p>
       )}
 

@@ -24,7 +24,7 @@ export default async function AboutPage() {
         <p>
           We offer a carefully selected range of stylish footwear and fashion products, giving
           customers an easy way to discover and shop for quality products online. Rather than
-          stocking everything, we curate — every listing is chosen because it is something we
+          stocking everything, we curate, every listing is chosen because it is something we
           would wear ourselves.
         </p>
       </InfoSection>
@@ -37,7 +37,7 @@ export default async function AboutPage() {
           </li>
           <li>
             <strong>Convenient.</strong> Pay on delivery with cash, MTN Mobile Money or Airtel
-            Money, or by card at checkout — whichever suits you.
+            Money, or by card at checkout, whichever suits you.
           </li>
           <li>
             <strong>Accessible.</strong> Free delivery on orders over{" "}

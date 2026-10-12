@@ -106,8 +106,8 @@ export default function CheckoutVerifyGate({
   return (
     <VerifyContactModal
       open={needed === true || reopen}
-      title="Verify your number to continue"
-      intro="Before your first order we send a 6-digit code, so we know the rider can reach you on the day. It takes a moment and we will not ask again."
+      title="Confirm your number"
+      intro="We will send you a 6 digit code. You only do this once."
       onVerified={(contact) => {
         setNeeded(false);
         onVerified?.(contact);

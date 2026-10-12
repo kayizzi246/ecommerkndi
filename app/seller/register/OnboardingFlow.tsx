@@ -331,7 +331,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
           <p className="mt-2.5 text-[12px] text-shop-muted">
             {checkingGoogle
               ? "Checking your Google account…"
-              : "Fastest — and signing back in later is one tap."}
+              : "Fastest, and signing back in later is one tap."}
           </p>
 
           <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.1em] text-shop-muted">
@@ -407,7 +407,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
             cancelLabel="I'll do this later"
           />
           <p className="mt-4 text-center text-[12px] text-shop-muted">
-            Your store is saved and you are signed in — this only confirms we can reach you.
+            Your store is saved and you are signed in, this only confirms we can reach you.
           </p>
         </div>
       </SellerAuthLayout>
@@ -580,7 +580,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
                     <Field
                       delay={1}
                       label="Email"
-                      hint="Confirmed by Google — order alerts and payout confirmations go here."
+                      hint="Confirmed by Google, order alerts and payout confirmations go here."
                     >
                       <div className="flex items-center gap-2 rounded-xl border border-shop-line bg-shop-hairline px-4 py-3">
                         <svg
@@ -790,7 +790,7 @@ function FeeStep({
   const covers = [
     "Verifying you and your business, so every store here is a real one",
     "Setting up your store page, seller account and payout details",
-    "A person reviewing your first listings — photos, descriptions, pricing",
+    "A person reviewing your first listings, photos, descriptions, pricing",
     "Onboarding help through your first listing and your first payout",
   ];
 
@@ -808,7 +808,7 @@ function FeeStep({
         </p>
         <p className="mt-2 text-[14px] leading-relaxed text-shop-body">
           Charged once when you join{storeName ? ` ${storeName} to Kandi` : ""}. There is no
-          monthly fee, no listing fee and no payout fee — after this, the only cost is{" "}
+          monthly fee, no listing fee and no payout fee, after this, the only cost is{" "}
           {commissionRate}% of what you actually sell.
         </p>
       </div>
@@ -839,7 +839,7 @@ function FeeStep({
       >
         <p>
           <strong className="text-shop-ink">Nothing is charged right now.</strong> Create your
-          store first — the next screen gives you the number to pay and a reference to quote. If
+          store first, the next screen gives you the number to pay and a reference to quote. If
           we turn your application down, the fee is refunded in full.
         </p>
       </div>

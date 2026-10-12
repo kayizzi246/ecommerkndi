@@ -40,7 +40,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
     seller.status === "approved" || seller.kyc_status === "approved"
       ? "Approved"
       : seller.kyc_status === "submitted"
-        ? "Sent — with our team"
+        ? "Sent, with our team"
         : seller.kyc_status === "rejected"
           ? "Please send them again"
           : "Not sent yet";
@@ -81,8 +81,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
         <section className="mt-6 rounded-2xl border-2 border-shop-primary bg-shop-primary-soft p-6">
           <h2 className="text-[17px] font-extrabold text-shop-primary">Joining fee outstanding</h2>
           <p className="mt-1 text-[14px] leading-relaxed text-shop-body">
-            Your store cannot be approved until this clears. It is charged once and never again —
-            it covers verifying your business, setting up your store and payout details, and the
+            Your store cannot be approved until this clears. It is charged once and never again, it covers verifying your business, setting up your store and payout details, and the
             first review of your listings by a person.
           </p>
 

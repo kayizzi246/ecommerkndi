@@ -94,7 +94,7 @@ export function quoteDelivery(
       fee: 0,
       free: false,
       deliverable: false,
-      label: `${km} km away — outside our delivery area`,
+      label: `${km} km away, outside our delivery area`,
     };
   }
 
@@ -116,7 +116,7 @@ export function quoteDelivery(
 
 function labelFor(km: number): string {
   if (km <= 3) return "Within central Kampala";
-  if (km <= 15) return `${km} km — greater Kampala`;
+  if (km <= 15) return `${km} km, greater Kampala`;
   return `${km} km from Kampala`;
 }
 

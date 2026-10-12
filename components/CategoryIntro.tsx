@@ -57,13 +57,13 @@ export function categoryFaqs({
       a: range
         ? `On KandiUg, ${lower} are priced ${range} across ${total} ${
             total === 1 ? "listing" : "listings"
-          } — from our own shelves and from vetted Ugandan sellers.`
+          }, from our own shelves and from vetted Ugandan sellers.`
         : `Prices vary by brand and size. Every listing on this page shows its price, and any reduction, before you add it to the basket.`,
     },
     {
       q: `Do you deliver ${lower} outside Kampala?`,
       a:
-        `Yes — we deliver countrywide. Orders around Kampala usually arrive ` +
+        `Yes, we deliver countrywide. Orders around Kampala usually arrive ` +
         `within one to two working days and upcountry within five, and ` +
         `delivery is free on orders over ${formatPrice(freeFrom)}.`,
     },
@@ -162,8 +162,8 @@ export default function CategoryIntro({
           <span className="font-semibold text-shop-ink">
             free delivery on orders over {formatPrice(freeFrom)}
           </span>
-          . Pay however suits you — cash to the courier on delivery, MTN Mobile
-          Money, Airtel Money, or by card at checkout — and you have{" "}
+          . Pay however suits you, cash to the courier on delivery, MTN Mobile
+          Money, Airtel Money, or by card at checkout, and you have{" "}
           {returnsDays} days to send anything back.
         </p>
       </div>

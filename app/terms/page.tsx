@@ -17,12 +17,12 @@ export default async function TermsPage() {
     <InfoPage
       eyebrow="Legal"
       title="Terms & conditions"
-      intro={`These terms apply whenever you buy from ${brand.name} UG. They are written to be readable — if anything is unclear, ask us before you order.`}
+      intro={`These terms apply whenever you buy from ${brand.name} UG. They are written to be readable, if anything is unclear, ask us before you order.`}
     >
       <InfoSection title="1. Who you are buying from">
         <p>
           Some products are sold by {brand.name} UG directly. Others are sold by independent
-          stores through our marketplace — the seller is named on the product page. In both cases
+          stores through our marketplace, the seller is named on the product page. In both cases
           your order is placed with, and paid to, {brand.name} UG, and we handle delivery,
           returns and refunds.
         </p>
@@ -40,7 +40,7 @@ export default async function TermsPage() {
             checkout.
           </li>
           <li>
-            Prices can change, but never after you have placed an order — the price you saw is the
+            Prices can change, but never after you have placed an order, the price you saw is the
             price you pay.
           </li>
         </ul>

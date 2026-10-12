@@ -210,7 +210,7 @@ export default function SellerLoginPage() {
               day.
             </p>
             <p className="mt-4 text-[13px] text-shop-muted">
-              Nothing after a few minutes? Look in your spam folder, then try again — and check the
+              Nothing after a few minutes? Look in your spam folder, then try again, and check the
               address above is the one you registered with.
             </p>
             <button

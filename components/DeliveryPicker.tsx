@@ -157,7 +157,7 @@ export default function DeliveryPicker({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data?.error ?? "Could not work out delivery for that place.");
+        setError(data?.error ?? "We could not find that place. Try again.");
         onChange(null);
         return;
       }
@@ -172,7 +172,7 @@ export default function DeliveryPicker({
         onAutofill?.({ street: result.address.street, city: result.address.city });
       }
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError("No internet. Try again.");
       onChange(null);
     } finally {
       setBusy(false);
@@ -197,7 +197,7 @@ export default function DeliveryPicker({
 
   const useMyLocation = () => {
     if (!("geolocation" in navigator)) {
-      setError("This browser cannot share your location. Type your area instead.");
+      setError("Location not available. Type your area.");
       return;
     }
 
@@ -216,8 +216,8 @@ export default function DeliveryPicker({
         // and can undo, the others are conditions they cannot.
         setError(
           geoError.code === geoError.PERMISSION_DENIED
-            ? "Location permission was declined. Type your area below instead."
-            : "Could not get your location. Type your area below instead."
+            ? "Location blocked. Type your area."
+            : "Could not find you. Type your area."
         );
       },
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 }
@@ -328,7 +328,7 @@ export default function DeliveryPicker({
                 }
               }
             }}
-            placeholder="Start typing your area, e.g. Ntinda"
+            placeholder="Type your area, e.g. Ntinda"
             aria-label="Delivery area"
             role="combobox"
             aria-autocomplete="list"
@@ -420,7 +420,7 @@ export default function DeliveryPicker({
                 // and because a reverse-geocoded street is a good guess rather
                 // than a fact — the shopper is the one who knows their gate.
                 <p className="mt-1.5 text-[12px] text-shop-body">
-                  We&apos;ve filled in your address below — please check it.
+                  We&apos;ve filled in your address below, please check it.
                 </p>
               )}
             </>
@@ -432,8 +432,7 @@ export default function DeliveryPicker({
 
       {!value && !error && (
         <p className="mt-3 text-[12px] text-shop-muted">
-          We work out delivery from how far you are — share your location or type
-          your area to see the exact cost before you pay.
+          Use your location or type your area to see the delivery cost.
         </p>
       )}
     </div>

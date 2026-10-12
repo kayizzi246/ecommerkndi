@@ -88,7 +88,7 @@ export function autoDescription(product: Product): string[] {
 
   if (specs.length > 0) {
     paragraphs.push(
-      `Options on this listing — ${specs.join("; ")}. Pick yours above before adding it to the basket.`
+      `Options on this listing: ${specs.join("; ")}. Pick yours above before adding it to the basket.`
     );
   }
 
@@ -103,7 +103,7 @@ export function autoDescription(product: Product): string[] {
   if (product.price > 0) {
     paragraphs.push(
       discount > 0
-        ? `Price in Uganda: ${formatPrice(product.price)}, reduced ${discount}% from ${formatPrice(product.regular_price)} — a saving of ${formatPrice(product.regular_price - product.price)}.`
+        ? `Price in Uganda: ${formatPrice(product.price)}, reduced ${discount}% from ${formatPrice(product.regular_price)}, a saving of ${formatPrice(product.regular_price - product.price)}.`
         : `Price in Uganda: ${formatPrice(product.price)}.`
     );
   }

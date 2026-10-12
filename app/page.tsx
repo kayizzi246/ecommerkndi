@@ -189,7 +189,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(
             itemListJsonLd(
-              `${brand} — shop online in Uganda`,
+              `${brand}, shop online in Uganda`,
               "/",
               [...latest.slice(0, 6), ...forYou]
                 .filter(
@@ -294,10 +294,9 @@ export default async function Home() {
 
           <div className="mt-3 space-y-2 text-[12px] leading-relaxed text-shop-body">
             <p>
-              {brand} — also known as <strong className="font-semibold text-shop-ink">KandiUg</strong>,
-              after the kandiug.com address — is a Ugandan online marketplace
-              selling shoes, clothing, electronics, home essentials and more —
-              from our own shelves and from independent Ugandan stores approved
+              {brand} , also known as <strong className="font-semibold text-shop-ink">KandiUg</strong>,
+              after the kandiug.com address, is a Ugandan online marketplace
+              selling shoes, clothing, electronics, home essentials and more, from our own shelves and from independent Ugandan stores approved
               to sell alongside us.
               Every listing is checked before it goes live, and every seller is
               vetted individually, so a low price here is a real one rather than

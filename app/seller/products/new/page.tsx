@@ -75,7 +75,7 @@ export default function NewProductPage() {
       return;
     }
     if (imageUrls.length === 0) {
-      setError("Add at least one photo — listings without a picture do not sell.");
+      setError("Add at least one photo, listings without a picture do not sell.");
       return;
     }
 
@@ -209,7 +209,7 @@ export default function NewProductPage() {
                 photograph in it now, not a one-line text box. */}
             <Field
               label="Colours"
-              hint="Add a photo of the product in each colour — shoppers pick the colour by the picture."
+              hint="Add a photo of the product in each colour, shoppers pick the colour by the picture."
             >
               <ColorOptions
                 rows={colorRows}
@@ -237,7 +237,7 @@ export default function NewProductPage() {
             <h2 className="text-[15px] font-extrabold text-black">Listing summary</h2>
 
             <dl className="mt-4 space-y-2.5 text-[13px]">
-              <Row label="Selling price" value={effectivePrice > 0 ? formatPrice(effectivePrice) : "—"} bold />
+              <Row label="Selling price" value={effectivePrice > 0 ? formatPrice(effectivePrice) : "…"} bold />
               {discount > 0 && (
                 <Row
                   label="Shopper sees"
@@ -248,7 +248,7 @@ export default function NewProductPage() {
               <div className="border-t border-bfl-line pt-2.5">
                 <Row
                   label="You receive per unit"
-                  value={effectivePrice > 0 ? formatPrice(effectivePrice - commission) : "—"}
+                  value={effectivePrice > 0 ? formatPrice(effectivePrice - commission) : "…"}
                   bold
                 />
               </div>

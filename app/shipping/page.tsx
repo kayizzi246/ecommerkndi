@@ -22,10 +22,10 @@ export default async function ShippingPage() {
       <InfoSection title="How long it takes">
         <ul>
           <li>
-            <strong>Kampala and the surrounding area</strong> — 1 to 2 business days.
+            <strong>Kampala and the surrounding area</strong> : 1 to 2 business days.
           </li>
           <li>
-            <strong>Elsewhere in Uganda</strong> — 2 to 3 business days, depending on the courier
+            <strong>Elsewhere in Uganda</strong> : 2 to 3 business days, depending on the courier
             route.
           </li>
           <li>
@@ -45,7 +45,7 @@ export default async function ShippingPage() {
             <strong>Free</strong> on orders over {formatPrice(commerce.free_delivery_from)}.
           </li>
           <li>
-            Below that, a flat delivery fee is shown at checkout before you pay — it is never
+            Below that, a flat delivery fee is shown at checkout before you pay, it is never
             added afterwards.
           </li>
           <li>
@@ -58,15 +58,14 @@ export default async function ShippingPage() {
       <InfoSection title="Paying on delivery">
         <p>
           You can pay the courier in cash, by MTN Mobile Money or by Airtel Money when the parcel
-          arrives, or pay by card at checkout. Check the item before you pay — if it is not what
+          arrives, or pay by card at checkout. Check the item before you pay, if it is not what
           you ordered, refuse the delivery and it comes straight back to us at no cost to you.
         </p>
       </InfoSection>
 
       <InfoSection title="If something goes wrong">
         <p>
-          If a delivery is late, damaged or never turns up, tell us and we will chase the courier
-          — that is our job, not yours. Track everything you have ordered on your{" "}
+          If a delivery is late, damaged or never turns up, tell us and we will chase the courier, that is our job, not yours. Track everything you have ordered on your{" "}
           <Link href="/account/orders">orders page</Link>, or call{" "}
           <a href={`tel:${support.phone.replace(/\s/g, "")}`}>{support.phone}</a>.
         </p>

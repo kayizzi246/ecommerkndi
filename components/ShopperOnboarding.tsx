@@ -136,7 +136,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                 })}
                 {departments.length === 0 && (
                   <p className="text-[13px] text-bfl-grey">
-                    Departments load from your store — add product categories in WordPress to see
+                    Departments load from your store, add product categories in WordPress to see
                     them here.
                   </p>
                 )}
@@ -214,7 +214,7 @@ export default function ShopperOnboarding({ departments }: { departments: Catego
                   </p>
                   <SignInPanel onSuccess={refresh} />
                   <p className="mt-4 text-[12px] text-bfl-grey">
-                    You can keep browsing without an account — nothing is lost.
+                    You can keep browsing without an account, nothing is lost.
                   </p>
                 </>
               )}

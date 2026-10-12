@@ -85,7 +85,7 @@ export default function EarningsCalculator({
     <div className="rounded-2xl bg-white p-5 ring-1 ring-shop-ink/[0.06] md:p-6">
       <h3 className="text-[16px] font-bold tracking-[-0.01em] text-shop-ink">What would you keep?</h3>
       <p className="mt-1.5 text-[12px] leading-[1.55] text-shop-muted">
-        Two numbers you already know. We take {commissionRate}% commission — nothing else is
+        Two numbers you already know. We take {commissionRate}% commission, nothing else is
         deducted.
       </p>
 
@@ -174,7 +174,7 @@ export default function EarningsCalculator({
 
       <p className="mt-3.5 text-[12px] leading-[1.55] text-shop-muted">
         This is arithmetic on the figures you entered, not a projection. What you actually sell
-        depends on your products, your pricing and your stock — we do not promise a number.
+        depends on your products, your pricing and your stock, we do not promise a number.
       </p>
 
       <Link href="/seller/register" className="btn-shop mt-4 w-full py-3 text-[14px]">

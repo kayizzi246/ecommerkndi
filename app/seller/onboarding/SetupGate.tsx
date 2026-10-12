@@ -71,7 +71,7 @@ export default function SetupGate({
         <p className="text-[14px] leading-relaxed text-shop-body">
           {seller.kyc_status === "approved"
             ? "Your documents have been checked and your store is verified."
-            : "Your documents are with our team. We will email you the moment they are checked — usually the same working day."}
+            : "Your documents are with our team. We will email you the moment they are checked, usually the same working day."}
           {feeAmount > 0 ? " Your first month is paid." : ""}
         </p>
         <button
@@ -125,8 +125,7 @@ export default function SetupGate({
     return (
       <Shell title="Verify your business" step={feeDue ? "Step 1 of 2" : "Step 1 of 1"}>
         <p className="text-[14px] leading-relaxed text-shop-body">
-          Every store on Kandi is checked before it can trade. This is between you and our team
-          — none of it appears on your store page.
+          Every store on Kandi is checked before it can trade. This is between you and our team, none of it appears on your store page.
         </p>
 
         {seller.kyc_status === "rejected" && (
@@ -134,7 +133,7 @@ export default function SetupGate({
             role="alert"
             className="mt-4 rounded-xl bg-pop-red-soft px-4 py-3 text-[13px] font-medium text-pop-red"
           >
-            We could not read the documents you sent last time. Please upload them again — a
+            We could not read the documents you sent last time. Please upload them again, a
             clear, well-lit photo of the whole card works best.
           </p>
         )}
@@ -174,7 +173,7 @@ export default function SetupGate({
                   <span className="mt-0.5 block text-[12px] font-normal text-shop-muted">
                     {value === "yes"
                       ? "We will ask for the number"
-                      : "You can still sell — many of our stores start here"}
+                      : "You can still sell, many of our stores start here"}
                   </span>
                 </button>
               ))}
@@ -231,7 +230,7 @@ export default function SetupGate({
         <strong className="text-shop-ink">
           {formatPrice(seller.fee_amount || registrationFee)}
         </strong>
-        , and never again. It covers your store setup and the checks we run on every seller — it
+        , and never again. It covers your store setup and the checks we run on every seller, it
         is what keeps counterfeit traders off the shop.
       </p>
       <p className="mt-2 text-[13px] text-shop-muted">
@@ -250,7 +249,7 @@ export default function SetupGate({
         onClick={refresh}
         className="btn-shop-outline mt-4 w-full py-3 text-[14px]"
       >
-        I have paid — check again
+        I have paid, check again
       </button>
 
       <button
@@ -355,7 +354,7 @@ function FileField({
             {file ? file.name : "Choose a file"}
           </span>
           <span className="block text-[12px] text-shop-muted">
-            {tooBig ? `That file is over ${MAX_MB} MB — choose a smaller one.` : hint}
+            {tooBig ? `That file is over ${MAX_MB} MB, choose a smaller one.` : hint}
           </span>
         </span>
       </label>

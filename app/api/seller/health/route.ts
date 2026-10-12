@@ -44,7 +44,7 @@ export async function GET() {
         // older build than this repository.
         message:
           status === 404 || status === 501
-            ? "The Kandi Seller plugin on WordPress is older than this storefront — it has no /seller/health route. Re-upload wordpress/kandi-seller-api.php."
+            ? "The Kandi Seller plugin on WordPress is older than this storefront, it has no /seller/health route. Re-upload wordpress/kandi-seller-api.php."
             : payload.message ?? `The seller backend answered ${status}.`,
       } satisfies SellerHealth,
       { status: 200 }

@@ -14,7 +14,7 @@ import { PRODUCT_GRID } from "@/lib/product-grid";
 export const metadata = {
   title: "Super Price Store",
   description:
-    "Everything currently reduced on Kandi — the biggest discounts in the shop, updated as prices change. Pay on delivery across Uganda.",
+    "Everything currently reduced on Kandi, the biggest discounts in the shop, updated as prices change. Pay on delivery across Uganda.",
   // Page 2 and beyond of the same list, and every sort order of it, are the
   // same products in a different arrangement. They all point back here so the
   // ranking lands on one URL instead of being split across a dozen.
@@ -197,7 +197,7 @@ export default async function SalePage({
             </h1>
             <p className="mt-1.5 max-w-[54ch] text-[13px] leading-relaxed text-white/85">
               {total > 0
-                ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day — what is here today may not be tomorrow.`
+                ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day, what is here today may not be tomorrow.`
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
             </p>
           </div>

@@ -40,7 +40,7 @@ export default function OwnerLoginPage() {
       <h1 className="text-[21px] leading-tight text-shop-ink">Shop admin</h1>
       <p className="mt-2 text-[14px] text-shop-muted">
         Enter the owner passcode to add, edit and remove products. This is not a
-        seller account — it reaches every product in the shop.
+        seller account, it reaches every product in the shop.
       </p>
 
       <form onSubmit={submit} className="card-shop mt-6 space-y-4 p-6">

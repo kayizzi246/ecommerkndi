@@ -55,7 +55,7 @@ export default async function OrderReceivedPage({
   const steps = [
     {
       title: "We call to confirm",
-      body: "Usually within a couple of hours, on the number you gave us. Please pick up — an order we cannot confirm does not get packed.",
+      body: "Usually within a couple of hours, on the number you gave us. Please pick up, an order we cannot confirm does not get packed.",
     },
     {
       title: "The seller packs it",
@@ -64,7 +64,7 @@ export default async function OrderReceivedPage({
     {
       title: isPaid ? "The rider delivers it" : "You pay the rider",
       body: isPaid
-        ? "Delivery is usually 1–3 days in Kampala. Nothing more to pay."
+        ? "Delivery is usually 1 to 3 days in Kampala. Nothing more to pay."
         : "Cash, MTN MoMo or Airtel Money when it reaches you. Please have the exact amount ready.",
     },
   ];
@@ -93,7 +93,7 @@ export default async function OrderReceivedPage({
         <p className="mt-2 text-[14px] text-shop-muted">
           {isPaid
             ? "Payment received. We are getting it ready."
-            : "Thank you — we have your order and are getting it ready."}
+            : "Thank you, we have your order and are getting it ready."}
         </p>
       </div>
 

@@ -25,7 +25,7 @@ export default async function ReturnsPage() {
             Anything unworn and in its original condition, with tags still attached and the
             original box or packaging.
           </li>
-          <li>Anything faulty, damaged in transit, or not what you ordered — always.</li>
+          <li>Anything faulty, damaged in transit, or not what you ordered, always.</li>
           <li>
             For hygiene reasons, underwear, swimwear and pierced jewellery cannot be returned
             unless they are faulty.
@@ -56,14 +56,14 @@ export default async function ReturnsPage() {
         </p>
         <ul>
           <li>
-            <strong>Mobile money</strong> — back to the number that paid.
+            <strong>Mobile money</strong> : back to the number that paid.
           </li>
           <li>
-            <strong>Card</strong> — back to the card, which can take a further few days to appear
+            <strong>Card</strong> : back to the card, which can take a further few days to appear
             on your statement, depending on your bank.
           </li>
           <li>
-            <strong>Cash on delivery</strong> — by mobile money to the number on the order, unless
+            <strong>Cash on delivery</strong> : by mobile money to the number on the order, unless
             you tell us otherwise.
           </li>
         </ul>
@@ -75,7 +75,7 @@ export default async function ReturnsPage() {
 
       <InfoSection title="Exchanges">
         <p>
-          For a different size or colour, the quickest route is a return plus a fresh order — that
+          For a different size or colour, the quickest route is a return plus a fresh order, that
           way your size is reserved immediately rather than waiting for the return to land.
         </p>
       </InfoSection>

@@ -473,7 +473,7 @@ export default function ProductPurchase({
                     <strong className="font-bold text-shop-ink">
                       This item ships free.
                     </strong>{" "}
-                    Delivery across Uganda in 1–3 business days.
+                    Delivery across Uganda in 1 to 3 business days.
                   </span>
                 ) : freeDeliveryFrom > 0 ? (
                   <span>
@@ -481,10 +481,10 @@ export default function ProductPurchase({
                     <strong className="font-semibold text-shop-ink">
                       {formatPrice(freeDeliveryFrom)}
                     </strong>{" "}
-                    — add {formatPrice(freeDeliveryFrom - product.price)} more.
+                    , add {formatPrice(freeDeliveryFrom - product.price)} more.
                   </span>
                 ) : (
-                  <span>Delivery across Uganda in 1–3 business days.</span>
+                  <span>Delivery across Uganda in 1 to 3 business days.</span>
                 )}
               </p>
               <p className="flex items-start gap-2 rounded-lg bg-[#eff6ff] px-3 py-2.5">
@@ -529,7 +529,7 @@ export default function ProductPurchase({
                 Out of stock
               </p>
               <p className="mt-1 text-[12px] leading-snug text-shop-body">
-                This item has sold out. We restock popular lines regularly — check
+                This item has sold out. We restock popular lines regularly, check
                 back, or{" "}
                 {brand ? (
                   <Link
@@ -558,7 +558,7 @@ export default function ProductPurchase({
           ) : onBackorder ? (
             <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium text-shop-primary-ink">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-primary" aria-hidden />
-              Available on backorder — ships as soon as it arrives
+              Available on backorder, ships as soon as it arrives
             </p>
           ) : product.stock_quantity !== null && product.stock_quantity <= 10 ? (
             <p className="mt-2.5 flex items-center gap-2 text-[14px] font-bold text-[#e2231a]">
@@ -779,7 +779,7 @@ export default function ProductPurchase({
             reads off the same page. */}
         <p className="font-semibold text-shop-ink">Delivery</p>
         <p>
-          Standard delivery across Uganda takes 1–3 business days.
+          Standard delivery across Uganda takes 1 to 3 business days.
           {freeDeliveryFrom > 0 ? (
             <>
               {" "}
@@ -793,7 +793,7 @@ export default function ProductPurchase({
         <p className="mt-4 font-semibold text-shop-ink">Payment</p>
         <p>
           Pay by MTN Mobile Money, Airtel Money or card at checkout. Cash on delivery is
-          available in selected areas only — the checkout tells you before you pay.
+          available in selected areas only, the checkout tells you before you pay.
         </p>
         <p className="mt-4 font-semibold text-shop-ink">Returns</p>
         <p>
@@ -818,11 +818,11 @@ export default function ProductPurchase({
           </thead>
           <tbody>
             {[
-              ["XS", "82–86", "66–70"],
-              ["S", "86–92", "70–76"],
-              ["M", "92–98", "76–82"],
-              ["L", "98–104", "82–88"],
-              ["XL", "104–112", "88–96"],
+              ["XS", "82 to 86", "66 to 70"],
+              ["S", "86 to 92", "70 to 76"],
+              ["M", "92 to 98", "76 to 82"],
+              ["L", "98 to 104", "82 to 88"],
+              ["XL", "104 to 112", "88 to 96"],
             ].map(([size, chest, waist]) => (
               <tr key={size} className="border-t border-shop-line">
                 <td className="px-3 py-2 font-semibold">{size}</td>
@@ -836,7 +836,7 @@ export default function ProductPurchase({
 
       <InfoModal open={modal === "rrp"} title="What is RRP?" onClose={() => setModal(null)}>
         <p>
-          RRP is the Recommended Retail Price — the price the brand suggests the item is sold at in
+          RRP is the Recommended Retail Price, the price the brand suggests the item is sold at in
           full-price retail. The discount shown is the saving against that RRP.
         </p>
       </InfoModal>

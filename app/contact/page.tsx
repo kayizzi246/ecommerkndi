@@ -7,7 +7,7 @@ import ContactForm from "./ContactForm";
 export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
   title: "Contact us",
-  description: "Call, email or message Kandi UG — and where to go for order questions.",
+  description: "Call, email or message Kandi UG, and where to go for order questions.",
 };
 
 export default async function ContactPage() {
@@ -70,20 +70,20 @@ export default async function ContactPage() {
       <InfoSection title="Where to go first">
         <ul>
           <li>
-            <strong>&ldquo;Where is my order?&rdquo;</strong> — the live status of every order you
+            <strong>&ldquo;Where is my order?&rdquo;</strong> : the live status of every order you
             have placed is on your <Link href="/account/orders">orders page</Link>.
           </li>
           <li>
-            <strong>&ldquo;I want to return something.&rdquo;</strong> — read{" "}
+            <strong>&ldquo;I want to return something.&rdquo;</strong> : read{" "}
             <Link href="/returns">returns &amp; refunds</Link> first; it covers most cases without
             needing to call.
           </li>
           <li>
-            <strong>&ldquo;How long will delivery take?&rdquo;</strong> — see{" "}
+            <strong>&ldquo;How long will delivery take?&rdquo;</strong> : see{" "}
             <Link href="/shipping">delivery information</Link>.
           </li>
           <li>
-            <strong>Selling with us</strong> — the{" "}
+            <strong>Selling with us</strong> : the{" "}
             <Link href="/seller">Seller Centre</Link> has its own support channel inside the
             dashboard.
           </li>

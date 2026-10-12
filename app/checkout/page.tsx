@@ -17,7 +17,7 @@ import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
-const labelClass = "mb-1 block text-[12px] font-semibold text-shop-ink";
+const labelClass = "mb-1 block text-[14px] font-bold text-shop-ink";
 
 /** The grey line under a field that says what to put in it. */
 const hintClass = "mt-1 text-[12px] leading-4 text-shop-muted";
@@ -43,16 +43,16 @@ function FieldError({ children }: { children: React.ReactNode }) {
 function StepHeading({ step, title, sub }: { step: number; title: string; sub?: string }) {
   return (
     <div className="mb-4">
-      <h2 className="flex items-center gap-2.5 text-[17px] font-extrabold text-shop-ink">
+      <h2 className="flex items-center gap-2.5 text-[20px] font-[800] leading-tight text-black">
         <span
           aria-hidden
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-shop-ink text-[12px] font-bold text-white"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-[14px] font-[800] text-white"
         >
           {step}
         </span>
         {title}
       </h2>
-      {sub && <p className="mt-1.5 text-[12px] leading-5 text-shop-muted">{sub}</p>}
+      {sub && <p className="mt-1 text-[13px] leading-5 text-shop-muted">{sub}</p>}
     </div>
   );
 }
@@ -68,24 +68,24 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
   const points = [
     {
       title: "Safe payment",
-      body: "Mobile money and card payments go through Pesapal. We never see your PIN.",
+      body: "We never see your PIN.",
       icon: "M12 3 4.5 6v5.25c0 4.6 3.2 8.6 7.5 9.75 4.3-1.15 7.5-5.15 7.5-9.75V6L12 3Zm-3 9 2.25 2.25L15.75 9.75",
     },
     {
-      title: "We call before we come",
-      body: "The rider phones you before delivery, so you are never surprised at the gate.",
+      title: "Rider calls first",
+      body: "We call you before we deliver.",
       icon: "M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a1.125 1.125 0 0 0-1.173.417l-.97 1.293a12.035 12.035 0 0 1-7.143-7.143l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z",
     },
     {
       title: `${returnsDays}-day returns`,
-      body: "Wrong size or changed your mind? Send it back and get your money.",
+      body: "Not happy? Send it back, get your money.",
       icon: "M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3",
     },
   ];
 
   return (
     <div className="mt-6 rounded-xl border border-shop-line bg-shop-surface p-4">
-      <p className="text-[14px] font-bold text-shop-ink">Why shop with Kandi UG</p>
+      <p className="text-[16px] font-[800] text-black">Shop with peace of mind</p>
       <ul className="mt-3 space-y-3">
         {points.map((point) => (
           <li key={point.title} className="flex items-start gap-3">
@@ -106,9 +106,9 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
         ))}
       </ul>
       <p className="mt-3 border-t border-shop-line pt-3 text-[12px] leading-5 text-shop-muted">
-        Questions before you order?{" "}
+        Need help?{" "}
         <Link href="/contact" className="font-semibold text-shop-primary hover:underline">
-          Talk to our team
+          Call us
         </Link>
       </p>
     </div>
@@ -125,20 +125,20 @@ const PAYMENT_METHODS: {
 }[] = [
   {
     value: "mobile",
-    label: "Mobile money",
-    hint: "MTN MoMo or Airtel Money. Pay now and we pack immediately.",
+    label: "Mobile Money",
+    hint: "MTN or Airtel. Pay now.",
     viaPesapal: true,
   },
   {
     value: "card",
-    label: "Visa / Mastercard",
-    hint: "Pay securely by debit or credit card.",
+    label: "Bank card",
+    hint: "Visa or Mastercard.",
     viaPesapal: true,
   },
   {
     value: "cod",
     label: "Cash on delivery",
-    hint: "Pay the rider in cash when your order arrives.",
+    hint: "Pay cash when it arrives.",
     viaPesapal: false,
   },
 ];
@@ -353,18 +353,18 @@ export default function CheckoutPage() {
 
     if (!customer.first_name) {
       setTouched((current) => ({ ...current, name: true }));
-      setError("Add your name so the rider knows who to ask for.");
+      setError("Enter your name.");
       setSubmitting(false);
       return;
     }
 
     if (!delivery) {
-      setError("Add your delivery location so we can work out the cost.");
+      setError("Choose where to deliver.");
       setSubmitting(false);
       return;
     }
     if (!delivery.deliverable) {
-      setError("We do not deliver that far yet. Try an address closer to Kampala.");
+      setError("We do not deliver there yet.");
       setSubmitting(false);
       return;
     }
@@ -375,8 +375,7 @@ export default function CheckoutPage() {
     if (!isUgPhone(customer.phone)) {
       setTouched((current) => ({ ...current, phone: true }));
       setError(
-        "Check your phone number — it should be a Ugandan mobile like 0772 123 456. " +
-          "The rider calls it to deliver your order."
+        "Check your phone number. Example: 0772 123 456."
       );
       setSubmitting(false);
       return;
@@ -388,8 +387,7 @@ export default function CheckoutPage() {
        accept. */
     if (effectiveMethod === "cod" && !codAllowed) {
       setError(
-        "Cash on delivery is not available in your area. " +
-          "Choose mobile money or card for this address."
+        "Cash on delivery is not in your area. Choose Mobile Money or card."
       );
       setSubmitting(false);
       return;
@@ -526,8 +524,7 @@ export default function CheckoutPage() {
         // them and nothing has been lost.
         setError(
           paymentData?.error ??
-            `The payment service did not respond (error ${payment.status}). ` +
-              "Your order is saved — try again, or choose cash on delivery."
+            "Payment did not open. Your order is saved. Try again."
         );
         // Logged as a string, not an object. The console collapsed the object
         // to a bare `{}` in the screenshots that came back, which hid the one
@@ -544,7 +541,7 @@ export default function CheckoutPage() {
       setPendingOrder({ id: data.id, total: data.total });
       setPaymentUrl(paymentData.redirect_url);
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError("No internet. Try again.");
     } finally {
       setSubmitting(false);
       setOpeningPayment(false);
@@ -627,16 +624,16 @@ export default function CheckoutPage() {
 
       <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[14px]">
         <div className="flex items-baseline justify-between">
-          <dt className="text-shop-body">Subtotal · {count} {count === 1 ? "item" : "items"}</dt>
+          <dt className="text-shop-body">Items ({count})</dt>
           <dd className="font-medium text-shop-ink">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Delivery</dt>
           <dd className="text-[13px]">
             {!delivery ? (
-              <span className="text-shop-muted">Add your location</span>
+              <span className="text-shop-muted">Choose location</span>
             ) : !delivery.deliverable ? (
-              <span className="text-shop-sale">Outside our area</span>
+              <span className="text-shop-sale">Not available</span>
             ) : delivery.free ? (
               <span className="font-semibold text-shop-success">Free</span>
             ) : (
@@ -662,7 +659,7 @@ export default function CheckoutPage() {
             <strong className="font-semibold text-shop-ink">
               {formatPrice(freeDeliveryShortfall)}
             </strong>{" "}
-            more and this delivery is free.
+            more for free delivery.
           </span>
           <span className="shrink-0 font-semibold text-shop-success underline underline-offset-4">
             Add items
@@ -671,12 +668,11 @@ export default function CheckoutPage() {
       )}
 
       <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-        <span className="text-[15px] font-semibold text-shop-ink">Total</span>
+        <span className="text-[16px] font-[800] text-black">Total</span>
         <span className="text-[21px] font-extrabold tracking-tight text-shop-ink">
           {formatPrice(total)}
         </span>
       </div>
-      <p className="mt-1 text-right text-[12px] text-shop-muted">Including taxes</p>
     </>
   );
 
@@ -772,11 +768,11 @@ export default function CheckoutPage() {
                to leave: the town comes from the location picked below, the
                country is always Uganda, and a surname is optional anyway. */}
           <section>
-            <StepHeading step={1} title="Your name and phone number" />
+            <StepHeading step={1} title="Your details" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="name">
-                  Your name
+                  Name
                 </label>
                 <input
                   id="name"
@@ -794,7 +790,7 @@ export default function CheckoutPage() {
                   }`}
                 />
                 {touched.name && !addressFields.name.trim() && (
-                  <FieldError>We need a name for the rider to ask for.</FieldError>
+                  <FieldError>Enter your name.</FieldError>
                 )}
               </div>
               <div>
@@ -821,13 +817,13 @@ export default function CheckoutPage() {
                 />
                 {phoneError ? (
                   <FieldError>
-                    Ugandan mobile numbers start 07 and have 10 digits — like 0772 123 456.
+                    Use 10 numbers starting 07, like 0772 123 456.
                   </FieldError>
                 ) : (
                   <p id="phone-hint" className={hintClass}>
                     {phoneValid
-                      ? `We'll call ${formatUgPhone(addressFields.phone)}`
-                      : "The rider calls this number."}
+                      ? `We will call ${formatUgPhone(addressFields.phone)}`
+                      : "The rider will call this number."}
                   </p>
                 )}
               </div>
@@ -836,7 +832,7 @@ export default function CheckoutPage() {
             {showEmail || addressFields.email ? (
               <div className="mt-4">
                 <label className={labelClass} htmlFor="email">
-                  Email <span className="font-normal text-shop-muted">(optional, for your receipt)</span>
+                  Email <span className="font-normal text-shop-muted">(optional)</span>
                 </label>
                 <input
                   id="email"
@@ -856,7 +852,7 @@ export default function CheckoutPage() {
                 onClick={() => setShowEmail(true)}
                 className="mt-3 text-[13px] font-semibold text-shop-primary underline-offset-4 hover:underline"
               >
-                + Add email for a receipt (optional)
+                + Add email (optional)
               </button>
             )}
           </section>
@@ -864,8 +860,8 @@ export default function CheckoutPage() {
           <section className="mt-8">
             <StepHeading
               step={2}
-              title="Where should we deliver?"
-              sub="Tap “Use my location” or type your area. We show the delivery cost before you pay."
+              title="Delivery"
+              sub="Where should we bring it?"
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
@@ -894,7 +890,7 @@ export default function CheckoutPage() {
             </div>
 
             <label className={labelClass} htmlFor="address_1">
-              Directions for the rider{" "}
+              Directions{" "}
               <span className="font-normal text-shop-muted">(optional)</span>
             </label>
             <input
@@ -904,7 +900,7 @@ export default function CheckoutPage() {
               enterKeyHint="done"
               value={addressFields.address_1}
               onChange={(event) => setField("address_1")(event.target.value)}
-              placeholder="e.g. Blue gate opposite Shell"
+              placeholder="e.g. Blue gate near Shell"
               className="field-shop"
             />
           </section>
@@ -912,8 +908,7 @@ export default function CheckoutPage() {
           <section className="mt-8">
             <StepHeading
               step={3}
-              title="How do you want to pay?"
-              sub="Pick one. Your payment is safe and encrypted."
+              title="Payment"
             />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
@@ -954,7 +949,7 @@ export default function CheckoutPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-[14px] font-medium text-shop-ink">
+                        <span className="text-[15px] font-bold text-shop-ink">
                           {option.label}
                         </span>
                         {/* The networks this option actually takes, in place of
@@ -978,10 +973,10 @@ export default function CheckoutPage() {
                       <span className="mt-1 block text-[13px] leading-5 text-shop-muted">
                         {option.value === "cod"
                           ? codAllowed
-                            ? `Available at this address. ${option.hint}`
-                            : "Not available in your area."
+                            ? option.hint
+                            : "Not in your area."
                           : unavailable
-                            ? "Not available on this shop yet."
+                            ? "Not available yet."
                             : option.hint}
                       </span>
                     </span>
@@ -1021,14 +1016,14 @@ export default function CheckoutPage() {
                 : submitting
                   ? "Placing order…"
                   : payingOnDelivery
-                    ? `Place order · pay ${formatPrice(total)} on delivery`
+                    ? "Place order"
                     : `Pay ${formatPrice(total)}`}
             </button>
 
             <p className="mt-6 text-[12px] text-shop-muted">
-              By placing this order you agree to our{" "}
+              By ordering you agree to our{" "}
               <Link href="/terms" className="underline underline-offset-2">
-                terms of sale
+                terms
               </Link>
               .
             </p>
@@ -1055,9 +1050,7 @@ export default function CheckoutPage() {
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="min-w-0">
             <p className="text-[12px] text-shop-muted">
-              {payingOnDelivery ? "Pay on delivery · " : "Total · "}
-              {count} {count === 1 ? "item" : "items"}
-              {delivery?.deliverable && !delivery.free ? " + delivery" : ""}
+              {payingOnDelivery ? "Pay on delivery" : "Total"}
             </p>
             {/* The one number on the screen that decides whether the next tap
                 happens. It was the same weight as the product prices in the
@@ -1099,7 +1092,7 @@ export default function CheckoutPage() {
         onClose={() => {
           setPaymentUrl(null);
           setError(
-            "Payment window closed. Your order is saved as unpaid — you can pay again from your orders."
+            "Payment not finished. Your order is saved. You can pay later in My orders."
           );
         }}
         onDone={(outcome) => {
@@ -1117,8 +1110,8 @@ export default function CheckoutPage() {
 
           setError(
             outcome.cancelled
-              ? "You cancelled the payment. Your order is saved as unpaid."
-              : outcome.message || "The payment did not go through. Please try again."
+              ? "Payment cancelled. Your order is saved."
+              : outcome.message || "Payment failed. Try again."
           );
         }}
       />

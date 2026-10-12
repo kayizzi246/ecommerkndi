@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-const WORDS = ["Buy now", "Gula kati"];
+const BUY_NOW = ["Buy now", "Gula kati"];
+/** "Teeka mu kibbo": put it in the basket. */
+const ADD_TO_CART = ["Add to cart", "Teeka mu kibbo"];
 
 /**
  * "Buy now", continuously swapping with the Luganda "Gula kati".
@@ -15,21 +17,30 @@ const WORDS = ["Buy now", "Gula kati"];
  * get one plain "Buy now".
  */
 export default function BuyNowLabel({ className = "" }: { className?: string }) {
+  return <SwapLabel words={BUY_NOW} className={className} />;
+}
+
+/** "Add to cart", swapping with the Luganda "Teeka mu kibbo" the same way. */
+export function AddToCartLabel({ className = "" }: { className?: string }) {
+  return <SwapLabel words={ADD_TO_CART} className={className} />;
+}
+
+function SwapLabel({ words, className }: { words: string[]; className: string }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setIndex((current) => (current + 1) % WORDS.length), 2000);
+    const timer = window.setInterval(() => setIndex((current) => (current + 1) % words.length), 2000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [words.length]);
 
   return (
     <span
       className={className}
       style={{ display: "inline-grid", justifyItems: "center", verticalAlign: "middle", position: "relative" }}
     >
-      <span className="sr-only">Buy now</span>
-      {WORDS.map((word, i) => {
+      <span className="sr-only">{words[0]}</span>
+      {words.map((word, i) => {
         const showing = i === index;
         return (
           <span

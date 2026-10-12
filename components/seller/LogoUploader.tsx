@@ -127,7 +127,7 @@ export default function LogoUploader({
         </div>
 
         <p className="mt-2 text-[12px] text-bfl-grey">
-          Square works best — it is shown in a circle. Up to 8 MB.
+          Square works best, it is shown in a circle. Up to 8 MB.
         </p>
 
         {error && (

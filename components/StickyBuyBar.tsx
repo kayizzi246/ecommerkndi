@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import VariantSheet, { type SheetIntent } from "@/components/VariantSheet";
-import BuyNowLabel from "@/components/BuyNowLabel";
+import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
 
 /**
@@ -46,6 +46,13 @@ export default function StickyBuyBar({
   const { notify } = useToast();
 
   const needsChoice = (product.attributes ?? []).some((attr) => attr.options.length > 0);
+
+  /* Buy now goes to checkout through `router.push`, which does not prefetch
+     the way a <Link> does. Loading it while the shopper reads the product
+     means the tap opens checkout at once. */
+  useEffect(() => {
+    router.prefetch("/checkout");
+  }, [router]);
 
   useEffect(() => {
     const target = document.getElementById(watch);
@@ -133,10 +140,6 @@ export default function StickyBuyBar({
           </p>
         </div>
 
-        <p className="price shrink-0 text-[18px] font-extrabold leading-none text-shop-flame sm:hidden">
-          {formatPrice(product.price)}
-        </p>
-
         {soldOut ? (
           <button disabled className="btn-shop flex-1 py-3 text-[13px] sm:flex-none sm:px-6">
             Sold out
@@ -146,9 +149,9 @@ export default function StickyBuyBar({
             <button
               type="button"
               onClick={() => act("cart")}
-              className="btn-shop-outline flex-1 whitespace-nowrap px-4 py-3 text-[13px] sm:flex-none sm:px-6"
+              className="btn-shop-outline flex-1 basis-0 whitespace-nowrap px-3 py-3 text-[14px] font-bold sm:flex-none sm:basis-auto sm:px-6"
             >
-              Add to cart
+              <AddToCartLabel />
             </button>
             {/* Buy now carries the solid fill: of the two it is the one the
                 shop wants taken, and two buttons of equal weight make the
@@ -156,7 +159,7 @@ export default function StickyBuyBar({
             <button
               type="button"
               onClick={() => act("buy")}
-              className="btn-shop btn-buy-now flex-1 whitespace-nowrap px-4 py-3 text-[14px] font-bold sm:flex-none sm:px-6"
+              className="btn-shop btn-buy-now flex-1 basis-0 whitespace-nowrap px-3 py-3 text-[14px] font-bold sm:flex-none sm:basis-auto sm:px-6"
             >
               <BuyNowLabel />
             </button>

@@ -173,7 +173,7 @@ export function SellFooter({ settings }: { settings: SiteSettings }) {
               <Wordmark settings={settings} />
             </Link>
             <p className="mt-4 max-w-[34ch] text-[13px] leading-relaxed text-shop-body">
-              The storefront, the payments and the delivery — run for you, so you can get on
+              The storefront, the payments and the delivery, run for you, so you can get on
               with stocking and selling.
             </p>
             <div className="mt-5 space-y-1 text-[13px] text-shop-body">

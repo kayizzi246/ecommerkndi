@@ -52,7 +52,7 @@ export default function MiniProduct({
       // looking at it. The price goes in with it: a link announced as "Nike
       // Air Max" when the panel's whole claim is the price is only half read
       // out.
-      aria-label={`${product.name} — ${formatPrice(product.price)}`}
+      aria-label={`${product.name}, ${formatPrice(product.price)}`}
       className="group block"
     >
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-photo">

@@ -110,7 +110,7 @@ export default function CartPage() {
           <p className="text-[12px] text-shop-body md:text-[13px]">
             {qualifiesFree ? (
               <span className="font-semibold text-shop-success">
-                Nice — your order ships free.
+                Nice, your order ships free.
               </span>
             ) : (
               <>

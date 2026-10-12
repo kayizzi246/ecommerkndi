@@ -131,7 +131,7 @@ export default function CategoryPicker({
   if (tree.length === 0) {
     return (
       <p className="rounded-lg border border-shop-line bg-shop-hairline px-3 py-2.5 text-[13px] text-shop-body">
-        No departments to choose from right now — submit the listing and our team
+        No departments to choose from right now, submit the listing and our team
         will file it during approval.
       </p>
     );
@@ -177,7 +177,7 @@ export default function CategoryPicker({
       <p className="text-[12px] text-shop-body">
         {path.length === 0 ? (
           <span className="text-shop-muted">
-            Not filed yet — pick a department so shoppers can browse to it.
+            Not filed yet, pick a department so shoppers can browse to it.
           </span>
         ) : (
           <>

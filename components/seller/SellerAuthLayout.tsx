@@ -99,7 +99,7 @@ export default function SellerAuthLayout({
               />
               <Point
                 title="One dashboard for the whole shop"
-                body="Orders, stock, revenue and commission in a single place — not a spreadsheet you keep by hand."
+                body="Orders, stock, revenue and commission in a single place, not a spreadsheet you keep by hand."
               />
             </ul>
           </div>

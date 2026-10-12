@@ -31,7 +31,7 @@ export default async function SellerPoliciesPage() {
         <ul>
           <li>Genuine products you own and can dispatch within one working day.</li>
           <li>
-            Your own photographs of the actual item — not a manufacturer render or a picture
+            Your own photographs of the actual item, not a manufacturer render or a picture
             lifted from another site.
           </li>
           <li>
@@ -68,7 +68,7 @@ export default async function SellerPoliciesPage() {
           </li>
           <li>
             Returns follow the storefront{" "}
-            <Link href="/returns">returns policy</Link> — {commerce.returns_days} days, and longer
+            <Link href="/returns">returns policy</Link> … {commerce.returns_days} days, and longer
             when the item is faulty. You cannot set a stricter policy than the storefront&rsquo;s.
           </li>
         </ul>

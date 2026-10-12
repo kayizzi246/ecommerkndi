@@ -28,7 +28,7 @@ export default function TrustStrip({ className = "" }: { className?: string }) {
     // rather than "on UGX 0+ orders".
     freeDeliveryFrom > 0
       ? { title: "Free Delivery", copy: `on ${formatPrice(freeDeliveryFrom)}+ orders`, icon: TRUCK }
-      : { title: "Nationwide Delivery", copy: "1–3 business days", icon: TRUCK },
+      : { title: "Nationwide Delivery", copy: "1 to 3 business days", icon: TRUCK },
     /* "Easy Returns", not "Free Return": a return is only free when the item is
        faulty or wrong (see /returns), and a shopper who reads "free" and is then
        charged for the courier stops trusting everything else on the page. */

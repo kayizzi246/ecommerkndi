@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
 import { matchVariation, variationPrice } from "@/lib/variation-match";
-import { formatPrice } from "@/lib/currency";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
-import BuyNowLabel from "@/components/BuyNowLabel";
+import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
 
 type Props = {
@@ -61,21 +59,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
   }, []);
   const [error, setError] = useState<string | null>(null);
 
-  // Sticky buy bar: shown once the real Add to cart button scrolls out of view,
-  // so the action is always one tap away on a long product page.
+  // The page's sticky buy bar is `StickyBuyBar`; this ref is only what an
+  // option error scrolls back to.
   const actionRef = useRef<HTMLDivElement>(null);
-  const [actionVisible, setActionVisible] = useState(true);
-
-  useEffect(() => {
-    const node = actionRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setActionVisible(entry.isIntersecting),
-      { rootMargin: "-80px 0px 0px 0px" }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   const handleSelect = (name: string, value: string) => {
     setSelected(prev => ({ ...prev, [name]: value }));
@@ -303,7 +289,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                 image: product.image,
                 price: product.price,
               });
-              if (!saved) notify("Saved — find it in your wishlist anytime", { image: product.image });
+              if (!saved) notify("Saved, find it in your wishlist anytime", { image: product.image });
             }}
             className={`flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3.5 text-[13px] font-semibold transition-colors ${
               saved
@@ -350,7 +336,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             <svg aria-hidden className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 11h11.2L21 7H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
             </svg>
-            Add to cart
+            <AddToCartLabel />
           </button>
           <button
             type="button"
@@ -365,39 +351,6 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             <span className="block text-[11px] font-medium text-white">
               Fastest delivery: 1 business day
             </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Sticky buy bar. Sits above the mobile tab bar and reuses `add`, so the
-          same option validation applies as the main button. */}
-      <div
-        aria-hidden={actionVisible}
-        className={`fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white transition-transform duration-300 lg:bottom-0 ${
-          actionVisible ? "pointer-events-none translate-y-full" : "translate-y-0"
-        }`}
-      >
-        <div className="mx-auto flex max-w-[var(--shell)] items-center gap-4 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-8">
-          <div className="relative hidden h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white sm:block">
-            {/* Guarded: an imageless product stores "" here, and `next/image`
-                treats an empty src as a request for the current page. */}
-            {product.image && (
-              <Image src={product.image} alt="" fill sizes="48px" className="object-contain p-1" quality={90} />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-[12px] font-normal text-shop-ink">{product.name}</p>
-            <p className="price text-[17px] font-extrabold leading-tight text-shop-ink">
-              {formatPrice(product.price)}
-            </p>
-          </div>
-          <button
-            type="button"
-            tabIndex={actionVisible ? -1 : 0}
-            onClick={add}
-            className="btn-shop shrink-0 px-6 py-3 text-[13px] md:px-10"
-          >
-            Add to cart
           </button>
         </div>
       </div>

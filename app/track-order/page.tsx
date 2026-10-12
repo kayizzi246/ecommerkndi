@@ -31,25 +31,25 @@ export default async function TrackOrderPage() {
       <InfoSection title="What the statuses mean">
         <ul>
           <li>
-            <strong>Being prepared</strong> — we have your order and are picking and packing it.
+            <strong>Being prepared</strong> : we have your order and are picking and packing it.
           </li>
           <li>
-            <strong>On hold</strong> — we need something from you, usually a confirmation of the
+            <strong>On hold</strong> : we need something from you, usually a confirmation of the
             delivery address. We will have called.
           </li>
           <li>
-            <strong>Delivered</strong> — the courier has handed it over. Anything wrong with it?
+            <strong>Delivered</strong> : the courier has handed it over. Anything wrong with it?
             You have time to <Link href="/returns">return it</Link>.
           </li>
           <li>
-            <strong>Cancelled or refunded</strong> — the order was stopped and no money is owed.
+            <strong>Cancelled or refunded</strong> : the order was stopped and no money is owed.
           </li>
         </ul>
       </InfoSection>
 
       <InfoSection title="Can&rsquo;t find your order?">
         <p>
-          The order number is in the confirmation email we sent when you ordered — it is the
+          The order number is in the confirmation email we sent when you ordered, it is the
           number after the # . Use the same phone number or email address you gave at checkout;
           if you typed a different one by mistake, the lookup will not match.
         </p>

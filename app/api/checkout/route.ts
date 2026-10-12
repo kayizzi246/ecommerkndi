@@ -290,8 +290,8 @@ async function placeOrder(request: Request): Promise<Response> {
     return NextResponse.json(
       {
         error:
-          "That phone number does not look right. Enter a Ugandan mobile number — " +
-          "07XX XXX XXX — because the rider calls it to deliver your order.",
+          "That phone number does not look right. Enter a Ugandan mobile number, " +
+          "07XX XXX XXX, because the rider calls it to deliver your order.",
       },
       { status: 400 }
     );
@@ -387,7 +387,7 @@ async function placeOrder(request: Request): Promise<Response> {
       {
         error:
           "Cash on delivery is not available in your area. " +
-          "Please pay by mobile money or card — your cart is saved.",
+          "Please pay by mobile money or card, your cart is saved.",
         code: "cod_unavailable",
       },
       { status: 400 }
@@ -457,7 +457,7 @@ async function placeOrder(request: Request): Promise<Response> {
         total: quote.fee,
         label: quote.free
           ? "Free delivery"
-          : `Delivery — ${body.delivery_place ?? quote.label}`,
+          : `Delivery, ${body.delivery_place ?? quote.label}`,
       };
     } catch (error) {
       console.error("[kandi-store] delivery pricing failed:", error);
