@@ -110,7 +110,7 @@ export default function PortalAccount({
       {customer ? (
         <Link
           href="/account"
-          className="mt-3.5 block w-full rounded-full bg-[#ff5000] py-2.5 text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
+          className="mt-3.5 block w-full rounded-full bg-[#ffcc00] py-2.5 text-center text-[15px] font-[800] text-[#111111] transition-opacity hover:opacity-90"
         >
           My account
         </Link>
@@ -119,7 +119,7 @@ export default function PortalAccount({
           <p className="mt-3 text-[15px] font-semibold text-shop-ink">Log in to Kandi for more</p>
           <Link
             href="/account"
-            className="mt-2.5 block w-full rounded-full bg-[#ff5000] py-2.5 text-center text-[15px] font-bold text-white transition-opacity hover:opacity-90"
+            className="mt-2.5 block w-full rounded-full bg-[#ffcc00] py-2.5 text-center text-[15px] font-[800] text-[#111111] transition-opacity hover:opacity-90"
           >
             Log in now
           </Link>
@@ -129,7 +129,7 @@ export default function PortalAccount({
               one plainly available. */}
           <p className="mt-2 text-center text-[12px] text-shop-muted">
             New here?{" "}
-            <Link href="/account" className="font-semibold text-[#ff5000] hover:underline">
+            <Link href="/account" className="font-semibold text-[#7a5a00] hover:underline">
               Create an account
             </Link>
           </p>
@@ -150,7 +150,7 @@ export default function PortalAccount({
           <li key={item.label}>
             <Link
               href={item.href}
-              className="flex flex-col items-center gap-1 text-[12px] text-shop-body transition-colors hover:text-[#ff5000]"
+              className="flex flex-col items-center gap-1 text-[12px] text-shop-body transition-colors hover:text-[#7a5a00]"
             >
               <svg aria-hidden className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" viewBox="0 0 24 24">
                 <path d={item.d} />

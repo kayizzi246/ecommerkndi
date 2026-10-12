@@ -182,8 +182,8 @@ export default function PortalCategories({
               <RowIcon name={row.name} hot={row.key === "x-sale"} />
               <span className="min-w-0 flex-1 truncate text-[13px] leading-tight">
                 <span
-                  className={`font-semibold transition-colors group-hover:text-[#ff5000] ${
-                    row.key === "x-sale" ? "text-[#ff5000]" : "text-shop-ink"
+                  className={`font-semibold transition-colors group-hover:text-[#7a5a00] ${
+                    row.key === "x-sale" ? "text-[#7a5a00]" : "text-shop-ink"
                   }`}
                 >
                   {row.name}
@@ -294,7 +294,7 @@ function RowIcon({ name, hot }: { name: string; hot: boolean }) {
   return (
     <svg
       aria-hidden
-      className={`h-4 w-4 shrink-0 ${hot ? "text-[#ff5000]" : "text-shop-body"}`}
+      className={`h-4 w-4 shrink-0 ${hot ? "text-[#7a5a00]" : "text-shop-body"}`}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"

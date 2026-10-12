@@ -3871,3 +3871,25 @@ body.search-open nav.fixed.bottom-0 {
   background: var(--color-shop-primary);
   color: #111111;
 }
+
+/* The two big hero tiles' titles at 900. Helvetica has no 900 on most
+   devices, so a stroke in the text's own colour supplies the extra weight. */
+.hero-title-black {
+  font-weight: 900;
+  -webkit-text-stroke: 0.7px currentColor;
+}
+
+/* Every button's words at 700: Add to cart, Buy now, Checkout and the rest.
+   One weight for every action, heavy enough to read at a glance. */
+.btn-shop,
+.btn-shop-outline,
+.btn-buy-now,
+button.btn-shop,
+a.btn-shop {
+  font-weight: 700;
+}
+.btn-shop *,
+.btn-shop-outline *,
+.btn-buy-now * {
+  font-weight: 700;
+}

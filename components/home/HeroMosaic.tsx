@@ -19,7 +19,8 @@ import { productPath } from "@/lib/seo";
  */
 
 /** The hero's accent: a strong, flat orange, used for banners, tags and chips. */
-const ORANGE = "#ff5000";
+const ORANGE = "#ffcc00"; // the brand yellow; the name is kept so call sites read the same
+const INK = "#111111";
 
 type Shelf = {
   key: string;
@@ -94,7 +95,7 @@ export default function HeroMosaic({
       />
 
       <div className="col-span-2 flex flex-col rounded-2xl bg-shop-surface p-3">
-        <Link href="/search?sort=popular" className="mb-2 block truncate text-[14px] font-bold text-shop-ink hover:text-[#ff5000]">
+        <Link href="/search?sort=popular" className="mb-2 block truncate text-[14px] font-bold text-shop-ink hover:text-[#7a5a00]">
           Pay on delivery, see it before you pay
         </Link>
         <ul className="grid flex-1 grid-cols-4 gap-2">
@@ -109,9 +110,9 @@ export default function HeroMosaic({
       {/* ---- Row 2: four small shelves ---- */}
       {shelves.map((shelf) => (
         <div key={shelf.key} className="flex flex-col rounded-2xl bg-shop-surface p-3">
-          <Link href={shelf.href} className="mb-2 flex items-center gap-1.5">
+          <Link href={shelf.href} prefetch className="mb-2 flex items-center gap-1.5">
             <span className="truncate text-[14px] font-bold text-shop-ink">{shelf.title}</span>
-            <span className="shrink-0 rounded-[4px] px-1 text-[10px] font-bold leading-[16px] text-white" style={{ background: ORANGE }}>
+            <span className="shrink-0 rounded-[4px] px-1 text-[10px] font-bold leading-[16px] text-[#111111]" style={{ background: ORANGE }}>
               {shelf.tag}
             </span>
           </Link>
@@ -152,24 +153,25 @@ function HeroBanner({
   return (
     <Link
       href={href}
+      prefetch
       className={`flex min-h-[150px] flex-col rounded-2xl p-3.5 transition-[filter] hover:brightness-[1.03] md:min-h-[168px] ${
-        orange ? "text-white" : "bg-[#fbe6cf] text-[#2a1a0f]"
+        orange ? "text-[#111111]" : "bg-[#fff4c2] text-[#111111]"
       }`}
       style={orange ? { background: ORANGE } : undefined}
     >
       <span
         className="w-fit rounded-[4px] px-1.5 text-[10px] font-bold uppercase leading-[16px]"
-        style={orange ? { background: "#fff", color: ORANGE } : { background: ORANGE, color: "#fff" }}
+        style={orange ? { background: INK, color: ORANGE } : { background: ORANGE, color: INK }}
       >
         {tag}
       </span>
-      <span className="mt-1.5 text-[18px] font-extrabold leading-tight md:text-[20px]">{title}</span>
-      <span className={`mt-1 text-[13px] font-semibold leading-snug ${orange ? "text-white/90" : "text-[#6b5444]"}`}>
+      <span className="hero-title-black mt-1.5 text-[20px] leading-tight md:text-[23px]">{title}</span>
+      <span className={`mt-1 text-[13px] font-semibold leading-snug ${orange ? "text-[#111111]" : "text-[#5c4a00]"}`}>
         {subtitle}
       </span>
       <span
         className="mt-auto inline-flex w-fit rounded-full px-3 py-1 text-[12px] font-bold"
-        style={orange ? { background: "#fff", color: ORANGE } : { background: ORANGE, color: "#fff" }}
+        style={orange ? { background: INK, color: ORANGE } : { background: ORANGE, color: INK }}
       >
         {cta}
       </span>
@@ -195,7 +197,7 @@ function PriceThumb({ product }: { product: Product }) {
         />
       )}
       <span
-        className="absolute bottom-1.5 left-1/2 max-w-[92%] -translate-x-1/2 truncate whitespace-nowrap rounded px-1 py-px text-[10px] font-bold text-white md:text-[11px]"
+        className="absolute bottom-1.5 left-1/2 max-w-[92%] -translate-x-1/2 truncate whitespace-nowrap rounded px-1 py-px text-[10px] font-bold text-[#111111] md:text-[11px]"
         style={{ background: ORANGE }}
       >
         {formatPrice(product.price)}

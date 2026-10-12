@@ -164,14 +164,34 @@ export default function PesapalModal({
           )}
         </header>
 
+        {/* Always on screen while the shopper pays: once Pesapal's form is
+            filled in, the wait for the phone prompt looks like nothing is
+            happening, and a shopper who thinks nothing is happening leaves. */}
+        {phase === "paying" && (
+          <div
+            role="status"
+            className="flex shrink-0 items-center gap-3 border-b border-[#f5d76e] bg-[#fff7d1] px-4 py-2.5"
+          >
+            <span
+              aria-hidden
+              className="h-5 w-5 shrink-0 animate-spin rounded-full border-[3px] border-[#e6c34a] border-t-[#111111] motion-reduce:animate-none"
+            />
+            <p className="min-w-0 text-[13px] leading-snug text-[#111111]">
+              <span className="font-[800]">Processing payment…</span> Approve the prompt on your
+              phone and enter your PIN. <span lang="lg" className="text-[#5c4a00]">(Kebera essimu yo)</span>
+            </p>
+          </div>
+        )}
+
         <div className="relative min-h-0 flex-1">
           {!loaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[13px] text-shop-muted">
               <span
                 aria-hidden
-                className="h-8 w-8 animate-spin rounded-full border-[3px] border-shop-line border-t-shop-primary motion-reduce:animate-none"
+                className="h-8 w-8 animate-spin rounded-full border-[3px] border-shop-line border-t-[#111111] motion-reduce:animate-none"
               />
-              Opening secure payment…
+              <span className="text-[15px] font-[800] text-[#111111]">Processing…</span>
+              Opening secure payment
             </div>
           )}
           <iframe
@@ -200,7 +220,7 @@ export default function PesapalModal({
                       percentage would be inventing one. */}
                   <span
                     aria-hidden
-                    className="h-12 w-12 animate-spin rounded-full border-[3px] border-shop-line border-t-shop-primary motion-reduce:animate-none"
+                    className="h-12 w-12 animate-spin rounded-full border-[3px] border-shop-line border-t-[#111111] motion-reduce:animate-none"
                   />
                   <div>
                     <p className="text-[16px] font-semibold text-shop-ink">

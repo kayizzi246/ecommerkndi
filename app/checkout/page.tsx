@@ -1105,6 +1105,26 @@ export default function CheckoutPage() {
       {/* The Pesapal payment window. The order already exists in WooCommerce by
           the time this opens, so closing it early loses nothing — the IPN
           settles the payment whatever the shopper's browser does. */}
+      {/* From the tap on Pay / Place order until the payment window opens or
+          the order page loads, the whole screen says so. A page that looks
+          frozen gets tapped again, or closed. */}
+      {submitting && !paymentUrl && (
+        <div
+          role="status"
+          className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-4 bg-white/90 px-8 text-center"
+        >
+          <span
+            aria-hidden
+            className="h-12 w-12 animate-spin rounded-full border-4 border-[#f0e2a6] border-t-[#111111] motion-reduce:animate-none"
+          />
+          <p className="text-[20px] font-[800] text-black">Processing…</p>
+          <p className="text-[14px] font-semibold text-shop-body">
+            {openingPayment ? "Opening secure payment." : "Placing your order."} Please wait.{" "}
+            <span lang="lg" className="text-shop-muted">(Lindako katono)</span>
+          </p>
+        </div>
+      )}
+
       <PesapalModal
         url={paymentUrl}
         title={`Pay ${formatPrice(pendingOrder?.total ?? subtotal)}`}
