@@ -625,18 +625,18 @@
      Deepened from the old #ff6a00 — same hue, pulled a step toward red and off
      full saturation, which is the difference between a traffic-cone orange and
      one that reads as a considered brand colour rather than a warning colour. */
-  --color-shop-primary: #d32f2f;
-  --color-shop-primary-dark: #b71c1c; /* hover */
-  --color-shop-primary-soft: #fdecea; /* tint behind an active or selected row */
+  --color-shop-primary: #ffcc00;
+  --color-shop-primary-dark: #f5b800; /* hover */
+  --color-shop-primary-soft: #fff7d1; /* tint behind an active or selected row */
   /* The same hue darkened until white text on it clears AA. Used where a
      small label sits on an orange fill — a 14px button caption on #f2560a is
      ~3.4:1 and fails AA, and no amount of brand consistency is worth a button
      nobody with low vision can read. This step clears ~6.2:1, more headroom
      than the old #b34a00 gave, because the richer base hue needed less of a
      dip to get there. */
-  --color-shop-primary-ink: #b71c1c;
-  --color-shop-flame: #d32f2f; /* alias of primary, kept so components compile */
-  --color-shop-ember: #b71c1c; /* the second stop of the one gradient allowed */
+  --color-shop-primary-ink: #7a5a00; /* dark gold: the brand as TEXT on white */
+  --color-shop-flame: #ffcc00; /* alias of primary, kept so components compile */
+  --color-shop-ember: #f5b800; /* the second stop of the one gradient allowed */
 
   /* ---- Red now means ERRORS, and only errors ----
    *
@@ -3390,12 +3390,14 @@ body.search-open nav.fixed.bottom-0 {
 }
 .tile-off {
   flex-shrink: 0;
-  border: 1px solid #fb7701;
+  border: 0;
+  background: #ffcc00;
+  font-weight: 700;
   border-radius: 2px;
   padding: 0 3px;
   font-size: 11px;
   line-height: 15px;
-  color: #fb7701;
+  color: #000000;
 }
 .tile-was {
   margin: 0;
@@ -3430,7 +3432,7 @@ body.search-open nav.fixed.bottom-0 {
   top: 8px;
   z-index: 5;
   border-radius: 0 3px 3px 0;
-  background: #fb7701;
+  background: #ffcc00;
   padding: 2px 7px;
   font-size: 11px;
   font-weight: 700;
@@ -3826,4 +3828,46 @@ body.search-open nav.fixed.bottom-0 {
   .tile-stock {
     font-size: 10px;
   }
+}
+
+/* ---- Yellow is the brand ----
+ *
+ * `--color-shop-primary` is #ffcc00 now. Yellow is a FILL colour: white text
+ * on it is about 1.5:1 and unreadable, and yellow text on white is the same.
+ * So the two rules below follow the colour wherever the utilities put it:
+ *
+ *   • anything FILLED with the brand gets black text;
+ *   • anything that used the brand as TEXT on white gets the dark gold ink
+ *     (#7a5a00, about 6.4:1 on white), which still reads as the brand.
+ *
+ * Doing it here rather than at each of the ~470 call sites means a future
+ * change of brand colour is again a token edit, not a hunt. */
+.btn-shop,
+.btn-shop:hover,
+.bg-shop-primary,
+.bg-shop-flame,
+.hover\:bg-shop-primary:hover,
+.hover\:bg-shop-flame:hover,
+.tile-photo-badge {
+  color: #111111;
+}
+.btn-shop {
+  font-weight: 800;
+}
+.tile-photo-badge-new {
+  color: #ffffff;
+}
+.text-shop-primary,
+.text-shop-flame,
+.hover\:text-shop-primary:hover,
+.group:hover .group-hover\:text-shop-primary,
+.btn-shop-outline:hover {
+  color: var(--color-shop-primary-ink);
+}
+.btn-shop-outline:hover {
+  border-color: var(--color-shop-primary-ink);
+}
+::selection {
+  background: var(--color-shop-primary);
+  color: #111111;
 }

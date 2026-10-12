@@ -40,13 +40,13 @@ export default function CartRail() {
       className="cart-rail fixed bottom-0 right-0 top-0 z-50 hidden w-[200px] flex-col border-l border-shop-line bg-white lg:flex"
     >
       <div className="shrink-0 px-3 pb-3 pt-3">
-        <p className="rounded-md bg-[#fb7701] px-3 py-1.5 text-center text-[14px] font-bold text-white">
+        <p className="rounded-md bg-[#ffcc00] px-3 py-1.5 text-center text-[14px] font-bold text-black">
           Subtotal
         </p>
         <p className="mt-2 text-center text-[19px] font-bold text-black">{formatPrice(subtotal)}</p>
         <Link
           href="/checkout"
-          className="mt-3 block rounded-full bg-[#fb7701] py-2.5 text-center text-[15px] font-bold text-white transition-colors hover:bg-[#e56b00]"
+          className="mt-3 block rounded-full bg-[#ffcc00] py-2.5 text-center text-[15px] font-bold text-black transition-colors hover:bg-[#f5b800]"
         >
           Checkout ({count})
         </Link>

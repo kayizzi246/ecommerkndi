@@ -73,13 +73,13 @@ export default function CartPage() {
                 <span className="text-[#0a8a3a]">You get free delivery!</span>
               ) : (
                 <>
-                  Add <span className="text-[#fb7701]">{formatPrice(away)}</span> more for free delivery
+                  Add <span className="text-[#7a5a00]">{formatPrice(away)}</span> more for free delivery
                 </>
               )}
             </p>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eceef1]">
               <div
-                className={`h-full rounded-full transition-[width] duration-500 ${qualifiesFree ? "bg-[#0a8a3a]" : "bg-[#fb7701]"}`}
+                className={`h-full rounded-full transition-[width] duration-500 ${qualifiesFree ? "bg-[#0a8a3a]" : "bg-[#ffcc00]"}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
