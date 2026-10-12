@@ -210,7 +210,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {attr.options.map((option) => {
                 const available = isOptionAvailable(attr.name, option.name);
                 const active = selected[attr.name] === option.name;
@@ -220,11 +220,8 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                     type="button"
                     disabled={!available}
                     onClick={() => handleSelect(attr.name, option.name)}
-                    className={`relative min-w-[52px] rounded-lg border px-4 py-2.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:border-shop-hairline disabled:bg-shop-surface disabled:text-[#bbb] ${
-                      active
-                        ? "border-shop-primary bg-shop-primary-soft font-semibold text-shop-primary"
-                        : "border-shop-line text-shop-body hover:border-shop-primary"
-                    }`}
+                    aria-pressed={active}
+                    className={`size-chip relative ${active ? "size-chip-on" : ""}`}
                   >
                     {option.name}
                     {!available && (

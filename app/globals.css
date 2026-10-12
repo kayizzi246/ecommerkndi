@@ -3893,3 +3893,64 @@ a.btn-shop {
 .btn-buy-now * {
   font-weight: 700;
 }
+
+/* ---- Size and option buttons (shoe sizes and the like) ----
+   Big, bold numbers a thumb hits first time: 52px tall, 18px heavy figures,
+   a thick edge. The chosen one is solid black with a yellow tick in its
+   corner; a sold-out one stays in place, struck through. */
+.size-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 52px;
+  padding: 0 14px;
+  border: 2px solid #d4d6da;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+.size-chip:hover:not(:disabled) {
+  border-color: #111111;
+}
+.size-chip:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.size-chip-on,
+.size-chip-on:hover {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+}
+.size-chip-on::after {
+  content: "✓";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #ffcc00;
+  color: #111111;
+  font-size: 12px;
+  font-weight: 900;
+}
+.size-chip:disabled,
+.size-chip-gone {
+  border-color: #eceef1;
+  background: #f6f7f8;
+  color: #b5b8bd;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}

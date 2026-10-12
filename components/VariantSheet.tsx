@@ -186,7 +186,7 @@ export default function VariantSheet({
                   {selected[attr.name] ?? `Choose a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {attr.options.map((option) => {
                   const isSelected = selected[attr.name] === option.name;
                   const canBuy = available(attr.name, option.name);
@@ -201,16 +201,10 @@ export default function VariantSheet({
                         setSelected((prev) => ({ ...prev, [attr.name]: option.name }));
                         setError(null);
                       }}
-                      className={`min-w-11 rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
-                        isSelected
-                          ? "border-shop-ink bg-shop-ink text-white"
-                          : canBuy
-                            ? "border-shop-line text-shop-body hover:border-shop-ink"
-                            : /* Struck through rather than hidden: knowing the
-                                 size exists but is gone is useful information,
-                                 and a vanishing option reads as a bug. */
-                              "border-shop-line text-shop-faint line-through opacity-60"
-                      }`}
+                      /* Struck through rather than hidden when sold out: knowing the size
+                         exists but is gone is useful, and a vanishing option
+                         reads as a bug. */
+                      className={`size-chip ${isSelected ? "size-chip-on" : ""} ${canBuy ? "" : "size-chip-gone"}`}
                     >
                       {option.name}
                     </button>
