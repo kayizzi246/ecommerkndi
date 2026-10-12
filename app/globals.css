@@ -3493,3 +3493,14 @@ body.search-open nav.fixed.bottom-0 {
     display: none;
   }
 }
+
+/* Heavier prices on phones. Helvetica and Arial stop at bold (700), so a
+   hairline stroke in the text's own colour thickens the stems a step further
+   without changing the face. */
+@media (max-width: 39.99rem) {
+  .price,
+  .tile-info .tile-price {
+    font-weight: 800;
+    -webkit-text-stroke: 0.35px currentColor;
+  }
+}
