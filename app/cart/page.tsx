@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import CartRecommendations from "@/components/cart/CartRecommendations";
+import { CheckoutLabel, SwapLabel } from "@/components/BuyNowLabel";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
 export default function CartPage() {
@@ -14,18 +14,9 @@ export default function CartPage() {
   const { notify } = useToast();
 
   // Shoppers tick the lines they want to check out.
-  const [deselected, setDeselected] = useState<string[]>([]);
-
-  const selectedItems = useMemo(
-    () => items.filter((item) => !deselected.includes(item.key)),
-    [items, deselected]
-  );
-
-  const selectedSubtotal = selectedItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedItems = items;
+  const selectedSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const selectedCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   /* From wp-admin rather than a local constant — the same figure the checkout
      prices against, so the bar below cannot promise what the next page refuses.
@@ -70,8 +61,6 @@ export default function CartPage() {
     );
   }
 
-  const allSelected = deselected.length === 0;
-
   return (
     /* ---- The cart joins the shop's canvas-and-panels system ----
 
@@ -90,7 +79,9 @@ export default function CartPage() {
     <main className="pb-28 lg:pb-16">
       <div className="mx-auto max-w-[1200px] px-3 py-5 md:px-8 md:py-7">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 md:mb-5">
-        <h1 className="section-title text-[18px] text-shop-ink md:text-[23px]">Your cart</h1>
+        <h1 className="text-[22px] font-[800] text-black md:text-[26px]">
+          Your cart ({selectedCount})
+        </h1>
         <Link
           href="/"
           className="text-[12px] text-shop-body underline underline-offset-4 hover:text-shop-ink md:text-[13px]"
@@ -110,12 +101,12 @@ export default function CartPage() {
           <p className="text-[12px] text-shop-body md:text-[13px]">
             {qualifiesFree ? (
               <span className="font-semibold text-shop-success">
-                Nice, your order ships free.
+                You get free delivery.
               </span>
             ) : (
               <>
-                You&apos;re{" "}
-                <span className="font-semibold text-shop-ink">{formatPrice(away)}</span> away from
+                Add{" "}
+                <span className="font-bold text-shop-ink">{formatPrice(away)}</span> more for
                 free delivery.
               </>
             )}
@@ -134,28 +125,7 @@ export default function CartPage() {
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_364px] lg:gap-6">
         <div>
           {/* Select-all bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-2.5">
-            <label className="flex cursor-pointer items-center gap-2.5 text-[12px] text-shop-body md:text-[13px]">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={() => setDeselected(allSelected ? items.map((item) => item.key) : [])}
-                className="h-4 w-4 rounded accent-shop-primary"
-              />
-              {selectedItems.length} of {items.length} selected
-            </label>
-
-            <button
-              type="button"
-              onClick={() => {
-                selectedItems.forEach((item) => removeItem(item.key));
-                notify("Selected items removed");
-              }}
-              className="text-[12px] text-shop-muted underline underline-offset-4 hover:text-shop-sale md:text-[13px]"
-            >
-              Remove selected
-            </button>
-          </div>
+          <div className="border-b border-shop-line" />
 
           {/* The lines get a panel of their own, so the basket reads as one
               object rather than as a list floating on the page beside a boxed
@@ -164,7 +134,6 @@ export default function CartPage() {
               reason: it is a control over these lines, not over the page. */}
           <ul className="divide-y divide-shop-line">
             {items.map((item) => {
-              const selected = !deselected.includes(item.key);
               return (
                 /* ---- The line, rebuilt for a 360px screen ----
 
@@ -181,20 +150,6 @@ export default function CartPage() {
                    notch — the gaps, the photograph, the type — and steps back
                    up at sm, where the desktop layout was never the problem. */
                 <li key={item.key} className="flex gap-2.5 py-3.5 sm:gap-4 sm:py-5">
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    aria-label={`Include ${item.name} in checkout`}
-                    onChange={() =>
-                      setDeselected((current) =>
-                        selected
-                          ? [...current, item.key]
-                          : current.filter((key) => key !== item.key)
-                      )
-                    }
-                    className="mt-1 h-4 w-4 shrink-0 rounded accent-shop-primary"
-                  />
-
                   <Link
                     href={`/products/${item.productId}`}
                     className="relative h-[92px] w-[74px] shrink-0 overflow-hidden rounded-lg bg-shop-surface sm:h-[112px] sm:w-24 sm:rounded-xl"
@@ -265,7 +220,7 @@ export default function CartPage() {
                           removeItem(item.key);
                           notify("Item removed");
                         }}
-                        className="text-[12px] text-shop-muted underline underline-offset-4 hover:text-shop-sale sm:text-[13px]"
+                        className="text-[13px] font-bold text-shop-muted hover:text-shop-sale"
                       >
                         Remove
                       </button>
@@ -285,12 +240,12 @@ export default function CartPage() {
             follows the shopper down a long basket so the total and the checkout
             button are never scrolled away from. */}
         <aside className="shop-panel lg:sticky lg:top-32">
-          <h2 className="text-[15px] font-extrabold text-shop-ink md:text-[16px]">Order summary</h2>
+          <h2 className="text-[18px] font-[800] text-black">Summary</h2>
 
           <dl className="mt-3.5 space-y-2.5 text-[12px] md:text-[13px]">
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-shop-muted">
-                Subtotal · {selectedCount} {selectedCount === 1 ? "item" : "items"}
+                Items ({selectedCount})
               </dt>
               <dd className="font-medium text-shop-ink">{formatPrice(selectedSubtotal)}</dd>
             </div>
@@ -303,7 +258,7 @@ export default function CartPage() {
                     : "text-right text-[12px] text-shop-muted"
                 }
               >
-                {qualifiesFree ? "Free" : "Calculated at checkout"}
+                {qualifiesFree ? "Free" : "Shown at checkout"}
               </dd>
             </div>
           </dl>
@@ -322,35 +277,27 @@ export default function CartPage() {
               from the line items above it reads as a different kind of
               number. */}
           <div className="mt-4 flex items-baseline justify-between border-t border-shop-line pt-4">
-            <span className="text-[14px] font-bold text-shop-ink">Total</span>
+            <span className="text-[16px] font-[800] text-black">Total</span>
             <div className="text-right">
               <span className="price block text-[23px] text-shop-ink md:text-[25px]">
                 {formatPrice(total)}
               </span>
-              <span className="text-[11px] text-shop-muted">Incl. VAT</span>
             </div>
           </div>
-
-          {qualifiesFree && (
-            <p className="mt-3 rounded-lg bg-shop-successbg px-3 py-2 text-[12px] text-shop-success">
-              This order qualifies for free delivery.
-            </p>
-          )}
 
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`mt-4 block rounded-[10px] py-3.5 text-center text-[13px] font-bold ${
+            className={`mt-4 flex w-full items-center justify-center rounded-full py-4 text-center text-[17px] font-[800] ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
-                : "btn-shop w-full"
+                : "btn-shop"
             }`}
           >
-            Checkout · {formatPrice(total)}
+            <CheckoutLabel />
           </Link>
-
-          <p className="mt-2.5 text-center text-[12px] text-shop-muted">
-            Coupons and vouchers are applied at payment.
+          <p className="mt-2 text-center text-[12px] font-semibold text-shop-success">
+            Pay on delivery available
           </p>
 
           <div className="mt-4 flex flex-wrap gap-1.5 border-t border-shop-line pt-4 text-[11px] text-shop-muted">
@@ -382,7 +329,7 @@ export default function CartPage() {
               face — with the item count reduced to a label above it. */}
           <div className="min-w-0 flex-1">
             <p className="text-[11px] leading-none text-shop-muted">
-              {selectedItems.length} {selectedItems.length === 1 ? "item" : "items"}
+              Total ({selectedCount})
             </p>
             <p className="price mt-1 text-[21px] leading-none text-shop-ink">
               {formatPrice(total)}
@@ -392,13 +339,13 @@ export default function CartPage() {
           <Link
             href="/checkout"
             aria-disabled={selectedItems.length === 0}
-            className={`shrink-0 rounded-[10px] px-7 py-3 text-center text-[13px] font-bold ${
+            className={`shrink-0 rounded-full px-6 py-3.5 text-center text-[16px] font-[800] ${
               selectedItems.length === 0
                 ? "pointer-events-none bg-[#d9d9d9] text-[#8f8f8f]"
                 : "btn-shop"
             }`}
           >
-            Checkout
+            <SwapLabel words={["Checkout", "Genda osasule"]} />
           </Link>
         </div>
       </div>

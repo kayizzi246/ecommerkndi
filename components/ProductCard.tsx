@@ -3,10 +3,31 @@ import Image from "next/image";
 import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
-import TileCartButton from "@/components/TileCartButton";
+import TileFreeDelivery from "@/components/TileFreeDelivery";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
+
+/** Units sold before a tile is called a "Best seller". */
+const BEST_SELLER_AT = 50;
+
+/** A 4.5 average over at least three reviews is "Top rated"; one review is not a verdict. */
+const TOP_RATED_AT = 4.5;
+const TOP_RATED_REVIEWS = 3;
+
+/** How long a listing counts as "New". */
+const NEW_FOR_DAYS = 14;
+
+/**
+ * Whether a product was listed recently enough to be "New". Kept out of the
+ * component body because it reads the clock, and a render should be a pure
+ * function of its props.
+ */
+function listedRecently(dateCreated: string | null | undefined): boolean {
+  if (!dateCreated) return false;
+  const listedAt = Date.parse(dateCreated);
+  return Number.isFinite(listedAt) && Date.now() - listedAt < NEW_FOR_DAYS * 86_400_000;
+}
 
 /** "2.2K sold" — the compact form marketplaces print beside a price. */
 function compactSold(value: number): string {
@@ -155,6 +176,17 @@ export default function ProductCard({
 
   // Readable URLs — /products/blue-running-shoes, not /products/190.
   const href = `/products/${product.slug || product.id}`;
+
+  /* One badge on the photo, the strongest that is true: what other shoppers
+     bought most, then what they rated best, then what just arrived. */
+  const badge =
+    product.total_sales >= BEST_SELLER_AT
+      ? "Best seller"
+      : product.rating_count >= TOP_RATED_REVIEWS && product.average_rating >= TOP_RATED_AT
+        ? "Top rated"
+        : listedRecently(product.date_created)
+          ? "New"
+          : null;
 
   /** The back view, when the seller uploaded one. */
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
@@ -556,6 +588,11 @@ export default function ProductCard({
           </div>
         </Link>
 
+        {!soldOut && badge && (
+          <span className={`tile-photo-badge ${badge === "New" ? "tile-photo-badge-new" : ""}`}>
+            {badge}
+          </span>
+        )}
         {soldOut && (
           <span className="absolute left-2 top-2 rounded-[3px] bg-white px-1.5 py-[3px] text-[11px] font-semibold leading-none text-shop-body ring-1 ring-shop-line">
             Sold out
@@ -624,11 +661,6 @@ export default function ProductCard({
               </p>
             )}
           </div>
-          {/* `z-20`, above the whole-card link: adding to the basket from a
-              tile must not be a navigation. */}
-          <div className="tile-cart relative z-20 shrink-0">
-            <TileCartButton product={product} />
-          </div>
         </div>
 
         {product.rating_count > 0 && (
@@ -641,11 +673,15 @@ export default function ProductCard({
           </p>
         )}
 
-        {(soldOut || lowStock) && (
-          <p className="tile-stock truncate">
-            {soldOut ? "Back in stock soon" : `Only ${product.stock_quantity} left`}
+        {!soldOut && <TileFreeDelivery price={product.price} />}
+
+        {soldOut ? (
+          <p className="tile-stock truncate">Back in stock soon</p>
+        ) : lowStock ? (
+          <p className="tile-urgent truncate">
+            Almost sold out: only {product.stock_quantity} left
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* ---- The whole tile is the link ----

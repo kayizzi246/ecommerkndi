@@ -16,6 +16,7 @@ import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/Paym
 import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
+import { SwapLabel } from "@/components/BuyNowLabel";
 
 const labelClass = "mb-1 block text-[14px] font-bold text-shop-ink";
 
@@ -40,7 +41,18 @@ function FieldError({ children }: { children: React.ReactNode }) {
 }
 
 /** The step number beside a section heading. */
-function StepHeading({ step, title, sub }: { step: number; title: string; sub?: string }) {
+function StepHeading({
+  step,
+  title,
+  luganda,
+  sub,
+}: {
+  step: number;
+  title: string;
+  /** The heading in Luganda, set small beside the English. */
+  luganda?: string;
+  sub?: string;
+}) {
   return (
     <div className="mb-4">
       <h2 className="flex items-center gap-2.5 text-[20px] font-[800] leading-tight text-black">
@@ -51,6 +63,11 @@ function StepHeading({ step, title, sub }: { step: number; title: string; sub?: 
           {step}
         </span>
         {title}
+        {luganda && (
+          <span lang="lg" className="text-[14px] font-semibold text-shop-muted">
+            {luganda}
+          </span>
+        )}
       </h2>
       {sub && <p className="mt-1 text-[13px] leading-5 text-shop-muted">{sub}</p>}
     </div>
@@ -768,11 +785,11 @@ export default function CheckoutPage() {
                to leave: the town comes from the location picked below, the
                country is always Uganda, and a surname is optional anyway. */}
           <section>
-            <StepHeading step={1} title="Your details" />
+            <StepHeading step={1} title="Your details" luganda="Ebikukwatako" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="name">
-                  Name
+                  Name <span lang="lg" className="font-normal text-shop-muted">(Erinnya)</span>
                 </label>
                 <input
                   id="name"
@@ -795,7 +812,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <label className={labelClass} htmlFor="phone">
-                  Phone number
+                  Phone number <span lang="lg" className="font-normal text-shop-muted">(Essimu)</span>
                 </label>
                 <input
                   id="phone"
@@ -861,7 +878,8 @@ export default function CheckoutPage() {
             <StepHeading
               step={2}
               title="Delivery"
-              sub="Where should we bring it?"
+              luganda="Okutuusa"
+              sub="Where should we bring it? (Tukuleetere wa?)"
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
@@ -909,6 +927,7 @@ export default function CheckoutPage() {
             <StepHeading
               step={3}
               title="Payment"
+              luganda="Okusasula"
             />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
@@ -1009,15 +1028,15 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 hidden w-full py-4 text-[16px] font-bold lg:block"
+              className="btn-shop mt-6 hidden w-full rounded-full py-4 text-[17px] font-[800] lg:block"
             >
               {openingPayment
                 ? "Opening payment…"
                 : submitting
                   ? "Placing order…"
                   : payingOnDelivery
-                    ? "Place order"
-                    : `Pay ${formatPrice(total)}`}
+                    ? <SwapLabel words={["Place order", "Kakasa okugula"]} />
+                    : <SwapLabel words={[`Pay ${formatPrice(total)}`, "Sasula kati"]} />}
             </button>
 
             <p className="mt-6 text-[12px] text-shop-muted">
@@ -1063,15 +1082,15 @@ export default function CheckoutPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="btn-shop ml-auto shrink-0 px-7 py-3.5 text-[15px] font-bold"
+            className="btn-shop ml-auto shrink-0 rounded-full px-7 py-3.5 text-[16px] font-[800]"
           >
             {openingPayment
               ? "Opening payment…"
               : submitting
                 ? "Placing…"
                 : payingOnDelivery
-                  ? "Place order"
-                  : "Pay now"}
+                  ? <SwapLabel words={["Place order", "Kakasa okugula"]} />
+                  : <SwapLabel words={["Pay now", "Sasula kati"]} />}
           </button>
         </div>
       </div>

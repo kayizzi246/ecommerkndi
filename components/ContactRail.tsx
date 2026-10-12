@@ -108,7 +108,7 @@ export default function ContactRail({ support }: { support: Support }) {
 
     <aside
       aria-label="Contact us"
-      className="fixed right-3 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 lg:flex"
+      className="contact-rail fixed right-3 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 lg:flex"
     >
       {support.whatsapp && (
         <RailButton

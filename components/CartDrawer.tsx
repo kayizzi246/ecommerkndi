@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { CheckoutLabel } from "@/components/BuyNowLabel";
 import { useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
@@ -302,9 +303,9 @@ export default function CartDrawer() {
                 href="/checkout"
                 onClick={closeDrawer}
                 tabIndex={drawerOpen ? 0 : -1}
-                className="btn-shop block w-full rounded-full p-3.5 text-center text-[14px]"
+                className="btn-shop flex w-full items-center justify-center rounded-full p-3.5 text-center text-[16px] font-[800]"
               >
-                Proceed to checkout
+                <CheckoutLabel />
               </Link>
               <Link
                 href="/cart"

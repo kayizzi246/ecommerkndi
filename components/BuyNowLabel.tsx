@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 const BUY_NOW = ["Buy now", "Gula kati"];
 /** "Teeka mu kibbo": put it in the basket. */
 const ADD_TO_CART = ["Add to cart", "Teeka mu kibbo"];
+/** "Genda osasule": go and pay. */
+const CHECKOUT = ["Proceed to checkout", "Genda osasule"];
 
 /**
  * "Buy now", continuously swapping with the Luganda "Gula kati".
@@ -25,7 +27,16 @@ export function AddToCartLabel({ className = "" }: { className?: string }) {
   return <SwapLabel words={ADD_TO_CART} className={className} />;
 }
 
-function SwapLabel({ words, className }: { words: string[]; className: string }) {
+/** "Proceed to checkout", swapping with "Genda osasule". */
+export function CheckoutLabel({ className = "" }: { className?: string }) {
+  return <SwapLabel words={CHECKOUT} className={className} />;
+}
+
+/**
+ * Any English label alternating with its Luganda. The English is always the
+ * first word and the one screen readers hear.
+ */
+export function SwapLabel({ words, className = "" }: { words: string[]; className?: string }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

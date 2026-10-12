@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import CartDrawer from "@/components/CartDrawer";
+import CartRail from "@/components/CartRail";
 import CookieNotice from "@/components/CookieNotice";
 import ContactRail from "@/components/ContactRail";
 import { SellHeader, SellFooter } from "@/components/SellChrome";
@@ -245,6 +246,7 @@ export default function StoreChrome({
           support rail over their own interface. */}
       <ContactRail support={settings.support} />
       <CartDrawer />
+      <CartRail />
       <Footer settings={settings} departments={departments} />
       {/* The sliding "Create account" bar that used to sit here is gone with the
           rest of the site's banners. The cookie notice stays: it is a legal
