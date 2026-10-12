@@ -101,14 +101,14 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
   ];
 
   return (
-    <div className="mt-6 rounded-xl border border-shop-line bg-shop-surface p-4">
-      <p className="text-[18px] font-[800] text-black">Shop with peace of mind</p>
-      <ul className="mt-3 space-y-3">
+    <div className="mt-5 rounded-lg border border-shop-line bg-shop-surface px-3 py-2.5">
+      <p className="text-[12px] font-[800] text-black">Shop with peace of mind</p>
+      <ul className="mt-1.5 space-y-1">
         {points.map((point) => (
-          <li key={point.title} className="flex items-start gap-3">
+          <li key={point.title} className="flex items-start gap-1.5">
             <svg
               aria-hidden
-              className="mt-0.5 h-5 w-5 shrink-0 text-shop-success"
+              className="mt-px h-3.5 w-3.5 shrink-0 text-shop-success"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.8"
@@ -116,13 +116,13 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={point.icon} />
             </svg>
-            <span className="text-[15px] font-medium leading-5 text-shop-body">
+            <span className="text-[11px] leading-4 text-shop-body">
               <strong className="font-[800] text-black">{point.title}.</strong> {point.body}
             </span>
           </li>
         ))}
       </ul>
-      <p className="mt-3 border-t border-shop-line pt-3 text-[12px] leading-5 text-shop-muted">
+      <p className="mt-1.5 border-t border-shop-line pt-1.5 text-[11px] leading-4 text-shop-muted">
         Need help?{" "}
         <Link href="/contact" className="font-semibold text-shop-primary hover:underline">
           Call us
