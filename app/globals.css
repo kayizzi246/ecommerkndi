@@ -3267,7 +3267,7 @@ body.search-open nav.fixed.bottom-0 {
 }
 .tile-type .price {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0;
 }
 .tile-type > a + p {
@@ -3280,7 +3280,7 @@ body.search-open nav.fixed.bottom-0 {
 @media (max-width: 39.99rem) {
   .tile-type .price {
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
   }
   .tile-type .product-name {
     font-size: 13px;
@@ -3496,12 +3496,12 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Prices on phones at plain bold, unstroked — a stroked 800 made a grid of
-   prices read as a dark band. */
+/* Prices on phones at 800, unstroked — the real 800 comes from Inter (see
+   "Prices in Inter 800" at the end of this file). */
 @media (max-width: 39.99rem) {
   .price,
   .tile-info .tile-price {
-    font-weight: 700;
+    font-weight: 800;
     -webkit-text-stroke: 0;
   }
 }
@@ -3769,10 +3769,10 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Card prices at plain bold on every screen, unstroked, so a full grid of
-   prices does not darken the page. */
+/* Card prices at 800 on every screen, unstroked (Inter, set at the end of
+   this file). */
 .tile-info .tile-price {
-  font-weight: 700;
+  font-weight: 800;
   -webkit-text-stroke: 0;
 }
 
@@ -4031,4 +4031,15 @@ a.btn-shop {
 .color-photo-on::after {
   top: 4px;
   right: 4px;
+}
+
+/* ---- Prices in Inter 800 ----
+ * Helvetica and Arial stop at bold, so the price takes Inter, loaded in
+ * layout.tsx at that one weight as `--font-price`. A real 800, no stroke. */
+.price,
+.tile-type .price,
+.tile-info .tile-price {
+  font-family: var(--font-price), var(--font-ui);
+  font-weight: 800;
+  -webkit-text-stroke: 0;
 }
