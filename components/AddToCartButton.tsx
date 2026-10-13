@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
-import { matchVariation, variationPrice } from "@/lib/variation-match";
+import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
@@ -32,22 +32,11 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
      now work on the first tap. Starting blank meant both buttons answered
      "Please select a colour" — a blocked sale whenever the swatches were hard
      to read. The choice is shown and highlighted, and the shopper can change it. */
-  const [selected, setSelected] = useState<Record<string, string | null>>(() => {
-    // One whole in-stock variation, so the pre-picked colour and size are a
-    // combination that can actually be bought.
-    const firstInStock = product.variations?.find((variation) => variation.is_in_stock);
-    const initial: Record<string, string | null> = {};
-    product.attributes?.forEach((attr) => {
-      const fromVariation = firstInStock?.attributes[attr.name];
-      const known = attr.options.some((option) => option.name === fromVariation);
-      initial[attr.name] = known
-        ? (fromVariation as string)
-        : product.variations?.length
-          ? null
-          : (attr.options[0]?.name ?? null);
-    });
-    return initial;
-  });
+  // One whole in-stock variation, the first in option order, so the pre-picked
+  // colour and size can actually be bought and the first option's price shows.
+  const [selected, setSelected] = useState<Record<string, string | null>>(() =>
+    initialSelection(product)
+  );
 
   // Tell the page about the starting choices too, so the gallery and the price
   // follow them exactly as they would a tap.

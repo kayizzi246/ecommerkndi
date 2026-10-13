@@ -7,7 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
-import { matchVariation, variationPrice } from "@/lib/variation-match";
+import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
 
@@ -41,22 +41,11 @@ export default function VariantSheet({
 
   const attributes = (product.attributes ?? []).filter((attr) => attr.options.length > 0);
 
-  const [selected, setSelected] = useState<Record<string, string | null>>(() => {
-    // Pre-picked from one whole in-stock variation, like the buy box, so the
-    // sheet's button works on the first tap with a combination that exists.
-    const firstInStock = product.variations?.find((variation) => variation.is_in_stock);
-    const initial: Record<string, string | null> = {};
-    attributes.forEach((attr) => {
-      const fromVariation = firstInStock?.attributes[attr.name];
-      const known = attr.options.some((option) => option.name === fromVariation);
-      initial[attr.name] = known
-        ? (fromVariation as string)
-        : product.variations?.length
-          ? null
-          : (attr.options[0]?.name ?? null);
-    });
-    return initial;
-  });
+  // Pre-picked from one whole in-stock variation, like the buy box, so the
+  // sheet's button works on the first tap with a combination that exists.
+  const [selected, setSelected] = useState<Record<string, string | null>>(() =>
+    initialSelection({ ...product, attributes })
+  );
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
 

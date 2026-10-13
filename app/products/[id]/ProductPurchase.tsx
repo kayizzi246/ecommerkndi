@@ -5,6 +5,7 @@ import type { Product } from "@/lib/woocommerce";
 import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice, discountPercent } from "@/lib/currency";
+import { initialSelection, variationPrice } from "@/lib/variation-match";
 import AddToCartButton from "@/components/AddToCartButton";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import ImageGallery from "@/components/ImageGallery";
@@ -106,9 +107,20 @@ export default function ProductPurchase({
   }, [product.id]);
 
 
-  const discount = product.on_sale
-    ? discountPercent(product.regular_price, product.price)
-    : 0;
+  /* The chosen options, mirrored from `AddToCartButton` so the headline price
+     is the price of what is picked. Starts on the same first-in-order
+     variation the button does, so the first render already shows it. */
+  const [selected, setSelected] = useState<Record<string, string | null>>(() =>
+    initialSelection(product)
+  );
+  const price = variationPrice(product, selected);
+
+  // The variation's own regular price is not sent, so the RRP and saving are
+  // only shown while the chosen price is the one they were worked out against.
+  const discount =
+    product.on_sale && price === product.price
+      ? discountPercent(product.regular_price, product.price)
+      : 0;
 
   /**
    * Nothing left to sell, and the softer case where WooCommerce will still
@@ -141,6 +153,7 @@ export default function ProductPurchase({
   const viewers = 120 + ((product.id * 37) % 260);
 
   const handleOptionChange = (name: string, value: string | null) => {
+    setSelected((prev) => (prev[name] === value ? prev : { ...prev, [name]: value }));
     if (name.toLowerCase() === "color" && value && colorAttribute) {
       const optionWithImage = colorAttribute.options.find(
         (opt) => opt.name === value && opt.image
@@ -385,7 +398,7 @@ export default function ProductPurchase({
                 soldOut ? "text-shop-muted line-through" : "text-[#e2231a]"
               }`}
             >
-              {formatPrice(product.price)}
+              {formatPrice(price)}
             </span>
             {/* Struck through and greyed above, and labelled here. A price a
                 shopper cannot pay should not be set in the colour that means
@@ -468,7 +481,7 @@ export default function ProductPurchase({
                 <svg aria-hidden className="mt-px h-4 w-4 shrink-0 text-[#16a34a]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Z" />
                 </svg>
-                {freeDeliveryFrom > 0 && product.price >= freeDeliveryFrom ? (
+                {freeDeliveryFrom > 0 && price >= freeDeliveryFrom ? (
                   <span>
                     <strong className="font-bold text-shop-ink">
                       This item ships free.
@@ -481,7 +494,7 @@ export default function ProductPurchase({
                     <strong className="font-semibold text-shop-ink">
                       {formatPrice(freeDeliveryFrom)}
                     </strong>{" "}
-                    , add {formatPrice(freeDeliveryFrom - product.price)} more.
+                    , add {formatPrice(freeDeliveryFrom - price)} more.
                   </span>
                 ) : (
                   <span>Delivery across Uganda in 1 to 3 business days.</span>
@@ -585,7 +598,7 @@ export default function ProductPurchase({
           {whatsapp.replace(/[^\d]/g, "") && (
             <a
               href={`https://wa.me/${whatsapp.replace(/[^\d]/g, "")}?text=${encodeURIComponent(
-                `Hello Kandi, I'd like to order:\n${product.name}\n${formatPrice(product.price)}\n${productUrl}`
+                `Hello Kandi, I'd like to order:\n${product.name}\n${formatPrice(price)}\n${productUrl}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -842,7 +855,7 @@ export default function ProductPurchase({
       </InfoModal>
 
       {/* Slides in once the buy box above has scrolled past. */}
-      <StickyBuyBar product={product} watch="buy-box" />
+      <StickyBuyBar product={product} watch="buy-box" price={price} />
     </>
   );
 }

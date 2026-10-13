@@ -33,9 +33,12 @@ export default function StickyBuyBar({
   product,
   /** id of the element to watch — the real buy box. */
   watch,
+  /** The price of the options chosen in the buy box, when they change it. */
+  price = product.price,
 }: {
   product: Product;
   watch: string;
+  price?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const [sheet, setSheet] = useState<SheetIntent | null>(null);
@@ -136,7 +139,7 @@ export default function StickyBuyBar({
         <div className="hidden min-w-0 flex-1 sm:block">
           <p className="line-clamp-1 text-[12px] text-shop-title">{product.name}</p>
           <p className="price text-[19px] font-extrabold leading-none text-shop-flame">
-            {formatPrice(product.price)}
+            {formatPrice(price)}
           </p>
         </div>
 

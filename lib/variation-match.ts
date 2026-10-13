@@ -83,3 +83,47 @@ export function variationPrice(
   const match = matchVariation(product, selected);
   return typeof match?.price === "number" && match.price > 0 ? match.price : product.price;
 }
+
+/**
+ * The options a picker should start on: the in-stock variation that comes
+ * FIRST in the order the options are listed — 2pcs before 4pcs, 38 before 39 —
+ * so the price a shopper sees on arrival is the first option's price.
+ *
+ * WooCommerce returns variations in its own order (often newest first), which
+ * is why taking the first in-stock one used to open on the middle option.
+ * Attributes it cannot place stay null when the product has variations, and
+ * fall back to the first option on a product without any.
+ */
+export function initialSelection(
+  product: Pick<Product, "variations" | "attributes">
+): Record<string, string | null> {
+  const attributes = product.attributes ?? [];
+  const rank = (variation: ProductVariation) =>
+    attributes.map((attr) => {
+      const index = attr.options.findIndex(
+        (option) => option.name === variation.attributes[attr.name]
+      );
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    });
+  const first = (product.variations ?? [])
+    .filter((variation) => variation.is_in_stock)
+    .map((variation) => ({ variation, key: rank(variation) }))
+    .sort((a, b) => {
+      for (let i = 0; i < a.key.length; i++) {
+        if (a.key[i] !== b.key[i]) return a.key[i] - b.key[i];
+      }
+      return 0;
+    })[0]?.variation;
+
+  const initial: Record<string, string | null> = {};
+  attributes.forEach((attr) => {
+    const fromVariation = first?.attributes[attr.name];
+    const known = attr.options.some((option) => option.name === fromVariation);
+    initial[attr.name] = known
+      ? (fromVariation as string)
+      : product.variations?.length
+        ? null
+        : (attr.options[0]?.name ?? null);
+  });
+  return initial;
+}
