@@ -236,7 +236,8 @@ function kandi_format_product( $product, $with_description = false ) {
 			 * on every product in a 60-item grid.
 			 */
 			$color_images = array();
-			if ( 0 === strcasecmp( wc_attribute_label( $attribute->get_name() ), 'Color' ) ) {
+			// "Color", "Colour", "Color Name", "Main Color" — importers vary.
+			if ( preg_match( '/colou?r/i', wc_attribute_label( $attribute->get_name() ) ) ) {
 				$stored = get_post_meta( $product->get_id(), '_kandi_color_images', true );
 				if ( is_array( $stored ) ) {
 					$color_images = $stored;
@@ -323,6 +324,13 @@ function kandi_format_product( $product, $with_description = false ) {
 				'price'       => (float) wc_get_price_to_display( $variation_product ),
 				'attributes'  => $variation_attributes,
 				'is_in_stock' => $variation_product->is_in_stock(),
+				// The variation's OWN photo ('edit' context: no fall-back to the
+				// parent's). AliExpress imports name colours by code — "ML565EG1"
+				// — and put the colour in this picture, so it is the only thing
+				// the storefront can show the shopper for that option.
+				'image'       => $variation_product->get_image_id( 'edit' )
+					? wp_get_attachment_image_url( $variation_product->get_image_id( 'edit' ), 'large' )
+					: null,
 			);
 		}
 	}

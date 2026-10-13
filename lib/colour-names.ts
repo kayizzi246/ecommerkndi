@@ -104,3 +104,30 @@ export function colourFill(name: string, value?: string | null): string | null {
   }
   return null;
 }
+
+/** Words that qualify a colour without being one: the "light" in "Light Blue". */
+const SHADES = new Set([
+  "light", "dark", "deep", "pale", "bright", "sky", "royal", "rose", "hot",
+  "army", "lake", "off", "multi",
+]);
+
+/**
+ * Splits an imported option name into the colour and the code around it, for
+ * a two-line label: "AVA-Pink" → { colour: "Pink", code: "AVA" }. A name that
+ * is all colour ("Light Blue") or has no colour word ("ML565EG1") comes back
+ * whole as `colour`, with no code.
+ */
+export function splitColourName(name: string): { colour: string; code: string | null } {
+  const parts = name.split(/[-_/|]+|\s+/).filter(Boolean);
+  if (parts.length < 2) return { colour: name, code: null };
+  const isColourWord = (part: string) =>
+    colourFill(part) !== null || SHADES.has(part.toLowerCase());
+  const colourParts = parts.filter(isColourWord);
+  const codeParts = parts.filter((part) => !isColourWord(part));
+  if (colourParts.length === 0 || codeParts.length === 0) return { colour: name, code: null };
+  const colour = colourParts.join(" ");
+  return {
+    colour: colour.charAt(0).toUpperCase() + colour.slice(1),
+    code: codeParts.join(" "),
+  };
+}

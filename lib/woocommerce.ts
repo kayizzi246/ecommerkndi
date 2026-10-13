@@ -104,7 +104,40 @@ export type ProductVariation = {
   price?: number;
   attributes: Record<string, string>;
   is_in_stock: boolean;
+  /** The variation's own photo, when it has one — not the parent's. */
+  image?: string;
 };
+
+/**
+ * Gives each colour option without a swatch photo the photo of a variation in
+ * that colour. AliExpress imports name colours by code ("ML565EG1") and put
+ * the colour in the variation's picture, so the picture is the swatch.
+ */
+function withVariationPhotos(
+  attributes: ProductAttribute[],
+  variations: ProductVariation[] | undefined
+): ProductAttribute[] {
+  if (!variations?.some((variation) => variation.image)) return attributes;
+  return attributes.map((attribute) =>
+    /colou?r/i.test(attribute.name)
+      ? {
+          ...attribute,
+          options: attribute.options.map((option) =>
+            option.image
+              ? option
+              : {
+                  ...option,
+                  image:
+                    variations.find(
+                      (variation) =>
+                        variation.image && variation.attributes[attribute.name] === option.name
+                    )?.image ?? option.image,
+                }
+          ),
+        }
+      : attribute
+  );
+}
 
 /** The marketplace store that owns a listing, when the Seller Centre plugin is active. */
 export type ProductSeller = {
@@ -504,6 +537,25 @@ function toProduct(raw: unknown): Product {
     return match ? match.name : rawValue;
   };
 
+  const variations: ProductVariation[] | undefined = Array.isArray(product.variations)
+    ? product.variations.map((entry) => {
+        const variation = obj(entry);
+        const chosen = obj(variation.attributes);
+        return {
+          id: num(variation.id) || undefined,
+          price: variation.price == null ? undefined : num(variation.price),
+          attributes: Object.fromEntries(
+            Object.entries(chosen).map(([name, value]) => [
+              name,
+              canonicalOption(name, str(value)),
+            ])
+          ) as Record<string, string>,
+          is_in_stock: Boolean(variation.is_in_stock ?? variation.in_stock),
+          image: str(variation.image) || undefined,
+        };
+      })
+    : undefined;
+
   return {
     id: num(product.id),
     /* ---- Decoded, for the same reason category names are ----
@@ -536,24 +588,8 @@ function toProduct(raw: unknown): Product {
       str(product.short_description ?? product.shortDescription)
     ),
     categories,
-    attributes,
-    variations: Array.isArray(product.variations)
-      ? product.variations.map((entry) => {
-          const variation = obj(entry);
-          const chosen = obj(variation.attributes);
-          return {
-            id: num(variation.id) || undefined,
-            price: variation.price == null ? undefined : num(variation.price),
-            attributes: Object.fromEntries(
-              Object.entries(chosen).map(([name, value]) => [
-                name,
-                canonicalOption(name, str(value)),
-              ])
-            ) as Record<string, string>,
-            is_in_stock: Boolean(variation.is_in_stock ?? variation.in_stock),
-          };
-        })
-      : undefined,
+    attributes: withVariationPhotos(attributes, variations),
+    variations,
     // The Store API fallback nests the average under `average_rating` too, but
     // sends it as a string; both shapes coerce cleanly.
     average_rating: num(product.average_rating),

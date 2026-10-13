@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { ProductAttributeOption } from "@/lib/woocommerce";
-import { colourFill } from "@/lib/colour-names";
+import { colourFill, splitColourName } from "@/lib/colour-names";
 
 type Props = {
   options: ProductAttributeOption[];
@@ -97,28 +97,32 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
         const available = isOptionAvailable(option.name);
         const active = value === option.name;
         const fill = colourFill(option.name, option.value);
-        /* A chip with the name, not a bare dot. The dot is painted from the
-           colour word inside the name ("AK-blue" → blue), and left out when
-           there is none ("2pcs"), so no option shows an empty circle. */
+        const { colour, code } = splitColourName(option.name);
+        /* A swatch card: the colour as a dot, the colour name in bold, and an
+           imported code ("AVA" in "AVA-Pink") small above it. The dot is
+           painted from the colour word inside the name and left out when there
+           is none ("2pcs"), so no option shows an empty circle. */
         return (
           <button
             key={option.name}
             type="button"
             disabled={!available}
             onClick={() => onChange(option.name)}
-            title={option.name}
+            title={available ? option.name : `${option.name} — sold out`}
             aria-pressed={active}
-            aria-label={`Select colour ${option.name}`}
-            className={`color-chip ${active ? "color-chip-on" : ""} ${available ? "" : "line-through"}`}
+            aria-label={`Select colour ${option.name}${available ? "" : ", sold out"}`}
+            className={`color-chip ${active ? "color-chip-on" : ""}`}
           >
             {fill && (
-              <span
-                aria-hidden
-                className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/20"
-                style={{ background: fill }}
-              />
+              <span aria-hidden className="color-chip-dot" style={{ background: fill }}>
+                {!available && <span className="color-chip-slash" />}
+              </span>
             )}
-            {option.name}
+            <span className="flex min-w-0 flex-col items-start leading-tight">
+              {code && <span className="color-chip-code">{code}</span>}
+              <span className="color-chip-name">{colour}</span>
+              {!available && <span className="color-chip-code">Sold out</span>}
+            </span>
           </button>
         );
       })}
