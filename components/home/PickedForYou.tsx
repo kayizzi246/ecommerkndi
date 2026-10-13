@@ -60,7 +60,10 @@ export default function PickedForYou({
   newest,
   latestTotalPages,
   tabs,
+  pinned = 0,
 }: {
+  /** How many products at the head of `latest` stay first — the opening shoes. */
+  pinned?: number;
   latest: Product[];
   /** Newest-first page one of the catalogue, without the featured picks. */
   newest: Product[];
@@ -142,6 +145,7 @@ export default function PickedForYou({
           initialProducts={latest}
           totalPages={latestTotalPages}
           personalize
+          pinned={pinned}
         />
       ) : (
         <>

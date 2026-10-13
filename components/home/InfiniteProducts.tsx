@@ -42,6 +42,7 @@ export default function InfiniteProducts({
   /** What the footer says once there is nothing left. */
   doneLabel,
   personalize = false,
+  pinned = 0,
 }: {
   initialProducts: Product[];
   totalPages: number;
@@ -50,8 +51,10 @@ export default function InfiniteProducts({
   doneLabel?: string;
   /** Scatter categories and favour the shopper's interests — see `useProductFeed`. */
   personalize?: boolean;
+  /** Products at the head that keep their place when personalised. */
+  pinned?: number;
 }) {
-  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId, personalize });
+  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId, personalize, pinned });
 
   if (feed.products.length === 0) return null;
 

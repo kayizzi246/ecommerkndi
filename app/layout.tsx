@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -17,18 +16,6 @@ import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
    font, so there is nothing to download and no flash of a fallback: Apple
    devices draw Helvetica itself, everything else draws Arial, which shares its
    metrics. */
-
-/* ---- Prices alone in Inter 800 ----
-   Helvetica and Arial stop at bold, so an 800 price needs a face that has a
-   real 800. Only that one weight is downloaded; it is exposed as
-   `--font-price` and read by the price rules in globals.css. */
-const priceFont = Inter({
-  subsets: ["latin"],
-  weight: "800",
-  variable: "--font-price",
-  display: "swap",
-});
-
 /**
  * ---- The shop is light-only, said to the browser rather than to the reader ----
  *
@@ -220,7 +207,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`h-full ${priceFont.variable}`}
+      className="h-full"
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

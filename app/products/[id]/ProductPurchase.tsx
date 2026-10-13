@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import { initialSelection, variationPrice } from "@/lib/variation-match";
+import { isColourAttribute } from "@/lib/colour-names";
 import AddToCartButton from "@/components/AddToCartButton";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import ImageGallery from "@/components/ImageGallery";
@@ -145,7 +146,7 @@ export default function ProductPurchase({
   const sellerInk = inkFor(sellerColour).ink;
   const images = [product.image, ...product.gallery].filter(Boolean);
   const colorAttribute = product.attributes?.find(
-    (attr) => attr.name.toLowerCase() === "color"
+    (attr) => isColourAttribute(attr.name)
   );
 
   // Derived from the product id so the figure is stable across renders and
@@ -154,7 +155,7 @@ export default function ProductPurchase({
 
   const handleOptionChange = (name: string, value: string | null) => {
     setSelected((prev) => (prev[name] === value ? prev : { ...prev, [name]: value }));
-    if (name.toLowerCase() === "color" && value && colorAttribute) {
+    if (value && colorAttribute && name === colorAttribute.name) {
       const optionWithImage = colorAttribute.options.find(
         (opt) => opt.name === value && opt.image
       );

@@ -1,14 +1,13 @@
-import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductsSafe } from "@/lib/woocommerce";
+import { getProductsSafe, type Product } from "@/lib/woocommerce";
 import { sortProducts, toProductQuery } from "@/lib/sort-products";
 import { discountPercent, formatPrice } from "@/lib/currency";
-import { getSiteSettings } from "@/lib/site-settings";
-import { breadcrumbJsonLd, collectionJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, collectionJsonLd, productPath } from "@/lib/seo";
 import SortDropdown from "@/components/SortDropdown";
 import SaleBoard from "@/components/SaleBoard";
-import FlashSaleCountdown from "@/components/FlashSaleCountdown";
+import SaleCountdown from "@/components/SaleCountdown";
 import { PRODUCT_GRID } from "@/lib/product-grid";
 
 export const metadata = {
@@ -40,9 +39,8 @@ export const metadata = {
  * what is in the band; "Top steals" would be the shop grading its own
  * homework.
  *
- * The colours are the homepage shelf colours, painted by the same
- * `.shop-panel-strong > .section-head` rule — so a band here is the same
- * object as a shelf there, not a second system that happens to resemble it.
+ * The colours are the homepage shelf colours. `SaleBoard` paints each on its
+ * band's header stub and on the jump chip that links to it.
  */
 const TIERS: { id: string; min: number; title: string; shelf: string }[] = [
   { id: "half", min: 50, title: "50% off and over", shelf: "#b8123a" },
@@ -71,10 +69,12 @@ export default async function SalePage({
   // Sorted by WordPress across the whole sale, not within the page. The
   // `discount` option is the exception and stays local — WooCommerce cannot
   // order by the gap between two prices — so `sortProducts` still runs below.
-  const [{ products, total, total_pages }, settings] = await Promise.all([
-    getProductsSafe({ on_sale: true, page, per_page: 24, ...toProductQuery({ sort }) }),
-    getSiteSettings(),
-  ]);
+  const { products, total, total_pages } = await getProductsSafe({
+    on_sale: true,
+    page,
+    per_page: 24,
+    ...toProductQuery({ sort }),
+  });
 
   /**
    * There is no page 99 of the sale, and saying so is what a 404 is for.
@@ -97,10 +97,6 @@ export default async function SalePage({
     (best, product) => Math.max(best, discountPercent(product.regular_price, product.price)),
     0
   );
-  const saved = products.reduce(
-    (sum, product) => sum + Math.max(0, product.regular_price - product.price),
-    0
-  );
 
   /**
    * Banded only while the shopper has not asked for an order of their own.
@@ -119,6 +115,33 @@ export default async function SalePage({
      What is kept above is the argument for WHY a chosen sort replaces the
      bands rather than reordering within them. `SaleBoard` applies the same
      rule; this is where it is explained. */
+
+  /* The three deepest cuts on the first page, shown large before the board.
+     Only in the default order and only when there is a board under them worth
+     the space — a chosen sort is the shopper's own order, left alone. */
+  const spotlight =
+    !sort && products.length >= 6
+      ? [...products]
+          .sort(
+            (a, b) =>
+              discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
+          )
+          .slice(0, 3)
+      : [];
+  const biggestSaving = products.reduce(
+    (best, product) => Math.max(best, product.regular_price - product.price),
+    0
+  );
+  /* Jump chips only for bands this page actually has. */
+  const tierChips = sort
+    ? []
+    : TIERS.filter((tier, index) =>
+        products.some((product) => {
+          const cut = discountPercent(product.regular_price, product.price);
+          const ceiling = index === 0 ? Infinity : TIERS[index - 1].min;
+          return cut >= tier.min && cut < ceiling;
+        })
+      );
 
   return (
     <main className="mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-3 md:px-8 lg:pb-10">
@@ -139,84 +162,110 @@ export default async function SalePage({
         }}
       />
 
-      {/* Breadcrumbs */}
-      <nav className="phone-gutter mb-4 flex items-center gap-2 text-[12px] text-shop-muted">
+      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12px] text-shop-muted">
         <Link href="/" className="hover:text-shop-ink">
           Home
         </Link>
         <span aria-hidden>›</span>
-        <span className="text-shop-ink">Super Price Store</span>
+        <span className="text-shop-ink">Super Deals</span>
       </nav>
 
-      {/* ---- The header, where a 250px orange slab used to be ----
-
-           The slab was a brand gradient carrying an eyebrow, a 46px
-           headline, a paragraph, three delivery ticks and two figure boxes —
-           the largest object on the page, sitting above a page whose entire
-           subject is the products underneath it.
-
-           Everything it said that was TRUE is still here, and still counted
-           off those products: the deepest cut in the headline, how many are
-           reduced, what the whole page saves, and the countdown. What has
-           gone is the ground it said them on. The colour moved down to the
-           band headers, where it now means something — how deep the cut is —
-           instead of being a decorative field behind a heading.
-
-           The three delivery ticks went with it. They are on every product
-           page in this shop beside the price, in the footer, and in the
-           announcement strip at the top of this very page. A fourth telling
-           was spending the best space on the page on terms nobody came here
-           to read. */}
-      {/* ---- The header is the crimson now, not a white card ----
-
-           The slab came back, and this note is the argument for why it is
-           allowed to this time. The old one was a 250px BRAND gradient — a
-           decorative field behind a heading, on a page whose subject is the
-           products under it. This is the shelf colour: the same
-           `--color-shop-panel-deals` crimson as the Super Deals shelf on the
-           homepage and the Super Deals card in the feature row, so a shopper
-           who taps any of the three arrives somewhere that is obviously the
-           same place.
-
-           It is also the one page in the shop where a strong ground is the
-           honest thing to draw. Every product on it is reduced; the whole page
-           is the claim the colour is making.
-
-           White type on #b8123a is 7.4:1, so the eyebrow, the headline and the
-           copy all clear AA comfortably. The figure tiles keep a white ground
-           and dark type rather than being inverted — they are NUMBERS, and a
-           number is read rather than scanned. */}
-      <section className="mb-4 bg-[color:var(--color-shop-panel-deals)] px-3.5 py-4 md:rounded-2xl md:px-5 md:py-5">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+      {/* ---- The header: brand yellow, the deepest cut, and the clock ----
+           Every figure here is counted off the products below it, never
+           asserted: the deepest cut, how many are live, the biggest single
+           saving. The clock counts to midnight, when prices are rechecked. */}
+      <section className="relative mb-4 overflow-hidden bg-gradient-to-br from-[#ffe066] via-[#ffd23f] to-[#ffb800] px-4 py-5 md:rounded-3xl md:px-7 md:py-7">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/25"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/15"
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
-              Super Price Store
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ffcc00]">
+              <svg aria-hidden className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+              </svg>
+              Super Deals
             </p>
-            <h1 className="heading-black mt-1 text-[25px] leading-[1.08] text-white md:text-[33px]">
-              {deepest > 0 ? `Up to ${deepest}% off` : "Every reduced price"}
+            <h1 className="mt-3 text-[30px] font-extrabold leading-[1.05] text-[#111111] md:text-[44px]">
+              {deepest > 0 ? (
+                <>
+                  Up to <span className="text-[#c62828]">{deepest}% off</span>
+                </>
+              ) : (
+                "Every reduced price"
+              )}
             </h1>
-            <p className="mt-1.5 max-w-[54ch] text-[13px] leading-relaxed text-white/85">
+            <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[#3d3200]">
               {total > 0
-                ? `${total} ${total === 1 ? "product is" : "products are"} reduced right now. Prices are rechecked every day, what is here today may not be tomorrow.`
+                ? "Real reductions, rechecked every day. When a deal is gone, it is gone."
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
             </p>
+            {total > 0 && (
+              <ul className="mt-4 flex flex-wrap gap-2 text-[12px] font-semibold text-[#111111]">
+                <li className="rounded-full bg-white/80 px-3 py-1.5">
+                  🔥 {total} {total === 1 ? "deal" : "deals"} live
+                </li>
+                {biggestSaving > 0 && (
+                  <li className="rounded-full bg-white/80 px-3 py-1.5">
+                    Save up to {formatPrice(biggestSaving)}
+                  </li>
+                )}
+                <li className="rounded-full bg-white/80 px-3 py-1.5">Pay on delivery</li>
+              </ul>
+            )}
           </div>
 
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {saved > 0 && (
-              <Figure label="You would save" value={formatPrice(saved)} />
-            )}
-            <Figure label="Prices refresh in" value={<FlashSaleCountdown />} />
+          <div className="rounded-2xl bg-white/85 px-4 py-3 shadow-[0_8px_24px_rgba(122,90,0,0.18)]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7a5a00]">
+              Today&apos;s prices end in
+            </p>
+            <SaleCountdown />
           </div>
         </div>
       </section>
 
-      {/* Result bar */}
-      <div className="phone-gutter mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-shop-line pb-3">
-        <p className="text-[13px] text-shop-muted">
-          Showing <span className="font-semibold text-shop-ink">{sorted.length}</span> of {total}{" "}
-          {total === 1 ? "deal" : "deals"}
-        </p>
+      {/* ---- Spotlight: the three deepest cuts, large ---- */}
+      {spotlight.length === 3 && (
+        <section aria-labelledby="top-deals" className="phone-gutter mb-5">
+          <h2 id="top-deals" className="mb-3 text-[18px] font-extrabold text-shop-ink md:text-[20px]">
+            Top 3 deals today
+          </h2>
+          <ol className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+            {spotlight.map((product, index) => (
+              <li key={product.id} className="w-[72%] shrink-0 snap-start md:w-auto">
+                <SpotlightCard product={product} rank={index + 1} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {/* ---- Jump chips and sort ---- */}
+      <div className="phone-gutter mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
+          {tierChips.length > 1 ? (
+            tierChips.map((tier) => (
+              <a
+                key={tier.id}
+                href={`#deals-${tier.id}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-shop-line bg-white px-3 py-1.5 text-[13px] font-semibold text-shop-ink transition-colors hover:border-shop-ink"
+              >
+                <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: tier.shelf }} />
+                {tier.title}
+              </a>
+            ))
+          ) : (
+            <p className="text-[13px] text-shop-muted">
+              <span className="font-semibold text-shop-ink">{total}</span>{" "}
+              {total === 1 ? "deal" : "deals"}
+            </p>
+          )}
+        </div>
         <SortDropdown />
       </div>
 
@@ -245,20 +294,50 @@ export default async function SalePage({
 }
 
 /**
- * One figure in the header, for numbers the page can prove.
- *
- * `ReactNode` rather than `string`: the countdown is a client component and
- * used to need a differently-styled box of its own beside these, so the
- * header carried two kinds of tile saying the same kind of thing.
+ * One of the three spotlight deals: a large photo with the cut on a ribbon,
+ * the price in red over the original, what it saves, and a button.
  */
-function Figure({ label, value }: { label: string; value: ReactNode }) {
+function SpotlightCard({ product, rank }: { product: Product; rank: number }) {
+  const cut = discountPercent(product.regular_price, product.price);
   return (
-    <div className="rounded-xl bg-white px-4 py-2.5 text-center">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-shop-muted">
-        {label}
-      </p>
-      <p className="price mt-0.5 text-[18px] leading-none text-shop-ink">{value}</p>
-    </div>
+    <Link
+      href={productPath(product)}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-shop-edge transition-shadow hover:shadow-[0_10px_28px_rgba(0,0,0,0.10)]"
+    >
+      <span className="relative block aspect-[4/3] bg-[#f6f6f7]">
+        {product.image && (
+          <Image
+            src={product.image}
+            alt=""
+            fill
+            priority={rank === 1}
+            sizes="(max-width: 768px) 72vw, 33vw"
+            className="object-contain p-3 mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.04]"
+          />
+        )}
+        <span className="absolute left-0 top-3 rounded-r-full bg-[#c62828] py-1 pl-3 pr-4 text-[16px] font-extrabold leading-none text-white shadow-sm">
+          -{cut}%
+        </span>
+        <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#111111] text-[12px] font-bold text-[#ffcc00]">
+          #{rank}
+        </span>
+      </span>
+      <span className="flex flex-1 flex-col p-3.5">
+        <span className="line-clamp-2 text-[14px] leading-snug text-shop-body">{product.name}</span>
+        <span className="mt-2 flex flex-wrap items-baseline gap-x-2">
+          <span className="price text-[20px] leading-none text-[#c62828]">{formatPrice(product.price)}</span>
+          <s className="text-[13px] text-shop-faint">{formatPrice(product.regular_price)}</s>
+        </span>
+        <span className="mt-1.5 text-[12px] font-semibold text-shop-save">
+          You save {formatPrice(product.regular_price - product.price)}
+        </span>
+        <span className="mt-auto pt-3">
+          <span className="flex items-center justify-center rounded-xl bg-[#ffcc00] py-2.5 text-[14px] font-bold text-[#111111] transition-colors group-hover:bg-[#ffd633]">
+            Grab this deal
+          </span>
+        </span>
+      </span>
+    </Link>
   );
 }
 

@@ -82,6 +82,7 @@ export function useProductFeed({
   excludeId,
   refine,
   personalize = false,
+  pinned = 0,
 }: {
   /** The page the server rendered — usually page one. */
   initialProducts: Product[];
@@ -122,11 +123,22 @@ export function useProductFeed({
    * listing the shopper sorted by price must stay in that order.
    */
   personalize?: boolean;
+  /**
+   * How many products at the head of `initialProducts` keep their place when
+   * `personalize` re-deals the first page — the homepage's opening shoes.
+   */
+  pinned?: number;
 }): ProductFeed {
+  /** Re-deal everything after the pinned head, leaving the head as given. */
+  const arrangeAfterPin = (list: Product[], read: Interests | null) =>
+    pinned > 0
+      ? [...list.slice(0, pinned), ...arrangeProducts(list.slice(pinned), read, list.slice(0, pinned))]
+      : arrangeProducts(list, read);
+
   /* Pure scatter on the first render, which needs no browser data, so the
      server and the browser agree on the first page. */
   const [products, setProducts] = useState(() =>
-    personalize ? arrangeProducts(initialProducts, null) : initialProducts
+    personalize ? arrangeAfterPin(initialProducts, null) : initialProducts
   );
   /** The shopper's interests, read once when the grid mounts. */
   const interests = useRef<Interests | null>(null);
@@ -148,7 +160,7 @@ export function useProductFeed({
     // from browser storage, an outside source, and the result is applied the
     // way any subscription's callback would apply it.
     const frame = requestAnimationFrame(() => {
-      if (!cancelled) setProducts((current) => arrangeProducts(current, read));
+      if (!cancelled) setProducts((current) => arrangeAfterPin(current, read));
     });
 
     Promise.all(

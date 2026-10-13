@@ -8,6 +8,7 @@ import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
+import { isColourAttribute } from "@/lib/colour-names";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -152,8 +153,8 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
       {attributes.map((attr) => {
         if (attr.options.length === 0) return null;
 
-        // Render color swatches for 'Color' attribute
-        if (attr.name.toLowerCase() === 'color') {
+        // Colour swatches for any colour attribute: "Color", "Colour", "Color Name"…
+        if (isColourAttribute(attr.name)) {
           return (
             <div key={attr.name}>
               <p className="mb-2.5 text-[16px] font-[800] text-black">

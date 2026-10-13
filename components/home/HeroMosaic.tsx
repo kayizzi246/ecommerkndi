@@ -8,7 +8,7 @@ import { productPath } from "@/lib/seo";
  * The middle of the homepage band, on the Taobao portal model.
  *
  * Two rows. The top one is two campaign banners — deals in brand yellow, new
- * arrivals in a pale blue — each fronted by a real product, beside a wide strip
+ * arrivals in a pale blue — beside a wide strip
  * of four products under the shop's strongest promise. The bottom one is four
  * small shelves of two products each, every one a link to the whole-catalogue
  * listing it previews.
@@ -63,8 +63,6 @@ export default function HeroMosaic({
     .sort((a, b) => b.average_rating - a.average_rating);
   const cheapest = [...newest].sort((a, b) => a.price - b.price);
 
-  const dealCover = pick(onSale.length > 0 ? onSale : newest, 1)[0];
-  const newCover = pick(newest, 1)[0];
   const strip = pick(sellers, 4);
 
   const shelves: Shelf[] = [
@@ -80,7 +78,9 @@ export default function HeroMosaic({
 
   return (
     <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-      {/* ---- Row 1: two banners and the promise strip ---- */}
+      {/* ---- Row 1: two banners and the promise strip ----
+           On a phone only the two banners show; the strip and the shelves
+           below are hidden there (`hidden md:flex`), so the grid follows. */}
       <HeroBanner
         href="/sale"
         tag="Hot deals"
@@ -88,7 +88,6 @@ export default function HeroMosaic({
         subtitle={maxDiscount > 0 ? `Up to ${maxDiscount}% off today` : "Today's best prices"}
         cta="Shop now"
         tone="yellow"
-        cover={dealCover}
       />
       <HeroBanner
         href="/search?sort=newest"
@@ -97,10 +96,9 @@ export default function HeroMosaic({
         subtitle="Fresh from Kandi sellers this week"
         cta="See what's new"
         tone="blue"
-        cover={newCover}
       />
 
-      <div className="col-span-2 flex flex-col rounded-2xl bg-white p-3 ring-1 ring-shop-edge">
+      <div className="col-span-2 hidden flex-col rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex">
         <PanelHeader href="/search?sort=popular" title="Pay on delivery" note="See it before you pay" />
         <ul className="grid flex-1 grid-cols-4 gap-2.5">
           {strip.map((product) => (
@@ -113,7 +111,7 @@ export default function HeroMosaic({
 
       {/* ---- Row 2: four small shelves ---- */}
       {shelves.map((shelf) => (
-        <div key={shelf.key} className="flex flex-col rounded-2xl bg-white p-3 ring-1 ring-shop-edge">
+        <div key={shelf.key} className="hidden flex-col rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex">
           <PanelHeader href={shelf.href} title={shelf.title} tag={shelf.tag} />
           <ul className="grid flex-1 grid-cols-2 gap-2.5">
             {shelf.products.map((product) => (
@@ -160,7 +158,7 @@ function PanelHeader({
 
 /**
  * One of the two campaign banners. Both share this one layout — tag, title,
- * line, button, and a product on the right — so the pair reads as a set; only
+ * line, button — so the pair reads as a set; only
  * the colours differ.
  */
 function HeroBanner({
@@ -170,7 +168,6 @@ function HeroBanner({
   subtitle,
   cta,
   tone,
-  cover,
 }: {
   href: string;
   tag: string;
@@ -178,7 +175,6 @@ function HeroBanner({
   subtitle: string;
   cta: string;
   tone: "yellow" | "blue";
-  cover?: Product;
 }) {
   const yellow = tone === "yellow";
   return (
@@ -198,11 +194,11 @@ function HeroBanner({
       >
         {tag}
       </span>
-      <span className="relative z-10 mt-2 max-w-[62%] text-[20px] font-extrabold leading-tight md:text-[22px]">
+      <span className="relative z-10 mt-2 text-[20px] font-extrabold leading-tight md:text-[22px]">
         {title}
       </span>
       <span
-        className={`relative z-10 mt-1 max-w-[62%] text-[12.5px] leading-snug ${
+        className={`relative z-10 mt-1 text-[12.5px] leading-snug ${
           yellow ? "text-[#4a3b00]" : "text-[#33507f]"
         }`}
       >
@@ -215,17 +211,6 @@ function HeroBanner({
       >
         {cta} <span aria-hidden>→</span>
       </span>
-      {cover?.image && (
-        <span className="absolute -right-3 bottom-2 h-[58%] w-[48%] overflow-hidden rounded-2xl bg-white shadow-[0_6px_18px_rgba(0,0,0,0.12)] md:h-[62%]">
-          <Image
-            src={cover.image}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 25vw, 140px"
-            className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-[1.05]"
-          />
-        </span>
-      )}
     </Link>
   );
 }

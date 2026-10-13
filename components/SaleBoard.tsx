@@ -42,7 +42,7 @@ export type SaleTier = {
   id: string;
   min: number;
   title: string;
-  /** The band's shelf colour, painted by `.shop-panel-strong > .section-head`. */
+  /** The band's colour, on its header stub and its jump chip. */
   shelf: string;
 };
 
@@ -105,22 +105,32 @@ export default function SaleBoard({
         bands.map((band) => (
           <section
             key={band.id}
-            className="shop-panel shop-panel-strong mb-1"
-            /* The band colour, read by the same rule the homepage shelves use.
-               Inline because it is per-band data rather than one of the eight
-               fixed shelves that each have a class. */
+            id={`deals-${band.id}`}
+            className="mb-6 scroll-mt-20"
             style={{ ["--shelf"]: band.shelf } as CSSProperties}
           >
-            <div className="section-head flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 className="heading-black text-[17px] md:text-[20px]">{band.title}</h2>
-              {/* The count is of what is ON the board, and it grows as more
-                  arrives. It used to be the count on one page of 24, which on a
-                  sale of three hundred products was a number about the
-                  pagination rather than about the shop. */}
-              <p className="section-sub text-[12px]">
-                {band.products.length}{" "}
-                {band.products.length === 1 ? "product" : "products"}
-              </p>
+            {/* A ticket-shaped header: the band's figure on a coloured stub,
+                then the title and the count. The colour marks how deep the cut
+                is, so it sits on the stub rather than across the whole band. */}
+            <div className="phone-gutter mb-3 flex items-center gap-3">
+              <span
+                className="flex h-12 min-w-12 items-center justify-center rounded-xl px-2.5 text-[17px] font-extrabold leading-none text-white shadow-sm"
+                style={{ background: band.shelf }}
+              >
+                {band.min > 1 ? `${band.min}%+` : "%"}
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-[17px] font-extrabold leading-tight text-shop-ink md:text-[19px]">
+                  {band.title}
+                </h2>
+                {/* The count is of what is ON the board, and it grows as more
+                    arrives. */}
+                <p className="text-[12px] text-shop-muted">
+                  {band.products.length}{" "}
+                  {band.products.length === 1 ? "product" : "products"}
+                </p>
+              </div>
+              <span aria-hidden className="ml-2 h-px flex-1 bg-shop-line" />
             </div>
             <div className={gridClassName}>
               {band.products.map((product) => (

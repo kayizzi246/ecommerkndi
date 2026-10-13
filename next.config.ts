@@ -205,6 +205,16 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 2678400,
 
     /**
+     * Seven widths instead of the default fifteen. Every width is one more
+     * entry in every photo's `srcset`, each carrying the full encoded image
+     * URL, and on a page of 48 products that was ~190 KB of the homepage's
+     * 640 KB HTML. These still cover a phone tile at 2–3x (384, 640), a
+     * desktop tile, and the product-page photo on a high-density screen.
+     */
+    deviceSizes: [640, 828, 1080, 1440],
+    imageSizes: [96, 192, 384],
+
+    /**
      * The encoder qualities this shop is allowed to ask for.
      *
      * ---- Why this is a list and not a number ----

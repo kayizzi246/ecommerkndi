@@ -138,6 +138,9 @@ const RAIL_TARGET = 12;
  */
 const DEPARTMENT_CATALOGUE_MINIMUM = 20;
 
+/** How many shoes open the homepage's endless grid. */
+const LEAD_SHOES = 20;
+
 export type DepartmentRailData = {
   id: string;
   title: string;
@@ -297,6 +300,8 @@ export type HomeFeed = {
   newArrivals: Product[];
   bestSellers: Product[];
   departmentRails: DepartmentRailData[];
+  /** Up to twenty shoes, which open the endless grid on the homepage. */
+  leadShoes: Product[];
   /** The general catalogue behind "Picked for you" / the endless grid. */
   latest: Product[];
   latestTotalPages: number;
@@ -440,7 +445,11 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
          department has twenty products costs nothing beyond the twelve tiles
          the rail was already fetching. It is what
          `DEPARTMENT_CATALOGUE_MINIMUM` is measured against below. */
-      const { products, total } = await getProductsSafe({ category: slug, per_page: 12 });
+      // Shoes fetches twenty: they also open the homepage grid (`leadShoes`).
+      const { products, total } = await getProductsSafe({
+        category: slug,
+        per_page: department.id === "dept-shoes" ? LEAD_SHOES : 12,
+      });
       return { ...department, slug, products, total };
     })
   );
@@ -730,6 +739,8 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     newArrivals: newArrivalsRail,
     bestSellers: bestSellersRail,
     departmentRails,
+    leadShoes:
+      departmentPools.find((department) => department.id === "dept-shoes")?.products ?? [],
     /**
      * The endless grid is deliberately *not* deduplicated.
      *

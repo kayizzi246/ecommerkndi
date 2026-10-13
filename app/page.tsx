@@ -130,6 +130,7 @@ export default async function Home() {
     departments,
     trending,
     departmentRails,
+    leadShoes,
     latest,
     latestTotalPages,
     deals,
@@ -152,7 +153,9 @@ export default async function Home() {
      catalogue and overlap whenever the shop has featured something recent. A
      grid whose first row repeats four screens down reads as products failing to
      load. */
-  const forYou = [...trending, ...latest].filter(
+  /* Twenty shoes open it, ahead of the picks: shoes are what this shop is
+     known for and what most shoppers arrive looking for. */
+  const forYou = [...leadShoes, ...trending, ...latest].filter(
     (product, index, all) =>
       all.findIndex((other) => other.id === product.id) === index
   );
@@ -239,6 +242,7 @@ export default async function Home() {
           newest={latest}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
+          pinned={new Set(leadShoes.map((product) => product.id)).size}
         />
 
         {/* The shopper's own trail, handed back to them. It renders nothing at

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { ProductAttributeOption } from "@/lib/woocommerce";
+import { colourFill } from "@/lib/colour-names";
 
 type Props = {
   options: ProductAttributeOption[];
@@ -67,7 +68,7 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
                 <span
                   aria-hidden
                   className="absolute inset-1.5 rounded-lg ring-1 ring-black/10"
-                  style={{ backgroundColor: option.value || option.name.toLowerCase() }}
+                  style={{ background: colourFill(option.name, option.value) ?? "#e5e7eb" }}
                 />
               )}
               {!available && (
@@ -95,10 +96,10 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
       {options.map((option) => {
         const available = isOptionAvailable(option.name);
         const active = value === option.name;
-        /* A chip with the name, not a bare dot. Many colour names here are not
-           CSS colours ("Multicolor", "Pink blender"), and a bare dot for those
-           painted nothing — a row of blank white circles nobody could choose
-           between. The dot still shows the colour when there is one. */
+        const fill = colourFill(option.name, option.value);
+        /* A chip with the name, not a bare dot. The dot is painted from the
+           colour word inside the name ("AK-blue" → blue), and left out when
+           there is none ("2pcs"), so no option shows an empty circle. */
         return (
           <button
             key={option.name}
@@ -110,11 +111,13 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
             aria-label={`Select colour ${option.name}`}
             className={`color-chip ${active ? "color-chip-on" : ""} ${available ? "" : "line-through"}`}
           >
-            <span
-              aria-hidden
-              className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/20"
-              style={{ backgroundColor: option.value || option.name.toLowerCase() }}
-            />
+            {fill && (
+              <span
+                aria-hidden
+                className="h-6 w-6 shrink-0 rounded-full ring-1 ring-black/20"
+                style={{ background: fill }}
+              />
+            )}
             {option.name}
           </button>
         );

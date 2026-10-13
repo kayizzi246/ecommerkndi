@@ -3496,8 +3496,8 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Prices on phones at 800, unstroked — the real 800 comes from Inter (see
-   "Prices in Inter 800" at the end of this file). */
+/* Prices on phones at 800, unstroked, in the shop face (Helvetica, which
+   draws its bold at 800). */
 @media (max-width: 39.99rem) {
   .price,
   .tile-info .tile-price {
@@ -3769,8 +3769,8 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Card prices at 800 on every screen, unstroked (Inter, set at the end of
-   this file). */
+/* Card prices at 800 on every screen, unstroked, in the shop face.
+   */
 .tile-info .tile-price {
   font-weight: 800;
   -webkit-text-stroke: 0;
@@ -4033,13 +4033,12 @@ a.btn-shop {
   right: 4px;
 }
 
-/* ---- Prices in Inter 800 ----
- * Helvetica and Arial stop at bold, so the price takes Inter, loaded in
- * layout.tsx at that one weight as `--font-price`. A real 800, no stroke. */
+/* ---- Prices in the shop's one face ----
+ * Helvetica like everything else — one font across the whole site. */
 .price,
 .tile-type .price,
 .tile-info .tile-price {
-  font-family: var(--font-price), var(--font-ui);
+  font-family: var(--font-ui);
   font-weight: 800;
   -webkit-text-stroke: 0;
 }

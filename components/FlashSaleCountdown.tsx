@@ -23,7 +23,7 @@ export default function FlashSaleCountdown() {
   }, []);
 
   if (remaining === null) {
-    return <span className="font-mono font-semibold">--h : --m : --s</span>;
+    return <span className="font-semibold tabular-nums">--h : --m : --s</span>;
   }
 
   const hours = Math.floor(remaining / 3_600_000);
@@ -31,7 +31,7 @@ export default function FlashSaleCountdown() {
   const seconds = Math.floor((remaining % 60_000) / 1000);
 
   return (
-    <span className="font-mono font-semibold">
+    <span className="font-semibold tabular-nums">
       {pad(hours)}h : {pad(minutes)}m : {pad(seconds)}s
     </span>
   );
