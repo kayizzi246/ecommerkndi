@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
@@ -8,6 +8,8 @@ import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
+import { isColourAttribute } from "@/lib/colour-names";
+import ColorSwatch from "@/app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
 
@@ -69,6 +71,32 @@ export default function VariantSheet({
       document.body.style.overflow = previous;
     };
   }, [open, onClose]);
+
+  /* ---- Swipe down to close ----
+     A drag only starts while the sheet is scrolled to its top, so scrolling
+     through a long list of options still scrolls. Past 90px, letting go
+     closes it; short of that, it springs back. */
+  const panel = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<number | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  const onDragStart = (event: TouchEvent<HTMLDivElement>) => {
+    if ((panel.current?.scrollTop ?? 0) > 0) return;
+    dragStart.current = event.touches[0].clientY;
+    setDragging(true);
+  };
+  const onDragMove = (event: TouchEvent<HTMLDivElement>) => {
+    if (dragStart.current === null) return;
+    setDragY(Math.max(0, event.touches[0].clientY - dragStart.current));
+  };
+  const onDragEnd = () => {
+    if (dragStart.current === null) return;
+    dragStart.current = null;
+    setDragging(false);
+    if (dragY > 90) onClose();
+    setDragY(0);
+  };
 
   if (!open) return null;
 
@@ -145,11 +173,31 @@ export default function VariantSheet({
         className="absolute inset-0 h-full w-full bg-black/40"
       />
 
-      <div className="absolute inset-x-0 bottom-0 mx-auto max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] sm:max-w-[440px] sm:rounded-2xl lg:bottom-8">
-        {/* Grab handle. Purely a signal, but it is the signal every phone user
-            already reads as "this panel pulls down". */}
-        <div className="sticky top-0 flex justify-center bg-white pb-1 pt-2.5">
-          <span aria-hidden className="h-1 w-10 rounded-full bg-shop-line" />
+      <div
+        ref={panel}
+        onTouchStart={onDragStart}
+        onTouchMove={onDragMove}
+        onTouchEnd={onDragEnd}
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: dragging ? "none" : "transform 0.2s ease",
+        }}
+        className="absolute inset-x-0 bottom-0 mx-auto max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] sm:max-w-[440px] sm:rounded-2xl lg:bottom-8"
+      >
+        {/* Grab handle and a close button. The handle now does what it
+            promises: drag the sheet down and let go to close it. */}
+        <div className="sticky top-0 z-10 flex justify-center bg-white pb-1 pt-2.5">
+          <span aria-hidden className="h-1.5 w-12 rounded-full bg-[#d4d6da]" />
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="absolute right-2.5 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-shop-surface text-shop-ink transition-colors hover:bg-shop-line"
+          >
+            <svg aria-hidden className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 px-4 pb-4">
@@ -160,14 +208,32 @@ export default function VariantSheet({
           </div>
           <div className="min-w-0">
             <p className="price text-[18px] leading-none text-shop-flame">
-              {formatPrice(product.price)}
+              {formatPrice(variationPrice(product, selected))}
             </p>
             <p className="mt-1 line-clamp-2 text-[12px] text-shop-title">{product.name}</p>
           </div>
         </div>
 
         <div className="space-y-5 px-4">
-          {attributes.map((attr) => (
+          {attributes.map((attr) =>
+            /* Colours as the same swatch cards the product page shows, so the
+               choice looks the same wherever a shopper makes it. */
+            isColourAttribute(attr.name) ? (
+              <div key={attr.name}>
+                <p className="mb-2.5 text-[16px] font-[800] text-black">
+                  Colour: {selected[attr.name] || "Select a colour"}
+                </p>
+                <ColorSwatch
+                  options={attr.options}
+                  value={selected[attr.name] ?? null}
+                  isOptionAvailable={(optionName) => available(attr.name, optionName)}
+                  onChange={(colorName) => {
+                    setSelected((prev) => ({ ...prev, [attr.name]: colorName }));
+                    setError(null);
+                  }}
+                />
+              </div>
+            ) : (
             <div key={attr.name}>
               <p className="mb-2.5 text-[13px] text-shop-muted">
                 {attr.name}:{" "}
@@ -201,7 +267,8 @@ export default function VariantSheet({
                 })}
               </div>
             </div>
-          ))}
+            )
+          )}
 
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-shop-muted">Quantity</span>
