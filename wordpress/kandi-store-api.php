@@ -393,6 +393,36 @@ function kandi_format_product( $product, $with_description = false ) {
 }
 endif;
 
+/**
+ * Drops the cached single-product payload (see the /products/{id} route) when
+ * anything it contains changes. Takes a product, a variation, or either id; a
+ * variation clears its parent, because the parent's page is what shows it.
+ */
+if ( ! function_exists( 'kandi_forget_product_payload' ) ) :
+function kandi_forget_product_payload( $product_or_id ) {
+	$product = is_object( $product_or_id ) ? $product_or_id : wc_get_product( (int) $product_or_id );
+	if ( ! $product ) {
+		return;
+	}
+	$id = $product->is_type( 'variation' ) ? $product->get_parent_id() : $product->get_id();
+	if ( $id ) {
+		delete_transient( 'kandi_pp_' . (int) $id );
+	}
+}
+endif;
+
+foreach ( array(
+	'woocommerce_update_product',
+	'woocommerce_update_product_variation',
+	'woocommerce_product_set_stock',
+	'woocommerce_variation_set_stock',
+	'woocommerce_product_set_stock_status',
+	'woocommerce_variation_set_stock_status',
+	'woocommerce_delete_product_variation',
+) as $kandi_payload_hook ) {
+	add_action( $kandi_payload_hook, 'kandi_forget_product_payload', 10, 1 );
+}
+
 add_action( 'rest_api_init', function () {
 
 	// GET /wp-json/kandi/v1/products
@@ -631,7 +661,34 @@ add_action( 'rest_api_init', function () {
 				return new WP_Error( 'kandi_not_found', 'Product not found.', array( 'status' => 404 ) );
 			}
 
-			return rest_ensure_response( kandi_format_product( $product, true ) );
+			/*
+			 * ---- The finished payload, cached ----
+			 *
+			 * Formatting a variable product loads every variation one by one,
+			 * and on this server that took 5–15 seconds per product page. The
+			 * result is cached for six hours under a signature of the things
+			 * that change it — the last edit, stock and the review count — so
+			 * an edit is never served stale, and the hooks in
+			 * `kandi_forget_product_payload` drop it the moment a variation's
+			 * stock moves (which does not touch the parent's modified date).
+			 */
+			$cache_key = 'kandi_pp_' . $product->get_id();
+			$signature = implode( '|', array(
+				$product->get_date_modified() ? $product->get_date_modified()->getTimestamp() : 0,
+				$product->get_stock_status(),
+				(string) $product->get_stock_quantity(),
+				(int) $product->get_rating_count(),
+			) );
+
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && isset( $cached['sig'], $cached['data'] ) && $cached['sig'] === $signature ) {
+				return rest_ensure_response( $cached['data'] );
+			}
+
+			$data = kandi_format_product( $product, true );
+			set_transient( $cache_key, array( 'sig' => $signature, 'data' => $data ), 6 * HOUR_IN_SECONDS );
+
+			return rest_ensure_response( $data );
 		},
 	) );
 

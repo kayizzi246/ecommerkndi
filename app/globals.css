@@ -3155,10 +3155,28 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* ---- The phone grid is level ----
- * The right-hand column used to drop 40px for a staggered brick look, which
- * put the first two products on different lines. Every row now lines up, on
- * phones as on every wider screen. */
+/* ---- The phone grid is staggered again, without the jumping ----
+ * The old masonry used CSS `columns`, which rebalance on every feed append and
+ * made tiles hop between columns mid-scroll. This keeps the ordinary two-column
+ * grid and drops the right-hand column by a fixed amount instead, so the rows
+ * read as a staggered brick pattern and a tile never changes column when more
+ * products load.
+ *
+ * `position: relative; top` rather than `transform`: the hover rule on
+ * `.product-grid-flush .tile-card` resets `transform`, and `top` moves the
+ * cell without changing the row heights the grid has laid out. The grid's
+ * bottom padding gives the last offset tile room so it is not cut into by
+ * whatever comes next. Phones only — from `sm` up the grid is three or more
+ * columns and stays level. */
+@media (max-width: 39.99rem) {
+  .product-grid-flush {
+    padding-bottom: 40px;
+  }
+  .product-grid-flush > :nth-child(even) {
+    position: relative;
+    top: 40px;
+  }
+}
 
 /* A light sweeps across the Buy now button every few seconds, to pull the eye
    to the one action the page is for without making the button flash. */

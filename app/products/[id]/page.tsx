@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
@@ -22,6 +23,7 @@ import { autoDescription, hasOwnDescription } from "@/lib/product-copy";
 import ProductPurchase from "./ProductPurchase";
 import ProductTabs from "./ProductTabs";
 import ProductCarousel from "@/components/ProductCarousel";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 const NEW_WINDOW_DAYS = 30;
 
@@ -176,7 +178,11 @@ export default async function ProductPage({
   const brand = product.categories[0];
   const subCategory = product.categories[1];
 
-  const [reviews, settings, relatedResponse, storeResponse] = await Promise.all([
+  // Only what the top of the page needs. The related grid and the store rail
+  // are WordPress queries of several seconds each, so they stream in their own
+  // Suspense boundaries below (`RelatedGrid`, `StoreRail`) instead of holding
+  // the whole page back.
+  const [reviews, settings] = await Promise.all([
     // Reviews come from WordPress with the page, so they are in the HTML for
     // search engines rather than fetched by the browser afterwards. Keyed on
     // the numeric id the lookup above resolved, since reviews are id-only.
@@ -184,19 +190,6 @@ export default async function ProductPage({
     // The shop's own terms, so the free-delivery figure beside the buy button
     // is the one the checkout actually charges against.
     getSiteSettings(),
-    // 24 rather than 6, and the total page count comes back with them: this
-    // feeds the endless "You may also like" grid at the foot of the page rather
-    // than a five-tile rail, so the first screenful has to be a full grid and
-    // the component needs to know how much more there is to fetch.
-    brand
-      ? getProductsSafe({ category: brand.slug, per_page: 24 })
-      : Promise.resolve({ products: [] as typeof product[], total_pages: 0 }),
-    // The seller's other listings, for the "More from this store" rail: a
-    // shopper who trusts the store enough to be on this page is the likeliest
-    // to add a second item from it.
-    product.seller?.store_slug
-      ? getProductsSafe({ seller: product.seller.store_slug, per_page: 13, sort: "popular" })
-      : Promise.resolve({ products: [] as typeof product[], total_pages: 0 }),
   ]);
 
   /**
@@ -213,16 +206,6 @@ export default async function ProductPage({
     const index = 5 - review.rating;
     if (index >= 0 && index < 5) ratingBreakdown[index] += 1;
   }
-
-  // Everything the category returned except this product — no `slice`, because
-  // the grid below is endless and the first page should fill it.
-  const related = relatedResponse.products.filter((item) => item.id !== product.id);
-  const relatedTotalPages =
-    (relatedResponse as { total_pages?: number }).total_pages ?? 1;
-
-  const storeProducts = storeResponse.products
-    .filter((item) => item.id !== product.id)
-    .slice(0, 12);
 
   const isNew = isNewListing(product.date_created);
 
@@ -536,29 +519,24 @@ export default async function ProductPage({
            on the server, so the grid is full on arrival and indexable, then
            extends as the shopper scrolls. The product being viewed is filtered
            out of every page of it. */}
-      {product.seller && (
-        <ProductCarousel
-          title={`More from ${product.seller.store_name}`}
-          products={storeProducts}
-        />
+      {/* Both streamed: each list is a WordPress query of several seconds,
+          and the shopper should not wait for "more like this" before they can
+          see the product they tapped. The page arrives with the product; these
+          fill in below it when they are ready. */}
+      {product.seller?.store_slug && (
+        <Suspense fallback={null}>
+          <StoreRail
+            storeSlug={product.seller.store_slug}
+            storeName={product.seller.store_name}
+            productId={product.id}
+          />
+        </Suspense>
       )}
 
-      {related.length > 0 && (
-        <section className="mt-8">
-          <h2 className="section-title mb-3 px-1 text-[17px] text-shop-ink md:text-[19px]">
-            You may also like
-          </h2>
-          <InfiniteProducts
-            initialProducts={related}
-            totalPages={relatedTotalPages}
-            /* The grid takes the whole listing now rather than a bare category,
-               so that its page two is the same query the server used for page
-               one. Same narrowing as before — this section is the brand's own
-               shelf — just stated in the shape every infinite grid uses. */
-            query={{ category: brand?.slug }}
-            excludeId={product.id}
-          />
-        </section>
+      {brand && (
+        <Suspense fallback={<RelatedSkeleton />}>
+          <RelatedGrid categorySlug={brand.slug} productId={product.id} />
+        </Suspense>
       )}
 
       {/* The shopper's own trail back through the products they were weighing
@@ -571,6 +549,60 @@ export default async function ProductPage({
       <ReviewSection productId={product.id} initial={reviews} />
       </div>
     </main>
+  );
+}
+
+/** "More from this store", fetched on its own so the page does not wait for it. */
+async function StoreRail({
+  storeSlug,
+  storeName,
+  productId,
+}: {
+  storeSlug: string;
+  storeName: string;
+  productId: number;
+}) {
+  const { products } = await getProductsSafe({ seller: storeSlug, per_page: 13, sort: "popular" });
+  const storeProducts = products.filter((item) => item.id !== productId).slice(0, 12);
+  if (storeProducts.length === 0) return null;
+  return <ProductCarousel title={`More from ${storeName}`} products={storeProducts} />;
+}
+
+/**
+ * "You may also like" — the category's first page, seeded on the server so it
+ * is indexable, then endless as the shopper scrolls.
+ */
+async function RelatedGrid({ categorySlug, productId }: { categorySlug: string; productId: number }) {
+  const response = await getProductsSafe({ category: categorySlug, per_page: 24 });
+  const related = response.products.filter((item) => item.id !== productId);
+  if (related.length === 0) return null;
+  return (
+    <section className="mt-8">
+      <h2 className="section-title mb-3 px-1 text-[17px] text-shop-ink md:text-[19px]">
+        You may also like
+      </h2>
+      <InfiniteProducts
+        initialProducts={related}
+        totalPages={response.total_pages ?? 1}
+        /* The same query the server used for page one, so page two follows on. */
+        query={{ category: categorySlug }}
+        excludeId={productId}
+      />
+    </section>
+  );
+}
+
+/** Grey tiles holding the related grid's place while it streams in. */
+function RelatedSkeleton() {
+  return (
+    <section className="mt-8" aria-hidden>
+      <div className="mb-3 h-5 w-40 rounded bg-shop-surface" />
+      <div className={PRODUCT_GRID}>
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className="aspect-square animate-pulse rounded-lg bg-shop-surface" />
+        ))}
+      </div>
+    </section>
   );
 }
 
