@@ -3266,8 +3266,8 @@ body.search-open nav.fixed.bottom-0 {
   margin: 0;
 }
 .tile-type .price {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: 0;
 }
 .tile-type > a + p {
@@ -3279,8 +3279,8 @@ body.search-open nav.fixed.bottom-0 {
 }
 @media (max-width: 39.99rem) {
   .tile-type .price {
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 700;
   }
   .tile-type .product-name {
     font-size: 13px;
@@ -3375,7 +3375,7 @@ body.search-open nav.fixed.bottom-0 {
 }
 .tile-info .tile-price {
   flex-shrink: 0;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 22px;
   font-weight: 700;
   color: #000000;
@@ -3469,7 +3469,7 @@ body.search-open nav.fixed.bottom-0 {
    gives way first and the saving tag goes with it, leaving the price whole. */
 @media (max-width: 39.99rem) {
   .tile-info .tile-price {
-    font-size: 17px;
+    font-size: 16px;
   }
   .tile-info .tile-name {
     font-size: 14px;
@@ -3496,14 +3496,13 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Heavier prices on phones. Helvetica and Arial stop at bold (700), so a
-   hairline stroke in the text's own colour thickens the stems a step further
-   without changing the face. */
+/* Prices on phones at plain bold, unstroked — a stroked 800 made a grid of
+   prices read as a dark band. */
 @media (max-width: 39.99rem) {
   .price,
   .tile-info .tile-price {
-    font-weight: 800;
-    -webkit-text-stroke: 0.35px currentColor;
+    font-weight: 700;
+    -webkit-text-stroke: 0;
   }
 }
 
@@ -3770,11 +3769,11 @@ body.search-open nav.fixed.bottom-0 {
   }
 }
 
-/* Card prices at 800 on every screen, stroked because Helvetica stops at
-   bold. */
+/* Card prices at plain bold on every screen, unstroked, so a full grid of
+   prices does not darken the page. */
 .tile-info .tile-price {
-  font-weight: 800;
-  -webkit-text-stroke: 0.35px currentColor;
+  font-weight: 700;
+  -webkit-text-stroke: 0;
 }
 
 /* The small print on a tile, made very small: the rolling offer line, the
