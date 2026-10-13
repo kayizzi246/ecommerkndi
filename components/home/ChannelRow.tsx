@@ -130,7 +130,7 @@ const CHANNELS: Channel[] = [
     ),
   },
   {
-    label: "Free delivery",
+    label: "Delivery & returns",
     href: "/shipping",
     tint: "bg-shop-surface text-shop-body hover:text-shop-primary",
     icon: (

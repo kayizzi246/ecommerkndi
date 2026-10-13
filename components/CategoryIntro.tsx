@@ -49,7 +49,7 @@ export function categoryFaqs({
 }): Faq[] {
   const lower = name.toLowerCase();
   const range = priceRange(products);
-  const { free_delivery_from: freeFrom, returns_days: returnsDays } = settings.commerce;
+  const { returns_days: returnsDays } = settings.commerce;
 
   return [
     {
@@ -64,8 +64,8 @@ export function categoryFaqs({
       q: `Do you deliver ${lower} outside Kampala?`,
       a:
         `Yes, we deliver countrywide. Orders around Kampala usually arrive ` +
-        `within one to two working days and upcountry within five, and ` +
-        `delivery is free on orders over ${formatPrice(freeFrom)}.`,
+        `within one to two working days and upcountry within five. The ` +
+        `delivery fee is priced by distance and shown at checkout.`,
     },
     {
       q: `Can I pay on delivery?`,
@@ -121,7 +121,7 @@ export default function CategoryIntro({
 }) {
   const lower = name.toLowerCase();
   const range = priceRange(products);
-  const { free_delivery_from: freeFrom, returns_days: returnsDays } = settings.commerce;
+  const { returns_days: returnsDays } = settings.commerce;
 
   /* ---- Set a step down from the shop ----
    *
@@ -158,11 +158,8 @@ export default function CategoryIntro({
           so a low price here is a real one rather than a risk.
         </p>
         <p>
-          We deliver countrywide, with{" "}
-          <span className="font-semibold text-shop-ink">
-            free delivery on orders over {formatPrice(freeFrom)}
-          </span>
-          . Pay however suits you, cash to the courier on delivery, MTN Mobile
+          We deliver countrywide, with the delivery fee shown at checkout
+          before you pay. Pay however suits you, cash to the courier on delivery, MTN Mobile
           Money, Airtel Money, or by card at checkout, and you have{" "}
           {returnsDays} days to send anything back.
         </p>

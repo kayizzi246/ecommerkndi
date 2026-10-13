@@ -94,8 +94,7 @@ export default async function HelpPage() {
         <p>
           Call <a href={`tel:${support.phone.replace(/\s/g, "")}`}>{support.phone}</a> or email{" "}
           <a href={`mailto:${support.email}`}>{support.email}</a>. We are open{" "}
-          {support.hours.toLowerCase()}. Free delivery applies on orders over{" "}
-          {formatPrice(commerce.free_delivery_from)}.
+          {support.hours.toLowerCase()}.
         </p>
       </InfoSection>
     </InfoPage>

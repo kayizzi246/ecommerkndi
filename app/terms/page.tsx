@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import InfoPage, { InfoSection } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
-import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
@@ -57,7 +56,8 @@ export default async function TermsPage() {
 
       <InfoSection title="4. Delivery">
         <p>
-          Delivery is free on orders over {formatPrice(commerce.free_delivery_from)}. Timescales
+          Delivery is charged on every order, priced by distance and shown at checkout before
+          you pay. Timescales
           are set out on the <Link href="/shipping">delivery page</Link>. They are estimates: we
           depend on couriers, and we will tell you if something is running late.
         </p>

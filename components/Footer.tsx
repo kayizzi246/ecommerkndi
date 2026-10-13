@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/site-settings";
 import type { CategoryNode } from "@/lib/woocommerce";
-import { formatPrice } from "@/lib/currency";
 import AppStoreBadges from "@/components/AppStoreBadges";
 
 /**
@@ -94,8 +93,8 @@ export default function Footer({
      that without spending a hue on it. */
   const serviceStrip = [
     {
-      title: "Free delivery",
-      copy: `On orders over ${formatPrice(commerce.free_delivery_from)}`,
+      title: "Nationwide delivery",
+      copy: "Fee shown at checkout",
       icon: "M3 7.5A1.5 1.5 0 0 1 4.5 6h8A1.5 1.5 0 0 1 14 7.5V15H3V7.5ZM14 9h2.8a1.5 1.5 0 0 1 1.39.93L19 12v3h-5V9M7 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm11 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z",
     },
     {

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import InfoPage, { InfoSection, InfoFooterCta } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
-import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/shipping" },
@@ -11,13 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ShippingPage() {
-  const { commerce, support } = await getSiteSettings();
+  const { support } = await getSiteSettings();
 
   return (
     <InfoPage
       eyebrow="Customer service"
       title="Delivery information"
-      intro={`How long delivery takes, what it costs, and what happens if something goes wrong. Free on orders over ${formatPrice(commerce.free_delivery_from)}.`}
+      intro={`How long delivery takes, what it costs, and what happens if something goes wrong.`}
     >
       <InfoSection title="How long it takes">
         <ul>
@@ -42,11 +41,8 @@ export default async function ShippingPage() {
       <InfoSection title="What it costs">
         <ul>
           <li>
-            <strong>Free</strong> on orders over {formatPrice(commerce.free_delivery_from)}.
-          </li>
-          <li>
-            Below that, a flat delivery fee is shown at checkout before you pay, it is never
-            added afterwards.
+            Every order pays a delivery fee, priced by distance from Kampala. It is shown at
+            checkout before you pay, and never added afterwards.
           </li>
           <li>
             Orders that include items from more than one marketplace store may arrive in separate

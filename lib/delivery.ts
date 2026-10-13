@@ -34,6 +34,9 @@ export type DeliveryRates = {
   freeDeliveryFrom: number;
 };
 
+/** Added to every delivery fee, on top of the distance price. */
+export const DELIVERY_SURCHARGE = 2500;
+
 export const DEFAULT_RATES: DeliveryRates = {
   // Kampala city centre.
   origin: { lat: 0.3476, lng: 32.5825 },
@@ -42,7 +45,7 @@ export const DEFAULT_RATES: DeliveryRates = {
   freeRadiusKm: 3,
   maxFee: 30000,
   maxDistanceKm: 120,
-  freeDeliveryFrom: 150000,
+  freeDeliveryFrom: 0,
 };
 
 /**
@@ -98,18 +101,17 @@ export function quoteDelivery(
     };
   }
 
-  // The order value waives the fee before distance is even priced, so a big
-  // order to a far address is still free rather than "free, but…".
-  if (rates.freeDeliveryFrom > 0 && subtotal >= rates.freeDeliveryFrom) {
-    return { km, fee: 0, free: true, deliverable: true, label: labelFor(km) };
-  }
+  // No free delivery: every order pays for its delivery, whatever its value.
+  // `subtotal` is kept in the signature so callers do not change shape.
+  void subtotal;
 
   const chargeableKm = Math.max(0, km - rates.freeRadiusKm);
   const raw = rates.baseFee + chargeableKm * rates.perKm;
 
   // Rounded to the nearest 500 shillings: riders are paid in cash and nobody
-  // carries change for a 4,237 shilling delivery.
-  const rounded = Math.round(Math.min(raw, rates.maxFee) / 500) * 500;
+  // carries change for a 4,237 shilling delivery. The flat surcharge goes on
+  // after the cap, so every delivery costs that much more, the longest too.
+  const rounded = Math.round(Math.min(raw, rates.maxFee) / 500) * 500 + DELIVERY_SURCHARGE;
 
   return { km, fee: rounded, free: false, deliverable: true, label: labelFor(km) };
 }

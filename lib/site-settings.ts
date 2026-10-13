@@ -76,7 +76,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
   promo: {
     lines: [
-      "FREE delivery on orders over UGX 50,000",
+      "Nationwide delivery, fee shown at checkout",
       "Pay on delivery",
       "14-day free returns",
     ],
@@ -92,7 +92,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
      ask questions, and promising otherwise in a ticker is a promise support
      has to break. */
   ticker: [
-    "FREE delivery on orders over UGX 50,000",
+    "Nationwide delivery, fee shown at checkout",
     "Pay on delivery: cash, MTN MoMo or Airtel Money",
     "14 days to send an item back",
     "Every seller vetted before they can list",
@@ -124,7 +124,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
   app: { available: false, ios_url: "", android_url: "" },
   social: {},
-  commerce: { free_delivery_from: 50000, returns_days: 14 },
+  commerce: { free_delivery_from: 0, returns_days: 14 },
   seller: {
     registration_fee: 50000,
     commission_rate: 10,
@@ -179,6 +179,15 @@ function str(value: unknown, fallback: string): string {
 function num(value: unknown, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Drops any "free delivery" / "free shipping" line saved in wp-admin. The shop
+ * no longer offers free delivery, and a banner still promising it would be
+ * contradicted by the fee at checkout.
+ */
+function withoutFreeDelivery(lines: string[]): string[] {
+  return lines.filter((line) => !/free\s+(delivery|shipping)|ships?\s+free/i.test(line));
 }
 
 function list(value: unknown, fallback: string[]): string[] {
@@ -239,11 +248,11 @@ function merge(raw: unknown): SiteSettings {
       favicon_url: typeof brand.favicon_url === "string" ? brand.favicon_url.trim() : "",
     },
     promo: {
-      lines: list(promo.lines, d.promo.lines),
+      lines: withoutFreeDelivery(list(promo.lines, d.promo.lines)),
       cta_label: str(promo.cta_label, d.promo.cta_label),
       cta_url: str(promo.cta_url, d.promo.cta_url),
     },
-    ticker: list(payload.ticker, d.ticker),
+    ticker: withoutFreeDelivery(list(payload.ticker, d.ticker)),
     promotions: promotions(payload.promotions),
     banner: {
       eyebrow: str(banner.eyebrow, d.banner.eyebrow),
@@ -283,7 +292,10 @@ function merge(raw: unknown): SiteSettings {
     },
     social: (payload.social ?? {}) as SiteSettings["social"],
     commerce: {
-      free_delivery_from: num(commerce.free_delivery_from, d.commerce.free_delivery_from),
+      // Free delivery is switched off shop-wide: 0 means "no threshold", which
+      // every free-delivery line and banner reads as "do not show". Forced here
+      // so a stale value saved in wp-admin cannot bring it back.
+      free_delivery_from: 0,
       returns_days: num(commerce.returns_days, d.commerce.returns_days),
     },
     seller: {

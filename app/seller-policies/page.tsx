@@ -52,10 +52,6 @@ export default async function SellerPoliciesPage() {
             A &ldquo;was&rdquo; price must be a price the item was genuinely sold at recently.
             Inflating it to fake a discount is grounds for removal.
           </li>
-          <li>
-            Free delivery over {formatPrice(commerce.free_delivery_from)} is a storefront-wide
-            promise. Do not price around it by inflating the item price.
-          </li>
         </ul>
       </InfoSection>
 

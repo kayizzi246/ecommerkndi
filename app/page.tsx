@@ -308,11 +308,8 @@ export default async function Home() {
             </p>
             <p>
               We deliver countrywide. Orders around Kampala usually arrive within
-              one to two working days and upcountry within five, with{" "}
-              <span className="font-semibold text-shop-ink">
-                free delivery on orders over {formatPrice(settings.commerce.free_delivery_from)}
-              </span>
-              . Pay however suits you: cash to the courier on delivery, MTN Mobile
+              one to two working days and upcountry within five, and the delivery
+              fee is shown at checkout before you pay. Pay however suits you: cash to the courier on delivery, MTN Mobile
               Money, Airtel Money, or by card at checkout.
             </p>
             <p>

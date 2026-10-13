@@ -181,7 +181,7 @@ export default function PortalAccount({
           <circle cx="7" cy="18" r="1.6" />
           <circle cx="17" cy="18" r="1.6" />
         </svg>
-        Free delivery over {freeDeliveryLabel}
+        Nationwide delivery, pay on arrival
       </Link>
     </aside>
   );

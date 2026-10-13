@@ -40,9 +40,8 @@ export default async function AboutPage() {
             Money, or by card at checkout, whichever suits you.
           </li>
           <li>
-            <strong>Accessible.</strong> Free delivery on orders over{" "}
-            {formatPrice(settings.commerce.free_delivery_from)}, nationwide, with{" "}
-            {settings.commerce.returns_days} days to change your mind.
+            <strong>Accessible.</strong> Delivery nationwide, priced by distance and shown
+            before you pay, with {settings.commerce.returns_days} days to change your mind.
           </li>
         </ul>
       </InfoSection>

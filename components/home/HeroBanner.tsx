@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { formatPrice } from "@/lib/currency";
 import type { SiteSettings } from "@/lib/site-settings";
 
 /**
@@ -164,12 +163,8 @@ export default function HeroBanner({ settings }: { settings: SiteSettings }) {
           </h2>
 
           <p className="mt-3 max-w-[42ch] text-[12px] leading-relaxed text-white/85 md:mt-4 md:text-[14px]">
-            Free delivery over{" "}
-            <span className="font-semibold text-white">
-              {formatPrice(settings.commerce.free_delivery_from)}
-            </span>
-            , pay cash when it arrives, and {settings.commerce.returns_days} days to send it
-            back.
+            Delivered nationwide, pay cash when it arrives, and{" "}
+            {settings.commerce.returns_days} days to send it back.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-2.5 md:mt-7 md:gap-3">
