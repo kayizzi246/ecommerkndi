@@ -2,6 +2,7 @@ import type { Product } from "@/lib/woocommerce";
 import { wordpressOrigin } from "@/lib/woocommerce";
 import { discountPercent, formatPrice } from "@/lib/currency";
 import { absolute, productPath } from "@/lib/seo";
+import { resizedImage } from "@/lib/image-loader";
 
 /**
  * The shape the mobile app receives a product in, and the one function that
@@ -139,7 +140,7 @@ export function appImage(source: string | null | undefined, width: 256 | 640 | 1
   const origin = wordpressOrigin();
   if (!origin || !source.startsWith(origin)) return source;
 
-  return absolute(`/_next/image?url=${encodeURIComponent(source)}&w=${width}&q=75`);
+  return resizedImage(source, width, 75);
 }
 
 export function toAppProduct(product: Product): AppProduct {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/site-settings";
+import { resizedImage } from "@/lib/image-loader";
 
 /**
  * The homepage hero — the full-width block that opens the page.
@@ -46,7 +47,7 @@ const HERO_WIDTHS = [640, 828, 1080, 1920] as const;
 function optimised(src: string, width: number): string {
   if (!/^https?:\/\//i.test(src)) return src;
 
-  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=90`;
+  return resizedImage(src, width, 90);
 }
 
 function heroSrcSet(src: string): string | undefined {

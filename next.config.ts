@@ -174,6 +174,11 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // Resized by wsrv.nl rather than Vercel's metered optimiser, whose spent
+    // quota answered every uncached photo with a 402 — see lib/image-loader.ts.
+    loader: "custom",
+    loaderFile: "./lib/image-loader.ts",
+
     remotePatterns: [
       { protocol: "https", hostname: "acculifepharma.co.ug" },
       { protocol: "https", hostname: "www.acculifepharma.co.ug" },
