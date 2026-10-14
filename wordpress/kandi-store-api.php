@@ -653,7 +653,27 @@ add_action( 'rest_api_init', function () {
 				// permalinks, so a product answers on exactly the slug shown in
 				// wp-admin. rawurldecode first: a slug can be percent-encoded
 				// in the URL the storefront requests.
-				$post = get_page_by_path( sanitize_title( rawurldecode( $key ) ), OBJECT, 'product' );
+				$slug = sanitize_title( rawurldecode( $key ) );
+				$post = get_page_by_path( $slug, OBJECT, 'product' );
+
+				// Renaming a product in wp-admin changes its slug, and every
+				// link already shared on WhatsApp or indexed by Google then
+				// answered "Product not found". WordPress keeps the previous
+				// slugs in `_wp_old_slug` for its own permalink redirects, so
+				// they resolve here too; the storefront's canonical tag points
+				// search engines at the new address.
+				if ( ! $post ) {
+					$renamed = get_posts( array(
+						'post_type'      => 'product',
+						'post_status'    => 'publish',
+						'meta_key'       => '_wp_old_slug',
+						'meta_value'     => $slug,
+						'posts_per_page' => 1,
+						'no_found_rows'  => true,
+					) );
+					$post = $renamed ? $renamed[0] : null;
+				}
+
 				$product = $post ? wc_get_product( $post->ID ) : null;
 			}
 

@@ -751,21 +751,76 @@ export async function getProductsSafe(
  * through skips it rather than requesting a URL that cannot answer.
  */
 export async function getProduct(idOrSlug: string | number): Promise<Product | null> {
-  const key = String(idOrSlug);
-  const numeric = /^\d+$/.test(key);
-
   try {
-    const raw = await wpFetchRaw(
-      `/products/${encodeURIComponent(key)}`,
-      numeric ? `/products/${key}` : undefined
-    );
-    if (!raw) {
-      return null;
-    }
-    return toProduct(raw);
+    return await findProduct(idOrSlug);
   } catch {
     return null;
   }
+}
+
+/** WordPress did not answer, which is not the same as the product not existing. */
+export class WordPressUnavailableError extends Error {}
+
+/**
+ * One product, telling "it does not exist" apart from "WordPress did not answer".
+ *
+ * ---- Why `getProduct` alone was not enough ----
+ *
+ * `getProduct` answers null for both, and the product page turned null into
+ * `notFound()` — which Next then CACHES like any other render. So one slow
+ * moment on the shared WordPress host (a 500 from a PHP timeout, a 503, a
+ * dropped connection) became "Product not found" on a product that was sitting
+ * in the database, shown to every visitor until the cache window ran out.
+ *
+ * Here only WordPress's own `kandi_not_found` answer means null. Anything else
+ * is retried twice, and if it still fails this throws: a throw during a
+ * background regeneration keeps the last good page on show, and on a first
+ * render the shopper gets the "try again" screen instead of a cached lie.
+ *
+ * The page and the app API use this; checkout keeps `getProduct`, where any
+ * failure correctly means "cannot sell this right now".
+ */
+export async function findProduct(idOrSlug: string | number): Promise<Product | null> {
+  const key = String(idOrSlug);
+  const numeric = /^\d+$/.test(key);
+  const urls = getCandidateUrls(
+    `/products/${encodeURIComponent(key)}`,
+    numeric ? `/products/${key}` : undefined
+  );
+  const origin = storefrontOrigin();
+  let lastProblem = "";
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          headers: origin ? { "X-Kandi-Storefront": origin } : undefined,
+          next: { revalidate: REVALIDATE_SECONDS, tags: [PRODUCTS_TAG] },
+          signal: AbortSignal.timeout(20_000),
+        });
+
+        if (res.ok) return toProduct(await res.json());
+
+        if (res.status === 404) {
+          // A 404 that is not the plugin's own answer is the route missing or
+          // a proxy page — only the plugin's code (or the Store API's) proves
+          // the product is gone.
+          const body = obj(await res.json().catch(() => null));
+          const code = str(body.code);
+          if (code === "kandi_not_found" || code === "woocommerce_rest_product_invalid_id") {
+            return null;
+          }
+        }
+        lastProblem = `HTTP ${res.status}`;
+      } catch (error) {
+        lastProblem = error instanceof Error ? error.message : String(error);
+      }
+    }
+  }
+
+  throw new WordPressUnavailableError(`WordPress did not return product "${key}": ${lastProblem}`);
 }
 
 /* ---------------------------------------------------------------- reviews */

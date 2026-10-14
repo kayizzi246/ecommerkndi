@@ -1,4 +1,4 @@
-import { getProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
+import { findProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
 import { getSiteSettings } from "@/lib/site-settings";
 import { toAppProduct, appImage, APP_CACHE_HEADERS } from "@/lib/app-api";
 
@@ -106,7 +106,16 @@ export async function GET(
 
   // Accepts a slug or a numeric id, exactly as the website's own product route
   // does — so a link built from either opens the same product.
-  const product = await getProduct(id);
+  // A WordPress that did not answer is a 503 the app can retry, not a cached
+  // 404 telling it the product is gone.
+  const product = await findProduct(id).catch(() => undefined);
+
+  if (product === undefined) {
+    return Response.json(
+      { error: "Product temporarily unavailable" },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   if (!product) {
     return Response.json(

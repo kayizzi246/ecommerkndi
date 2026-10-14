@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
+import { findProduct, getProductReviews, getProductsSafe } from "@/lib/woocommerce";
 import {
   absolute,
   breadcrumbJsonLd,
@@ -43,7 +43,7 @@ function isNewListing(dateCreated: string | null): boolean {
  * — and a link pasted into WhatsApp, the way most Ugandan shoppers share, showed
  * the shop name and no picture.
  *
- * `getProduct` is called here and again in the page. Next dedupes identical
+ * `findProduct` is called here and again in the page. Next dedupes identical
  * fetches within a render, so it is one request, not two.
  */
 export async function generateMetadata({
@@ -52,7 +52,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProduct(id);
+  const product = await findProduct(id);
 
   if (!product) {
     return { title: "Product not found" };
@@ -158,7 +158,7 @@ export default async function ProductPage({
 
   // Fetched on the server, so the page arrives rendered instead of showing a
   // "Loading product…" placeholder while the browser calls back for the data.
-  const product = await getProduct(id);
+  const product = await findProduct(id);
   if (!product) notFound();
 
   /**
