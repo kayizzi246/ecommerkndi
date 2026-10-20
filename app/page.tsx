@@ -4,10 +4,8 @@ import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
-import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
-import { findCategorySlug } from "@/lib/departments";
 import type { Metadata } from "next";
 
 /** Shoe-focused homepage metadata. */
@@ -93,8 +91,6 @@ export default async function Home() {
 
   /** Brand plus suffix, spaced — for the closing about block. */
   const brand = brandName(settings);
-  const shoeSlug = findCategorySlug(departments, "shoes");
-  const shoesHref = shoeSlug ? `/category/${shoeSlug}` : "/search?q=shoes";
 
   /* ---- The shop's own picks lead the endless grid ----
 
@@ -183,17 +179,6 @@ export default async function Home() {
 
             No hero banner: the channel strip says where to go, then the band —
             departments, the deepest cuts with prices showing, and the account. */}
-        <section aria-labelledby="shoes-heading" className="shop-panel flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 id="shoes-heading" className="text-xl font-semibold text-shop-ink md:text-2xl">Buy shoes for less in Uganda</h1>
-            <p className="mt-1 text-sm text-shop-body">Find your next pair at KandiUg. Prices in UGX, delivery fees shown before you pay.</p>
-            <p className="mt-1 text-xs text-shop-body">Cash on delivery within 40 km of central Kampala. MTN Mobile Money, Airtel Money and cards accepted.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href={shoesHref} className="btn-shop">Shop shoes</Link>
-            <Link href="/sale" className="text-sm font-medium text-shop-primary hover:underline">Browse sale prices</Link>
-          </div>
-        </section>
         <ChannelRow />
 
         <PortalBand
@@ -232,7 +217,7 @@ export default async function Home() {
              top of a panel edge is the same boundary stated twice. */
           className="shop-panel"
         >
-          <h2
+          <h1
             id="about-kandi"
             className="text-[14px] leading-snug text-shop-body md:text-[15px]"
           >
@@ -261,7 +246,7 @@ export default async function Home() {
               </span>
               {` and ${settings.commerce.returns_days}-day returns.`}
             </span>
-          </h2>
+          </h1>
 
           <div className="mt-3 space-y-2 text-[12px] leading-relaxed text-shop-body">
             <p>
