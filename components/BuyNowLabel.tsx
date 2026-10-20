@@ -1,74 +1,12 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
-const BUY_NOW = ["Buy now", "Gula kati"];
-/** "Teeka mu kibbo": put it in the basket. */
-const ADD_TO_CART = ["Add to cart", "Teeka mu kibbo"];
-/** "Genda osasule": go and pay. */
-const CHECKOUT = ["Proceed to checkout", "Genda osasule"];
-
-/**
- * "Buy now", continuously swapping with the Luganda "Gula kati".
- *
- * Every style is inline and the swap is a timer, so it does not depend on the
- * global stylesheet: an earlier CSS-keyframe version showed both words side by
- * side ("Buy nowGula kati") whenever that stylesheet was stale. Both words sit
- * in one grid cell, so the button keeps the width of the longer one and nothing
- * beside it moves. Under reduced motion it stays on "Buy now". Screen readers
- * get one plain "Buy now".
- */
+/** Consistent English labels for purchase actions. */
 export default function BuyNowLabel({ className = "" }: { className?: string }) {
-  return <SwapLabel words={BUY_NOW} className={className} />;
+  return <span className={className}>Buy now</span>;
 }
 
-/** "Add to cart", swapping with the Luganda "Teeka mu kibbo" the same way. */
 export function AddToCartLabel({ className = "" }: { className?: string }) {
-  return <SwapLabel words={ADD_TO_CART} className={className} />;
+  return <span className={className}>Add to cart</span>;
 }
 
-/** "Proceed to checkout", swapping with "Genda osasule". */
 export function CheckoutLabel({ className = "" }: { className?: string }) {
-  return <SwapLabel words={CHECKOUT} className={className} />;
-}
-
-/**
- * Any English label alternating with its Luganda. The English is always the
- * first word and the one screen readers hear.
- */
-export function SwapLabel({ words, className = "" }: { words: string[]; className?: string }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setIndex((current) => (current + 1) % words.length), 2000);
-    return () => window.clearInterval(timer);
-  }, [words.length]);
-
-  return (
-    <span
-      className={className}
-      style={{ display: "inline-grid", justifyItems: "center", verticalAlign: "middle", position: "relative" }}
-    >
-      <span className="sr-only">{words[0]}</span>
-      {words.map((word, i) => {
-        const showing = i === index;
-        return (
-          <span
-            key={word}
-            aria-hidden
-            style={{
-              gridArea: "1 / 1",
-              whiteSpace: "nowrap",
-              opacity: showing ? 1 : 0,
-              transform: showing ? "scale(1)" : "scale(0.85)",
-              transition: "opacity 350ms ease, transform 350ms ease",
-            }}
-          >
-            {word}
-          </span>
-        );
-      })}
-    </span>
-  );
+  return <span className={className}>Proceed to checkout</span>;
 }

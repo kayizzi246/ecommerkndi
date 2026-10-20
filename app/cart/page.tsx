@@ -7,7 +7,7 @@ import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import CartRecommendations from "@/components/cart/CartRecommendations";
 import { useCommerceTerms } from "@/lib/commerce-terms";
-import { CheckoutLabel, SwapLabel } from "@/components/BuyNowLabel";
+import { CheckoutLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 
 /**
@@ -225,7 +225,7 @@ export default function CartPage() {
             href="/checkout"
             className="btn-shop flex shrink-0 items-center justify-center rounded-full px-6 py-3.5 text-[17px] font-[800]"
           >
-            <SwapLabel words={["Checkout", "Genda osasule"]} />
+            <span>Checkout</span>
           </Link>
         </div>
       </div>

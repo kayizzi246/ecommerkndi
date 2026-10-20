@@ -178,7 +178,7 @@ export default function PesapalModal({
             />
             <p className="min-w-0 text-[13px] leading-snug text-[#111111]">
               <span className="font-[800]">Processing payment…</span> Approve the prompt on your
-              phone and enter your PIN. <span lang="lg" className="text-[#5c4a00]">(Kebera essimu yo)</span>
+              phone and enter your PIN.
             </p>
           </div>
         )}

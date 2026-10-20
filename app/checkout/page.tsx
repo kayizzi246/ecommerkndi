@@ -16,7 +16,6 @@ import { MtnMark, AirtelMark, VisaMark, MastercardMark } from "@/components/Paym
 import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
-import { SwapLabel } from "@/components/BuyNowLabel";
 
 const labelClass = "mb-1.5 block text-[16px] font-[800] text-black";
 
@@ -44,13 +43,10 @@ function FieldError({ children }: { children: React.ReactNode }) {
 function StepHeading({
   step,
   title,
-  luganda,
   sub,
 }: {
   step: number;
   title: string;
-  /** The heading in Luganda, set small beside the English. */
-  luganda?: string;
   sub?: string;
 }) {
   return (
@@ -63,11 +59,6 @@ function StepHeading({
           {step}
         </span>
         {title}
-        {luganda && (
-          <span lang="lg" className="text-[15px] font-bold text-shop-muted">
-            {luganda}
-          </span>
-        )}
       </h2>
       {sub && <p className="mt-1 text-[15px] font-semibold leading-5 text-shop-body">{sub}</p>}
     </div>
@@ -785,11 +776,11 @@ export default function CheckoutPage() {
                to leave: the town comes from the location picked below, the
                country is always Uganda, and a surname is optional anyway. */}
           <section>
-            <StepHeading step={1} title="Your details" luganda="Ebikukwatako" />
+            <StepHeading step={1} title="Your details" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelClass} htmlFor="name">
-                  Name <span lang="lg" className="font-normal text-shop-muted">(Erinnya)</span>
+                  Name
                 </label>
                 <input
                   id="name"
@@ -812,7 +803,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <label className={labelClass} htmlFor="phone">
-                  Phone number <span lang="lg" className="font-normal text-shop-muted">(Essimu)</span>
+                  Phone number
                 </label>
                 <input
                   id="phone"
@@ -878,8 +869,7 @@ export default function CheckoutPage() {
             <StepHeading
               step={2}
               title="Delivery"
-              luganda="Okutuusa"
-              sub="Where should we bring it? (Tukuleetere wa?)"
+              sub="Where should we bring it?"
             />
 
             {/* Priced before the shopper pays, not after. "Calculated at
@@ -927,7 +917,6 @@ export default function CheckoutPage() {
             <StepHeading
               step={3}
               title="Payment"
-              luganda="Okusasula"
             />
 
             <div className="divide-y divide-shop-line overflow-hidden rounded-xl border border-shop-line">
@@ -1035,8 +1024,8 @@ export default function CheckoutPage() {
                 : submitting
                   ? "Placing order…"
                   : payingOnDelivery
-                    ? <SwapLabel words={["Place order", "Kakasa okugula"]} />
-                    : <SwapLabel words={[`Pay ${formatPrice(total)}`, "Sasula kati"]} />}
+                    ? <span>Place order</span>
+                    : <span>Pay {formatPrice(total)}</span>}
             </button>
 
             <p className="mt-6 text-[12px] text-shop-muted">
@@ -1089,8 +1078,8 @@ export default function CheckoutPage() {
               : submitting
                 ? "Placing…"
                 : payingOnDelivery
-                  ? <SwapLabel words={["Place order", "Kakasa okugula"]} />
-                  : <SwapLabel words={["Pay now", "Sasula kati"]} />}
+                  ? <span>Place order</span>
+                  : <span>Pay now</span>}
           </button>
         </div>
       </div>
@@ -1119,8 +1108,7 @@ export default function CheckoutPage() {
           />
           <p className="text-[20px] font-[800] text-black">Processing…</p>
           <p className="text-[14px] font-semibold text-shop-body">
-            {openingPayment ? "Opening secure payment." : "Placing your order."} Please wait.{" "}
-            <span lang="lg" className="text-shop-muted">(Lindako katono)</span>
+            {openingPayment ? "Opening secure payment." : "Placing your order."} Please wait.
           </p>
         </div>
       )}
