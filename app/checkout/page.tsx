@@ -155,7 +155,7 @@ const PAYMENT_METHODS: {
   {
     value: "cod",
     label: "Cash on delivery",
-    hint: "Pay cash when it arrives.",
+    hint: "Pay cash when it arrives. Available within 40 km of central Kampala.",
     viaPesapal: false,
   },
 ];
@@ -404,7 +404,7 @@ export default function CheckoutPage() {
        accept. */
     if (effectiveMethod === "cod" && !codAllowed) {
       setError(
-        "Cash on delivery is not in your area. Choose Mobile Money or card."
+        "Cash on delivery is available within 40 km of central Kampala. Choose Mobile Money or card for this address."
       );
       setSubmitting(false);
       return;
@@ -939,7 +939,7 @@ export default function CheckoutPage() {
                 // way.
                 //
                 // Cash on delivery has a second gate, and it is a place rather
-                // than a setting: the shop only carries cash to a few
+                // than a setting: cash on delivery covers all locations within 40 km of central Kampala, including all
                 // neighbourhoods. The radio is disabled outside them rather
                 // than hidden, because a missing option looks like a bug and a
                 // disabled one with a reason under it is an answer — and it is
@@ -993,7 +993,7 @@ export default function CheckoutPage() {
                         {option.value === "cod"
                           ? codAllowed
                             ? option.hint
-                            : "Not in your area."
+                            : (delivery ? "Available within 40 km of central Kampala. Choose Mobile Money or card for this address." : "Choose your delivery location to check availability within 40 km of central Kampala.")
                           : unavailable
                             ? "Not available yet."
                             : option.hint}

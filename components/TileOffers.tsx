@@ -8,7 +8,7 @@ import { useCommerceTerms } from "@/lib/commerce-terms";
  * one after another without stopping.
  *
  * Every line is something the shop actually offers everywhere. Cash on
- * delivery is NOT one of them: it only runs in a few Kampala zones (see
+ * delivery is NOT one of them: it only runs within 40 km of central Kampala (see
  * lib/cod-zones.ts), so promising it on every tile would be refused at
  * checkout for most shoppers. Free delivery only
  * appears on a tile whose price clears the threshold set in wp-admin, and the

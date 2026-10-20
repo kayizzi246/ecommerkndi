@@ -506,7 +506,7 @@ export default function ProductPurchase({
                   <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
                 </svg>
                 {/* Not "Pay on delivery" any more. Cash on delivery is limited
-                    to a few neighbourhoods (see `lib/cod-zones.ts`), and a
+                    to a 40 km radius of central Kampala (see `lib/cod-zones.ts`), and a
                     promise made on the product page that the checkout then
                     withdraws is the most expensive kind of copy a shop can
                     run — the shopper has already chosen by then. */}
@@ -701,7 +701,7 @@ export default function ProductPurchase({
                 },
                 {
                   title: "Cash on delivery",
-                  copy: "In selected areas",
+                  copy: "Within 40 km of central Kampala",
                   icon: "M3 7h18v10H3V7Zm9 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6 10v4m12-4v4",
                   tint: "#ecfdf3",
                   ink: "#16a34a",
@@ -807,7 +807,7 @@ export default function ProductPurchase({
         <p className="mt-4 font-semibold text-shop-ink">Payment</p>
         <p>
           Pay by MTN Mobile Money, Airtel Money or card at checkout. Cash on delivery is
-          available in selected areas only, the checkout tells you before you pay.
+          available at every location within 40 km of central Kampala. Choose your location at checkout to confirm.
         </p>
         <p className="mt-4 font-semibold text-shop-ink">Returns</p>
         <p>

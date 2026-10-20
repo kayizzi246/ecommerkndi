@@ -2,71 +2,25 @@ import { buildHomeFeed } from "@/lib/home-feed";
 import ChannelRow from "@/components/home/ChannelRow";
 import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
-import RecentlyViewed from "@/components/RecentlyViewed";import { brandName, getSiteSettings } from "@/lib/site-settings";
+import RecentlyViewed from "@/components/RecentlyViewed";
+import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { formatPrice } from "@/lib/currency";
 import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
+import { findCategorySlug } from "@/lib/departments";
 import type { Metadata } from "next";
 
-/**
- * The homepage is canonical to itself, and says so explicitly.
- *
- * Not inherited from the layout any more: metadata set there applies to every
- * page under it, which is how every policy page ended up claiming to be this
- * one.
- *
- * ---- Why the title is written by hand here ----
- *
- * It used to fall through to the layout's default, which is built from the
- * wp-admin branding and therefore read "Kandi For Less | Online Shopping in
- * Uganda…". That is the shop's registered name — but it is not what anybody
- * types. People search **kandi ug**, because that is the address they were
- * given and the name on the receipt, and until now the string "KandiUg"
- * appeared nowhere on this page: not in the title, not in the description, not
- * in a single visible sentence. The only place it existed was the
- * `alternateName` array in the site JSON-LD, which is a hint to Google, not
- * evidence. Google will not rank a page for a phrase the page never says.
- *
- * So the query leads the title and the registered name follows it. Both are
- * true, both are the same business, and now both are on the page.
- *
- * `title.absolute` rather than a plain string: a plain one would be run through
- * the layout's `%s | {brand}` template and come out with the brand twice.
- *
- * ---- One separator ----
- *
- * This read "KandiUg — Online Shopping in Uganda | {brand}", with an em dash
- * and a pipe in the same string. A browser tab clips a title to roughly 25
- * characters, so what a shopper actually saw beside the favicon was "KandiUg —
- * Onl…": the brand, then a dash hanging off it. Nothing separates the query
- * from the phrase now — "KandiUg Online Shopping in Uganda" reads as one thing
- * because it IS one thing — and the pipe stays where it is earning its keep,
- * between the searched name and the registered one.
- *
- * A function rather than a constant so the registered name still comes from
- * wp-admin — a shop that renames itself should not need a redeploy.
- */
+/** Shoe-focused homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const brand = brandName(settings);
-
+  const title = "Buy Shoes for Less in Uganda | KandiUg";
+  const description = `Buy shoes for less in Uganda at KandiUg. Shop sneakers and everyday shoes, Kampala delivery and ${settings.commerce.returns_days}-day returns. Check delivery options at checkout.`;
   return {
     alternates: { canonical: "/" },
-    title: {
-      absolute: `KandiUg Online Shopping in Kampala, Uganda | ${brand}`,
-    },
-    description:
-      `KandiUg (${brand}) is a Ugandan online marketplace for shoes, fashion, ` +
-      `electronics and home. Fast delivery in Kampala and countrywide, pay on delivery, ` +
-      `${settings.commerce.returns_days}-day returns.`,
-    openGraph: {
-      type: "website",
-      title: `KandiUg Online Shopping in Kampala, Uganda`,
-      description:
-        `Shop shoes, fashion, electronics and more on KandiUg. Fast delivery ` +
-        `across Uganda, pay on delivery, ${settings.commerce.returns_days}-day returns.`,
-      url: "/",
-    },
+    title: { absolute: title },
+    description,
+    twitter: { card: "summary_large_image", title, description },
+    openGraph: { type: "website", title, description, url: "/" },
   };
 }
 
@@ -139,6 +93,8 @@ export default async function Home() {
 
   /** Brand plus suffix, spaced — for the closing about block. */
   const brand = brandName(settings);
+  const shoeSlug = findCategorySlug(departments, "shoes");
+  const shoesHref = shoeSlug ? `/category/${shoeSlug}` : "/search?q=shoes";
 
   /* ---- The shop's own picks lead the endless grid ----
 
@@ -227,6 +183,17 @@ export default async function Home() {
 
             No hero banner: the channel strip says where to go, then the band —
             departments, the deepest cuts with prices showing, and the account. */}
+        <section aria-labelledby="shoes-heading" className="shop-panel flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 id="shoes-heading" className="text-xl font-semibold text-shop-ink md:text-2xl">Buy shoes for less in Uganda</h1>
+            <p className="mt-1 text-sm text-shop-body">Find your next pair at KandiUg. Prices in UGX, delivery fees shown before you pay.</p>
+            <p className="mt-1 text-xs text-shop-body">Cash on delivery within 40 km of central Kampala. MTN Mobile Money, Airtel Money and cards accepted.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={shoesHref} className="btn-shop">Shop shoes</Link>
+            <Link href="/sale" className="text-sm font-medium text-shop-primary hover:underline">Browse sale prices</Link>
+          </div>
+        </section>
         <ChannelRow />
 
         <PortalBand
@@ -265,7 +232,7 @@ export default async function Home() {
              top of a panel edge is the same boundary stated twice. */
           className="shop-panel"
         >
-          <h1
+          <h2
             id="about-kandi"
             className="text-[14px] leading-snug text-shop-body md:text-[15px]"
           >
@@ -290,11 +257,11 @@ export default async function Home() {
             <span className="mt-1 block">
               {"Online shopping in Uganda. "}
               <span className="font-semibold text-shop-ink">
-                Fast delivery, pay on delivery
+                Delivery across Uganda
               </span>
               {` and ${settings.commerce.returns_days}-day returns.`}
             </span>
-          </h1>
+          </h2>
 
           <div className="mt-3 space-y-2 text-[12px] leading-relaxed text-shop-body">
             <p>
@@ -309,7 +276,7 @@ export default async function Home() {
             <p>
               We deliver countrywide. Orders around Kampala usually arrive within
               one to two working days and upcountry within five, and the delivery
-              fee is shown at checkout before you pay. Pay however suits you: cash to the courier on delivery, MTN Mobile
+              fee is shown at checkout before you pay. Pay however suits you: cash to the courier within 40 km of central Kampala, MTN Mobile
               Money, Airtel Money, or by card at checkout.
             </p>
             <p>

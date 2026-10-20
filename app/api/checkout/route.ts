@@ -367,7 +367,7 @@ async function placeOrder(request: Request): Promise<Response> {
 
   /* ---- Cash on delivery is a place, not a preference ----
    *
-   * COD is offered in a few neighbourhoods and nowhere else; `lib/cod-zones.ts`
+   * COD is offered everywhere within 40 km of central Kampala; `lib/cod-zones.ts`
    * carries the list and the reasoning. This is the check that ENFORCES it. The
    * checkout hides and disables the option outside those areas, which is the
    * courtesy; a hidden radio is not a rule, because the order that matters is
@@ -386,7 +386,7 @@ async function placeOrder(request: Request): Promise<Response> {
     return NextResponse.json(
       {
         error:
-          "Cash on delivery is not available in your area. " +
+          "Cash on delivery is available within 40 km of central Kampala. This address is outside that area. " +
           "Please pay by mobile money or card, your cart is saved.",
         code: "cod_unavailable",
       },
