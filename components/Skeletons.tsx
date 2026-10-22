@@ -2,26 +2,16 @@ import { PRODUCT_GRID } from "@/lib/product-grid";
 
 export function ProductCardSkeleton() {
   return (
-    // A white card at every width, because that is what `ProductCard` is now.
-    // It was flat for a while, which was right while the page was white; the
-    // tile took its card back when the canvas went cream, and this follows it
-    // in the same pass — including the `tile-card` class itself, so the two
-    // cannot drift apart on radius or hairline again.
-    //
-    // Everything here is copied from `ProductCard` rather than chosen: a
-    // placeholder that is a different shape from what replaces it makes the
-    // grid visibly re-draw itself when the products land, which reads as a
-    // layout bug rather than as loading.
-    <div className="tile-card p-1.5 md:p-2">
-      {/* Row for row: the square photograph, one line of name, the short
-          sold-and-rating line, then the price. The ratio is the part that has
-          to track — it is nearly all of the tile's height. The text bars matter
-          too: a bare box shimmering on its own reads as a broken image, where a
-          box with lines under it reads as a product on its way. */}
-      <div className="shimmer aspect-square w-full rounded-[6px]" />
-      <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
-      <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
-      <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
+    <div className="store-product-card tile-card" aria-hidden>
+      <div className="shimmer aspect-square w-full" />
+      <div className="store-card-body">
+        <div className="shimmer h-9 w-full rounded" />
+        <div className="store-card-pricing"><div className="shimmer h-5 w-2/3 rounded" /><div className="shimmer mt-1 h-3 w-1/2 rounded" /></div>
+        <div className="shimmer h-4 w-3/4 rounded" />
+        <div className="shimmer h-[18px] w-1/2 rounded" />
+        <div className="shimmer mt-auto h-[38px] w-full rounded-[7px]" />
+        <div className="h-[14px]" />
+      </div>
     </div>
   );
 }

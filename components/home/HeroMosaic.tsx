@@ -77,7 +77,7 @@ export default function HeroMosaic({
   if (newest.length < 4) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+    <div className="home-mosaic grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
       {/* ---- Row 1: two banners and the promise strip ----
            On a phone only the two banners show; the strip and the shelves
            below are hidden there (`hidden md:flex`), so the grid follows. */}
@@ -184,12 +184,12 @@ function HeroBanner({
       className={`group relative flex min-h-[150px] flex-col overflow-hidden rounded-2xl p-3.5 md:min-h-[168px] ${
         yellow
           ? "bg-gradient-to-br from-[#ffe066] to-[#ffcc00] text-[#111111]"
-          : "bg-gradient-to-br from-[#eef4ff] to-[#dbe8ff] text-[#0f2a5c]"
+          : "bg-gradient-to-br from-[#fafafa] to-[#f0f0f3] text-[#171717]"
       }`}
     >
       <span
         className={`relative z-10 w-fit rounded-full px-2 text-[10px] font-semibold uppercase leading-[18px] tracking-[0.04em] ${
-          yellow ? "bg-white/70 text-[#7a5a00]" : "bg-white/80 text-[#1d4ed8]"
+          yellow ? "bg-white/70 text-[#7a5a00]" : "bg-white/80 text-[#61616b]"
         }`}
       >
         {tag}
@@ -199,14 +199,14 @@ function HeroBanner({
       </span>
       <span
         className={`relative z-10 mt-1 text-[12.5px] leading-snug ${
-          yellow ? "text-[#4a3b00]" : "text-[#33507f]"
+          yellow ? "text-[#4a3b00]" : "text-[#61616b]"
         }`}
       >
         {subtitle}
       </span>
       <span
         className={`relative z-10 mt-auto inline-flex w-fit items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-transform group-hover:translate-x-0.5 ${
-          yellow ? "bg-[#111111] text-white" : "bg-[#1d4ed8] text-white"
+          yellow ? "bg-[#111111] text-white" : "bg-[#111111] text-white"
         }`}
       >
         {cta} <span aria-hidden>→</span>
@@ -221,12 +221,13 @@ function HeroBanner({
  * photo's corner.
  */
 function PriceThumb({ product }: { product: Product }) {
-  const discount = product.on_sale ? discountPercent(product.regular_price, product.price) : 0;
+  const discount = discountPercent(product.regular_price, product.price);
+  const reduced = product.regular_price > product.price && product.price > 0;
   return (
     <Link
       href={productPath(product)}
       aria-label={`${product.name}, ${formatPrice(product.price)}`}
-      className="group block"
+      className="home-mini-card group block"
     >
       <span className="relative block aspect-square overflow-hidden rounded-xl bg-[#f6f6f7]">
         {product.image && (
@@ -251,6 +252,7 @@ function PriceThumb({ product }: { product: Product }) {
       >
         {formatPrice(product.price)}
       </span>
+      <span className="home-mini-original">{reduced && <><span className="sr-only">Original price: </span><s>{formatPrice(product.regular_price)}</s></>}</span>
     </Link>
   );
 }

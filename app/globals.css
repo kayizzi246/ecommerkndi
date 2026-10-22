@@ -980,7 +980,7 @@
      downloaded: Apple devices draw true Helvetica, and Windows and Android,
      which do not ship it, fall back to Arial, which is metrically matched to
      it and reads the same at tile sizes. */
-  --font-ui: Helvetica, "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
+  --font-ui: var(--font-inter), Arial, sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —

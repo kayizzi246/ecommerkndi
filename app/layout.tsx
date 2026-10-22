@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import "./product-cards.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocommerce";
@@ -11,11 +13,11 @@ import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
-/* ---- One face for the whole shop: Helvetica ----
-   Set as `--font-ui` in globals.css. It is a system face rather than a web
-   font, so there is nothing to download and no flash of a fallback: Apple
-   devices draw Helvetica itself, everything else draws Arial, which shares its
-   metrics. */
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 /**
  * ---- The shop is light-only, said to the browser rather than to the reader ----
  *
@@ -207,7 +209,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className="h-full"
+      className={`${inter.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

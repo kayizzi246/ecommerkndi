@@ -50,7 +50,7 @@ export default function PortalBand({
          card hard against the screen edge reads as a card that has been cut
          off. The page column below has no gutter of its own any more — see
          the note on that class in globals.css. */
-      className="phone-gutter grid gap-3 md:grid-cols-[205px_minmax(0,1fr)] xl:grid-cols-[205px_minmax(0,1fr)_235px]"
+      className="home-portal phone-gutter grid gap-3 md:grid-cols-[205px_minmax(0,1fr)] xl:grid-cols-[205px_minmax(0,1fr)_235px]"
     >
       <PortalCategories departments={departments} />
 

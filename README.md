@@ -18,7 +18,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-The site uses the device's own system font (Segoe UI, San Francisco, Roboto, falling back to Helvetica and Arial), set through `--font-ui` in `app/globals.css`. No web fonts are downloaded.
+The site uses Inter, self-hosted through `next/font/google` in `app/layout.tsx`. The `--font-ui` token applies it consistently to navigation, product cards, prices and forms.
 
 ## Learn More
 
