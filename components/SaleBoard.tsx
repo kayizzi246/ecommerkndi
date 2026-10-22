@@ -49,6 +49,7 @@ export type SaleTier = {
 export default function SaleBoard({
   initialProducts,
   totalPages,
+  perPage = 24,
   startPage,
   /** The sort the shopper chose, or undefined for the banded default. */
   sort,
@@ -57,6 +58,7 @@ export default function SaleBoard({
 }: {
   initialProducts: Product[];
   totalPages: number;
+  perPage?: number;
   startPage: number;
   sort?: string;
   tiers: SaleTier[];
@@ -65,6 +67,7 @@ export default function SaleBoard({
   const feed = useProductFeed({
     initialProducts,
     totalPages,
+    perPage,
     startPage,
     /* The same query the server ran for the first page. `on_sale` has to travel
        with the request rather than being applied after it — a page two of the

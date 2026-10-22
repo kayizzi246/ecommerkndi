@@ -7,13 +7,14 @@ import { discountPercent, formatPrice } from "@/lib/currency";
 import { breadcrumbJsonLd, collectionJsonLd, productPath } from "@/lib/seo";
 import SortDropdown from "@/components/SortDropdown";
 import SaleBoard from "@/components/SaleBoard";
+import InfiniteProducts from "@/components/home/InfiniteProducts";
 import SaleCountdown from "@/components/SaleCountdown";
 import { PRODUCT_GRID } from "@/lib/product-grid";
 
 export const metadata = {
-  title: "Super Price Store",
+  title: "Black November Deals | Super Deals",
   description:
-    "Everything currently reduced on Kandi, the biggest discounts in the shop, updated as prices change. Pay on delivery across Uganda.",
+    "Shop genuine reductions and discover more in-stock November picks at KandiUg. Compare prices and check delivery options at checkout.",
   // Page 2 and beyond of the same list, and every sort order of it, are the
   // same products in a different arrangement. They all point back here so the
   // ranking lands on one URL instead of being split across a dozen.
@@ -69,12 +70,10 @@ export default async function SalePage({
   // Sorted by WordPress across the whole sale, not within the page. The
   // `discount` option is the exception and stays local — WooCommerce cannot
   // order by the gap between two prices — so `sortProducts` still runs below.
-  const { products, total, total_pages } = await getProductsSafe({
-    on_sale: true,
-    page,
-    per_page: 24,
-    ...toProductQuery({ sort }),
-  });
+  const [{ products, total, total_pages }, novemberPicks] = await Promise.all([
+    getProductsSafe({ on_sale: true, page, per_page: 48, ...toProductQuery({ sort }) }),
+    getProductsSafe({ per_page: 48, sort: "popular", in_stock: true }),
+  ]);
 
   /**
    * There is no page 99 of the sale, and saying so is what a 404 is for.
@@ -229,6 +228,10 @@ export default async function SalePage({
         </div>
       </section>
 
+      <div className="phone-gutter mb-5">
+        <a href="#november-picks" className="inline-flex items-center gap-3 rounded-full border border-shop-line px-4 py-2 text-[12px] font-semibold text-shop-ink hover:border-shop-primary">Browse more November picks <span aria-hidden>&darr;</span></a>
+      </div>
+
       {/* ---- Spotlight: the three deepest cuts, large ---- */}
       {spotlight.length === 3 && (
         <section aria-labelledby="top-deals" className="phone-gutter mb-5">
@@ -277,6 +280,7 @@ export default async function SalePage({
       ) : (
         <SaleBoard
           initialProducts={sorted}
+          perPage={48}
           totalPages={total_pages}
           /* The page the server rendered. Almost always 1 — /sale no longer
              produces numbered URLs — but `?page=` is still honoured above for
@@ -289,6 +293,15 @@ export default async function SalePage({
           gridClassName={GRID}
         />
       )}
+
+      <section id="november-picks" aria-labelledby="november-picks-heading" className="mt-8 scroll-mt-24">
+        <div className="phone-gutter mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-shop-primary-ink">Discover more this November</p>
+          <h2 id="november-picks-heading" className="mt-1 text-[20px] font-bold text-shop-ink">More November picks</h2>
+          <p className="mt-1 text-[12px] text-shop-muted">More in-stock products to explore. Discounted items show their original price and saving.</p>
+        </div>
+        <InfiniteProducts initialProducts={novemberPicks.products} totalPages={novemberPicks.total_pages} perPage={48} query={{ sort: "popular", inStock: true }} doneLabel="You have seen all November picks." />
+      </section>
     </main>
   );
 }

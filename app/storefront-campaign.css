@@ -50,3 +50,6 @@ button, input, select, textarea { font-family: inherit; }
 .november-campaign .campaign-categories > a:last-child { margin-top: 8px; border-top: 1px solid #3b2d1d; border-radius: 0; padding-top: 12px; color: #ffda91; }
 .november-campaign .campaign-category-flyout { background: #201910; border: 1px solid #674a27; box-shadow: 0 12px 30px #0006; }
 @media (max-width: 639px) { .november-campaign { width: 100vw; max-width: none; padding-inline: 8px; } .november-campaign .black-friday-hero { margin-inline: -8px; } }
+
+/* Restore the requested staggered two-column layout on phones. */
+@media (max-width: 639px) { .product-grid-flush { padding-bottom: 40px; } .product-grid-flush > :nth-child(even) { position: relative; top: 40px; } }
