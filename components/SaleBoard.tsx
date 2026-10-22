@@ -120,7 +120,7 @@ export default function SaleBoard({
                 className="flex h-12 min-w-12 items-center justify-center rounded-xl px-2.5 text-[17px] font-extrabold leading-none text-white shadow-sm"
                 style={{ background: band.shelf }}
               >
-                {band.min > 1 ? `${band.min}%+` : "%"}
+                {band.min === 0 ? "Picks" : band.min > 1 ? `${band.min}%+` : "%"}
               </span>
               <div className="min-w-0">
                 <h2 className="text-[17px] font-extrabold leading-tight text-shop-ink md:text-[19px]">

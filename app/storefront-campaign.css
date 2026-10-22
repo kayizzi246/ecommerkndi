@@ -53,3 +53,9 @@ button, input, select, textarea { font-family: inherit; }
 
 /* Restore the requested staggered two-column layout on phones. */
 @media (max-width: 639px) { .product-grid-flush { padding-bottom: 40px; } .product-grid-flush > :nth-child(even) { position: relative; top: 40px; } }
+
+/* The campaign headline stays live text and scales cleanly on phones. */
+.november-campaign .black-friday-hero { min-height: 330px; }
+.november-campaign .black-friday-copy h2 .november-discount { display: block; margin-top: 8px; color: #ffd18a; font-size: clamp(34px, 5.2vw, 76px); font-weight: 800; line-height: 1; letter-spacing: -.045em; }
+.november-discount strong { font-weight: 900; }
+@media (max-width: 639px) { .november-campaign .black-friday-hero { min-height: 300px; } .november-campaign .black-friday-copy h2 { font-size: 27px; } .november-campaign .black-friday-copy h2 .november-discount { font-size: clamp(29px, 8.7vw, 38px); } }

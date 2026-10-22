@@ -47,6 +47,7 @@ const TIERS: { id: string; min: number; title: string; shelf: string }[] = [
   { id: "half", min: 50, title: "50% off and over", shelf: "#b8123a" },
   { id: "big", min: 30, title: "30% to 49% off", shelf: "#7642d6" },
   { id: "rest", min: 1, title: "Up to 29% off", shelf: "#1e56bd" },
+  { id: "offers", min: 0, title: "More November offers", shelf: "#8b5e12" },
 ];
 
 /**
@@ -120,7 +121,8 @@ export default async function SalePage({
      the space — a chosen sort is the shopper's own order, left alone. */
   const spotlight =
     !sort && products.length >= 6
-      ? [...products]
+      ? products
+          .filter((product) => product.price > 0 && product.regular_price > product.price)
           .sort(
             (a, b) =>
               discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
@@ -196,12 +198,12 @@ export default async function SalePage({
                   Up to <span className="text-[#c62828]">{deepest}% off</span>
                 </>
               ) : (
-                "Every reduced price"
+                "November offers"
               )}
             </h1>
             <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[#3d3200]">
               {total > 0
-                ? "Real reductions, rechecked every day. When a deal is gone, it is gone."
+                ? "Explore November offers. Savings are shown when a verified original price is available."
                 : "Nothing is reduced at the moment. New deals are added as prices change."}
             </p>
             {total > 0 && (
