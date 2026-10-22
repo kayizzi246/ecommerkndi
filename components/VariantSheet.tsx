@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import { isColourAttribute } from "@/lib/colour-names";
@@ -99,6 +99,9 @@ export default function VariantSheet({
   };
 
   if (!open) return null;
+  const currentPrice = variationPrice(product, selected);
+  const selectedVariation = matchVariation(product, selected);
+  const regularPrice = selectedVariation?.regular_price ?? (currentPrice === product.price ? product.regular_price : 0);
 
   /**
    * Whether an option can still be bought given what is already chosen.
@@ -208,8 +211,9 @@ export default function VariantSheet({
           </div>
           <div className="min-w-0">
             <p className="price text-[18px] leading-none text-shop-flame">
-              {formatPrice(variationPrice(product, selected))}
+              {formatPrice(currentPrice)}
             </p>
+            {hasPriceReduction(regularPrice, currentPrice) && <s className="original-price mt-1 block text-[12px]">{formatPrice(regularPrice)}</s>}
             <p className="mt-1 line-clamp-2 text-[12px] text-shop-title">{product.name}</p>
           </div>
         </div>

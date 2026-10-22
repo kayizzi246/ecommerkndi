@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/woocommerce";
-import { formatPrice, discountPercent } from "@/lib/currency";
+import { formatPrice, discountPercent, hasPriceReduction } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileOffers from "@/components/TileOffers";
 import TileCartButton from "@/components/TileCartButton";
@@ -168,6 +168,7 @@ export default function ProductCard({
    */
   sizes?: string;
 }) {
+  const reduced = hasPriceReduction(product.regular_price, product.price);
   const discount = discountPercent(product.regular_price, product.price);
   const soldOut = product.stock_status === "outofstock";
   const lowStock =
@@ -655,9 +656,9 @@ export default function ProductCard({
               )}
               {discount > 0 && <span className="tile-off">−{discount}%</span>}
             </p>
-            {discount > 0 && (
+            {reduced && (
               <p className="tile-was">
-                Was: <s>{formatPrice(product.regular_price)}</s>
+                Was: <s className="original-price">{formatPrice(product.regular_price)}</s>
               </p>
             )}
           </div>

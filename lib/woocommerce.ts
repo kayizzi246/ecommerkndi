@@ -102,6 +102,7 @@ export type ProductVariation = {
   id?: number;
   /** This variation's own price, when the backend sends it. */
   price?: number;
+  regular_price?: number;
   attributes: Record<string, string>;
   is_in_stock: boolean;
   /** The variation's own photo, when it has one — not the parent's. */
@@ -443,10 +444,12 @@ function toProduct(raw: unknown): Product {
   const product = obj(raw);
   const prices = obj(product.prices);
   const price = num(prices.price ?? product.price);
-  const regularPrice = num(prices.regular_price ?? prices.price ?? product.regular_price, price);
+  const regularPrice = [prices.regular_price, product.regular_price]
+    .map((value) => num(value))
+    .find((value) => value > 0) ?? price;
   const rawSale = prices.sale_price ?? product.sale_price;
-  const salePrice = rawSale == null ? null : num(rawSale);
-  const onSale = salePrice != null && regularPrice > 0 && salePrice < regularPrice;
+  const salePrice = rawSale == null || rawSale === "" ? null : num(rawSale);
+  const onSale = regularPrice > price && price >= 0;
 
   const categories = arr(product.categories).map((entry) => {
     const category = obj(entry);
@@ -544,6 +547,7 @@ function toProduct(raw: unknown): Product {
         return {
           id: num(variation.id) || undefined,
           price: variation.price == null ? undefined : num(variation.price),
+          regular_price: num(variation.regular_price ?? variation.display_regular_price) || undefined,
           attributes: Object.fromEntries(
             Object.entries(chosen).map(([name, value]) => [
               name,
@@ -575,7 +579,7 @@ function toProduct(raw: unknown): Product {
     price,
     regular_price: regularPrice,
     sale_price: salePrice,
-    on_sale: Boolean(product.on_sale ?? onSale),
+    on_sale: Boolean(product.on_sale) || onSale,
     featured: Boolean(product.featured),
     stock_status: str(product.stock_status, "outofstock") as Product["stock_status"],
     stock_quantity: product.stock_quantity == null ? null : num(product.stock_quantity),

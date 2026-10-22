@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/lib/woocommerce";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import VariantSheet, { type SheetIntent } from "@/components/VariantSheet";
@@ -35,10 +35,12 @@ export default function StickyBuyBar({
   watch,
   /** The price of the options chosen in the buy box, when they change it. */
   price = product.price,
+  regularPrice = product.regular_price,
 }: {
   product: Product;
   watch: string;
   price?: number;
+  regularPrice?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const [sheet, setSheet] = useState<SheetIntent | null>(null);
@@ -141,6 +143,7 @@ export default function StickyBuyBar({
           <p className="price text-[19px] font-extrabold leading-none text-shop-flame">
             {formatPrice(price)}
           </p>
+          {hasPriceReduction(regularPrice, price) && <s className="original-price mt-1 block text-[11px]">{formatPrice(regularPrice)}</s>}
         </div>
 
         {soldOut ? (

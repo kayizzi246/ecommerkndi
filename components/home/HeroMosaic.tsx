@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
-import { discountPercent, formatPrice } from "@/lib/currency";
+import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency";
 import { productPath } from "@/lib/seo";
 
 /**
@@ -222,7 +222,7 @@ function HeroBanner({
  */
 function PriceThumb({ product }: { product: Product }) {
   const discount = discountPercent(product.regular_price, product.price);
-  const reduced = product.regular_price > product.price && product.price > 0;
+  const reduced = hasPriceReduction(product.regular_price, product.price);
   return (
     <Link
       href={productPath(product)}
@@ -252,7 +252,7 @@ function PriceThumb({ product }: { product: Product }) {
       >
         {formatPrice(product.price)}
       </span>
-      <span className="home-mini-original">{reduced && <><span className="sr-only">Original price: </span><s>{formatPrice(product.regular_price)}</s></>}</span>
+      <span className="home-mini-original">{reduced && <><span className="sr-only">Original price: </span><s className="original-price">{formatPrice(product.regular_price)}</s></>}</span>
     </Link>
   );
 }

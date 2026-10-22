@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 
 /**
  * "Add to your order", inside the side cart.
@@ -198,6 +198,7 @@ export default function DrawerAddOns({
               <p className="price mt-1 text-[12px] font-extrabold text-shop-ink">
                 {formatPrice(product.price)}
               </p>
+              <div className="min-h-[14px]">{hasPriceReduction(product.regular_price, product.price) && <s className="original-price block text-[10px]">{formatPrice(product.regular_price)}</s>}</div>
 
               <button
                 type="button"

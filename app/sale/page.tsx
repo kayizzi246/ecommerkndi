@@ -341,7 +341,7 @@ function SpotlightCard({ product, rank }: { product: Product; rank: number }) {
         <span className="line-clamp-2 text-[14px] leading-snug text-shop-body">{product.name}</span>
         <span className="mt-2 flex flex-wrap items-baseline gap-x-2">
           <span className="price text-[20px] leading-none text-[#c62828]">{formatPrice(product.price)}</span>
-          <s className="text-[13px] text-shop-faint">{formatPrice(product.regular_price)}</s>
+          <s className="original-price text-[13px]">{formatPrice(product.regular_price)}</s>
         </span>
         <span className="mt-1.5 text-[12px] font-semibold text-shop-save">
           You save {formatPrice(product.regular_price - product.price)}

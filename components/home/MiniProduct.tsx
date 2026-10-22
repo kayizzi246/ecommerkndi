@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
-import { discountPercent, formatPrice } from "@/lib/currency";
+import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency";
 import { productPath } from "@/lib/seo";
 
 /**
@@ -40,9 +40,8 @@ export default function MiniProduct({
   product: Product;
   sizes?: string;
 }) {
-  const discount = product.on_sale
-    ? discountPercent(product.regular_price, product.price)
-    : 0;
+  const reduced = hasPriceReduction(product.regular_price, product.price);
+  const discount = discountPercent(product.regular_price, product.price);
 
   return (
     <Link
@@ -150,10 +149,10 @@ export default function MiniProduct({
           {formatPrice(product.price)}
         </span>
 
-        {discount > 0 && (
-          <span className="was-price truncate text-[8px] leading-tight sm:text-[9px] md:text-[10px]">
+        {reduced && (
+          <s className="original-price was-price truncate text-[8px] leading-tight sm:text-[9px] md:text-[10px]">
             {formatPrice(product.regular_price)}
-          </span>
+          </s>
         )}
       </span>
     </Link>

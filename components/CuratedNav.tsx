@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CategoryNode, Product } from "@/lib/woocommerce";
 import { findCategorySlug, findDepartment } from "@/lib/departments";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 
 /**
  * The curated top-level nav, with a mega menu under each department.
@@ -419,6 +419,7 @@ function MegaPanel({
                     <p className="price mt-0.5 text-[12px] text-shop-ink">
                       {formatPrice(product.price)}
                     </p>
+                    {hasPriceReduction(product.regular_price, product.price) && <s className="original-price mt-1 block text-[10px]">{formatPrice(product.regular_price)}</s>}
                   </Link>
                 </li>
               ))}

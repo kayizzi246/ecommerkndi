@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOutsideClick } from "@/lib/outside-click";
 import { storeHref } from "@/lib/store-routes";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 
 type Suggestion = {
   id: number;
@@ -677,7 +677,8 @@ export default function SearchBar({
                           s.on_sale ? "text-shop-primary-ink" : "text-shop-ink"
                         }`}
                       >
-                        {formatPrice(s.price)}
+                        <span className="block text-right">{formatPrice(s.price)}</span>
+                        {hasPriceReduction(s.regular_price, s.price) && <s className="original-price mt-0.5 block text-right text-[11px] font-normal">{formatPrice(s.regular_price)}</s>}
                       </span>
                     </button>
                   </li>

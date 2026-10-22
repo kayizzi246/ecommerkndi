@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
 import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
-import { formatPrice, discountPercent } from "@/lib/currency";
-import { initialSelection, variationPrice } from "@/lib/variation-match";
+import { formatPrice, discountPercent, hasPriceReduction } from "@/lib/currency";
+import { initialSelection, variationPrice, matchVariation } from "@/lib/variation-match";
 import { isColourAttribute } from "@/lib/colour-names";
 import AddToCartButton from "@/components/AddToCartButton";
 import StickyBuyBar from "@/components/StickyBuyBar";
@@ -96,9 +96,10 @@ export default function ProductPurchase({
       name: product.name,
       image: product.image,
       price: product.price,
+      regularPrice: product.regular_price,
       slug: product.slug,
     });
-  }, [addProduct, product.id, product.name, product.image, product.price, product.slug]);
+  }, [addProduct, product.id, product.name, product.image, product.price, product.slug, product.regular_price]);
 
   // A look at this product counts toward its categories in the homepage feed.
   useEffect(() => {
@@ -116,12 +117,12 @@ export default function ProductPurchase({
   );
   const price = variationPrice(product, selected);
 
-  // The variation's own regular price is not sent, so the RRP and saving are
-  // only shown while the chosen price is the one they were worked out against.
-  const discount =
-    product.on_sale && price === product.price
-      ? discountPercent(product.regular_price, product.price)
-      : 0;
+  // Use the selected variant's original price when supplied. A parent price
+  // is only compared against the matching parent selling price.
+  const selectedVariation = matchVariation(product, selected);
+  const regularPrice = selectedVariation?.regular_price ?? (price === product.price ? product.regular_price : 0);
+  const reduced = hasPriceReduction(regularPrice, price);
+  const discount = discountPercent(regularPrice, price);
 
   /**
    * Nothing left to sell, and the softer case where WooCommerce will still
@@ -414,12 +415,12 @@ export default function ProductPurchase({
                 On backorder
               </span>
             )}
-            {!soldOut && discount > 0 && (
+            {reduced && (
               <>
-                <span className="text-[17px] font-bold text-[#e2231a]">{discount}% off</span>
-                <span className="text-[15px] text-[#999999] line-through">
-                  {formatPrice(product.regular_price)}
-                </span>
+                {discount > 0 && <span className="text-[17px] font-bold text-[#e2231a]">{discount}% off</span>}
+                <s className="original-price text-[15px]">
+                  {formatPrice(regularPrice)}
+                </s>
               </>
             )}
 
@@ -446,7 +447,7 @@ export default function ProductPurchase({
               <svg aria-hidden className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8ZM7.5 7.5h.01" />
               </svg>
-              You save {formatPrice(product.regular_price - product.price)}
+              You save {formatPrice(regularPrice - price)}
             </p>
           )}
 
@@ -856,7 +857,7 @@ export default function ProductPurchase({
       </InfoModal>
 
       {/* Slides in once the buy box above has scrolled past. */}
-      <StickyBuyBar product={product} watch="buy-box" price={price} />
+      <StickyBuyBar product={product} watch="buy-box" price={price} regularPrice={regularPrice} />
     </>
   );
 }

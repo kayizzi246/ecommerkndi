@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
-import { formatPrice } from "@/lib/currency";
+import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import SectionHeader from "@/components/home/SectionHeader";
 
 /**
@@ -213,6 +213,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                   {item.name}
                 </h3>
                 <p className="price mt-1 whitespace-nowrap">{formatPrice(item.price)}</p>
+                  <div className="min-h-[14px]">{hasPriceReduction(item.regularPrice ?? 0, item.price) && <s className="original-price block text-[11px]">{formatPrice(item.regularPrice ?? 0)}</s>}</div>
               </Link>
             </div>
           ))}

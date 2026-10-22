@@ -7,6 +7,7 @@ type ViewedProduct = {
   name: string;
   image: string;
   price: number;
+  regularPrice?: number;
   slug?: string;
 };
 
