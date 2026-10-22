@@ -128,7 +128,7 @@ export default async function Home() {
   }));
 
   return (
-    <main className="pb-20">
+    <main className="min-w-0 pb-20">
       {/* ---- What is actually on this page, told to Google ----
 
            Every entry is a product this page renders, in the order a reader
@@ -180,6 +180,7 @@ export default async function Home() {
 
             No hero banner: the channel strip says where to go, then the band —
             departments, the deepest cuts with prices showing, and the account. */}
+        <div className="november-campaign">
         <BlackFridayHero />
         <ChannelRow />
 
@@ -190,6 +191,12 @@ export default async function Home() {
           deals={deals}
           bestSellers={bestSellers}
         />
+        <div className="november-shopping-links" aria-label="Shopping shortcuts">
+          <Link href="/sale">Explore November offers <span aria-hidden>&rarr;</span></Link>
+          <Link href="/search?sort=price_asc">Shop lowest prices <span aria-hidden>&rarr;</span></Link>
+          <Link href="/shipping">Delivery &amp; returns <span aria-hidden>&rarr;</span></Link>
+        </div>
+        </div>
 
         <PickedForYou
           latest={forYou}

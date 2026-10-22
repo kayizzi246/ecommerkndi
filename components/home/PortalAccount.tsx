@@ -116,12 +116,12 @@ export default function PortalAccount({
         </Link>
       ) : (
         <>
-          <p className="mt-3 text-[15px] font-semibold text-shop-ink">Log in to Kandi for more</p>
+          <p className="mt-3 text-[15px] font-semibold text-shop-ink">Find your November deal</p>
           <Link
-            href="/account"
+            href="/sale"
             className="mt-2.5 block w-full rounded-full bg-[#ffcc00] py-2.5 text-center text-[15px] font-[800] text-[#111111] transition-opacity hover:opacity-90"
           >
-            Log in now
+            Shop November deals
           </Link>
           {/* Register is a link rather than a second button. Two pills of equal
               weight make the shopper choose between them before they have read

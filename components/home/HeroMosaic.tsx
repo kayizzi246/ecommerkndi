@@ -84,7 +84,7 @@ export default function HeroMosaic({
       <HeroBanner
         href="/sale"
         tag="Hot deals"
-        title="Super Deals"
+        title="November deals"
         subtitle={maxDiscount > 0 ? `Up to ${maxDiscount}% off today` : "Today's best prices"}
         cta="Shop now"
         tone="yellow"
@@ -99,7 +99,7 @@ export default function HeroMosaic({
       />
 
       <div className="col-span-2 hidden flex-col rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex">
-        <PanelHeader href="/search?sort=popular" title="Pay on delivery" note="See it before you pay" />
+        <PanelHeader href="/search?sort=popular" title="Popular picks" note="Discover something you love" />
         <ul className="grid flex-1 grid-cols-4 gap-2.5">
           {strip.map((product) => (
             <li key={product.id}>
