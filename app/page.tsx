@@ -1,4 +1,5 @@
 import { buildHomeFeed } from "@/lib/home-feed";
+import BlackFridayHero from "@/components/home/BlackFridayHero";
 import ChannelRow from "@/components/home/ChannelRow";
 import PortalBand from "@/components/home/PortalBand";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
@@ -179,6 +180,7 @@ export default async function Home() {
 
             No hero banner: the channel strip says where to go, then the band —
             departments, the deepest cuts with prices showing, and the account. */}
+        <BlackFridayHero />
         <ChannelRow />
 
         <PortalBand

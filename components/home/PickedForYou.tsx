@@ -8,7 +8,7 @@ import type { Product } from "@/lib/woocommerce";
 import { PRODUCT_GRID } from "@/lib/product-grid";
 
 /**
- * "You might like" — the tab row, and the endless grid under it.
+ * "Shop all products" — the tab row, and the endless grid under it.
  *
  * ---- Where the department rails went ----
  *
@@ -75,7 +75,7 @@ export default function PickedForYou({
   const department = tabs.find((tab) => tab.id === active);
 
   return (
-    <section aria-labelledby="picked-heading">
+    <section id="all-products" aria-labelledby="picked-heading" className="scroll-mt-32">
       {/* ---- The tab row ----
 
           Scrolls rather than wraps, for the same reason the channel strip does:
@@ -87,7 +87,7 @@ export default function PickedForYou({
           id="picked-heading"
           className="mr-1 shrink-0 text-[14px] font-bold text-shop-ink md:text-[16px]"
         >
-          You might like
+          Shop all products
         </h2>
 
         <button
@@ -100,7 +100,7 @@ export default function PickedForYou({
               : "bg-shop-surface text-shop-body hover:bg-shop-primary-soft hover:text-shop-primary-ink"
           }`}
         >
-          For you
+          All products
         </button>
 
         {newest.length > 0 && (
@@ -138,11 +138,12 @@ export default function PickedForYou({
       {/* Each endless grid is keyed, so switching between them starts the
           other's own listing rather than carrying pages loaded for this one. */}
       {active === NEW_IN ? (
-        <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages} />
+        <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages} perPage={48} />
       ) : active === FOR_YOU || !department ? (
         <InfiniteProducts
           key={FOR_YOU}
           initialProducts={latest}
+          perPage={48}
           totalPages={latestTotalPages}
           personalize
           pinned={pinned}

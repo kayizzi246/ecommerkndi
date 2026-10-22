@@ -188,12 +188,13 @@ export function useProductFeed({
     // Once per mount: the grid is keyed by its tab, so a new feed remounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [page, setPage] = useState(startPage);
+  const [page, setPage] = useState(totalPages > 0 ? startPage : 0);
+  const [availablePages, setAvailablePages] = useState(Math.max(1, totalPages));
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
 
-  const done = page >= totalPages;
+  const done = page >= availablePages;
 
   /* ---- The query has to be stable by VALUE, not by identity ----
 
@@ -221,7 +222,10 @@ export function useProductFeed({
       const response = await fetch(feedUrl(next, perPage, stableQuery));
       if (!response.ok) throw new Error(String(response.status));
 
-      const payload = (await response.json()) as { products: Product[] };
+      const payload = (await response.json()) as { products: Product[]; total_pages: number };
+      if (!Array.isArray(payload.products) || !Number.isInteger(payload.total_pages) || payload.total_pages < 0) throw new Error("Invalid product response");
+      if (payload.products.length === 0 && next <= payload.total_pages) throw new Error("Product page unavailable");
+      setAvailablePages(payload.total_pages);
       const arriving = refine ? refine(payload.products) : payload.products;
 
       // Taken out of the pool before the state update, so a re-run of the

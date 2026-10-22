@@ -646,7 +646,8 @@ function toCategory(raw: unknown): ProductCategory {
 }
 
 export async function getProducts(
-  query: ProductQuery = {}
+  query: ProductQuery = {},
+  options: { throwOnError?: boolean } = {}
 ): Promise<ProductListResponse> {
   try {
     const params = new URLSearchParams();
@@ -667,6 +668,7 @@ export async function getProducts(
     const raw = await wpFetchRaw(path, path);
 
     if (!raw) {
+      if (options.throwOnError) throw new Error("Product catalogue unavailable");
       return { products: [], total: 0, total_pages: 0 };
     }
 
@@ -680,6 +682,7 @@ export async function getProducts(
     };
   } catch (error) {
     console.error("[kandi-store] getProducts failed:", error);
+    if (options.throwOnError) throw error;
     return { products: [], total: 0, total_pages: 0 };
   }
 }

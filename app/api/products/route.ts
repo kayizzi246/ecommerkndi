@@ -1,4 +1,4 @@
-import { getProductsSafe } from "@/lib/woocommerce";
+import { getProducts } from "@/lib/woocommerce";
 
 /**
  * A page of products, for the infinite grids.
@@ -84,18 +84,22 @@ export async function GET(request: Request) {
     ? (requested as (typeof SORTS)[number])
     : undefined;
 
-  const { products, total_pages } = await getProductsSafe({
-    page,
-    per_page: perPage,
-    ...(category ? { category } : {}),
-    ...(search ? { search } : {}),
-    ...(seller ? { seller } : {}),
-    ...(onSale ? { on_sale: onSale } : {}),
-    ...(inStock ? { in_stock: inStock } : {}),
-    ...(Number.isFinite(minPrice) && minPrice > 0 ? { min_price: minPrice } : {}),
-    ...(Number.isFinite(maxPrice) && maxPrice > 0 ? { max_price: maxPrice } : {}),
-    ...(sort ? { sort } : {}),
-  });
+  try {
+    const { products, total_pages } = await getProducts({
+      page,
+      per_page: perPage,
+      ...(category ? { category } : {}),
+      ...(search ? { search } : {}),
+      ...(seller ? { seller } : {}),
+      ...(onSale ? { on_sale: onSale } : {}),
+      ...(inStock ? { in_stock: inStock } : {}),
+      ...(Number.isFinite(minPrice) && minPrice > 0 ? { min_price: minPrice } : {}),
+      ...(Number.isFinite(maxPrice) && maxPrice > 0 ? { max_price: maxPrice } : {}),
+      ...(sort ? { sort } : {}),
+    }, { throwOnError: true });
 
-  return Response.json({ products, page, total_pages });
+    return Response.json({ products, page, total_pages });
+  } catch {
+    return Response.json({ error: "Products are temporarily unavailable. Please try again." }, { status: 503 });
+  }
 }

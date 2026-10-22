@@ -38,6 +38,7 @@ export default function InfiniteProducts({
    * category — did not have to change shape.
    */
   query = {},
+  perPage = 24,
   excludeId,
   /** What the footer says once there is nothing left. */
   doneLabel,
@@ -46,6 +47,7 @@ export default function InfiniteProducts({
 }: {
   initialProducts: Product[];
   totalPages: number;
+  perPage?: number;
   query?: ProductFeedQuery;
   excludeId?: number;
   doneLabel?: string;
@@ -54,9 +56,9 @@ export default function InfiniteProducts({
   /** Products at the head that keep their place when personalised. */
   pinned?: number;
 }) {
-  const feed = useProductFeed({ initialProducts, totalPages, query, excludeId, personalize, pinned });
+  const feed = useProductFeed({ initialProducts, totalPages, query, perPage, excludeId, personalize, pinned });
 
-  if (feed.products.length === 0) return null;
+  // Keep the footer mounted so an unavailable first page can be retried.
 
   return (
     <>

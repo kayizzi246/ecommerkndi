@@ -4,6 +4,7 @@ import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileOffers from "@/components/TileOffers";
+import TileCartButton from "@/components/TileCartButton";
 
 /** At or below this many units, the card says how few are left. */
 const LOW_STOCK_AT = 5;
@@ -399,7 +400,7 @@ export default function ProductCard({
        was eight pixels a side taken off the picture to produce a margin nobody
        was looking at — the card's hairline already does the separating. Two
        pixels back on each edge is four pixels of image across every tile. */
-    <article className="tile-card group relative flex h-full flex-col p-1">
+    <article className={`tile-card group relative flex h-full flex-col p-1 ${discount > 0 && !soldOut ? "tile-deal" : ""}`}>
       {/* ---- Image ---- */}
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="block">
@@ -588,7 +589,8 @@ export default function ProductCard({
           </div>
         </Link>
 
-        {!soldOut && badge && (
+        {!soldOut && discount > 0 && <span className="tile-black-friday">Black Friday deal</span>}
+        {!soldOut && badge && discount === 0 && (
           <span className={`tile-photo-badge ${badge === "New" ? "tile-photo-badge-new" : ""}`}>
             {badge}
           </span>
@@ -661,6 +663,7 @@ export default function ProductCard({
               </p>
             )}
           </div>
+          <div className="relative z-20 shrink-0"><TileCartButton product={product} /></div>
         </div>
 
         {product.rating_count > 0 && (

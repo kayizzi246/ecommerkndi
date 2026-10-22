@@ -4102,3 +4102,31 @@ a.btn-shop {
   font-weight: 600;
   -webkit-text-stroke: 0;
 }
+
+/* Compact storefront scale shared by every product grid and rail. */
+body { font-size: 13px; }
+.section-title { font-size: clamp(17px, 1.8vw, 22px); }
+.tile-info .tile-name { font-size: 12px; line-height: 17px; min-height: 17px; }
+.tile-info .tile-price { font-size: 14px; line-height: 20px; }
+.tile-sold, .tile-rating, .tile-urgent { font-size: 11px; }
+.tile-was, .tile-stock { font-size: 11px; color: #666; }
+.tile-card { transition: transform 180ms ease, box-shadow 180ms ease; }
+.tile-card:focus-within { outline: 2px solid var(--color-shop-primary); outline-offset: 2px; }
+.tile-black-friday { position: absolute; top: 8px; right: 0; z-index: 5; background: #171717; color: #ffe19b; padding: 4px 7px; font-size: 10px; line-height: 14px; font-weight: 600; border-radius: 3px 0 0 3px; }
+.tile-deal .tile-off { animation: deal-highlight 3s ease-in-out 3; }
+@keyframes deal-highlight { 50% { background: #171717; color: #ffe19b; } }
+@media (hover: hover) { .tile-card:hover { transform: translateY(-3px); } }
+.black-friday-hero { position: relative; isolation: isolate; display: grid; place-items: center; overflow: hidden; min-height: 280px; background: #160b05; color: white; text-align: center; border-radius: 8px; }
+.black-friday-hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, transparent, #0007 35%, #0007 65%, transparent); }
+.black-friday-hero > img { z-index: -2; }
+.black-friday-copy { padding: 30px 20px; }
+.black-friday-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .13em; color: #ffdc91; }
+.black-friday-copy h2 { margin: 8px 0; font-size: clamp(29px, 4vw, 50px); font-weight: 800; line-height: 1.05; letter-spacing: -.035em; }
+.black-friday-copy h2 span { color: #ffd17b; }
+.black-friday-copy > p:last-of-type { font-size: 12px; margin: 12px 0 18px; }
+.black-friday-actions { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.black-friday-cta { display: inline-flex; align-items: center; gap: 18px; border-radius: 5px; background: #ffd17b; color: #171717; padding: 11px 22px; font-size: 13px; font-weight: 700; transition: background 150ms; }
+.black-friday-cta:hover { background: #ffe6b4; }
+.black-friday-browse { font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 639px) { .black-friday-hero { min-height: 250px; border-radius: 0; } .black-friday-hero > img { object-position: center; } .black-friday-actions { gap: 12px; flex-wrap: wrap; } .tile-card .tile-info { padding: 6px; } }
+@media (prefers-reduced-motion: reduce) { .tile-card, .tile-deal .tile-off { animation: none; transition: none; } .tile-card:hover { transform: none; } }
