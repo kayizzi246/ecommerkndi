@@ -31,3 +31,22 @@ button, input, select, textarea { font-family: inherit; }
 /* Keep phone rows aligned and constrain campaign content to the viewport. */
 .product-grid-flush > :nth-child(even) { top: auto; }
 @media (max-width: 639px) { .november-campaign { padding-inline: 8px; border-radius: 0; border-inline: 0; gap: 10px; width: 100%; max-width: 100%; } .november-campaign .black-friday-hero { margin-inline: -8px; border-radius: 0; } .november-campaign .home-mosaic { grid-template-columns: repeat(2,minmax(0,1fr)); } .november-campaign .home-mosaic > a { padding: 12px; min-height: 155px; } .november-campaign .home-mosaic > a > span:nth-child(2) { font-size: 18px; } .november-campaign .home-mosaic > a > span:nth-child(3) { font-size: 11px; } .november-campaign .black-friday-actions { flex-direction: column; gap: 10px; } .november-campaign .black-friday-copy > p:last-of-type { max-width: 280px; margin-inline: auto; } .product-grid-flush { grid-template-columns: repeat(2,minmax(0,1fr)); padding-bottom: 0; } .product-grid-flush > * { min-width: 0; } }
+
+/* Extend the promotion background to the window edges, keeping content centred. */
+.november-campaign { width: 100vw; max-width: none; margin-left: calc(50% - 50vw); padding-inline: max(12px, calc((100vw - 1668px) / 2)); border: 0; border-radius: 0; }
+.november-campaign .black-friday-hero { margin-inline: 0; border-radius: 0; }
+.november-campaign .campaign-categories { background: #17130f; color: #fff2dc; border: 1px solid #4a3824; border-radius: 12px; padding: 10px; box-shadow: none; }
+.november-campaign .campaign-categories > p { color: #ffdda0; font-size: 12px; padding: 5px 8px 10px; margin-bottom: 4px; border-bottom: 1px solid #3b2d1d; }
+.campaign-category-link { min-height: 38px; }
+.campaign-category-copy { display: flex; flex-direction: column; gap: 2px; }
+.campaign-category-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 550; line-height: 16px; }
+.campaign-category-detail { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; line-height: 13px; }
+.campaign-category-detail:empty { display: none; }
+.november-campaign .campaign-category-name { color: #fff2dc; }
+.november-campaign .campaign-category-detail { color: #b9aa96; }
+.november-campaign .campaign-category-link > svg { color: #e8bf7d; }
+.november-campaign .campaign-category-link:hover, .november-campaign .campaign-category-link:focus-visible { background: #332515; }
+.november-campaign .campaign-categories > ul > li:first-child .campaign-category-name { color: #ffda91; }
+.november-campaign .campaign-categories > a:last-child { margin-top: 8px; border-top: 1px solid #3b2d1d; border-radius: 0; padding-top: 12px; color: #ffda91; }
+.november-campaign .campaign-category-flyout { background: #201910; border: 1px solid #674a27; box-shadow: 0 12px 30px #0006; }
+@media (max-width: 639px) { .november-campaign { width: 100vw; max-width: none; padding-inline: 8px; } .november-campaign .black-friday-hero { margin-inline: -8px; } }

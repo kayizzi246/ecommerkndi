@@ -166,10 +166,10 @@ export default function PortalCategories({
       // `overflow-visible` is load-bearing: the flyout is an absolutely
       // positioned child that has to escape this box to the right, and a panel
       // that clipped it would render the whole hover interaction as a 2px sliver.
-      className="hidden h-full flex-col overflow-visible rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex"
+      className="campaign-categories hidden h-full flex-col overflow-visible rounded-2xl bg-white p-3 ring-1 ring-shop-edge md:flex"
     >
       <p className="mb-1 px-2 text-[12px] font-bold text-shop-ink">
-        All categories
+        Shop by category
       </p>
 
       <ul className="flex-1">
@@ -177,37 +177,14 @@ export default function PortalCategories({
           <li key={row.key} className="group relative">
             <Link
               href={row.href ?? `/category/${row.slug}`}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-[5.5px] transition-colors group-hover:bg-shop-primary-soft"
+              className="campaign-category-link flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors group-hover:bg-shop-primary-soft"
             >
               <RowIcon name={row.name} hot={row.key === "x-sale"} />
-              <span className="min-w-0 flex-1 truncate text-[13px] leading-tight">
-                <span
-                  className={`font-semibold transition-colors group-hover:text-[#7a5a00] ${
-                    row.key === "x-sale" ? "text-[#7a5a00]" : "text-shop-ink"
-                  }`}
-                >
-                  {row.name}
+              <span className="campaign-category-copy min-w-0 flex-1">
+                <span className="campaign-category-name">{row.name}</span>
+                <span className="campaign-category-detail">
+                  {row.note ?? (row.under ? `Shop in ${row.under}` : row.children.slice(0, 2).map((child) => child.name).join(" / "))}
                 </span>
-                {/* A department names two of its children — "Men / Shoes /
-                    Hoodies" — the way the reference sets them. A section names
-                    the department it lives in instead, and it has to: this
-                    catalogue has three categories called "Shoes" and two called
-                    "Boots", so a bare section name is a row a shopper cannot
-                    place. */}
-                {row.note ? (
-                  <span className="text-shop-faint"> · {row.note}</span>
-                ) : row.under ? (
-                  <span className="text-shop-faint"> in {row.under}</span>
-                ) : (
-                  row.children.length > 0 && (
-                    <span className="text-shop-faint">
-                      {row.children
-                        .slice(0, 2)
-                        .map((child) => ` / ${child.name}`)
-                        .join("")}
-                    </span>
-                  )
-                )}
               </span>
 
               <svg
@@ -233,8 +210,8 @@ export default function PortalCategories({
                 that opens to say nothing is worse than no panel, because the
                 shopper has to move the pointer to find that out. */}
             {row.children.length > 0 && (
-              <div className="pointer-events-none invisible absolute -top-3 left-full z-30 w-[430px] pl-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
-                <div className="rounded-2xl bg-white p-4 ring-1 ring-shop-edge">
+              <div className="pointer-events-none invisible absolute -top-3 left-full z-30 w-[430px] pl-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100">
+                <div className="campaign-category-flyout rounded-2xl bg-white p-4 ring-1 ring-shop-edge">
                   <p className="mb-2.5 text-[12px] font-bold text-shop-ink">
                     {row.name}
                   </p>

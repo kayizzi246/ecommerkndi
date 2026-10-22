@@ -175,7 +175,7 @@ export default async function Home() {
           apiece is a screenful, and the panels each paint their own ground, so
           what separates two sections is the seam between two white blocks
           rather than the size of the gap between them. */}
-      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 py-2 md:gap-4 md:px-8 md:py-3.5">
+      <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 pb-2 pt-0 md:gap-4 md:px-8 md:pb-3.5 md:pt-0">
         {/* ---- The opening screen, in the order a shopper asks the questions ----
 
             No hero banner: the channel strip says where to go, then the band —
