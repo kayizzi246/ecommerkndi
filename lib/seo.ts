@@ -57,12 +57,7 @@ export function productPath(product: Pick<Product, "id" | "slug">): string {
 export function productTitle(product: Pick<Product, "name">): string {
   const name = product.name.trim();
   const suffix = /\b(uganda|price)\b/i.test(name) ? "" : " price in Uganda";
-  const limit = 60;
-  const availableNameLength = limit - suffix.length;
-
-  if (name.length <= availableNameLength) return `${name}${suffix}`;
-
-  return `${name.slice(0, Math.max(1, availableNameLength - 1)).trimEnd()}…${suffix}`;
+  return compactSeoText(name, 60 - suffix.length) + suffix;
 }
 
 /**
@@ -72,89 +67,22 @@ export function productTitle(product: Pick<Product, "name">): string {
  * from what we know. Capped at ~155 characters because Google truncates around
  * there, and a description cut mid-word reads as neglect.
  */
+export function compactSeoText(value: string, limit: number): string {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (clean.length <= limit) return clean;
+  const slice = clean.slice(0, limit - 1), boundary = slice.lastIndexOf(" ");
+  return (boundary > limit * 0.55 ? slice.slice(0,boundary) : slice).trimEnd() + String.fromCharCode(8230);
+}
+export function cataloguePage(value?: string): number {
+  const page = Number(value);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+export function listingPath(path: string, page: number): string { return page > 1 ? path + "?page=" + page : path; }
 export function metaDescription(product: Product): string {
-  /**
-   * ---- What was wrong with this, as it appeared in Google ----
-   *
-   * The live snippet for a running shoe read:
-   *
-   *   "Buy ASICS Gel-Kayano 14 Retro Breathable Low-Top Casual Running Shoes
-   *    Unisex, Silver Gray 1203A537-020 in Hoodies on KandiUg. In stock Fast
-   *    delivery acr…"
-   *
-   * Three separate faults in one sentence.
-   *
-   * 1. NO PRICE. A supplier's 90-character product name ate the whole budget,
-   *    so the truncation fell before anything useful. That is the expensive
-   *    one: a shopper searching "nike price in uganda" is asking a question
-   *    this shop can answer, and the answer was being cut off. The price is
-   *    now in the part of the sentence that is guaranteed to survive.
-   *
-   * 2. "In stock Fast delivery" — a missing full stop, because the parts were
-   *    joined with spaces and only some of them ended in punctuation.
-   *
-   * 3. It cut at 155 characters mid-word and appended an ellipsis, which is
-   *    Google's job, not ours. Google truncates to the width it has; a
-   *    description that arrives pre-truncated just loses the text twice.
-   *
-   * ---- How it is built now ----
-   *
-   * Back to front. The tail — price, stock, delivery — is composed first and is
-   * never cut, because it holds the three facts that turn a search into a
-   * visit. Only the lead is trimmed to fit around it.
-   */
-  const LIMIT = 155;
-
-  const price = Number(product.price) > 0 ? formatPrice(product.price) : null;
-
-  const stock =
-    product.stock_status === "instock"
-      ? "In stock."
-      : product.stock_status === "onbackorder"
-        ? "Available on backorder."
-        : "";
-
-  /**
-   * "Price in Uganda: UGX 155,000." is phrased that way on purpose.
-   *
-   * It is the shape of the question people actually type — "nike price in
-   * uganda", "iphone price in uganda" — and a description that contains both
-   * the words and the figure answers it in the result itself. Google shows the
-   * snippet it thinks matches; giving it a sentence that matches the query
-   * pattern verbatim is the cheapest help it can be given.
-   */
-  const tail = [
-    price ? `Price in Uganda: ${price}.` : "",
-    stock,
-    "Fast delivery in Kampala, pay on delivery.",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  /**
-   * The seller's own copy, when there is any worth using.
-   *
-   * `short_description` arrives from WooCommerce as HTML — WordPress wraps it
-   * in `<p>` at minimum — and the tags were previously passed straight into the
-   * meta tag, where they are noise at best. Stripped here.
-   */
-  const own = product.short_description
-    ?.replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const category = product.categories[0]?.name;
-  const lead =
-    own && own.length > 40
-      ? own
-      : `Buy ${product.name}${category ? ` in ${category}` : ""} on KandiUg.`;
-
-  // Everything the tail does not claim, less the space that joins them.
-  const budget = LIMIT - tail.length - 1;
-  const trimmed =
-    lead.length > budget ? `${lead.slice(0, Math.max(0, budget - 1)).trimEnd()}…` : lead;
-
-  return `${trimmed} ${tail}`.replace(/\s+/g, " ").trim();
+  const stock = product.stock_status === "instock" ? "In stock." : product.stock_status === "outofstock" ? "Currently out of stock." : "Available on backorder.";
+  const tail = [product.price > 0 ? formatPrice(product.price) + "." : "", stock, "Delivery options across Uganda."].filter(Boolean).join(" ");
+  const own = product.short_description?.replace(/<[^>]*>/g," ").replace(/&nbsp;|&#160;/g," ").replace(/\s+/g," ").trim();
+  return compactSeoText(own && own.length > 40 ? own : "Shop " + product.name + " at KandiUg.", Math.max(20,160-tail.length-1)) + " " + tail;
 }
 
 /** Google's schema.org availability values. */
@@ -196,7 +124,8 @@ export type CommerceTerms = {
  * the real figure depends on the delivery zone the shopper has not picked yet.
  */
 function shippingDetails(product: Product, terms: CommerceTerms) {
-  const deliversFree = product.price >= terms.freeDeliveryFrom;
+  const deliversFree = terms.freeDeliveryFrom > 0 && product.price >= terms.freeDeliveryFrom;
+  if (!deliversFree) return undefined;
 
   return {
     "@type": "OfferShippingDetails",
@@ -251,7 +180,7 @@ function returnPolicy(terms: CommerceTerms) {
     returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
     merchantReturnDays: terms.returnsDays,
     returnMethod: "https://schema.org/ReturnByMail",
-    returnFees: "https://schema.org/ReturnFeesCustomerResponsibleForShipping",
+    returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
   };
 }
 
@@ -286,17 +215,9 @@ export function productJsonLd(
     },
   };
 
-  // Google warns about an offer with no expiry and, for a sale price, treats a
-  // missing one as a reason to distrust the figure. A year out is the honest
-  // answer for a shop that reprices continuously: the price is good until we
-  // say otherwise, and the hourly sitemap and 15-second cache mean a change
-  // reaches Google long before this lapses.
-  const validUntil = new Date();
-  validUntil.setFullYear(validUntil.getFullYear() + 1);
-  offer.priceValidUntil = validUntil.toISOString().slice(0, 10);
-
   if (options.terms) {
-    offer.shippingDetails = shippingDetails(product, options.terms);
+    const shipping = shippingDetails(product, options.terms);
+    if (shipping) offer.shippingDetails = shipping;
     offer.hasMerchantReturnPolicy = returnPolicy(options.terms);
   }
 
@@ -569,4 +490,21 @@ export function itemListJsonLd(
 
 export function categoryJsonLd(category: ProductCategory, products: Product[]) {
   return collectionJsonLd(category.name, `/category/${category.slug}`, products);
+}
+
+/** A stocked subcategory also makes each of its parent departments indexable. */
+export function stockedCategoryIds(categories: ProductCategory[]): Set<number> {
+  const byId = new Map(categories.map(category => [category.id, category]));
+  const stocked = new Set<number>();
+  for (const category of categories) {
+    if ((category.count ?? 0) <= 0) continue;
+    let current: ProductCategory | undefined = category;
+    const visited = new Set<number>();
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      stocked.add(current.id);
+      current = current.parent ? byId.get(current.parent) : undefined;
+    }
+  }
+  return stocked;
 }

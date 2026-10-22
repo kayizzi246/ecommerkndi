@@ -71,7 +71,6 @@ export default function robots(): MetadataRoute.Robots {
           "/checkout",
           "/order-received",
           "/payment/",
-          "/search?",
         ],
       },
     ],

@@ -89,6 +89,7 @@ export default function PickedForYou({
         >
           Shop all products
         </h2>
+        <Link href="/shop" className="shrink-0 text-[12px] font-semibold text-shop-primary-ink hover:underline">Full catalogue &rarr;</Link>
 
         <button
           type="button"

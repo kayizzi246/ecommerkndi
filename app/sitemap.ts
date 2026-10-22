@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getCategories, getProductsSafe, getStores } from "@/lib/woocommerce";
-import { productPath, siteUrl } from "@/lib/seo";
+import { productPath, siteUrl, stockedCategoryIds } from "@/lib/seo";
 import { storeHref } from "@/lib/store-routes";
 import type { Product } from "@/lib/woocommerce";
 
@@ -20,6 +20,7 @@ export const revalidate = 3600;
 /** Static pages worth indexing, with a rough sense of their relative weight. */
 const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },
+  { path: "/shop", priority: 0.9, changeFrequency: "daily" },
   { path: "/sale", priority: 0.8, changeFrequency: "daily" },
   // The full department index. It was missing, which mattered more than its
   // priority suggests: it is the one page that links to every category at once,
@@ -79,7 +80,6 @@ async function allProducts(): Promise<Product[]> {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const now = new Date();
 
   // A shop with an unreachable backend should still publish its static pages
   // rather than serving Google an error where its sitemap should be.
@@ -89,19 +89,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getStores().catch(() => []),
   ]);
 
+  const stocked = stockedCategoryIds(categories);
   return [
     ...STATIC_PAGES.map((page) => ({
       url: `${base}${page.path}`,
-      lastModified: now,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
     })),
 
     ...categories
-      .filter((category) => (category.count ?? 0) > 0)
+      .filter((category) => stocked.has(category.id))
       .map((category) => ({
         url: `${base}/category/${category.slug}`,
-        lastModified: now,
         changeFrequency: "daily" as const,
         priority: 0.7,
       })),
@@ -115,7 +114,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         // a crawler the URL the page does not claim as canonical is asking it
         // to pick, and it picks slowly.
         url: `${base}${storeHref(store.store_slug)}`,
-        lastModified: now,
         changeFrequency: "weekly" as const,
         priority: 0.5,
       })),
@@ -124,7 +122,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${base}${productPath(product)}`,
       // The product's own creation date, so a crawler can tell what is new
       // rather than seeing every URL claim to have changed this minute.
-      lastModified: product.date_created ? new Date(product.date_created) : now,
+      ...(product.date_modified && Number.isFinite(Date.parse(product.date_modified)) ? {lastModified:new Date(product.date_modified)} : {}),
       changeFrequency: "weekly" as const,
       priority: 0.9,
       /**

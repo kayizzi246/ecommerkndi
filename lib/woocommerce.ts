@@ -168,6 +168,7 @@ export type Product = {
   image: string;
   gallery: string[];
   date_created: string | null;
+  date_modified?: string | null;
   short_description: string;
   categories: ProductCategory[];
   attributes: ProductAttribute[];
@@ -586,6 +587,7 @@ function toProduct(raw: unknown): Product {
     image: mainImage,
     gallery,
     date_created: str(product.date_created) || null,
+    date_modified: str(product.date_modified) || (str(product.date_modified_gmt) ? str(product.date_modified_gmt) + "Z" : null),
     // Same treatment: this is printed as text under the price on the product
     // page and in the seller's order emails.
     short_description: decodeEntities(

@@ -226,6 +226,7 @@ export default function Footer({
                 <Link className="font-semibold text-shop-ink hover:text-shop-primary-ink hover:underline" href="/categories">
                   All categories
                 </Link>
+                  <Link className="mt-2 block font-semibold text-shop-ink hover:underline" href="/shop">Shop all products</Link>
               </li>
               <li>
                 {/* The sale page belongs in the footer for the same reason it

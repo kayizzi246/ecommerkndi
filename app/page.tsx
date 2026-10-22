@@ -12,8 +12,8 @@ import type { Metadata } from "next";
 /** Shoe-focused homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const title = "Buy Shoes for Less in Uganda | KandiUg";
-  const description = `Buy shoes for less in Uganda at KandiUg. Shop sneakers and everyday shoes, Kampala delivery and ${settings.commerce.returns_days}-day returns. Check delivery options at checkout.`;
+  const title = "Online Shopping in Uganda | Shoes & Home | KandiUg";
+  const description = `Shop shoes, fashion, home and everyday essentials at KandiUg. Compare prices in UGX, browse offers and enjoy ${settings.commerce.returns_days}-day returns. Delivery options across Uganda.`;
   return {
     alternates: { canonical: "/" },
     title: { absolute: title },

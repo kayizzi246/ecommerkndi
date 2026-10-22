@@ -1,3 +1,5 @@
+import CatalogPagination from "@/components/CatalogPagination";
+import { cataloguePage, listingPath, stockedCategoryIds } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -33,81 +35,26 @@ type Search = {
  * combination of facets would otherwise be a separate near-identical URL
  * competing with the clean one.
  */
-export async function generateMetadata({
-  params,
-}: {
+export async function generateMetadata({ params, searchParams }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Search>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const [categories, settings] = await Promise.all([
-    getCategories().catch(() => []),
-    getSiteSettings(),
-  ]);
-  const category = categories.find((entry) => entry.slug === slug);
-
+  const filters = await searchParams;
+  const page = cataloguePage(filters.page);
+  const filtered = Object.entries(filters).some(([key, value]) => key !== "page" && Boolean(value));
+  const [categories, settings] = await Promise.all([getCategories().catch(() => []), getSiteSettings()]);
+  const category = categories.find(entry => entry.slug === slug);
   const name = category?.name ?? slug.replace(/-/g, " ");
-  const count = category?.count ?? 0;
-
-  /**
-   * "Bags in Uganda — Buy Online at KandiUg".
-   *
-   * The bare "<name> in Uganda" this used to be is the right head term, but it
-   * left the tag with nothing a shopper could act on. "Buy … online" is the
-   * intent half of the query — the searches worth having are transactional
-   * ("bags in uganda", "buy bags online uganda"), not encyclopaedic.
-   */
-  const title =
-    /shoes?/i.test(name)
-      ? `Buy ${name} in Uganda | KandiUg`
-      : `${name} in Kampala, Uganda`;
-
-  /**
-   * The description now leads with prices.
-   *
-   * A category page competes for "<thing> in uganda", and what a shopper wants
-   * from that result is the range before they click. `${count} items` on its
-   * own said nothing about whether the shop is worth opening.
-   *
-   * The returns figure comes from wp-admin rather than the "14-day returns"
-   * that used to be typed here — the same fix applied across the storefront, so
-   * this page cannot promise a window the checkout does not honour.
-   */
-  const description = /shoes?/i.test(name)
-    ? `Buy ${name.toLowerCase()} in Uganda online from KandiUg. ${count > 0 ? `${count} item${count === 1 ? "" : "s"} available` : "Shop online"} with fast delivery in Kampala, pay on delivery and ${settings.commerce.returns_days}-day returns.`
-    : `Buy ${name.toLowerCase()} online in Kampala and across Uganda${
-        count > 0 ? `, ${count} item${count === 1 ? "" : "s"} in stock` : ""
-      }. Low prices, fast delivery in Kampala, pay on delivery and ${
-        settings.commerce.returns_days
-      }-day returns.`;
-
+  const title = "Buy " + name + " Online in Uganda" + (page > 1 ? " - Page " + page : "");
+  const description = "Shop " + name.toLowerCase() + " at KandiUg. Compare prices in Uganda shillings, browse current offers and check delivery options. " + settings.commerce.returns_days + "-day returns.";
+  const canonical = absolute(listingPath("/category/" + slug, filtered ? 1 : page));
+  const empty = category && !stockedCategoryIds(categories).has(category.id);
   return {
-    title,
-    description,
-    /**
-     * A real department with nothing in it yet is asked not to be indexed.
-     *
-     * Search Console was reporting ten SOFT 404s — pages answering 200 with
-     * nothing on them — and an empty category is the shape of that: a heading,
-     * a filter sidebar, and a grid with no products. Google reads the 200 and
-     * the emptiness, decides the page is a not-found in disguise, and the shop
-     * loses a little credibility for every one it finds.
-     *
-     * `follow: true` alongside it: there is nothing here to index, but the
-     * links to the rest of the shop are still worth walking.
-     *
-     * A category that does not exist AT ALL is handled harder, in the page
-     * itself — see the `notFound()` below. The difference is deliberate: an
-     * empty department is a shop still filling up and will have stock next
-     * week, where an unknown slug is a URL that was never real.
-     */
-    robots: category && count === 0 ? { index: false, follow: true } : undefined,
-    alternates: { canonical: absolute(`/category/${slug}`) },
-    openGraph: {
-      title,
-      description,
-      url: absolute(`/category/${slug}`),
-      images: category?.image ? [{ url: category.image, alt: name }] : undefined,
-    },
+    title, description,
+    robots: filtered || empty ? { index: false, follow: true } : undefined,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, images: category?.image ? [{url: category.image, alt: name}] : undefined },
   };
 }
 
@@ -410,6 +357,8 @@ export default async function CategoryPage({
                       2xl  7 cols  (100vw − 64 − 256 − 24 − six 1px) ÷ 7 */
                 sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) calc((100vw - 315px) / 4), (max-width: 1535px) calc((100vw - 348px) / 5), calc((100vw - 350px) / 7)"
               />
+
+              <CatalogPagination page={page} totalPages={total_pages} path={`/category/${slug}`} params={search} />
 
               {/* Below the grid deliberately. A shopper who arrived knowing what
                   they want should meet products first; the text is for the one
