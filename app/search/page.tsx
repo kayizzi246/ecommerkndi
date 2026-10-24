@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getCategories, getProductsSafe } from "@/lib/woocommerce";
+import { getCategories, getProductsSafe, type Product } from "@/lib/woocommerce";
+import { sortProducts, filterProducts, toProductQuery } from "@/lib/sort-products";
+import FilteredProductGrid from "@/components/FilteredProductGrid";
+import ProductCard from "@/components/ProductCard";
+import { PRODUCT_GRID, forGrid } from "@/lib/product-grid";
 
 /**
  * Search results are not content, and Google should not hold any.
@@ -8,21 +12,13 @@ import { getCategories, getProductsSafe } from "@/lib/woocommerce";
  * Every query, sort order and filter combination is another URL showing the
  * same products in a different order. Left indexable they crowd out the pages
  * that should rank — the category and product pages the results are drawn from
- * — and burn the crawl budget a young domain barely has.
- *
- * `follow` stays on, so a crawler that lands here still walks through to the
- * products themselves. This is the difference between "do not keep this page"
- * and "do not read it".
+ * — and burn the crawl budget a young domain barely has. `follow` stays on, so
+ * a crawler that lands here still walks through to the products.
  */
 export const metadata: Metadata = {
   title: "Search",
   robots: { index: false, follow: true },
 };
-import { sortProducts, filterProducts, brandFacets, toProductQuery } from "@/lib/sort-products";
-import SortDropdown from "@/components/SortDropdown";
-import FilterSidebar from "@/components/FilterSidebar";
-import FilteredProductGrid from "@/components/FilteredProductGrid";
-import { PRODUCT_GRID } from "@/lib/product-grid";
 
 type Search = {
   q?: string;
@@ -45,6 +41,31 @@ const BROWSE_TITLES: Record<string, string> = {
   price_asc: "Lowest prices",
 };
 
+/** The sort chips, in the order a shopper reaches for them. */
+const SORTS: { value: string | undefined; label: string }[] = [
+  { value: undefined, label: "Best match" },
+  { value: "price_asc", label: "Lowest price" },
+  { value: "popular", label: "Best sellers" },
+  { value: "newest", label: "Newest" },
+];
+
+/** "Under" price chip. One figure, chosen to sit around the middle of the catalogue. */
+const UNDER = 50_000;
+
+/** Fewer results than this and recommendations are shown under them. */
+const FEW = 8;
+
+/**
+ * Search, made simple.
+ *
+ * It was a filter sidebar beside the results (a collapsed panel above them on
+ * a phone) and, when nothing matched, a dead end that said "What are you
+ * looking for?". Now it is: what you searched and how many there are, one row
+ * of filter chips and one row of sort chips — every one a plain link — then
+ * the products. When there is nothing, or very little, the page recommends:
+ * the shop's departments as chips and a grid of its best sellers, so a shopper
+ * always has somewhere to go next.
+ */
 export default async function SearchPage({
   searchParams,
 }: {
@@ -54,148 +75,223 @@ export default async function SearchPage({
   const { q = "", page: pageParam, sort, category } = search;
   const page = Math.max(1, Number(pageParam) || 1);
   const query = q.trim();
-
-  /**
-   * The department the masthead's scope select was set to, if any.
-   *
-   * Passed straight through to WooCommerce as a slug. An unknown slug returns
-   * nothing rather than erroring, so a category renamed in wp-admin degrades to
-   * an empty result page rather than a crash — and the select only ever offers
-   * the four departments the shop actually has.
-   */
   const scope = category?.trim() || undefined;
 
-  // Sorting and the price/stock filters go to WordPress, so they apply to the
-  // whole result set rather than to whichever 24 rows this page happened to
-  // get. Without that, "price: low to high" ordered page 1 among itself and
-  // left cheaper products stranded on page 2.
-  /* ---- Browsing by sort, with no term ----
-     The homepage channels link here with a sort and no search word —
-     `?sort=newest`, `?sort=popular`, `?sort=rating` — and those pages
-     rendered "What are you looking for?" with nothing in them, because
-     products were only fetched when there was a term. A recognised sort is
-     now enough on its own: it lists the whole catalogue in that order. */
+  /* A recognised sort is enough on its own: the homepage channels link here
+     with `?sort=newest` and no word, and that lists the whole catalogue in
+     that order. */
   const browseTitle = BROWSE_TITLES[sort ?? ""];
-  const { products, total, total_pages } = query || browseTitle
-    ? await getProductsSafe({
-        ...(query ? { search: query } : {}),
-        page,
-        per_page: 24,
-        ...(scope ? { category: scope } : {}),
-        ...toProductQuery(search),
-      })
-    : { products: [], total: 0, total_pages: 0 };
+  const [{ products, total, total_pages }, categories] = await Promise.all([
+    query || browseTitle
+      ? getProductsSafe({
+          ...(query ? { search: query } : {}),
+          page,
+          per_page: 24,
+          ...(scope ? { category: scope } : {}),
+          ...toProductQuery(search),
+        })
+      : Promise.resolve({ products: [] as Product[], total: 0, total_pages: 0 }),
+    // A convenience on a page that works without it: an outage costs the
+    // shopper the category chips, not the search.
+    getCategories().catch(() => []),
+  ]);
 
-  /* The whole category list, for the browse section of the filter panel. A
-     search result has no department of its own, so the panel offers the shop's
-     departments — which is the one thing a shopper staring at a thin set of
-     results most often wants next.
-
-     `.catch(() => [])` for the same reason the category page uses it: this list
-     is a convenience on a page that works without it, and a WordPress outage
-     should cost the shopper the browse links rather than the search. */
-  const categories = await getCategories().catch(() => []);
-
-  const brands = brandFacets(products);
   const visible = sortProducts(filterProducts(products, search), sort);
-  const filtered = visible.length !== products.length;
+  const filtering = Boolean(search.sale || search.stock || search.max_price || search.min_price || search.brand);
+
+  /* Recommendations: best sellers in stock, minus anything already shown. */
+  const recommend =
+    visible.length < FEW
+      ? (await getProductsSafe({ per_page: 12, sort: "popular", in_stock: true })).products
+          .filter((product) => !visible.some((shown) => shown.id === product.id))
+          .slice(0, 12)
+      : [];
+
+  /* Category chips: the departments the results actually come from, most
+     common first; with no results, the shop's busiest departments. */
+  const resultCategories = uniqueByName(countCategories(visible)).slice(0, 6);
+  const popularCategories = uniqueByName(
+    categories
+      .filter((item) => (item.count ?? 0) > 0)
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+  ).slice(0, 10);
+
+  /** The current URL with some parameters changed; `undefined` removes one. */
+  const href = (changes: Partial<Record<keyof Search, string | undefined>>) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ ...search, page: undefined, ...changes })) {
+      if (value) params.set(key, value);
+    }
+    const qs = params.toString();
+    return `/search${qs ? `?${qs}` : ""}`;
+  };
+
+  const heading = query ? `Results for “${query}”` : (browseTitle ?? "Search the shop");
+  const count = filtering ? visible.length : total;
 
   return (
-    <main className="w-full px-0 pb-24 pt-3 md:px-8 lg:pb-10">
-      <nav className="phone-gutter mb-3 flex items-center gap-2 text-[12px] text-shop-muted">
-        <Link href="/" className="hover:text-shop-ink">
-          Home
-        </Link>
-        <span aria-hidden>›</span>
-        <span className="text-shop-ink">Search results</span>
-      </nav>
+    <main className="srch mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-3 md:px-8 lg:pb-10">
+      <div className="phone-gutter">
+        <h1 className="srch-title">{heading}</h1>
+        {(query || browseTitle) && (
+          <p className="srch-count">
+            {count} {count === 1 ? "item" : "items"}
+            {scope ? " in this department" : ""}
+          </p>
+        )}
 
-      <div className="flex flex-col gap-5 md:flex-row md:gap-6">
-        {/* Filter rail */}
-        <div className="phone-gutter order-first w-full flex-none md:w-56 lg:w-64">
-          <div className="hidden md:sticky md:top-32 md:block">
-            <FilterSidebar brands={brands} categories={categories} currentSlug={scope} />
-          </div>
-
-          <details className="group rounded-lg border border-shop-line bg-white md:hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-semibold text-shop-ink">
-              Filters
-              <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-              </svg>
-            </summary>
-            <div className="px-4 pb-4">
-              <FilterSidebar brands={brands} categories={categories} currentSlug={scope} />
+        {(query || browseTitle) && (
+          <>
+            {/* ---- Filters: one tap each, tap again to undo ---- */}
+            <div className="srch-chips no-scrollbar" aria-label="Filter results">
+              <Chip href={href({ sale: search.sale === "1" ? undefined : "1" })} on={search.sale === "1"}>
+                On sale
+              </Chip>
+              <Chip
+                href={href({ max_price: search.max_price ? undefined : String(UNDER) })}
+                on={Boolean(search.max_price)}
+              >
+                Under UGX 50,000
+              </Chip>
+              <Chip href={href({ stock: search.stock === "1" ? undefined : "1" })} on={search.stock === "1"}>
+                In stock
+              </Chip>
+              {resultCategories.map((item) => (
+                <Chip
+                  key={item.slug}
+                  href={href({ brand: search.brand === item.slug ? undefined : item.slug })}
+                  on={search.brand === item.slug}
+                >
+                  {item.name}
+                </Chip>
+              ))}
+              {filtering && (
+                <Link
+                  href={href({ sale: undefined, stock: undefined, max_price: undefined, min_price: undefined, brand: undefined })}
+                  className="srch-clear"
+                >
+                  Clear filters
+                </Link>
+              )}
             </div>
-          </details>
-        </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="phone-gutter mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-shop-line pb-3">
-            <div>
-              <h1 className="section-title text-[19px] text-shop-ink md:text-[23px]">
-                {query ? `“${query}”` : (browseTitle ?? "Search")}
-              </h1>
-              <p className="section-sub mt-1 text-[13px]">
-                {filtered
-                  ? `${visible.length} of ${products.length} shown`
-                  : `${total} ${total === 1 ? "item" : "items"} found`}
-              </p>
+            {/* ---- Sort ---- */}
+            <div className="srch-sort no-scrollbar" aria-label="Sort results">
+              <span className="srch-sort-label">Sort:</span>
+              {SORTS.map((option) => (
+                <Link
+                  key={option.label}
+                  href={href({ sort: option.value })}
+                  className={`srch-sort-opt ${sort === option.value || (!sort && !option.value) ? "srch-sort-on" : ""}`}
+                  aria-current={sort === option.value || (!sort && !option.value) ? "true" : undefined}
+                >
+                  {option.label}
+                </Link>
+              ))}
             </div>
-            <SortDropdown />
-          </div>
-
-          {visible.length === 0 ? (
-            <div className="phone-gutter"><div className="rounded-lg border border-shop-line bg-white px-6 py-20 text-center">
-              <p className="text-[17px] font-semibold text-shop-ink">
-                {filtered
-                  ? "No products match these filters"
-                  : query
-                    ? `No matches for “${query}”`
-                    : "What are you looking for?"}
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-[13px] text-shop-muted">
-                {filtered
-                  ? "Try widening the price range or clearing a filter."
-                  : query
-                    ? "Check the spelling, or try a shorter, more general term."
-                    : "Use the search bar above to find items or brands."}
-              </p>
-              <Link href="/" className="btn-shop mt-6 px-6 py-2.5 text-[13px]">
-                Continue shopping
-              </Link>
-            </div></div>
-          ) : (
-            /* ---- Endless, rather than numbered ----
-
-               The grid and the page links here were replaced by one component
-               that owns both. It carries the same search, scope and filters the
-               server ran for page one, so page two is the same query rather than
-               a fresh one — and it re-applies `filterProducts` to what arrives,
-               because the brand facet and the discount slider are refinements
-               WordPress cannot make. See `FilteredProductGrid`.
-
-               `startPage` keeps `/search?...&page=3` working: those URLs are in
-               people's history, and the grid carries on from where the server
-               landed instead of re-fetching page two.
-
-               8/16 on a phone, 12/24 from sm — the shared product-grid rhythm.
-               See the note in the category grid. */
-            <FilteredProductGrid
-              initialProducts={visible}
-              totalPages={total_pages}
-              startPage={page}
-              /* The refinement narrows the category the feed pages through,
-                 exactly as it narrows the server query above. */
-              query={{ q: query, category: search.brand || scope, sort }}
-              filters={search}
-              sort={sort}
-              gridClassName={PRODUCT_GRID}
-              doneLabel={query ? "That is every match for this search." : "That is everything for now."}
-            />
-          )}
-        </div>
+          </>
+        )}
       </div>
+
+      {visible.length === 0 ? (
+        <div className="phone-gutter">
+          <div className="srch-empty">
+            <p className="srch-empty-title">
+              {filtering
+                ? "Nothing matches these filters"
+                : query
+                  ? `We couldn't find “${query}”`
+                  : "What are you looking for today?"}
+            </p>
+            <p className="srch-empty-copy">
+              {filtering
+                ? "Clear a filter to see more."
+                : query
+                  ? "Check the spelling, use one word (for example “shoes”), or pick a department below."
+                  : "Type in the search bar above, or start from a department."}
+            </p>
+            {!filtering && popularCategories.length > 0 && (
+              <div className="srch-popular">
+                {popularCategories.map((item) => (
+                  <Link key={item.slug} href={`/category/${item.slug}`} className="srch-chip">
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <FilteredProductGrid
+          initialProducts={visible.map(forGrid)}
+          totalPages={total_pages}
+          startPage={page}
+          query={{
+            q: query,
+            category: search.brand || scope,
+            sort,
+            onSale: search.sale === "1",
+            inStock: search.stock === "1",
+            minPrice: search.min_price,
+            maxPrice: search.max_price,
+          }}
+          filters={search}
+          sort={sort}
+          gridClassName={PRODUCT_GRID}
+          doneLabel={query ? "That is every match for this search." : "That is everything for now."}
+        />
+      )}
+
+      {recommend.length > 0 && (
+        <section className="mt-8" aria-labelledby="srch-rec">
+          <h2 id="srch-rec" className="phone-gutter srch-rec-title">
+            {visible.length === 0 ? "Recommended for you" : "You may also like"}
+          </h2>
+          <ul className={PRODUCT_GRID}>
+            {recommend.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={forGrid(product)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
+}
+
+function Chip({ href, on, children }: { href: string; on: boolean; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={`srch-chip ${on ? "srch-chip-on" : ""}`} aria-pressed={on} scroll={false}>
+      {on && <span aria-hidden>✓ </span>}
+      {children}
+    </Link>
+  );
+}
+
+/**
+ * One chip per label: Men and Women each have a "Shoes", and two chips both
+ * reading "Shoes" look like a bug. The first (busiest) of each name is kept.
+ */
+function uniqueByName<T extends { name: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.name.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** The categories of a set of products, most common first. */
+function countCategories(products: Product[]): { slug: string; name: string }[] {
+  const counts = new Map<string, { slug: string; name: string; n: number }>();
+  for (const product of products) {
+    for (const item of product.categories) {
+      const entry = counts.get(item.slug) ?? { slug: item.slug, name: item.name, n: 0 };
+      entry.n += 1;
+      counts.set(item.slug, entry);
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n);
 }

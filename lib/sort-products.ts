@@ -32,6 +32,9 @@ export function toProductQuery(search: ProductFilters & { sort?: string }): Part
   if (search.sort && sorts[search.sort]) query.sort = sorts[search.sort];
 
   if (search.stock === "1") query.in_stock = true;
+  // Reductions only, asked of WordPress so every page of results is a sale
+  // item rather than page one filtered down to the few that happened to be.
+  if (search.sale === "1") query.on_sale = true;
 
   const min = Number(search.min_price);
   const max = Number(search.max_price);

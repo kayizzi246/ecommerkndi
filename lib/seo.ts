@@ -1,5 +1,5 @@
 import type { Product, ProductCategory, ProductReview } from "@/lib/woocommerce";
-import { formatPrice } from "@/lib/currency";
+import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency";
 
 /**
  * Search-engine plumbing: canonical URLs, and the JSON-LD that turns a plain
@@ -53,11 +53,34 @@ export function productPath(product: Pick<Product, "id" | "slug">): string {
   return `/products/${product.slug || product.id}`;
 }
 
-/** Keep the product name and the Uganda buying phrase inside the SERP title. */
-export function productTitle(product: Pick<Product, "name">): string {
-  const name = product.name.trim();
-  const suffix = /\b(uganda|price)\b/i.test(name) ? "" : " price in Uganda";
-  return compactSeoText(name, 60 - suffix.length) + suffix;
+/**
+ * A name cut to fit at a word boundary, WITHOUT an ellipsis, dropping the
+ * dangling "for", "with", "-" an imported title tends to stop on. Search
+ * results that read "Casual… price in Uganda" look broken and get skipped.
+ */
+function shortName(name: string, limit: number): string {
+  const clean = name.replace(/\s+/g, " ").trim();
+  if (clean.length <= limit) return clean;
+  let cut = clean.slice(0, limit + 1);
+  cut = cut.slice(0, Math.max(cut.lastIndexOf(" "), Math.floor(limit * 0.6)));
+  return cut
+    .replace(/[\s,;:|/&+-]+$/, "")
+    .replace(/\s+(for|with|and|or|the|of|in|a|to)$/i, "")
+    .trim();
+}
+
+/**
+ * The search-result title: the product, then the reason to click — the
+ * discount when there is one — then the price. The layout appends the shop
+ * name.
+ *
+ *   "Mens Slip On Oxfords Loafers – 33% Off, UGX 100,000"
+ */
+export function productTitle(product: Pick<Product, "name" | "price" | "regular_price">): string {
+  const off = discountPercent(product.regular_price, product.price);
+  const price = product.price > 0 ? formatPrice(product.price) : "";
+  const tail = off > 0 ? ` – ${off}% Off, ${price}` : price ? ` – ${price} in Uganda` : " – Buy in Uganda";
+  return shortName(product.name, Math.max(24, 62 - tail.length)) + tail;
 }
 
 /**
@@ -78,11 +101,38 @@ export function cataloguePage(value?: string): number {
   return Number.isSafeInteger(page) && page > 0 ? page : 1;
 }
 export function listingPath(path: string, page: number): string { return page > 1 ? path + "?page=" + page : path; }
+/**
+ * The search-result description: a complete sentence that answers what it
+ * costs, what is saved, whether it is in stock and how to pay — the questions
+ * that otherwise cost a click each. Built to land under ~160 characters
+ * without being cut mid-word.
+ */
 export function metaDescription(product: Product): string {
-  const stock = product.stock_status === "instock" ? "In stock." : product.stock_status === "outofstock" ? "Currently out of stock." : "Available on backorder.";
-  const tail = [product.price > 0 ? formatPrice(product.price) + "." : "", stock, "Delivery options across Uganda."].filter(Boolean).join(" ");
-  const own = product.short_description?.replace(/<[^>]*>/g," ").replace(/&nbsp;|&#160;/g," ").replace(/\s+/g," ").trim();
-  return compactSeoText(own && own.length > 40 ? own : "Shop " + product.name + " at KandiUg.", Math.max(20,160-tail.length-1)) + " " + tail;
+  const off = discountPercent(product.regular_price, product.price);
+  const price =
+    product.price > 0
+      ? off > 0
+        ? ` for ${formatPrice(product.price)} (was ${formatPrice(product.regular_price)}, save ${off}%)`
+        : ` for ${formatPrice(product.price)}`
+      : "";
+  const stock =
+    product.stock_status === "outofstock"
+      ? " Currently out of stock."
+      : product.stock_status === "onbackorder"
+        ? " Available on backorder."
+        : " In stock.";
+  const extras = [
+    " Pay with MTN or Airtel Money, card, or cash on delivery in Kampala.",
+    " Delivered across Uganda.",
+  ];
+  const lead = (limit: number) => `Buy ${shortName(product.name, limit)} in Uganda${price}.${stock}`;
+
+  let text = lead(70);
+  if (text.length > 160) text = lead(Math.max(20, 70 - (text.length - 160)));
+  for (const extra of extras) {
+    if (text.length + extra.length <= 160) text += extra;
+  }
+  return text;
 }
 
 /** Google's schema.org availability values. */
@@ -214,6 +264,21 @@ export function productJsonLd(
       name: product.seller?.store_name || "KandiUg",
     },
   };
+
+  /* The original price, so Google can show the saving in the result itself
+     (a struck-through price beside the sale price). Only when the reduction
+     is real — the same check every tile and the product page use. */
+  if (hasPriceReduction(product.regular_price, product.price)) {
+    offer.priceSpecification = [
+      { "@type": "UnitPriceSpecification", price: product.price, priceCurrency: "UGX" },
+      {
+        "@type": "UnitPriceSpecification",
+        priceType: "https://schema.org/StrikethroughPrice",
+        price: product.regular_price,
+        priceCurrency: "UGX",
+      },
+    ];
+  }
 
   if (options.terms) {
     const shipping = shippingDetails(product, options.terms);

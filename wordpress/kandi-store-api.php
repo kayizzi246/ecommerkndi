@@ -2161,3 +2161,220 @@ if ( ! function_exists( 'kandi_seed_categories' ) ) :
 endif;
 
 add_action( 'init', 'kandi_seed_categories', 20 );
+
+/* -------------------------------------------------------------------------
+ * Pack prices — WooCommerce → Pack prices
+ *
+ * AliExpress imports of multi-packs ("5pairs-grey", "10pairs-blue",
+ * "20-pairs") arrive with EVERY pack at the same price: the price of one
+ * pair. The shop then charged UGX 6,000 for fifty pairs of socks.
+ *
+ * This screen finds those products and, after showing a preview, sets each
+ * pack's price to (price of one pair) × (pairs in the pack) — regular and
+ * sale price alike, so the discount percentage stays what it was. The prices
+ * are written to WooCommerce itself, so the storefront, the basket, checkout,
+ * invoices and emails all agree.
+ *
+ * Safe to run more than once: a product is only offered while ALL of its
+ * packs still share one price. Once fixed, the packs differ and the product
+ * drops off the list, so nothing can be multiplied twice.
+ * ---------------------------------------------------------------------- */
+
+/** Pairs in a pack, read from an option value like "10pairs-blue" or "20 Pairs"; 0 when none. */
+if ( ! function_exists( 'kandi_pack_pairs' ) ) :
+function kandi_pack_pairs( $value ) {
+	return preg_match( '/(\d+)\s*-?\s*pairs?\b/i', (string) $value, $match ) ? (int) $match[1] : 0;
+}
+endif;
+
+/**
+ * Products whose packs still all share one price, with the proposed new
+ * prices for each pack. Each entry: product, and rows of
+ * [ variation, pairs, regular, sale, new_regular, new_sale ].
+ */
+if ( ! function_exists( 'kandi_pack_price_candidates' ) ) :
+function kandi_pack_price_candidates() {
+	global $wpdb;
+
+	$parent_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT p.post_parent
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID
+			 WHERE p.post_type = 'product_variation'
+			   AND m.meta_key LIKE %s
+			   AND m.meta_value LIKE %s",
+			$wpdb->esc_like( 'attribute_' ) . '%',
+			'%' . $wpdb->esc_like( 'pair' ) . '%'
+		)
+	);
+
+	$candidates = array();
+	foreach ( array_map( 'intval', (array) $parent_ids ) as $parent_id ) {
+		$product = wc_get_product( $parent_id );
+		if ( ! $product || ! $product->is_type( 'variable' ) ) {
+			continue;
+		}
+
+		$rows   = array();
+		$prices = array();
+		foreach ( (array) $product->get_children() as $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+			if ( ! $variation ) {
+				continue;
+			}
+
+			$pairs = 0;
+			foreach ( $variation->get_variation_attributes() as $value ) {
+				$pairs = max( $pairs, kandi_pack_pairs( $value ) );
+			}
+			if ( $pairs < 1 ) {
+				continue;
+			}
+
+			$regular = (float) $variation->get_regular_price();
+			$sale    = '' !== $variation->get_sale_price() ? (float) $variation->get_sale_price() : null;
+			if ( $regular <= 0 ) {
+				continue;
+			}
+
+			$prices[] = $regular . '|' . ( null === $sale ? '' : $sale );
+			$rows[]   = array(
+				'variation'   => $variation,
+				'pairs'       => $pairs,
+				'regular'     => $regular,
+				'sale'        => $sale,
+				'new_regular' => round( $regular * $pairs ),
+				'new_sale'    => null === $sale ? null : round( $sale * $pairs ),
+			);
+		}
+
+		// Needs at least two pack sizes, all still on one price, and at least
+		// one pack bigger than a single pair. Anything else is either already
+		// priced per pack or not a multi-pack at all.
+		$sizes = array_unique( wp_list_pluck( $rows, 'pairs' ) );
+		if ( count( $rows ) < 2 || count( array_unique( $prices ) ) !== 1 || count( $sizes ) < 2 || max( $sizes ) < 2 ) {
+			continue;
+		}
+
+		usort( $rows, function ( $a, $b ) {
+			return $a['pairs'] - $b['pairs'];
+		} );
+		$candidates[] = array( 'product' => $product, 'rows' => $rows );
+	}
+
+	return $candidates;
+}
+endif;
+
+add_action( 'admin_menu', function () {
+	add_submenu_page(
+		'woocommerce',
+		'Pack prices',
+		'Pack prices',
+		'manage_woocommerce',
+		'kandi-pack-prices',
+		'kandi_pack_prices_page'
+	);
+} );
+
+if ( ! function_exists( 'kandi_pack_prices_page' ) ) :
+function kandi_pack_prices_page() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'You do not have permission to change prices.' );
+	}
+
+	$updated = array();
+
+	if ( isset( $_POST['kandi_pack_apply'] ) ) {
+		check_admin_referer( 'kandi_pack_prices' );
+		$chosen = array_map( 'intval', (array) ( $_POST['kandi_pack_products'] ?? array() ) );
+
+		// Recomputed from the database at the moment of applying, never taken
+		// from the form, so a stale or tampered page cannot set a price.
+		foreach ( kandi_pack_price_candidates() as $candidate ) {
+			if ( ! in_array( $candidate['product']->get_id(), $chosen, true ) ) {
+				continue;
+			}
+			foreach ( $candidate['rows'] as $row ) {
+				$variation = $row['variation'];
+				$variation->set_regular_price( (string) $row['new_regular'] );
+				$variation->set_sale_price( null === $row['new_sale'] ? '' : (string) $row['new_sale'] );
+				$variation->save();
+			}
+			// Recomputes the parent's "from" price and clears WooCommerce's
+			// price caches; the storefront cache is purged by the product-save
+			// hooks in the Kandi plugins.
+			WC_Product_Variable::sync( $candidate['product']->get_id() );
+			wc_delete_product_transients( $candidate['product']->get_id() );
+			kandi_forget_product_payload( $candidate['product']->get_id() );
+			$updated[] = $candidate['product']->get_name();
+		}
+	}
+
+	$candidates = kandi_pack_price_candidates();
+	$money      = function ( $amount ) {
+		return null === $amount ? '—' : 'UGX ' . number_format( (float) $amount );
+	};
+	?>
+	<div class="wrap">
+		<h1>Pack prices</h1>
+		<p style="max-width:760px">
+			Products whose pack options (for example <code>10pairs-blue</code>) are all on the
+			same price. Applying sets each pack to <strong>price of one pair × number of pairs</strong>,
+			for the regular and the sale price. Check the new prices below before applying.
+			A product leaves this list once its packs are priced differently, so nothing is
+			multiplied twice.
+		</p>
+
+		<?php if ( $updated ) : ?>
+			<div class="notice notice-success"><p>
+				Updated <?php echo count( $updated ); ?> product(s):
+				<?php echo esc_html( implode( ', ', $updated ) ); ?>.
+			</p></div>
+		<?php endif; ?>
+
+		<?php if ( ! $candidates ) : ?>
+			<p><strong>Nothing to fix.</strong> No product has multi-pack options all on one price.</p>
+		<?php else : ?>
+			<form method="post">
+				<?php wp_nonce_field( 'kandi_pack_prices' ); ?>
+				<?php foreach ( $candidates as $candidate ) : $product = $candidate['product']; ?>
+					<div style="background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:12px 16px;margin:14px 0;max-width:900px">
+						<label style="font-size:14px;font-weight:600">
+							<input type="checkbox" name="kandi_pack_products[]" value="<?php echo esc_attr( $product->get_id() ); ?>" checked>
+							<?php echo esc_html( $product->get_name() ); ?>
+						</label>
+						<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>" style="margin-left:8px">edit</a>
+						<table class="widefat striped" style="margin-top:8px">
+							<thead><tr>
+								<th>Pack</th><th>Pairs</th>
+								<th>Regular now</th><th>Regular new</th>
+								<th>Sale now</th><th>Sale new</th>
+							</tr></thead>
+							<tbody>
+							<?php foreach ( $candidate['rows'] as $row ) : ?>
+								<tr>
+									<td><?php echo esc_html( wc_get_formatted_variation( $row['variation'], true, false ) ); ?></td>
+									<td><?php echo (int) $row['pairs']; ?></td>
+									<td><?php echo esc_html( $money( $row['regular'] ) ); ?></td>
+									<td><strong><?php echo esc_html( $money( $row['new_regular'] ) ); ?></strong></td>
+									<td><?php echo esc_html( $money( $row['sale'] ) ); ?></td>
+									<td><strong><?php echo esc_html( $money( $row['new_sale'] ) ); ?></strong></td>
+								</tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				<?php endforeach; ?>
+				<p>
+					<button type="submit" name="kandi_pack_apply" value="1" class="button button-primary">
+						Apply new prices to ticked products
+					</button>
+				</p>
+			</form>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+endif;
