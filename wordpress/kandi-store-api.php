@@ -328,9 +328,12 @@ function kandi_format_product( $product, $with_description = false ) {
 				// parent's). AliExpress imports name colours by code — "ML565EG1"
 				// — and put the colour in this picture, so it is the only thing
 				// the storefront can show the shopper for that option.
+				// When the importer's background download never attached the
+				// photo (ALD's "Failed Images" queue), fall back to the original
+				// AliExpress URL it left in the variation's meta.
 				'image'       => $variation_product->get_image_id( 'edit' )
 					? wp_get_attachment_image_url( $variation_product->get_image_id( 'edit' ), 'large' )
-					: null,
+					: kandi_variation_meta_image( $variation_product->get_id() ),
 			);
 		}
 	}
@@ -390,6 +393,42 @@ function kandi_format_product( $product, $with_description = false ) {
 	 * Centre uses this to attach the owning store to each product.
 	 */
 	return apply_filters( 'kandi_product_payload', $data, $product );
+}
+endif;
+
+/**
+ * The first AliExpress photo URL stored anywhere in a variation's meta, or null.
+ *
+ * Import plugins record the SKU photo under their own meta keys and only turn
+ * it into a media-library attachment once a background download succeeds. When
+ * that download fails, the variation has no image and its colour shows up as a
+ * bare name. Scanning the values rather than naming one key keeps this working
+ * across importers and their versions.
+ */
+if ( ! function_exists( 'kandi_variation_meta_image' ) ) :
+function kandi_variation_meta_image( $variation_id ) {
+	$found = null;
+	foreach ( (array) get_post_meta( $variation_id ) as $key => $values ) {
+		if ( 0 === strpos( (string) $key, '_wp_' ) ) {
+			continue;
+		}
+		foreach ( (array) $values as $value ) {
+			$value = maybe_unserialize( $value );
+			$flat  = is_array( $value ) ? $value : array( $value );
+			array_walk_recursive( $flat, function ( $item ) use ( &$found ) {
+				if ( $found || ! is_string( $item ) ) {
+					return;
+				}
+				if ( preg_match( '#https?://[^\s"\']*(alicdn\.com|aliexpress-media\.com)/[^\s"\']+\.(jpe?g|png|webp)#i', $item, $match ) ) {
+					$found = preg_replace( '#^http:#i', 'https:', $match[0] );
+				}
+			} );
+			if ( $found ) {
+				return $found;
+			}
+		}
+	}
+	return null;
 }
 endif;
 

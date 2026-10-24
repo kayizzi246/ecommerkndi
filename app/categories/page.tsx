@@ -160,7 +160,7 @@ export default async function CategoriesPage() {
     const products = feeds[index].products.slice(0, 12);
     if (products.length === 0) return null;
     return (
-      <div key={department.id} className="product-grid-flush grid grid-cols-2">
+      <div key={department.id} className="pc-grid grid grid-cols-2">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} sizes="45vw" />
         ))}

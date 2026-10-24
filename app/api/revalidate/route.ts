@@ -16,7 +16,23 @@ import { clientIp, rateLimit, tooManyRequests, LIMITS } from "@/lib/rate-limit";
  * on demand until it falls over.
  */
 
-function purge() {
+/**
+ * `hard` drops everything at once; otherwise the cache is marked stale.
+ *
+ * WordPress calls this on every save AND every stock change, which is every
+ * order. A hard purge each time sent the next visitor on every page through to
+ * WordPress and made them wait for it — the shop felt slow precisely when it
+ * was busy. Marked stale ("max"), the shopper still gets the cached page
+ * instantly while the fresh copy is fetched in the background.
+ *
+ * The owner's "Refresh catalogue" button still purges hard: that is someone
+ * asking, on purpose, to see the change right now.
+ */
+function purge(hard: boolean) {
+  if (!hard) {
+    revalidateTag(PRODUCTS_TAG, "max");
+    return;
+  }
   revalidateTag(PRODUCTS_TAG, { expire: 0 });
   // The homepage and listing pages are prerendered, so dropping the fetch cache
   // alone would still serve the old HTML until the page itself expired.
@@ -58,11 +74,12 @@ export async function POST(request: Request) {
   // endpoint was open to anyone willing to type a cookie header: `httpOnly`
   // prevents the page's own scripts from reading the value, but nothing stops a
   // client inventing one.
-  if (!authorised(request) && !(await isOwnerAuthenticated())) {
+  const fromWordPress = authorised(request);
+  if (!fromWordPress && !(await isOwnerAuthenticated())) {
     return Response.json({ message: "Invalid API secret." }, { status: 403 });
   }
 
-  purge();
+  purge(!fromWordPress);
   return Response.json({ revalidated: true, now: Date.now() });
 }
 

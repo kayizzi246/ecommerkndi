@@ -62,6 +62,9 @@ function feedUrl(page: number, perPage: number, query: ProductFeedQuery): string
   return `/api/products?${params.toString()}`;
 }
 
+/** One page of `/api/products`. */
+type FeedPage = { products: Product[]; total_pages: number };
+
 export type ProductFeed = {
   products: Product[];
   loading: boolean;
@@ -211,6 +214,50 @@ export function useProductFeed({
   const queryKey = JSON.stringify(query);
   const stableQuery = useMemo(() => JSON.parse(queryKey) as ProductFeedQuery, [queryKey]);
 
+  /* ---- One page always on its way before it is needed ----
+
+     The grid used to ask for page N+1 only when the shopper reached the bottom
+     of page N, so every page boundary was a visible wait on WordPress. Now the
+     next page is requested as soon as the current one lands (and shortly after
+     mount for the first), and `loadMore` picks up that same promise — usually
+     already settled, so the new row appears the moment it is scrolled to.
+
+     Keyed by URL, so a changed query can never be served another query's page,
+     and a failed request is forgotten so the retry button genuinely retries. */
+  const inflight = useRef(new Map<string, Promise<FeedPage>>());
+
+  const requestPage = useCallback(
+    (pageNumber: number): Promise<FeedPage> => {
+      const url = feedUrl(pageNumber, perPage, stableQuery);
+      const cached = inflight.current.get(url);
+      if (cached) return cached;
+
+      const pending = fetch(url).then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        const payload = (await response.json()) as FeedPage;
+        if (!Array.isArray(payload.products) || !Number.isInteger(payload.total_pages) || payload.total_pages < 0) throw new Error("Invalid product response");
+        if (payload.products.length === 0 && pageNumber <= payload.total_pages) throw new Error("Product page unavailable");
+        return payload;
+      });
+      pending.catch(() => inflight.current.delete(url));
+      inflight.current.set(url, pending);
+      return pending;
+    },
+    [perPage, stableQuery]
+  );
+
+  // Warm the second page once the first screen has had a moment to load its
+  // photographs, so the prefetch never competes with what is on screen.
+  useEffect(() => {
+    if (page >= availablePages) return;
+    const timer = setTimeout(() => {
+      requestPage(page + 1).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(timer);
+    // Only the first page needs this; later pages prefetch from `loadMore`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestPage]);
+
   const loadMore = useCallback(async () => {
     if (loading || done) return;
 
@@ -219,12 +266,8 @@ export function useProductFeed({
 
     try {
       const next = page + 1;
-      const response = await fetch(feedUrl(next, perPage, stableQuery));
-      if (!response.ok) throw new Error(String(response.status));
-
-      const payload = (await response.json()) as { products: Product[]; total_pages: number };
-      if (!Array.isArray(payload.products) || !Number.isInteger(payload.total_pages) || payload.total_pages < 0) throw new Error("Invalid product response");
-      if (payload.products.length === 0 && next <= payload.total_pages) throw new Error("Product page unavailable");
+      const payload = await requestPage(next);
+      if (next < payload.total_pages) requestPage(next + 1).catch(() => {});
       setAvailablePages(payload.total_pages);
       const arriving = refine ? refine(payload.products) : payload.products;
 
@@ -250,7 +293,7 @@ export function useProductFeed({
     } finally {
       setLoading(false);
     }
-  }, [loading, done, page, perPage, stableQuery, excludeId, refine, personalize]);
+  }, [loading, done, page, requestPage, excludeId, refine, personalize]);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -262,9 +305,9 @@ export function useProductFeed({
       (entries) => {
         if (entries[0]?.isIntersecting) loadMore();
       },
-      // Fetched 600px early, so the next row is usually already there by the
-      // time the shopper reaches the bottom of the current one.
-      { rootMargin: "600px" }
+      // Triggered well ahead of the bottom; with the page above already
+      // prefetched, appending it is a state update rather than a request.
+      { rootMargin: "1400px" }
     );
 
     observer.observe(node);

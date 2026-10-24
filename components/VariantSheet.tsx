@@ -8,7 +8,7 @@ import { useToast } from "@/lib/toast";
 import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
-import { isColourAttribute } from "@/lib/colour-names";
+import { colourLabel, isColourAttribute } from "@/lib/colour-names";
 import ColorSwatch from "@/app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -224,11 +224,20 @@ export default function VariantSheet({
                choice looks the same wherever a shopper makes it. */
             isColourAttribute(attr.name) ? (
               <div key={attr.name}>
-                <p className="mb-2.5 text-[16px] font-[800] text-black">
-                  Colour: {selected[attr.name] || "Select a colour"}
+                <p className="mb-2 text-[14px] font-semibold text-black">
+                  Colour:{" "}
+                  <span className="font-normal text-shop-body">
+                    {selected[attr.name]
+                      ? colourLabel(
+                          selected[attr.name] as string,
+                          attr.options.findIndex((option) => option.name === selected[attr.name])
+                        )
+                      : "Select a colour"}
+                  </span>
                 </p>
                 <ColorSwatch
                   options={attr.options}
+                  fallbackImage={product.image || undefined}
                   value={selected[attr.name] ?? null}
                   isOptionAvailable={(optionName) => available(attr.name, optionName)}
                   onChange={(colorName) => {

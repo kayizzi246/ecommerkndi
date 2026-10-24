@@ -8,7 +8,7 @@ import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
-import { isColourAttribute } from "@/lib/colour-names";
+import { colourLabel, isColourAttribute } from "@/lib/colour-names";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -157,14 +157,20 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         if (isColourAttribute(attr.name)) {
           return (
             <div key={attr.name}>
-              <p className="mb-2.5 text-[16px] font-[800] text-black">
+              <p className="mb-2 text-[14px] font-semibold text-black">
                 Colour:{" "}
-                <span className="font-[800] text-black">
-                  {selected[attr.name] || "Select a colour"}
+                <span className="font-normal text-shop-body">
+                  {selected[attr.name]
+                    ? colourLabel(
+                        selected[attr.name] as string,
+                        attr.options.findIndex((option) => option.name === selected[attr.name])
+                      )
+                    : "Select a colour"}
                 </span>
               </p>
               <ColorSwatch
                 options={attr.options}
+                fallbackImage={product.image || undefined}
                 value={selected[attr.name]}
                 isOptionAvailable={(optionName) => isOptionAvailable(attr.name, optionName)}
                 onChange={(colorName) => {

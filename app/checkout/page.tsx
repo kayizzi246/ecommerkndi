@@ -17,10 +17,10 @@ import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
-const labelClass = "mb-1.5 block text-[16px] font-[800] text-black";
+const labelClass = "mb-1 block text-[13px] font-semibold text-shop-ink";
 
 /** The grey line under a field that says what to put in it. */
-const hintClass = "mt-1 text-[14px] font-medium leading-5 text-shop-body";
+const hintClass = "mt-1 text-[12px] leading-4 text-shop-muted";
 
 /**
  * A field that failed, in red, under the field that failed.
@@ -32,7 +32,7 @@ const hintClass = "mt-1 text-[14px] font-medium leading-5 text-shop-body";
  */
 function FieldError({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-1 flex items-start gap-1 text-[14px] font-bold leading-5 text-shop-sale">
+    <p className="mt-1 flex items-start gap-1 text-[12px] font-semibold leading-4 text-shop-sale">
       <span aria-hidden>!</span>
       <span>{children}</span>
     </p>
@@ -50,17 +50,17 @@ function StepHeading({
   sub?: string;
 }) {
   return (
-    <div className="mb-4">
-      <h2 className="flex items-center gap-2.5 text-[23px] font-[800] leading-tight text-black">
+    <div className="mb-3">
+      <h2 className="flex items-center gap-2 text-[16px] font-bold leading-tight text-black">
         <span
           aria-hidden
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-black text-[16px] font-[800] text-white"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-[12px] font-bold text-white"
         >
           {step}
         </span>
         {title}
       </h2>
-      {sub && <p className="mt-1 text-[15px] font-semibold leading-5 text-shop-body">{sub}</p>}
+      {sub && <p className="mt-1 text-[13px] leading-5 text-shop-muted">{sub}</p>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
 
   return (
     <div className="mt-5 rounded-lg border border-shop-line bg-shop-surface px-3 py-2.5">
-      <p className="text-[12px] font-[800] text-black">Shop with peace of mind</p>
+      <p className="text-[12px] font-semibold text-black">Shop with peace of mind</p>
       <ul className="mt-1.5 space-y-1">
         {points.map((point) => (
           <li key={point.title} className="flex items-start gap-1.5">
@@ -108,7 +108,7 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
               <path strokeLinecap="round" strokeLinejoin="round" d={point.icon} />
             </svg>
             <span className="text-[11px] leading-4 text-shop-body">
-              <strong className="font-[800] text-black">{point.title}.</strong> {point.body}
+              <strong className="font-semibold text-black">{point.title}.</strong> {point.body}
             </span>
           </li>
         ))}
@@ -566,10 +566,10 @@ export default function CheckoutPage() {
   /* Shared between the mobile disclosure and the desktop summary rail. */
   const summary = (
     <>
-      <ul className="space-y-4">
+      <ul className="space-y-3">
         {items.map((item) => (
-          <li key={item.key} className="flex items-center gap-4">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white">
+          <li key={item.key} className="flex items-center gap-3">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white">
               {/* Guarded: an imageless product stores "" here, and `next/image`
                   treats an empty src as a request for the current page. */}
               {item.image && (
@@ -580,7 +580,7 @@ export default function CheckoutPage() {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-[15px] font-semibold leading-snug text-black">
+              <p className="line-clamp-2 text-[13px] leading-snug text-shop-ink">
                 {item.name}
               </p>
               {item.options && Object.keys(item.options).length > 0 && (
@@ -593,7 +593,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2.5">
-              <span className="whitespace-nowrap text-[15px] font-[800] text-black">
+              <span className="whitespace-nowrap text-[13px] font-semibold text-black">
                 {formatPrice(item.price * item.quantity)}
               </span>
 
@@ -630,7 +630,7 @@ export default function CheckoutPage() {
         ))}
       </ul>
 
-      <dl className="mt-6 space-y-2.5 border-t border-shop-line pt-6 text-[16px] font-semibold">
+      <dl className="mt-5 space-y-2 border-t border-shop-line pt-5 text-[14px]">
         <div className="flex items-baseline justify-between">
           <dt className="text-shop-body">Items ({count})</dt>
           <dd className="font-medium text-shop-ink">{formatPrice(subtotal)}</dd>
@@ -675,9 +675,9 @@ export default function CheckoutPage() {
         </Link>
       )}
 
-      <div className="mt-5 flex items-baseline justify-between border-t border-shop-line pt-5">
-        <span className="text-[19px] font-[800] text-black">Total</span>
-        <span className="text-[26px] font-[800] text-black">
+      <div className="mt-4 flex items-baseline justify-between border-t border-shop-line pt-4">
+        <span className="text-[15px] font-semibold text-black">Total</span>
+        <span className="text-[19px] font-bold text-black">
           {formatPrice(total)}
         </span>
       </div>
@@ -743,8 +743,8 @@ export default function CheckoutPage() {
            growing past the viewport — a summary of eight items that covers the
            whole screen when tapped is worse than one that scrolls away. */}
       <details className="group sticky top-0 z-30 border-y border-shop-line bg-shop-surface lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
-          <span className="flex items-center gap-2 text-[16px] font-[800] text-black">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
+          <span className="flex items-center gap-2 text-[14px] font-semibold text-black">
             Your order ({count})
             <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
@@ -752,7 +752,7 @@ export default function CheckoutPage() {
           </span>
           {/* The total, matching the pay bar below. Showing the subtotal here
               and the total there put two different amounts on one screen. */}
-          <span className="text-[21px] font-[800] text-black">{formatPrice(total)}</span>
+          <span className="text-[16px] font-bold text-black">{formatPrice(total)}</span>
         </summary>
         <div className="max-h-[60vh] overflow-y-auto px-4 pb-6">{summary}</div>
       </details>
@@ -858,7 +858,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={() => setShowEmail(true)}
-                className="mt-3 text-[15px] font-bold text-shop-primary underline-offset-4 hover:underline"
+                className="mt-3 text-[13px] font-semibold text-shop-primary underline-offset-4 hover:underline"
               >
                 + Add email (optional)
               </button>
@@ -942,7 +942,7 @@ export default function CheckoutPage() {
                 return (
                   <label
                     key={option.value}
-                    className={`flex cursor-pointer items-start gap-3 p-5 transition-colors ${
+                    className={`flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors ${
                       active ? "bg-shop-primary-soft" : "bg-white"
                     } ${unavailable ? "cursor-not-allowed opacity-50" : ""}`}
                   >
@@ -957,7 +957,7 @@ export default function CheckoutPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-[17px] font-[800] text-black">
+                        <span className="text-[14px] font-semibold text-black">
                           {option.label}
                         </span>
                         {/* The networks this option actually takes, in place of
@@ -978,7 +978,7 @@ export default function CheckoutPage() {
                           </>
                         )}
                       </span>
-                      <span className="mt-1 block text-[15px] font-semibold leading-5 text-shop-body">
+                      <span className="mt-0.5 block text-[12px] leading-4 text-shop-muted">
                         {option.value === "cod"
                           ? codAllowed
                             ? option.hint
@@ -1017,7 +1017,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-shop mt-6 hidden w-full rounded-full py-4 text-[17px] font-[800] lg:block"
+              className="btn-shop mt-5 hidden w-full rounded-full py-3.5 text-[15px] font-bold lg:block"
             >
               {openingPayment
                 ? "Opening payment…"
@@ -1057,21 +1057,21 @@ export default function CheckoutPage() {
       <div className="checkout-paybar fixed inset-x-0 bottom-0 z-40 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] transition-transform duration-200 lg:hidden">
         <div className="flex items-center gap-3 px-4 py-2.5">
           <div className="min-w-0">
-            <p className="text-[14px] font-bold text-shop-body">
+            <p className="text-[12px] text-shop-muted">
               {payingOnDelivery ? "Pay on delivery" : "Total"}
             </p>
             {/* The one number on the screen that decides whether the next tap
                 happens. It was the same weight as the product prices in the
                 summary above it, which on a phone made the thing being paid
                 indistinguishable from the things being bought. */}
-            <p className="price text-[24px] font-[800] leading-none text-black">
+            <p className="price text-[18px] font-bold leading-tight text-black">
               {formatPrice(total)}
             </p>
           </div>
           <button
             type="submit"
             disabled={submitting}
-            className="btn-shop ml-auto shrink-0 rounded-full px-7 py-3.5 text-[16px] font-[800]"
+            className="btn-shop ml-auto shrink-0 rounded-full px-6 py-3 text-[14px] font-bold"
           >
             {openingPayment
               ? "Opening payment…"
@@ -1086,7 +1086,7 @@ export default function CheckoutPage() {
 
       {/* Summary rail — full-bleed grey panel, the Shopify checkout signature. */}
       <aside className="order-2 hidden border-l border-shop-line bg-shop-surface lg:block">
-        <div className="sticky top-0 w-full max-w-[520px] px-14 py-10 lg:ml-0 lg:mr-auto">
+        <div className="sticky top-0 w-full max-w-[480px] px-10 py-10 lg:ml-0 lg:mr-auto">
           {summary}
         </div>
       </aside>
@@ -1106,8 +1106,8 @@ export default function CheckoutPage() {
             aria-hidden
             className="h-12 w-12 animate-spin rounded-full border-4 border-[#f0e2a6] border-t-[#111111] motion-reduce:animate-none"
           />
-          <p className="text-[20px] font-[800] text-black">Processing…</p>
-          <p className="text-[14px] font-semibold text-shop-body">
+          <p className="text-[17px] font-bold text-black">Processing…</p>
+          <p className="text-[13px] text-shop-body">
             {openingPayment ? "Opening secure payment." : "Placing your order."} Please wait.
           </p>
         </div>

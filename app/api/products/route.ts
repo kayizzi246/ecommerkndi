@@ -98,7 +98,13 @@ export async function GET(request: Request) {
       ...(sort ? { sort } : {}),
     }, { throwOnError: true });
 
-    return Response.json({ products, page, total_pages });
+    // Cached at the CDN, and served stale while it refreshes: page 7 of the
+    // feed is the same list for every shopper, so only the first one in a
+    // window should ever wait for WordPress.
+    return Response.json(
+      { products, page, total_pages },
+      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400" } }
+    );
   } catch {
     return Response.json({ error: "Products are temporarily unavailable. Please try again." }, { status: 503 });
   }

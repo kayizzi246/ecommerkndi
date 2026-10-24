@@ -77,8 +77,11 @@
  * the arithmetic itself. All three move together or the shop downloads
  * photographs the wrong size for the boxes they land in.
  */
+/* `pc-grid` (app/product-cards.css) replaced `product-grid-flush` with the
+   Temu-style tile: plain gaps between rounded photos, no phone stagger. The
+   column counts and the notes above about them are unchanged. */
 export const PRODUCT_GRID =
-  "product-grid-flush grid grid-cols-2 " +
+  "pc-grid grid grid-cols-2 " +
   "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";
 
 /**
@@ -98,5 +101,5 @@ export const PRODUCT_GRID =
  * The extra column begins at `xl`, where the store has room for it.
  */
 export const PRODUCT_GRID_WIDE =
-  "product-grid-flush grid grid-cols-2 " +
+  "pc-grid grid grid-cols-2 " +
   "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";

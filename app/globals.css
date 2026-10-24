@@ -4130,3 +4130,13 @@ body { font-size: 13px; }
 .black-friday-browse { font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
 @media (max-width: 639px) { .black-friday-hero { min-height: 250px; border-radius: 0; } .black-friday-hero > img { object-position: center; } .black-friday-actions { gap: 12px; flex-wrap: wrap; } .tile-card .tile-info { padding: 6px; } }
 @media (prefers-reduced-motion: reduce) { .tile-card, .tile-deal .tile-off { animation: none; transition: none; } .tile-card:hover { transform: none; } }
+
+/* Checkout and account fields on a desktop: 16px semibold is only needed on
+   phones (it stops iOS zooming in on focus); with a pointer it read as shouting. */
+@media (min-width: 768px) {
+  .field-shop {
+    font-size: 14px;
+    font-weight: 400;
+    padding: 0.625rem 0.75rem;
+  }
+}

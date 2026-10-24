@@ -372,9 +372,21 @@ function getCandidateUrls(path: string, fallbackPath?: string): string[] {
  * The proper fix is the `no-store` headers in kandi-store-api.php. This is the
  * belt to that pair of braces, and it works even on a host whose cache ignores
  * them.
+ *
+ * ---- Daily, not every cache window ----
+ *
+ * The value is part of the URL, so it is part of Next's cache KEY. Rotating it
+ * every five minutes meant every listing became a brand-new, never-cached URL
+ * every five minutes, and Next cannot serve stale-while-revalidate for a key it
+ * has never seen: the shopper waited for WordPress (10+ seconds on this host)
+ * on page two of the feed, on search, on every category. Freshness comes from
+ * the revalidate window and the purge webhook; this only has to bound how long
+ * a misbehaving host cache can lie, and a day does that.
  */
+const CACHE_BUSTER_MS = 24 * 60 * 60 * 1000;
+
 function cacheBuster(): number {
-  return Math.floor(Date.now() / (REVALIDATE_SECONDS * 1000));
+  return Math.floor(Date.now() / CACHE_BUSTER_MS);
 }
 
 async function wpFetchRaw(path: string, fallbackPath?: string): Promise<unknown | null> {
@@ -478,11 +490,33 @@ function toProduct(raw: unknown): Product {
 
   const mainImage: string = toSrc(product.image) || storeApiImages[0] || customGallery[0] || "";
 
+  /* AliExpress imports often arrive with an empty gallery: the importer keeps
+     the extra photos only as variation pictures or as <img> tags inside the
+     description, so the product page showed one lonely shot. Variation photos
+     always join the gallery; description photos fill in when the gallery is
+     still thin. */
+  const variationShots = arr(product.variations)
+    .map((entry) => str(obj(entry).image))
+    .filter(Boolean);
+  const listed = [...storeApiImages, ...customGallery, ...variationShots];
+  const descriptionShots =
+    listed.length < 4 && typeof product.description === "string"
+      ? descriptionImages(product.description)
+      : [];
+
   // Every other shot, main image excluded and duplicates dropped — the product
-  // page prepends the main image itself.
-  const gallery = [...storeApiImages, ...customGallery].filter(
-    (src, index, all) => src !== mainImage && all.indexOf(src) === index
-  );
+  // page prepends the main image itself. Duplicates are judged by photo, not by
+  // URL, because the same AliExpress shot arrives both as the WordPress copy
+  // and as the original on alicdn.
+  const seenShots = new Set([photoKey(mainImage)]);
+  const gallery = [...listed, ...descriptionShots]
+    .filter((src) => {
+      const key = photoKey(src);
+      if (seenShots.has(key)) return false;
+      seenShots.add(key);
+      return true;
+    })
+    .slice(0, MAX_GALLERY);
 
   const seller = obj(product.seller);
 
@@ -634,6 +668,35 @@ function decodeEntities(value: string): string {
     .replace(/&gt;/g, ">")
     // Last, so "&amp;lt;" decodes to the text "&lt;" rather than to "<".
     .replace(/&amp;/g, "&");
+}
+
+/** Most shots the product page gallery shows. */
+const MAX_GALLERY = 14;
+
+/**
+ * Identifies a photograph regardless of which host or size it was served at.
+ *
+ * AliExpress names every photo with a long id ("Scc9464c611c44fb5a1959…Q"),
+ * and the importer keeps that id when it copies the file into WordPress
+ * ("kf-Scc9464c…Q-1024x1024.webp"), so the longest run of letters and digits
+ * in the file name is the same for both copies.
+ */
+function photoKey(src: string): string {
+  const file = src.split("?")[0].split("/").pop() ?? src;
+  const runs = file.match(/[A-Za-z0-9]{20,}/g);
+  return runs ? runs.sort((a, b) => b.length - a.length)[0] : src;
+}
+
+/** The product photographs embedded in an imported description. */
+function descriptionImages(html: string): string[] {
+  const found: string[] = [];
+  for (const match of html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)) {
+    const src = match[1].replace(/&amp;/g, "&").trim();
+    // Absolute photos only: skip spacer gifs, inline data and tracking pixels.
+    if (!/^https?:\/\//i.test(src) || /\.(gif|svg)(\?|$)/i.test(src)) continue;
+    found.push(src.replace(/^http:/i, "https:"));
+  }
+  return found;
 }
 
 function toCategory(raw: unknown): ProductCategory {

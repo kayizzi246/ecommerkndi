@@ -1,13 +1,78 @@
 import { buildHomeFeed } from "@/lib/home-feed";
 import BlackFridayHero from "@/components/home/BlackFridayHero";
-import ChannelRow from "@/components/home/ChannelRow";
-import PortalBand from "@/components/home/PortalBand";
+import HomeTrustBar from "@/components/home/HomeTrustBar";
+import CategoryCircles, { type CategoryCircle } from "@/components/home/CategoryCircles";
+import LightningDeals from "@/components/home/LightningDeals";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { itemListJsonLd, productPath } from "@/lib/seo";
+import { discountPercent } from "@/lib/currency";
+import type { CategoryNode, Product } from "@/lib/woocommerce";
 import Link from "next/link";
 import type { Metadata } from "next";
+
+/** Most circles in the "Shop by category" row. */
+const CATEGORY_CIRCLES = 14;
+
+/**
+ * The departments, then their busiest sub-categories, each with a photo: the
+ * category's own image from wp-admin, or the first product filed anywhere
+ * beneath it. Empty categories are left out — a circle that opens onto
+ * nothing is a broken promise.
+ */
+function categoryCircles(departments: CategoryNode[], pool: Product[]): CategoryCircle[] {
+  const subtreeSlugs = (node: CategoryNode): Set<string> => {
+    const slugs = new Set([node.slug]);
+    const walk = (children: CategoryNode[]) => {
+      for (const child of children) {
+        slugs.add(child.slug);
+        walk(child.children);
+      }
+    };
+    walk(node.children);
+    return slugs;
+  };
+  const stocked = (node: CategoryNode): boolean =>
+    (node.count ?? 0) > 0 || node.children.some(stocked);
+
+  const candidates = [
+    ...departments.filter(stocked),
+    ...departments
+      .flatMap((department) => department.children)
+      .filter((child) => (child.count ?? 0) > 0)
+      .sort((a, b) => (b.count ?? 0) - (a.count ?? 0)),
+  ];
+
+  const circles: CategoryCircle[] = [];
+  const usedSlugs = new Set<string>();
+  // Men, Women and Kids each have a "Shoes" and a "Hoodies"; three circles
+  // with the same label read as a bug, so only the busiest one is kept.
+  const usedNames = new Set<string>();
+  const usedPhotos = new Set<string>();
+  for (const node of candidates) {
+    if (circles.length >= CATEGORY_CIRCLES) break;
+    const label = node.name.trim().toLowerCase();
+    if (usedSlugs.has(node.slug) || usedNames.has(label)) continue;
+    usedNames.add(label);
+    const slugs = subtreeSlugs(node);
+    const photo =
+      node.image ||
+      pool.find(
+        (product) =>
+          product.image &&
+          !usedPhotos.has(product.image) &&
+          product.categories.some((category) => slugs.has(category.slug))
+      )?.image ||
+      null;
+    usedSlugs.add(node.slug);
+    if (photo) usedPhotos.add(photo);
+    circles.push({ slug: node.slug, name: node.name, image: photo });
+  }
+  // Photographed circles first; a letter placeholder at the end of the row
+  // is fine, in the middle of it it looks like a failed image.
+  return [...circles.filter((circle) => circle.image), ...circles.filter((circle) => !circle.image)];
+}
 
 /** Shoe-focused homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
@@ -127,6 +192,28 @@ export default async function Home() {
     products: department.products,
   }));
 
+  /* The deals strip: the discount pool, topped up from anything reduced in
+     the general catalogue when the pool is thin. */
+  const dealPicks = [...deals, ...latest.filter((product) => product.on_sale)]
+    .filter(
+      (product, index, all) =>
+        product.stock_status !== "outofstock" &&
+        all.findIndex((other) => other.id === product.id) === index
+    )
+    .slice(0, 12);
+  const maxDiscount = Math.max(
+    0,
+    ...dealPicks.map((product) => discountPercent(product.regular_price, product.price))
+  );
+
+  const circles = categoryCircles(departments, [
+    ...bestSellers,
+    ...leadShoes,
+    ...trending,
+    ...latest,
+    ...departmentRails.flatMap((department) => department.products),
+  ]);
+
   return (
     <main className="min-w-0 pb-20">
       {/* ---- What is actually on this page, told to Google ----
@@ -176,26 +263,19 @@ export default async function Home() {
           what separates two sections is the seam between two white blocks
           rather than the size of the gap between them. */}
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 pb-2 pt-0 md:gap-4 md:px-8 md:pb-3.5 md:pt-0">
-        {/* ---- The opening screen, in the order a shopper asks the questions ----
+        {/* ---- The opening screen, Temu's order ----
 
-            No hero banner: the channel strip says where to go, then the band —
-            departments, the deepest cuts with prices showing, and the account. */}
-        <div className="november-campaign">
-        <BlackFridayHero />
-        <ChannelRow />
-
-        <PortalBand
-          settings={settings}
-          departments={departments}
-          newest={latest}
-          deals={deals}
-          bestSellers={bestSellers}
-        />
-        <div className="november-shopping-links" aria-label="Shopping shortcuts">
-          <Link href="/sale">Explore November offers <span aria-hidden>&rarr;</span></Link>
-          <Link href="/search?sort=price_asc">Shop lowest prices <span aria-hidden>&rarr;</span></Link>
-          <Link href="/shipping">Delivery &amp; returns <span aria-hidden>&rarr;</span></Link>
-        </div>
+            A compact campaign banner, the promise bar, the departments as
+            photographs, then the deals with their prices showing — so the
+            first screen is merchandise rather than headings. */}
+        <div className="hx">
+          <BlackFridayHero maxDiscount={maxDiscount} />
+          <HomeTrustBar
+            freeDeliveryFrom={settings.commerce.free_delivery_from}
+            returnsDays={settings.commerce.returns_days}
+          />
+          <CategoryCircles categories={circles} />
+          <LightningDeals products={dealPicks} />
         </div>
 
         <PickedForYou

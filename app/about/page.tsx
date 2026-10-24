@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import InfoPage, { InfoSection, InfoFooterCta } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
-import { formatPrice } from "@/lib/currency";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/about" },

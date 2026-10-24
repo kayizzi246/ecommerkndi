@@ -1,47 +1,334 @@
-/* Shared storefront card system. Keep overrides scoped to the card components. */
-:root { --store-card-radius: 12px; --store-border: #e8e8eb; --store-muted: #61616b; }
-button, input, select, textarea { font-family: inherit; }
-.product-grid-flush { display: grid; columns: auto; gap: 16px; align-items: stretch; }
-.product-grid-flush > * { min-width: 0; margin-bottom: 0; break-inside: auto; }
-.store-product-card.tile-card, .product-grid-flush .store-product-card.tile-card { border: 1px solid var(--store-border); border-radius: var(--store-card-radius); padding: 0; background: #fff; overflow: hidden; box-shadow: none !important; transition: border-color 180ms, transform 180ms; font-family: var(--font-ui); }
-.store-product-card.tile-card:hover { border-color: #c9c9cf; box-shadow: none !important; }
-.store-card-photo { position: relative; aspect-ratio: 1; background: #f7f7f8; overflow: hidden; }
-.store-card-image-link { display: block; position: absolute; inset: 0; }
-.store-card-image { object-fit: contain; padding: 12px; mix-blend-mode: multiply; transition: transform 220ms; }
-.store-card-no-image { display: grid; place-items: center; height: 100%; color: var(--store-muted); font-size: 12px; }
-.store-card-badge { position: absolute; top: 10px; left: 10px; border-radius: 5px; padding: 4px 7px; background: #fff; color: #27272d; font-size: 10px; line-height: 14px; font-weight: 600; }
-.store-card-badge-sale { background: #171717; color: #ffe29a; }
-.store-card-wishlist { position: absolute; top: 8px; right: 8px; }
-.store-card-body { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 12px; }
-.store-card-title { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; max-height: 36px; color: #27272d; font-size: 12px; font-weight: 450; line-height: 18px; letter-spacing: 0; }
-.store-card-pricing { min-height: 44px; }
-.store-card-price { margin: 0; color: #171717; font-size: 15px; font-weight: 700; line-height: 22px; font-variant-numeric: tabular-nums; }
-.store-card-original { min-height: 18px; display: flex; flex-wrap: wrap; column-gap: 6px; font-size: 10px; line-height: 18px; color: var(--store-muted); font-variant-numeric: tabular-nums; }
-.store-card-original s, .home-mini-original s { text-decoration: line-through; text-decoration-thickness: 1px; }
-.store-card-saving { color: #8b3b12; }
-.store-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 5px; min-height: 16px; color: var(--store-muted); font-size: 10px; line-height: 16px; }
-.store-card-reviews { display: inline-flex; align-items: center; gap: 4px; }
-.store-card-delivery { min-height: 18px; font-size: 10px; color: var(--store-muted); }
-.store-card-action { margin-top: auto; }
-.store-card-action > :is(a, button, span) { display: flex; width: 100%; justify-content: center; gap: 6px; min-height: 38px; padding: 8px; border: 1px solid #dedee3; border-radius: 7px; background: #fff; color: #171717; font-size: 11px; line-height: 16px; font-weight: 600; text-transform: none; letter-spacing: 0; }
-.store-card-action > :is(a, button):hover { background: #fff8df; border-color: #b18b12; color: #171717; }
-.store-card-action > span { background: #f7f7f8; color: var(--store-muted); }
-.store-card-stock { margin: 0; color: #9a3c17; font-size: 10px; line-height: 14px; }
-.home-mosaic > :is(div, a) { border-radius: var(--store-card-radius); }
-.home-mosaic > div { padding: 12px; }
-.home-mosaic > div > a > span:first-child { font-size: 13px; font-weight: 600; }
-.home-mosaic > a > span:nth-child(2) { font-size: 20px; font-weight: 700; }
-.home-mini-card > span:first-child { border-radius: 8px; background: #f7f7f8; }
-.home-mini-card > span:nth-child(2) { font-size: 12px; font-weight: 650; color: #171717; line-height: 18px; margin-top: 7px; }
-.home-mini-original { display: block; min-height: 16px; color: var(--store-muted); font-size: 10px; line-height: 16px; font-variant-numeric: tabular-nums; }
-@media (hover: hover) { .store-product-card:hover .store-card-image { transform: scale(1.035); } }
-@media (max-width: 639px) { .product-grid-flush { gap: 8px; padding-inline: 8px; } .store-card-body { padding: 9px; gap: 7px; } .store-card-price { font-size: 14px; } .store-card-saving { display: none; } .store-card-image { padding: 8px; } .store-card-badge { left: 7px; top: 7px; } }
-@media (prefers-reduced-motion: reduce) { .store-product-card.tile-card, .store-card-image { transition: none; } .store-product-card.tile-card:hover, .store-product-card:hover .store-card-image { transform: none; } }
+/* ---------------------------------------------------------------------------
+ * The product tile and the grid it sits in (components/ProductCard.tsx,
+ * lib/product-grid.ts), modelled on Temu's listing tile.
+ *
+ * Own `pc-*` names on purpose: the older `tile-*` and `product-grid-flush`
+ * rules in globals.css were overridden six or seven times over, so this file
+ * starts clean instead of adding an eighth layer. Imported after globals.css.
+ * ------------------------------------------------------------------------- */
 
-.store-card-stock { min-height: 14px; }
-.tile-deal .store-card-badge-sale { animation: deal-highlight 3s ease-in-out 3; }
-@media (prefers-reduced-motion: reduce) { .tile-deal .store-card-badge-sale { animation: none; } }
+.pc-grid {
+  display: grid;
+  gap: 18px 12px;
+  align-items: stretch;
+}
+.pc-grid > * {
+  min-width: 0;
+}
 
-.home-portal > aside { border-radius: var(--store-card-radius); }
-.home-portal > aside p { line-height: 1.5; }
-.home-portal > aside a.rounded-full { border-radius: 7px; font-size: 13px; font-weight: 600; }
+.pc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: #fff;
+  border-radius: 10px;
+  font-family: var(--font-ui);
+  color: #222;
+}
+
+/* ---- Photo ---- */
+.pc-photo {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f5f5f5;
+}
+.pc-photo-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.pc-img {
+  object-fit: cover;
+  transition: opacity 250ms ease, transform 300ms ease;
+}
+.pc-img-alt {
+  opacity: 0;
+}
+.pc-soldout .pc-img {
+  opacity: 0.5;
+}
+.pc-noimg {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #8a8a8a;
+  font-size: 12px;
+}
+@media (hover: hover) {
+  .pc:hover .pc-img {
+    transform: scale(1.03);
+  }
+  .pc:hover .pc-img-swap {
+    opacity: 0;
+  }
+  .pc:hover .pc-img-alt {
+    opacity: 1;
+  }
+}
+
+.pc-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  pointer-events: none;
+}
+.pc-flag-sale {
+  background: #fb7701;
+  color: #fff;
+}
+.pc-flag-new {
+  background: #0a8800;
+  color: #fff;
+}
+.pc-flag-dark {
+  background: rgba(34, 34, 34, 0.85);
+  color: #fff;
+}
+
+.pc-wish {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.pc:hover .pc-wish,
+.pc-wish:focus-within {
+  opacity: 1;
+}
+@media (hover: none) {
+  .pc-wish {
+    opacity: 1;
+  }
+}
+
+/* ---- Text ---- */
+.pc-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 2px 4px;
+}
+.pc-name-link {
+  position: relative;
+  z-index: 15;
+  display: block;
+  min-width: 0;
+}
+.pc-name {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: #222;
+}
+.pc-name-link:hover .pc-name {
+  text-decoration: underline;
+}
+.pc-local {
+  display: inline-block;
+  margin-right: 4px;
+  border: 1px solid #0a8800;
+  border-radius: 3px;
+  padding: 0 3px;
+  color: #0a8800;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  vertical-align: 1px;
+}
+
+.pc-buy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pc-price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 6px;
+  margin: 0;
+}
+.pc-price {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: #222;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pc-price-deal {
+  color: #fb7701;
+}
+.pc-sold {
+  font-size: 11px;
+  color: #777;
+  white-space: nowrap;
+}
+.pc-was {
+  margin: 0;
+  font-size: 11px;
+  line-height: 15px;
+  color: #777;
+  font-variant-numeric: tabular-nums;
+}
+.pc-was s {
+  text-decoration-thickness: 1px;
+}
+
+/* TileCartButton's icon variant, restyled to Temu's outlined circle. */
+.pc-cart {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+.pc-cart > :is(a, button, span) {
+  display: flex;
+  width: 34px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #222 !important;
+  border-radius: 999px;
+  background: #fff !important;
+  color: #222 !important;
+}
+.pc-cart > :is(a, button):hover {
+  background: #222 !important;
+  color: #fff !important;
+}
+.pc-cart > span {
+  border-color: #ccc !important;
+  color: #aaa !important;
+}
+.pc-cart svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pc-highlight {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #fb7701;
+}
+.pc-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 11px;
+  color: #555;
+}
+.pc-delivery,
+.pc-urgent,
+.pc-note {
+  margin: 0;
+  margin-top: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 16px;
+}
+.pc-delivery {
+  color: #0a8800;
+}
+.pc-delivery strong {
+  font-weight: 700;
+}
+.pc-urgent {
+  color: #d62d00;
+  font-weight: 600;
+}
+.pc-note {
+  color: #777;
+}
+
+.pc-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+/* ---- Phones: two tiles across a ~390px screen ---- */
+@media (max-width: 639px) {
+  .pc-grid {
+    gap: 14px 8px;
+    padding-inline: 8px;
+  }
+  .pc-name {
+    font-size: 12px;
+  }
+  .pc-price {
+    font-size: 15px;
+  }
+  .pc-sold {
+    font-size: 10px;
+  }
+  .pc-delivery,
+  .pc-urgent,
+  .pc-note,
+  .pc-highlight {
+    font-size: 11px;
+  }
+  .pc-cart > :is(a, button, span) {
+    width: 30px;
+    height: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-img {
+    transition: none;
+  }
+  .pc:hover .pc-img {
+    transform: none;
+  }
+}
+
+/* The thin bar across the top while a route loads (app/loading.tsx). */
+.route-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: 3px;
+  overflow: hidden;
+  background: transparent;
+}
+.route-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: #fb7701;
+  animation: route-progress 1s ease-in-out infinite;
+}
+@keyframes route-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}

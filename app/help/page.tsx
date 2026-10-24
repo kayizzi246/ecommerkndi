@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import InfoPage, { InfoSection } from "@/components/InfoPage";
 import { getSiteSettings } from "@/lib/site-settings";
-import { formatPrice } from "@/lib/currency";
 import { faqJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {

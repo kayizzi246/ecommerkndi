@@ -12,16 +12,17 @@ export function ProductCardSkeleton() {
     // placeholder that is a different shape from what replaces it makes the
     // grid visibly re-draw itself when the products land, which reads as a
     // layout bug rather than as loading.
-    <div className="tile-card p-1.5 md:p-2">
+    <div className="pc">
       {/* Row for row: the square photograph, one line of name, the short
           sold-and-rating line, then the price. The ratio is the part that has
           to track — it is nearly all of the tile's height. The text bars matter
           too: a bare box shimmering on its own reads as a broken image, where a
           box with lines under it reads as a product on its way. */}
-      <div className="shimmer aspect-square w-full rounded-[6px]" />
-      <div className="shimmer mt-1.5 h-3.5 w-[88%] rounded" />
-      <div className="shimmer mt-[7px] h-2.5 w-[45%] rounded" />
-      <div className="shimmer mt-[7px] h-4 w-[58%] rounded" />
+      <div className="shimmer aspect-square w-full rounded-[10px]" />
+      <div className="shimmer mt-2 h-3.5 w-[88%] rounded" />
+      <div className="shimmer mt-[7px] h-4 w-[55%] rounded" />
+      <div className="shimmer mt-[7px] h-3 w-[40%] rounded" />
+      <div className="shimmer mt-[7px] h-3 w-[65%] rounded" />
     </div>
   );
 }

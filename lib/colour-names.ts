@@ -117,6 +117,27 @@ const SHADES = new Set([
  * is all colour ("Light Blue") or has no colour word ("ML565EG1") comes back
  * whole as `colour`, with no code.
  */
+/**
+ * What a shopper should read for a colour option.
+ *
+ * AliExpress sells many colours as a picture with no name, and the ALD
+ * importer turns those into "Image Color-200001438", or keeps a seller code
+ * such as "KD6671". Neither means anything to a shopper, so an option with no
+ * colour word in it that looks like one of those becomes "Style 1", "Style 2"…
+ * by its position. The real name is still what is stored and ordered.
+ */
+export function colourLabel(name: string, index: number): string {
+  const trimmed = name.trim();
+  const hasColourWord = trimmed
+    .split(/[-_/|]+|\s+/)
+    .some((part) => colourFill(part) !== null || SHADES.has(part.toLowerCase()));
+  const looksLikeCode =
+    /^image\s*colou?r\b/i.test(trimmed) ||
+    /^[A-Za-z]{0,4}[-\s]?\d{3,}[A-Za-z0-9-]*$/.test(trimmed) ||
+    (/^[A-Z0-9-]{5,}$/.test(trimmed) && /\d/.test(trimmed));
+  return !hasColourWord && looksLikeCode ? `Style ${index + 1}` : trimmed;
+}
+
 export function splitColourName(name: string): { colour: string; code: string | null } {
   const parts = name.split(/[-_/|]+|\s+/).filter(Boolean);
   if (parts.length < 2) return { colour: name, code: null };

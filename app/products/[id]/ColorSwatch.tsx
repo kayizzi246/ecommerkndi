@@ -2,13 +2,20 @@
 
 import Image from "next/image";
 import type { ProductAttributeOption } from "@/lib/woocommerce";
-import { colourFill, splitColourName } from "@/lib/colour-names";
+import { colourFill, colourLabel, splitColourName } from "@/lib/colour-names";
 
 type Props = {
   options: ProductAttributeOption[];
   value: string | null;
   onChange: (value: string) => void;
   isOptionAvailable: (optionName: string) => boolean;
+  /**
+   * The product's own photo, shown in any colour tile that has no picture of
+   * its own — AliExpress imports often carry none — with the colour as a dot
+   * in its corner. It is what makes every product a row of photographs rather
+   * than a row of coloured circles.
+   */
+  fallbackImage?: string;
 };
 
 /**
@@ -31,37 +38,49 @@ type Props = {
  * With no images anywhere it stays the dot row it has always been, so a product
  * whose colours are genuinely just colours is not padded out with empty tiles.
  */
-export default function ColorSwatch({ options, value, onChange, isOptionAvailable }: Props) {
-  const hasImages = options.some((option) => Boolean(option.image));
+export default function ColorSwatch({ options, value, onChange, isOptionAvailable, fallbackImage }: Props) {
+  const hasImages = options.some((option) => Boolean(option.image)) || Boolean(fallbackImage);
 
   if (hasImages) {
     return (
-      <div className="flex flex-wrap gap-3">
-        {options.map((option) => {
+      <div className="flex flex-wrap gap-2.5">
+        {options.map((option, index) => {
           const available = isOptionAvailable(option.name);
           const active = value === option.name;
+          const label = colourLabel(option.name, index);
+          const photo = option.image || fallbackImage;
+          const fill = option.image ? null : colourFill(option.name, option.value);
           return (
-            <div key={option.name} className="flex w-[84px] flex-col items-center gap-1.5">
+            <div key={option.name} className="flex w-[68px] flex-col items-center gap-1">
             <button
               type="button"
               disabled={!available}
               onClick={() => onChange(option.name)}
-              title={option.name}
-              aria-label={`Select colour ${option.name}`}
+              title={label}
+              aria-label={`Select colour ${label}`}
               aria-pressed={active}
-              className={`color-photo relative h-[84px] w-[84px] overflow-hidden rounded-2xl bg-shop-photo disabled:cursor-not-allowed ${
+              className={`color-photo relative h-[68px] w-[68px] overflow-hidden rounded-xl bg-shop-photo disabled:cursor-not-allowed ${
                 active ? "color-photo-on" : ""
               } ${available ? "" : "opacity-45"}`}
             >
-              {option.image ? (
-                <Image
-                  src={option.image}
-                  alt=""
-                  fill
-                  sizes="84px"
-                  className="object-cover"
-                  quality={90}
-                />
+              {photo ? (
+                <>
+                  <Image
+                    src={photo}
+                    alt=""
+                    fill
+                    sizes="68px"
+                    className="object-cover"
+                    quality={90}
+                  />
+                  {fill && (
+                    <span
+                      aria-hidden
+                      className="absolute bottom-1 right-1 h-4 w-4 rounded-full ring-2 ring-white"
+                      style={{ background: fill }}
+                    />
+                  )}
+                </>
               ) : (
                 // No photograph for this one: the tile still holds a colour, so
                 // the row keeps its rhythm and the option stays pickable.
@@ -78,11 +97,11 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
               )}
             </button>
             <span
-              className={`w-full truncate text-center text-[13px] leading-4 ${
+              className={`w-full truncate text-center text-[12px] leading-4 ${
                 active ? "font-[800] text-black" : "font-semibold text-shop-body"
               } ${available ? "" : "line-through"}`}
             >
-              {option.name}
+              {label}
             </span>
             </div>
           );
