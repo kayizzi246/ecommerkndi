@@ -907,3 +907,85 @@
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 }
+
+/* ---- Five featured deals (overrides the two-card layouts above) ----
+   Vertical cards — square photo on top, details under it — five across on a
+   desktop, and a swipeable row below that so a phone is not five screens of
+   stacked cards. */
+.bnd-heroes {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bnd-heroes::-webkit-scrollbar {
+  display: none;
+}
+.bnd-heroes .bnd-hero {
+  width: 46%;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+}
+.bnd-heroes .bnd-hero-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+}
+.bnd-heroes .bnd-hero-info {
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+.bnd-heroes .bnd-hero-name {
+  font-size: 13px;
+}
+.bnd-heroes .bnd-hero-price {
+  font-size: 19px;
+}
+.bnd-heroes .bnd-hero-save {
+  font-size: 12px;
+}
+.bnd-heroes .bnd-hero-off {
+  width: 46px;
+  height: 46px;
+  font-size: 14px;
+}
+.bnd-heroes .bnd-hero-cta {
+  max-width: none;
+  margin-top: 4px;
+  padding: 8px;
+  font-size: 14px;
+}
+@media (min-width: 640px) {
+  .bnd-heroes .bnd-hero {
+    width: 30%;
+  }
+}
+@media (min-width: 1024px) {
+  .bnd-heroes {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .bnd-heroes .bnd-hero {
+    width: auto;
+  }
+  .bnd-heroes .bnd-hero-photo {
+    width: 100%;
+  }
+  .bnd-heroes .bnd-hero-info {
+    padding: 10px 12px 12px;
+  }
+  .bnd-heroes .bnd-hero-name {
+    font-size: 13px;
+  }
+  .bnd-heroes .bnd-hero-price {
+    font-size: 20px;
+  }
+  .bnd-heroes .bnd-hero-cta {
+    max-width: none;
+    font-size: 14px;
+  }
+}

@@ -136,7 +136,7 @@ export default async function Home() {
         product.stock_status !== "outofstock" &&
         all.findIndex((other) => other.id === product.id) === index
     )
-    .slice(0, 12);
+    .slice(0, 13);
 
   /* The carousel under the banner: what sells, falling back to the shop's
      own picks on a catalogue too new to have sales. */

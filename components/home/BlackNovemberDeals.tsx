@@ -29,10 +29,10 @@ export default function BlackNovemberDeals({
       (a, b) =>
         discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
     );
-  if (deals.length < 4) return null;
+  if (deals.length < 5) return null;
 
-  const heroes = deals.slice(0, 2);
-  const grid = deals.slice(2, 10);
+  const heroes = deals.slice(0, 5);
+  const grid = deals.slice(5, 13);
 
   return (
     <section className="bnd" aria-labelledby="bnd-title">
@@ -53,7 +53,7 @@ export default function BlackNovemberDeals({
       </div>
 
       <div className="bnd-body">
-        {/* ---- The two deepest cuts, large, stacked to fill the column ---- */}
+        {/* ---- The five deepest cuts, large: Deal of the day, then Hot deals ---- */}
         <div className="bnd-heroes">
           {heroes.map((hero, index) => (
             <Link key={hero.id} href={productPath(hero)} className="bnd-hero">
@@ -63,7 +63,7 @@ export default function BlackNovemberDeals({
                     src={hero.image}
                     alt={hero.name}
                     fill
-                    sizes="(max-width: 768px) 45vw, 180px"
+                    sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 280px"
                     className="object-cover"
                   />
                 )}
