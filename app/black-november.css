@@ -858,3 +858,52 @@
   font-weight: 800;
   color: #111;
 }
+
+/* ---- Featured deals: square photos, side by side on desktop ----
+   The photo was a tall strip (46% of a narrow column, stretched to the card's
+   height), so object-cover cut most of the product away. Now the photo is
+   always a square — supplier photos are square, so nothing is lost — and on
+   a desktop the two featured deals sit side by side above the grid instead
+   of being squeezed into one column beside it. */
+.bnd-heroes .bnd-hero {
+  align-items: center;
+}
+.bnd-heroes .bnd-hero-photo {
+  align-self: center;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+}
+@media (min-width: 1024px) {
+  .bnd-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bnd-heroes {
+    flex-direction: row;
+  }
+  .bnd-heroes .bnd-hero {
+    flex: 1;
+  }
+  .bnd-heroes .bnd-hero-photo {
+    width: 240px;
+  }
+  .bnd-heroes .bnd-hero-info {
+    gap: 6px;
+    padding: 16px 20px;
+  }
+  .bnd-heroes .bnd-hero-name {
+    font-size: 15px;
+  }
+  .bnd-heroes .bnd-hero-price {
+    font-size: 26px;
+  }
+  .bnd-heroes .bnd-hero-cta {
+    max-width: 240px;
+    padding: 10px;
+    font-size: 15px;
+  }
+}
+@media (min-width: 1280px) {
+  .bnd-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
