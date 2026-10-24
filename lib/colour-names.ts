@@ -126,6 +126,25 @@ const SHADES = new Set([
  * colour word in it that looks like one of those becomes "Style 1", "Style 2"…
  * by its position. The real name is still what is stored and ordered.
  */
+/**
+ * Display labels for the chosen colour, only where it differs from the stored
+ * value — undefined when there is nothing to relabel.
+ */
+export function chosenOptionLabels(
+  attributes: { name: string; options: { name: string }[] }[],
+  selected: Record<string, string | null | undefined>
+): Record<string, string> | undefined {
+  const labels: Record<string, string> = {};
+  for (const attribute of attributes) {
+    const value = selected[attribute.name];
+    if (!value || !isColourAttribute(attribute.name)) continue;
+    const index = attribute.options.findIndex((option) => option.name === value);
+    const label = colourLabel(value, Math.max(0, index));
+    if (label !== value) labels[attribute.name] = label;
+  }
+  return Object.keys(labels).length > 0 ? labels : undefined;
+}
+
 export function colourLabel(name: string, index: number): string {
   const trimmed = name.trim();
   const hasColourWord = trimmed

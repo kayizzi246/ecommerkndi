@@ -8,7 +8,7 @@ import { useToast } from "@/lib/toast";
 import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
-import { colourLabel, isColourAttribute } from "@/lib/colour-names";
+import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
 import ColorSwatch from "@/app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -147,6 +147,7 @@ export default function VariantSheet({
         price: variationPrice(product, selected),
         image: product.image,
         options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
+        optionLabels: chosenOptionLabels(attributes, selected),
       },
       quantity
     );
@@ -237,7 +238,7 @@ export default function VariantSheet({
                 </p>
                 <ColorSwatch
                   options={attr.options}
-                  fallbackImage={product.image || undefined}
+                  fallbackImages={[product.image, ...product.gallery].filter(Boolean)}
                   value={selected[attr.name] ?? null}
                   isOptionAvailable={(optionName) => available(attr.name, optionName)}
                   onChange={(colorName) => {

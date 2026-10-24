@@ -322,6 +322,9 @@ function kandi_format_product( $product, $with_description = false ) {
 				// still priced server-side from this same product — this is for
 				// the label, never for the total.
 				'price'       => (float) wc_get_price_to_display( $variation_product ),
+				// This size's own original price, so the product page can cross
+				// it out when the chosen size is reduced.
+				'regular_price' => (float) $variation_product->get_regular_price(),
 				'attributes'  => $variation_attributes,
 				'is_in_stock' => $variation_product->is_in_stock(),
 				// The variation's OWN photo ('edit' context: no fall-back to the
@@ -338,13 +341,28 @@ function kandi_format_product( $product, $with_description = false ) {
 		}
 	}
 
+	/*
+	 * A variable product's own regular and sale prices are blank — the prices
+	 * live on its variations — so reading them off the parent sent 0 and the
+	 * storefront had no original price to cross out on any sized or coloured
+	 * product. Take the cheapest variation's figures instead, which is the
+	 * same "from" price `price` already shows.
+	 */
+	if ( $product->is_type( 'variable' ) ) {
+		$regular_price = (float) $product->get_variation_regular_price( 'min', true );
+		$sale_price    = $product->is_on_sale() ? (float) $product->get_variation_sale_price( 'min', true ) : null;
+	} else {
+		$regular_price = (float) $product->get_regular_price();
+		$sale_price    = $product->get_sale_price() !== '' ? (float) $product->get_sale_price() : null;
+	}
+
 	$data = array(
 		'id'                => $product->get_id(),
 		'name'              => $product->get_name(),
 		'slug'              => $product->get_slug(),
 		'price'             => (float) wc_get_price_to_display( $product ),
-		'regular_price'     => (float) $product->get_regular_price(),
-		'sale_price'        => $product->get_sale_price() !== '' ? (float) $product->get_sale_price() : null,
+		'regular_price'     => $regular_price,
+		'sale_price'        => $sale_price,
 		'on_sale'           => $product->is_on_sale(),
 		'featured'          => $product->is_featured(),
 		'stock_status'      => $product->get_stock_status(), // instock | outofstock | onbackorder

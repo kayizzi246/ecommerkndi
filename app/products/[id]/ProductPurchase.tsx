@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Product } from "@/lib/woocommerce";
 import { DEFAULT_SETTINGS } from "@/lib/site-settings";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice, discountPercent, hasPriceReduction } from "@/lib/currency";
 import { initialSelection, variationPrice, matchVariation } from "@/lib/variation-match";
 import { isColourAttribute } from "@/lib/colour-names";
+import { optionPhoto } from "./ColorSwatch";
 import AddToCartButton from "@/components/AddToCartButton";
 import StickyBuyBar from "@/components/StickyBuyBar";
 import ImageGallery from "@/components/ImageGallery";
@@ -154,13 +155,22 @@ export default function ProductPurchase({
   // between server and client — never a random number.
   const viewers = 120 + ((product.id * 37) % 260);
 
+  /** False until the first colour report, which is the picker's own on load. */
+  const colourTapped = useRef(false);
+
   const handleOptionChange = (name: string, value: string | null) => {
     setSelected((prev) => (prev[name] === value ? prev : { ...prev, [name]: value }));
     if (value && colorAttribute && name === colorAttribute.name) {
-      const optionWithImage = colorAttribute.options.find(
-        (opt) => opt.name === value && opt.image
-      );
-      setActiveImage(optionWithImage?.image ?? product.image);
+      const index = colorAttribute.options.findIndex((opt) => opt.name === value);
+      // The picker reports its pre-selected colour once on load. Unless that
+      // colour has a real photo of its own, the page keeps opening on the main
+      // product photo rather than on whichever gallery shot it was paired with.
+      const automatic = !colourTapped.current;
+      colourTapped.current = true;
+      if (automatic && !colorAttribute.options[index]?.image) return;
+      // The same photo the tile shows, so picking "Style 5" brings up the
+      // picture that was on the Style 5 tile.
+      setActiveImage(optionPhoto(colorAttribute.options, index, images) ?? product.image);
     }
   };
 

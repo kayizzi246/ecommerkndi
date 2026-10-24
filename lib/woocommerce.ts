@@ -714,6 +714,52 @@ function toCategory(raw: unknown): ProductCategory {
   };
 }
 
+/**
+ * Fills in the original price of reduced products that arrived without one.
+ *
+ * A variable product (anything with sizes or colours, which is most of this
+ * catalogue) keeps its prices on the variations; its own regular price is
+ * blank. Older copies of kandi-store-api.php read that blank and sent 0, so
+ * the shop knew a product was on sale but had nothing to cross out. The
+ * WooCommerce Store API does the variation maths itself, so one request for
+ * the affected ids recovers the figure. Any failure leaves the list as it was:
+ * a missing strike-through must never cost the shopper the products.
+ */
+async function withOriginalPrices(products: Product[]): Promise<Product[]> {
+  const missing = products.filter(
+    (product) => product.on_sale && !(product.regular_price > product.price)
+  );
+  if (missing.length === 0) return products;
+
+  try {
+    const ids = missing.map((product) => product.id).join(",");
+    const res = await fetch(
+      `${storeApiBaseUrl()}/products?include=${ids}&per_page=${missing.length}`,
+      {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [PRODUCTS_TAG] },
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!res.ok) return products;
+
+    const regular = new Map<number, number>();
+    for (const entry of arr(await res.json())) {
+      const item = obj(entry);
+      const prices = obj(item.prices);
+      const unit = 10 ** num(prices.currency_minor_unit);
+      const value = num(prices.regular_price) / unit;
+      if (value > 0) regular.set(num(item.id), value);
+    }
+
+    return products.map((product) => {
+      const value = regular.get(product.id);
+      return value && value > product.price ? { ...product, regular_price: value } : product;
+    });
+  } catch {
+    return products;
+  }
+}
+
 export async function getProducts(
   query: ProductQuery = {},
   options: { throwOnError?: boolean } = {}
@@ -745,7 +791,7 @@ export async function getProducts(
     const products = Array.isArray(payload?.products) ? payload.products : [];
 
     return {
-      products: products.map(toProduct),
+      products: await withOriginalPrices(products.map(toProduct)),
       total: Number(payload?.total ?? products.length ?? 0),
       total_pages: Number(payload?.total_pages ?? 1),
     };
@@ -873,7 +919,7 @@ export async function findProduct(idOrSlug: string | number): Promise<Product | 
           signal: AbortSignal.timeout(20_000),
         });
 
-        if (res.ok) return toProduct(await res.json());
+        if (res.ok) return (await withOriginalPrices([toProduct(await res.json())]))[0];
 
         if (res.status === 404) {
           // A 404 that is not the plugin's own answer is the route missing or

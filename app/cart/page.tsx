@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCart } from "@/lib/cart";
+import { optionSummary, useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/currency";
 import CartRecommendations from "@/components/cart/CartRecommendations";
@@ -47,9 +47,9 @@ export default function CartPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 11h11.2L21 7H6.2M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
           </svg>
         </div>
-        <h1 className="text-[22px] font-[800] text-black">Your cart is empty</h1>
-        <p className="mt-2 text-[15px] text-shop-body">Find something you like.</p>
-        <Link href="/" className="btn-shop mt-6 inline-flex rounded-full px-10 py-3.5 text-[16px] font-[800]">
+        <h1 className="text-[18px] font-bold text-black">Your cart is empty</h1>
+        <p className="mt-1.5 text-[14px] text-shop-body">Find something you like.</p>
+        <Link href="/" className="btn-shop mt-5 inline-flex rounded-full px-8 py-3 text-[14px] font-bold">
           Start shopping
         </Link>
       </main>
@@ -60,26 +60,26 @@ export default function CartPage() {
     <main className="pb-32 lg:pb-16">
       <div className="mx-auto max-w-[1100px] px-3 py-4 md:px-6 md:py-6">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h1 className="text-[22px] font-[800] text-black md:text-[26px]">Your cart ({count})</h1>
-          <Link href="/" className="text-[14px] font-bold text-shop-primary">
+          <h1 className="text-[18px] font-bold text-black md:text-[20px]">Your cart ({count})</h1>
+          <Link href="/" className="text-[13px] font-semibold text-shop-primary-ink hover:underline">
             + Add more
           </Link>
         </div>
 
         {freeDeliveryOn && (
           <div className="mb-3 rounded-xl bg-white p-3.5">
-            <p className="text-[15px] font-bold text-black">
+            <p className="text-[13px] font-semibold text-black">
               {qualifiesFree ? (
-                <span className="text-[#0a8a3a]">You get free delivery!</span>
+                <span className="text-shop-save">You get free delivery!</span>
               ) : (
                 <>
-                  Add <span className="text-[#7a5a00]">{formatPrice(away)}</span> more for free delivery
+                  Add <span className="text-shop-primary-ink">{formatPrice(away)}</span> more for free delivery
                 </>
               )}
             </p>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eceef1]">
               <div
-                className={`h-full rounded-full transition-[width] duration-500 ${qualifiesFree ? "bg-[#0a8a3a]" : "bg-[#ffcc00]"}`}
+                className={`h-full rounded-full transition-[width] duration-500 ${qualifiesFree ? "bg-shop-save" : "bg-shop-primary"}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -95,25 +95,23 @@ export default function CartPage() {
                   <li key={item.key} className="relative flex gap-3 rounded-xl bg-white p-3">
                     <Link
                       href={href}
-                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white"
+                      className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-shop-line bg-white"
                     >
                       {item.image && (
-                        <Image src={item.image} alt={item.name} fill sizes="96px" className="object-contain" quality={85} />
+                        <Image src={item.image} alt={item.name} fill sizes="80px" className="object-contain" quality={85} />
                       )}
                     </Link>
 
                     <div className="flex min-w-0 flex-1 flex-col pr-9">
-                      <Link href={href} className="line-clamp-2 text-[15px] leading-snug text-black">
+                      <Link href={href} className="line-clamp-2 text-[13px] leading-snug text-shop-ink hover:underline">
                         {item.name}
                       </Link>
                       {item.options && Object.keys(item.options).length > 0 && (
-                        <p className="mt-0.5 truncate text-[13px] text-shop-muted">
-                          {Object.entries(item.options)
-                            .map(([key, value]) => `${key}: ${value}`)
-                            .join(", ")}
+                        <p className="mt-0.5 truncate text-[12px] text-shop-muted">
+                          {optionSummary(item, ", ")}
                         </p>
                       )}
-                      <p className="price mt-1 text-[18px] font-[800] text-black">
+                      <p className="price mt-1 text-[15px] font-bold text-black">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                       {item.quantity > 1 && (
@@ -155,27 +153,27 @@ export default function CartPage() {
           </div>
 
           <aside className="rounded-xl bg-white p-4 lg:sticky lg:top-32">
-            <h2 className="text-[20px] font-[800] text-black">Summary</h2>
-            <dl className="mt-3 space-y-2 text-[15px]">
+            <h2 className="text-[16px] font-bold text-black">Summary</h2>
+            <dl className="mt-3 space-y-2 text-[14px]">
               <div className="flex justify-between gap-3">
                 <dt className="text-shop-body">Items ({count})</dt>
-                <dd className="font-bold text-black">{formatPrice(subtotal)}</dd>
+                <dd className="font-semibold text-black">{formatPrice(subtotal)}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-shop-body">Delivery</dt>
-                <dd className={qualifiesFree ? "font-bold text-[#0a8a3a]" : "text-shop-body"}>
+                <dd className={qualifiesFree ? "font-semibold text-shop-save" : "text-shop-body"}>
                   {qualifiesFree ? "Free" : "At checkout"}
                 </dd>
               </div>
             </dl>
             <div className="mt-3 flex items-baseline justify-between border-t border-shop-line pt-3">
-              <span className="text-[18px] font-[800] text-black">Total</span>
-              <span className="price text-[24px] font-[800] text-black">{formatPrice(subtotal)}</span>
+              <span className="text-[15px] font-semibold text-black">Total</span>
+              <span className="price text-[19px] font-bold text-black">{formatPrice(subtotal)}</span>
             </div>
 
             <Link
               href="/checkout"
-              className="btn-shop mt-4 flex w-full items-center justify-center rounded-full py-4 text-[18px] font-[800]"
+              className="btn-shop mt-4 flex w-full items-center justify-center rounded-full py-3.5 text-[15px] font-bold"
             >
               <CheckoutLabel />
             </Link>
@@ -185,14 +183,14 @@ export default function CartPage() {
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#25d366] py-3 text-[16px] font-[800] text-[#128c4a]"
+                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border border-[#25d366] py-3 text-[14px] font-semibold text-[#128c4a]"
               >
                 <WhatsAppIcon />
                 Order on WhatsApp
               </a>
             )}
 
-            <ul className="mt-4 space-y-1.5 text-[14px] font-semibold text-black">
+            <ul className="mt-4 space-y-1.5 text-[13px] text-shop-body">
               <li className="flex items-center gap-2">
                 <Tick /> Pay with MTN or Airtel Money
               </li>
@@ -216,14 +214,14 @@ export default function CartPage() {
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-shop-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="flex items-center gap-3 px-3 py-2.5">
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold leading-none text-shop-body">Total ({count})</p>
-            <p className="price mt-1 truncate text-[20px] font-[800] leading-none text-black">
+            <p className="text-[12px] leading-none text-shop-muted">Total ({count})</p>
+            <p className="price mt-1 truncate text-[18px] font-bold leading-none text-black">
               {formatPrice(subtotal)}
             </p>
           </div>
           <Link
             href="/checkout"
-            className="btn-shop flex shrink-0 items-center justify-center rounded-full px-6 py-3.5 text-[17px] font-[800]"
+            className="btn-shop flex shrink-0 items-center justify-center rounded-full px-6 py-3 text-[14px] font-bold"
           >
             <span>Checkout</span>
           </Link>
@@ -256,7 +254,7 @@ function CloseIcon() {
 
 function Tick() {
   return (
-    <svg aria-hidden className="h-4 w-4 shrink-0 text-[#0a8a3a]" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+    <svg aria-hidden className="h-4 w-4 shrink-0 text-shop-save" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 5 5L20 7" />
     </svg>
   );

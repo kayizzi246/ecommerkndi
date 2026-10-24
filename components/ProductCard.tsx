@@ -73,7 +73,7 @@ export default function ProductCard({
     ? "Best-selling item"
     : topRated
       ? "Top rated item"
-      : discount >= 10
+      : discount > 0
         ? `Save ${formatPrice(product.regular_price - product.price)}`
         : null;
 
@@ -124,6 +124,17 @@ export default function ProductCard({
           <span className="pc-flag pc-flag-new">New</span>
         ) : null}
 
+        {/* The campaign, on every reduced product: a black-and-gold ribbon
+            across the foot of the photo, matching the homepage banner. */}
+        {!soldOut && discount > 0 && (
+          <span className="pc-bn" aria-hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+            </svg>
+            Black November
+          </span>
+        )}
+
         {/* `z-20` lifts both controls above the whole-card link at the foot of
             this component, so they act instead of navigating. */}
         <div className="pc-wish">
@@ -132,7 +143,7 @@ export default function ProductCard({
             name={product.name}
             image={product.image}
             price={product.price}
-            className="h-8 w-8 rounded-full bg-white/95 text-[#222] shadow-sm ring-1 ring-black/5 hover:text-[#fb7701]"
+            className="h-8 w-8 rounded-full bg-white/95 text-[#222] shadow-sm ring-1 ring-black/5 hover:text-shop-price-was"
             iconClassName="h-[17px] w-[17px]"
           />
         </div>
@@ -140,11 +151,7 @@ export default function ProductCard({
 
       <div className="pc-body">
         <Link href={href} className="pc-name-link">
-          <h3 className="pc-name">
-            {/* Every listing ships from inside Uganda — Temu's "Local" tag. */}
-            <span className="pc-local">Local</span>
-            {product.name}
-          </h3>
+          <h3 className="pc-name">{product.name}</h3>
         </Link>
 
         <div className="pc-buy">

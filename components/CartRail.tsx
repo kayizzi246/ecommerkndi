@@ -40,19 +40,17 @@ export default function CartRail() {
       className="cart-rail fixed bottom-0 right-0 top-0 z-50 hidden w-[200px] flex-col border-l border-shop-line bg-white lg:flex"
     >
       <div className="shrink-0 px-3 pb-3 pt-3">
-        <p className="rounded-md bg-[#ffcc00] px-3 py-1.5 text-center text-[14px] font-bold text-black">
-          Subtotal
-        </p>
-        <p className="mt-2 text-center text-[19px] font-bold text-black">{formatPrice(subtotal)}</p>
+        <p className="text-center text-[12px] text-shop-muted">Subtotal ({count})</p>
+        <p className="price mt-0.5 text-center text-[17px] font-bold text-black">{formatPrice(subtotal)}</p>
         <Link
           href="/checkout"
-          className="mt-3 block rounded-full bg-[#ffcc00] py-2.5 text-center text-[15px] font-bold text-black transition-colors hover:bg-[#f5b800]"
+          className="mt-3 block rounded-full bg-shop-primary py-2.5 text-center text-[14px] font-bold text-black transition-colors hover:bg-shop-primary-dark"
         >
           Checkout ({count})
         </Link>
         <Link
           href="/cart"
-          className="mt-2 block rounded-full border-2 border-black py-2 text-center text-[14px] font-bold text-black transition-colors hover:bg-black hover:text-white"
+          className="mt-2 block rounded-full border border-black py-2 text-center text-[13px] font-semibold text-black transition-colors hover:bg-black hover:text-white"
         >
           Go to cart
         </Link>
@@ -61,7 +59,7 @@ export default function CartRail() {
       <ul className="min-h-0 flex-1 space-y-4 overflow-y-auto border-t border-shop-line px-3 py-4">
         {items.map((item) => (
           <li key={item.key} className="text-center">
-            <div className="relative mx-auto aspect-square w-full max-w-[150px] overflow-hidden rounded border border-shop-line bg-white">
+            <div className="relative mx-auto aspect-square w-full max-w-[150px] overflow-hidden rounded-lg border border-shop-line bg-white">
               {item.image && (
                 <Image src={item.image} alt={item.name} fill sizes="150px" className="object-contain" quality={80} />
               )}
@@ -76,7 +74,7 @@ export default function CartRail() {
                 </svg>
               </button>
             </div>
-            <p className="mt-1.5 text-[14px] font-bold text-black">{formatPrice(item.price * item.quantity)}</p>
+            <p className="price mt-1.5 text-[13px] font-semibold text-black">{formatPrice(item.price * item.quantity)}</p>
             <div className="mt-1 flex justify-center">
               <QuantityStepper
                 size="sm"

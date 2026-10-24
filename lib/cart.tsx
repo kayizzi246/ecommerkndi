@@ -43,7 +43,23 @@ export type CartItem = {
   quantity: number;
   /** Chosen options, e.g. { Size: "38" }. */
   options?: Record<string, string>;
+  /**
+   * What to SHOW for an option whose real value is an importer code, e.g.
+   * { Color: "Style 3" } for "Image Color-200001438". Display only: the order
+   * still carries `options` and `variationId`.
+   */
+  optionLabels?: Record<string, string>;
 };
+
+/** "Color: Style 3 · Size: L", for every place a cart line is listed. */
+export function optionSummary(
+  item: Pick<CartItem, "options" | "optionLabels">,
+  separator = " · "
+): string {
+  return Object.entries(item.options ?? {})
+    .map(([name, value]) => `${name}: ${item.optionLabels?.[name] ?? value}`)
+    .join(separator);
+}
 
 /**
  * The identity of a cart line.

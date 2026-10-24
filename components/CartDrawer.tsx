@@ -5,7 +5,7 @@ import Link from "next/link";
 import QuantityStepper from "@/components/QuantityStepper";
 import { CheckoutLabel } from "@/components/BuyNowLabel";
 import { useEffect } from "react";
-import { useCart } from "@/lib/cart";
+import { optionSummary, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 import DrawerAddOns from "@/components/cart/DrawerAddOns";
@@ -80,7 +80,7 @@ export default function CartDrawer() {
         }`}
       >
         <div className="flex items-center justify-between px-6 py-5">
-          <p className="text-[17px] font-semibold text-shop-ink">
+          <p className="text-[16px] font-bold text-shop-ink">
             My cart{" "}
             {count > 0 && <span className="font-normal text-shop-muted">({count})</span>}
           </p>
@@ -102,7 +102,7 @@ export default function CartDrawer() {
             <svg className="h-16 w-16 text-shop-ink" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
-            <p className="mt-6 text-[23px] font-semibold text-shop-ink">Your cart is empty.</p>
+            <p className="mt-6 text-[18px] font-bold text-shop-ink">Your cart is empty.</p>
             <button
               type="button"
               onClick={closeDrawer}
@@ -221,9 +221,7 @@ export default function CartDrawer() {
                         </span>
                         {item.options && Object.keys(item.options).length > 0 && (
                           <p className="mt-1 text-[12px] text-shop-muted">
-                            {Object.entries(item.options)
-                              .map(([k, v]) => `${k}: ${v}`)
-                              .join(" · ")}
+                            {optionSummary(item)}
                           </p>
                         )}
                       </div>
@@ -281,7 +279,7 @@ export default function CartDrawer() {
               </div>
               <div className="mt-2.5 flex items-baseline justify-between border-t border-shop-line pt-3">
                 <p className="text-[14px] font-semibold text-shop-ink">Total</p>
-                <p className="price text-[18px] text-shop-ink">{formatPrice(subtotal)}</p>
+                <p className="price text-[17px] font-bold text-shop-ink">{formatPrice(subtotal)}</p>
               </div>
             </div>
 
@@ -290,7 +288,7 @@ export default function CartDrawer() {
                 href="/checkout"
                 onClick={closeDrawer}
                 tabIndex={drawerOpen ? 0 : -1}
-                className="btn-shop flex w-full items-center justify-center rounded-full p-3.5 text-center text-[16px] font-[800]"
+                className="btn-shop flex w-full items-center justify-center rounded-full py-3 text-center text-[14px] font-bold"
               >
                 <CheckoutLabel />
               </Link>

@@ -10,13 +10,35 @@ type Props = {
   onChange: (value: string) => void;
   isOptionAvailable: (optionName: string) => boolean;
   /**
-   * The product's own photo, shown in any colour tile that has no picture of
-   * its own — AliExpress imports often carry none — with the colour as a dot
-   * in its corner. It is what makes every product a row of photographs rather
-   * than a row of coloured circles.
+   * The product's photos (main image first, then the gallery), used for any
+   * colour tile with no picture of its own — AliExpress imports often carry
+   * none. See `optionPhoto` for which tile gets which.
    */
-  fallbackImage?: string;
+  fallbackImages?: string[];
 };
+
+/**
+ * The photo a colour option shows, and that the gallery switches to when the
+ * option is picked — one rule for both, so the tile and the big picture always
+ * agree.
+ *
+ * An option's own photo wins. When NONE of the options has one (an import
+ * whose colour pictures never downloaded), each option takes the next product
+ * photo in turn: "Style 5" shows the fifth photo, and picking it brings that
+ * photo up. Ten identical tiles that change nothing when tapped was the
+ * alternative. When only some options have photos, the rest show the main one.
+ */
+export function optionPhoto(
+  options: ProductAttributeOption[],
+  index: number,
+  photos: string[]
+): string | undefined {
+  const own = options[index]?.image;
+  if (own) return own;
+  if (photos.length === 0) return undefined;
+  const noneHavePhotos = !options.some((option) => option.image);
+  return noneHavePhotos && photos.length > 1 ? photos[index % photos.length] : photos[0];
+}
 
 /**
  * The colour picker, in one of two shapes.
@@ -38,8 +60,8 @@ type Props = {
  * With no images anywhere it stays the dot row it has always been, so a product
  * whose colours are genuinely just colours is not padded out with empty tiles.
  */
-export default function ColorSwatch({ options, value, onChange, isOptionAvailable, fallbackImage }: Props) {
-  const hasImages = options.some((option) => Boolean(option.image)) || Boolean(fallbackImage);
+export default function ColorSwatch({ options, value, onChange, isOptionAvailable, fallbackImages = [] }: Props) {
+  const hasImages = options.some((option) => Boolean(option.image)) || fallbackImages.length > 0;
 
   if (hasImages) {
     return (
@@ -48,7 +70,7 @@ export default function ColorSwatch({ options, value, onChange, isOptionAvailabl
           const available = isOptionAvailable(option.name);
           const active = value === option.name;
           const label = colourLabel(option.name, index);
-          const photo = option.image || fallbackImage;
+          const photo = optionPhoto(options, index, fallbackImages);
           const fill = option.image ? null : colourFill(option.name, option.value);
           return (
             <div key={option.name} className="flex w-[68px] flex-col items-center gap-1">

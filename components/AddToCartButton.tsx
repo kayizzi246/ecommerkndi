@@ -8,7 +8,7 @@ import { useWishlist } from "@/lib/wishlist";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
-import { colourLabel, isColourAttribute } from "@/lib/colour-names";
+import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -126,6 +126,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         price: variationPrice(product, selected),
         image: product.image,
         options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
+        optionLabels: chosenOptionLabels(attributes, selected),
       },
       quantity
     );
@@ -170,7 +171,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               </p>
               <ColorSwatch
                 options={attr.options}
-                fallbackImage={product.image || undefined}
+                fallbackImages={[product.image, ...product.gallery].filter(Boolean)}
                 value={selected[attr.name]}
                 isOptionAvailable={(optionName) => isOptionAvailable(attr.name, optionName)}
                 onChange={(colorName) => {

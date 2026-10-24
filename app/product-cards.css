@@ -83,11 +83,36 @@
   pointer-events: none;
 }
 .pc-flag-sale {
-  background: #fb7701;
-  color: #fff;
+  background: #111;
+  color: var(--color-shop-primary);
+}
+
+/* Black November ribbon across the foot of a reduced product's photo. */
+.pc-bn {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: linear-gradient(90deg, #0b0b0b, #2a1a08 55%, #0b0b0b);
+  color: var(--color-shop-primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 16px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.pc-bn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 .pc-flag-new {
-  background: #0a8800;
+  background: var(--color-shop-success);
   color: #fff;
 }
 .pc-flag-dark {
@@ -140,19 +165,6 @@
 .pc-name-link:hover .pc-name {
   text-decoration: underline;
 }
-.pc-local {
-  display: inline-block;
-  margin-right: 4px;
-  border: 1px solid #0a8800;
-  border-radius: 3px;
-  padding: 0 3px;
-  color: #0a8800;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 14px;
-  vertical-align: 1px;
-}
-
 .pc-buy {
   display: flex;
   align-items: center;
@@ -174,7 +186,7 @@
   white-space: nowrap;
 }
 .pc-price-deal {
-  color: #fb7701;
+  color: var(--color-shop-sale-price);
 }
 .pc-sold {
   font-size: 11px;
@@ -230,7 +242,7 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
-  color: #fb7701;
+  color: var(--color-shop-sale-price);
 }
 .pc-rating {
   display: flex;
@@ -252,7 +264,7 @@
   line-height: 16px;
 }
 .pc-delivery {
-  color: #0a8800;
+  color: var(--color-shop-save);
 }
 .pc-delivery strong {
   font-weight: 700;
@@ -276,6 +288,17 @@
   .pc-grid {
     gap: 14px 8px;
     padding-inline: 8px;
+  }
+  /* Staggered on phones: the right-hand column sits 40px lower, so the two
+     columns read as a brick pattern rather than a table. An offset rather
+     than a masonry layout, so a tile never jumps columns as more products
+     load. Only on a two-column grid. */
+  .pc-grid.grid-cols-2 {
+    padding-bottom: 40px;
+  }
+  .pc-grid.grid-cols-2 > :nth-child(even) {
+    position: relative;
+    top: 40px;
   }
   .pc-name {
     font-size: 12px;
@@ -321,7 +344,7 @@
   position: absolute;
   inset: 0;
   width: 40%;
-  background: #fb7701;
+  background: var(--color-shop-primary);
   animation: route-progress 1s ease-in-out infinite;
 }
 @keyframes route-progress {
