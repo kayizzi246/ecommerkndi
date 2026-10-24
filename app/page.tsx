@@ -9,6 +9,7 @@ import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { forGrid } from "@/lib/product-grid";
 
 /** Shoe-focused homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
@@ -124,7 +125,7 @@ export default async function Home() {
     id: department.id,
     title: department.title,
     slug: department.slug,
-    products: department.products,
+    products: department.products.map(forGrid),
   }));
 
   /* The deals strip: the discount pool, topped up from anything reduced in
@@ -204,13 +205,13 @@ export default async function Home() {
         <div className="hx">
           <BlackFridayHero />
           <WelcomeBack />
-          <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks} />
+          <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
           <BlackNovemberDeals products={dealPicks} returnsDays={settings.commerce.returns_days} />
         </div>
 
         <PickedForYou
-          latest={forYou}
-          newest={latest}
+          latest={forYou.map(forGrid)}
+          newest={latest.map(forGrid)}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
           pinned={new Set(leadShoes.map((product) => product.id)).size}

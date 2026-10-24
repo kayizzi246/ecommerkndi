@@ -565,8 +565,21 @@ function toProduct(raw: unknown): Product {
    * passed through untouched, so it simply matches nothing rather than
    * becoming something else.
    */
+  /* The way WordPress's `sanitize_title` makes a slug: lower case, anything
+     that is not a letter, digit, space or hyphen DROPPED, spaces to hyphens.
+     It only swapped spaces before, so "L(60-75kg)" became "l(60-75kg)" while
+     WooCommerce stored "l60-75kg" — no variation matched, and every size on
+     products like that was crossed out and impossible to buy. */
   const slugify = (value: string) =>
-    value.trim().toLowerCase().replace(/\s+/g, "-");
+    value
+      .trim()
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s_-]/g, "")
+      .replace(/[\s_]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
 
   const canonicalOption = (attributeName: string, rawValue: string): string => {
     const attribute = attributes.find((item) => item.name === attributeName);

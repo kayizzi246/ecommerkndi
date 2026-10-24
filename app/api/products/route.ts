@@ -1,4 +1,5 @@
 import { getProducts } from "@/lib/woocommerce";
+import { forGrid } from "@/lib/product-grid";
 
 /**
  * A page of products, for the infinite grids.
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
     // feed is the same list for every shopper, so only the first one in a
     // window should ever wait for WordPress.
     return Response.json(
-      { products, page, total_pages },
+      { products: products.map(forGrid), page, total_pages },
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400" } }
     );
   } catch {

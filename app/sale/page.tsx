@@ -9,7 +9,7 @@ import SortDropdown from "@/components/SortDropdown";
 import SaleBoard from "@/components/SaleBoard";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
 import { getSiteSettings } from "@/lib/site-settings";
-import { PRODUCT_GRID } from "@/lib/product-grid";
+import { PRODUCT_GRID, forGrid } from "@/lib/product-grid";
 
 export const metadata = {
   title: "Black November Deals | Super Deals",
@@ -73,7 +73,7 @@ export default async function SalePage({
   // order by the gap between two prices — so `sortProducts` still runs below.
   const [{ products, total, total_pages }, novemberPicks] = await Promise.all([
     getProductsSafe({ on_sale: true, page, per_page: 48, ...toProductQuery({ sort }) }),
-    getProductsSafe({ per_page: 48, sort: "popular", in_stock: true }),
+    getProductsSafe({ per_page: 24, sort: "popular", in_stock: true }),
   ]);
 
   /**
@@ -127,7 +127,7 @@ export default async function SalePage({
             (a, b) =>
               discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
           )
-          .slice(0, 3)
+          .slice(0, 5)
       : [];
   const returnsDays = (await getSiteSettings()).commerce.returns_days;
   const biggestSaving = products.reduce(
@@ -237,14 +237,14 @@ export default async function SalePage({
       </div>
 
       {/* ---- Spotlight: the three deepest cuts, large ---- */}
-      {spotlight.length === 3 && (
+      {spotlight.length >= 3 && (
         <section aria-labelledby="top-deals" className="phone-gutter mb-5">
           <h2 id="top-deals" className="mb-3 text-[18px] font-extrabold text-shop-ink md:text-[20px]">
-            Top 3 deals today
+            Top {spotlight.length} deals today
           </h2>
-          <ol className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+          <ol className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5">
             {spotlight.map((product, index) => (
-              <li key={product.id} className="w-[72%] shrink-0 snap-start md:w-auto">
+              <li key={product.id} className="w-[46%] shrink-0 snap-start md:w-auto">
                 <SpotlightCard product={product} rank={index + 1} />
               </li>
             ))}
@@ -283,7 +283,7 @@ export default async function SalePage({
         />
       ) : (
         <SaleBoard
-          initialProducts={sorted}
+          initialProducts={sorted.map(forGrid)}
           perPage={48}
           totalPages={total_pages}
           /* The page the server rendered. Almost always 1 — /sale no longer
@@ -304,7 +304,7 @@ export default async function SalePage({
           <h2 id="november-picks-heading" className="mt-1 text-[20px] font-bold text-shop-ink">More November picks</h2>
           <p className="mt-1 text-[12px] text-shop-muted">More in-stock products to explore. Discounted items show their original price and saving.</p>
         </div>
-        <InfiniteProducts initialProducts={novemberPicks.products} totalPages={novemberPicks.total_pages} perPage={48} query={{ sort: "popular", inStock: true }} doneLabel="You have seen all November picks." />
+        <InfiniteProducts initialProducts={novemberPicks.products.map(forGrid)} totalPages={novemberPicks.total_pages} perPage={24} query={{ sort: "popular", inStock: true }} doneLabel="You have seen all November picks." />
       </section>
     </main>
   );
@@ -328,7 +328,7 @@ function SpotlightCard({ product, rank }: { product: Product; rank: number }) {
             alt=""
             fill
             priority={rank === 1}
-            sizes="(max-width: 768px) 72vw, 33vw"
+            sizes="(max-width: 768px) 46vw, (max-width: 1024px) 33vw, 20vw"
             className="object-contain p-3 mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.04]"
           />
         )}

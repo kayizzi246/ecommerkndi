@@ -623,3 +623,127 @@
     white-space: nowrap;
   }
 }
+
+/* ---- Two featured deals, stacked (overrides the single-card layout above) ----
+   Each is a wide card, photo left and details right; together they fill the
+   column beside the two-row grid instead of one tall card with empty space. */
+.bnd-heroes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bnd-heroes .bnd-hero {
+  flex: 1;
+  flex-direction: row;
+}
+.bnd-heroes .bnd-hero-photo {
+  width: 46%;
+  flex-shrink: 0;
+  aspect-ratio: auto;
+  min-height: 170px;
+}
+.bnd-heroes .bnd-hero-info {
+  min-width: 0;
+  justify-content: center;
+  padding: 12px;
+}
+.bnd-heroes .bnd-hero-badge {
+  position: static;
+  width: fit-content;
+  margin-bottom: 2px;
+  font-size: 11px;
+  padding: 3px 9px;
+}
+.bnd-heroes .bnd-hero-off {
+  width: 52px;
+  height: 52px;
+  font-size: 15px;
+}
+.bnd-heroes .bnd-hero-name {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.bnd-heroes .bnd-hero-prices {
+  flex-wrap: wrap;
+  column-gap: 6px;
+}
+.bnd-heroes .bnd-hero-price {
+  font-size: 20px;
+  white-space: nowrap;
+}
+.bnd-heroes .bnd-hero-was {
+  white-space: nowrap;
+}
+.bnd-heroes .bnd-hero-save {
+  font-size: 12px;
+}
+.bnd-heroes .bnd-hero-cta {
+  padding: 8px;
+  font-size: 14px;
+}
+@media (max-width: 1023px) {
+  .bnd-heroes .bnd-hero-badge {
+    top: auto;
+    bottom: auto;
+    left: auto;
+  }
+}
+@media (max-width: 639px) {
+  .bnd-heroes .bnd-hero-photo {
+    width: 42%;
+    min-height: 150px;
+  }
+  .bnd-heroes .bnd-hero-off {
+    width: 44px;
+    height: 44px;
+    font-size: 13px;
+  }
+  .bnd-heroes .bnd-hero-price {
+    font-size: 18px;
+  }
+}
+
+/* ---- Welcome back: the row as a continuously moving carousel ---- */
+.wb-viewport {
+  overflow: hidden;
+}
+.wb-viewport .wb-row {
+  overflow: visible;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wb-marquee .wb-row {
+    width: max-content;
+    overflow: visible;
+    animation-name: wb-scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .wb-marquee:hover .wb-row,
+  .wb-marquee:focus-within .wb-row,
+  .wb-marquee:active .wb-row {
+    animation-play-state: paused;
+  }
+}
+/* Shoppers who asked for less motion get the ordinary swipeable row. */
+@media (prefers-reduced-motion: reduce) {
+  .wb-viewport {
+    overflow-x: auto;
+  }
+  .wb-marquee .wb-row > [aria-hidden="true"] {
+    display: none;
+  }
+}
+@keyframes wb-scroll {
+  from {
+    transform: translateX(0);
+  }
+  /* One copy plus one gap (12px), so the second copy lands exactly where the
+     first began. */
+  to {
+    transform: translateX(calc(-50% - 6px));
+  }
+}

@@ -9,6 +9,7 @@ import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
 import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
+import { sortSizes, splitSize } from "@/lib/size-labels";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -191,7 +192,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               <p className="text-[14px] font-bold text-shop-ink">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
-                  {selected[attr.name] ?? `Select a ${attr.name.toLowerCase()}`}
+                  {selected[attr.name] ? splitSize(selected[attr.name] as string).size : `Select a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
               {isSize && (
@@ -209,7 +210,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              {attr.options.map((option) => {
+              {sortSizes(attr.options).map((option) => {
                 const available = isOptionAvailable(attr.name, option.name);
                 const active = selected[attr.name] === option.name;
                 return (
@@ -221,7 +222,12 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                     aria-pressed={active}
                     className={`size-chip relative ${active ? "size-chip-on" : ""}`}
                   >
-                    {option.name}
+                    <span className="flex flex-col items-center leading-none">
+                      <span>{splitSize(option.name).size}</span>
+                      {splitSize(option.name).note && (
+                        <span className="mt-1 text-[10px] font-medium opacity-60">{splitSize(option.name).note}</span>
+                      )}
+                    </span>
                     {!available && (
                       <span className="absolute inset-0 flex items-center justify-center">
                         <span className="h-px w-4/5 rotate-[-18deg] bg-[#cfcfcf]" />

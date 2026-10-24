@@ -5,8 +5,8 @@ import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency"
 import { productPath } from "@/lib/seo";
 
 /**
- * The homepage's Black November section: the deepest real discount in the
- * shop as a large Deal of the Day, the next best deals beside it, and the
+ * The homepage's Black November section: the two deepest real discounts in
+ * the shop as large cards (Deal of the Day first), the next best beside them, and the
  * guarantees that make a stranger willing to pay — all on the campaign's
  * black and gold.
  *
@@ -29,11 +29,10 @@ export default function BlackNovemberDeals({
       (a, b) =>
         discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
     );
-  if (deals.length < 3) return null;
+  if (deals.length < 4) return null;
 
-  const [hero, ...rest] = deals;
-  const grid = rest.slice(0, 8);
-  const heroSaving = hero.regular_price - hero.price;
+  const heroes = deals.slice(0, 2);
+  const grid = deals.slice(2, 10);
 
   return (
     <section className="bnd" aria-labelledby="bnd-title">
@@ -54,31 +53,35 @@ export default function BlackNovemberDeals({
       </div>
 
       <div className="bnd-body">
-        {/* ---- Deal of the Day: the deepest cut, large ---- */}
-        <Link href={productPath(hero)} className="bnd-hero">
-          <span className="bnd-hero-photo">
-            {hero.image && (
-              <Image
-                src={hero.image}
-                alt={hero.name}
-                fill
-                sizes="(max-width: 768px) 90vw, 420px"
-                className="object-cover"
-              />
-            )}
-            <span className="bnd-hero-badge">Deal of the day</span>
-            <span className="bnd-hero-off">-{discountPercent(hero.regular_price, hero.price)}%</span>
-          </span>
-          <span className="bnd-hero-info">
-            <span className="bnd-hero-name">{hero.name}</span>
-            <span className="bnd-hero-prices">
-              <span className="price bnd-hero-price">{formatPrice(hero.price)}</span>
-              <s className="bnd-hero-was">{formatPrice(hero.regular_price)}</s>
-            </span>
-            <span className="bnd-hero-save">You save {formatPrice(heroSaving)}</span>
-            <span className="bnd-hero-cta">Buy now ›</span>
-          </span>
-        </Link>
+        {/* ---- The two deepest cuts, large, stacked to fill the column ---- */}
+        <div className="bnd-heroes">
+          {heroes.map((hero, index) => (
+            <Link key={hero.id} href={productPath(hero)} className="bnd-hero">
+              <span className="bnd-hero-photo">
+                {hero.image && (
+                  <Image
+                    src={hero.image}
+                    alt={hero.name}
+                    fill
+                    sizes="(max-width: 768px) 45vw, 180px"
+                    className="object-cover"
+                  />
+                )}
+                <span className="bnd-hero-off">-{discountPercent(hero.regular_price, hero.price)}%</span>
+              </span>
+              <span className="bnd-hero-info">
+                <span className="bnd-hero-badge">{index === 0 ? "Deal of the day" : "Hot deal"}</span>
+                <span className="bnd-hero-name">{hero.name}</span>
+                <span className="bnd-hero-prices">
+                  <span className="price bnd-hero-price">{formatPrice(hero.price)}</span>
+                  <s className="bnd-hero-was">{formatPrice(hero.regular_price)}</s>
+                </span>
+                <span className="bnd-hero-save">You save {formatPrice(hero.regular_price - hero.price)}</span>
+                <span className="bnd-hero-cta">Buy now ›</span>
+              </span>
+            </Link>
+          ))}
+        </div>
 
         {/* ---- The next best deals ---- */}
         <ul className="bnd-grid">

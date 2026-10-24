@@ -9,6 +9,7 @@ import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
+import { sortSizes, splitSize } from "@/lib/size-labels";
 import ColorSwatch from "@/app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -252,11 +253,11 @@ export default function VariantSheet({
               <p className="mb-2.5 text-[13px] text-shop-muted">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
-                  {selected[attr.name] ?? `Choose a ${attr.name.toLowerCase()}`}
+                  {selected[attr.name] ? splitSize(selected[attr.name] as string).size : `Choose a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
               <div className="flex flex-wrap gap-2.5">
-                {attr.options.map((option) => {
+                {sortSizes(attr.options).map((option) => {
                   const isSelected = selected[attr.name] === option.name;
                   const canBuy = available(attr.name, option.name);
 
@@ -275,7 +276,12 @@ export default function VariantSheet({
                          reads as a bug. */
                       className={`size-chip ${isSelected ? "size-chip-on" : ""} ${canBuy ? "" : "size-chip-gone"}`}
                     >
-                      {option.name}
+                      <span className="flex flex-col items-center leading-none">
+                        <span>{splitSize(option.name).size}</span>
+                        {splitSize(option.name).note && (
+                          <span className="mt-1 text-[10px] font-medium opacity-60">{splitSize(option.name).note}</span>
+                        )}
+                      </span>
                     </button>
                   );
                 })}

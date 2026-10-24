@@ -68,6 +68,9 @@ export default function WelcomeBack() {
 
   // "Cheaper now" only for a real drop since they looked; a product that was
   // already reduced when they saw it is "on sale", not cheaper.
+  /** Enough products to loop without the same one showing twice on screen. */
+  const marquee = tiles.length >= 5;
+
   const drops = tiles.filter((tile) => tile.dropBy > 0).length;
   const sales = tiles.filter((tile) => tile.dropBy === 0 && tile.onSale).length;
   const news =
@@ -120,31 +123,46 @@ export default function WelcomeBack() {
               )}
             </h2>
           </div>
-          <ul className="hx-deals-row no-scrollbar wb-row">
-            {tiles.map(({ item, price, dropBy, onSale, was }) => (
-              <li key={item.productId}>
-                <Link href={`/products/${item.slug || item.productId}`} className="hx-deal">
-                  <span className="hx-deal-photo">
-                    {item.image && (
-                      <Image src={item.image} alt="" fill sizes="(max-width: 640px) 36vw, 180px" className="object-cover" />
-                    )}
-                    {dropBy > 0 ? (
-                      <span className="wb-badge">Price drop</span>
-                    ) : onSale ? (
-                      <span className="wb-badge">On sale</span>
-                    ) : null}
-                  </span>
-                  <span className={`hx-deal-price ${dropBy > 0 || onSale ? "" : "wb-plain"}`}>{formatPrice(price)}</span>
-                  {was > 0 ? (
-                    <s className="hx-deal-was">{formatPrice(was)}</s>
-                  ) : (
-                    <span className="hx-deal-was">&nbsp;</span>
-                  )}
-                  {dropBy > 0 && <span className="wb-save">{formatPrice(dropBy)} less than you saw</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/* ---- A carousel that keeps moving ----
+               The row is rendered twice end to end and slid left by exactly one
+               copy's width, so the loop never shows a seam. It pauses under the
+               pointer or a finger (see .wb-marquee in black-november.css) so a
+               product can be tapped, and the copy is hidden from screen readers
+               and the keyboard. Too few items to loop, and it is a plain row. */}
+          <div className={`wb-viewport ${marquee ? "wb-marquee" : ""}`}>
+            <ul className="hx-deals-row no-scrollbar wb-row" style={marquee ? { animationDuration: `${tiles.length * 3.5}s` } : undefined}>
+              {(marquee ? [...tiles, ...tiles] : tiles).map(({ item, price, dropBy, onSale, was }, index) => {
+                const copy = index >= tiles.length;
+                return (
+                  <li key={`${item.productId}-${copy ? "b" : "a"}`} aria-hidden={copy || undefined}>
+                    <Link
+                      href={`/products/${item.slug || item.productId}`}
+                      className="hx-deal"
+                      tabIndex={copy ? -1 : undefined}
+                    >
+                      <span className="hx-deal-photo">
+                        {item.image && (
+                          <Image src={item.image} alt="" fill sizes="(max-width: 640px) 36vw, 180px" className="object-cover" />
+                        )}
+                        {dropBy > 0 ? (
+                          <span className="wb-badge">Price drop</span>
+                        ) : onSale ? (
+                          <span className="wb-badge">On sale</span>
+                        ) : null}
+                      </span>
+                      <span className={`hx-deal-price ${dropBy > 0 || onSale ? "" : "wb-plain"}`}>{formatPrice(price)}</span>
+                      {was > 0 ? (
+                        <s className="hx-deal-was">{formatPrice(was)}</s>
+                      ) : (
+                        <span className="hx-deal-was">&nbsp;</span>
+                      )}
+                      {dropBy > 0 && <span className="wb-save">{formatPrice(dropBy)} less than you saw</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </>
       )}
     </section>

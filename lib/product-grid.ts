@@ -103,3 +103,29 @@ export const PRODUCT_GRID =
 export const PRODUCT_GRID_WIDE =
   "pc-grid grid grid-cols-2 " +
   "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";
+
+/**
+ * A product trimmed to what a grid tile actually draws, for lists that are
+ * shipped to the browser in bulk.
+ *
+ * Every product in a server-rendered grid is serialised into the page so the
+ * client can hydrate it, and a full listing row is ~1.8 KB — mostly the whole
+ * gallery and every colour option's photo. `/sale` shipped 96 of them, a
+ * 630 KB page. A tile only needs one extra photo (the hover shot) and to know
+ * whether the product HAS options (so its cart button opens the product page
+ * instead of adding blind), so that is what is kept. The product page fetches
+ * the full product for itself.
+ */
+export function forGrid<T extends { gallery: string[]; attributes: { name: string; options: { name: string }[] }[]; short_description?: string }>(
+  product: T
+): T {
+  return {
+    ...product,
+    gallery: product.gallery.slice(0, 1),
+    attributes: product.attributes.map((attribute) => ({
+      name: attribute.name,
+      options: attribute.options.map((option) => ({ name: option.name })),
+    })),
+    short_description: "",
+  };
+}

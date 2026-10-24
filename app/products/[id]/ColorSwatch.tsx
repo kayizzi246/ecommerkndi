@@ -24,8 +24,8 @@ type Props = {
  *
  * An option's own photo wins. When NONE of the options has one (an import
  * whose colour pictures never downloaded), each option takes the next product
- * photo in turn: "Style 5" shows the fifth photo, and picking it brings that
- * photo up. Ten identical tiles that change nothing when tapped was the
+ * photo in turn — but only when the options are importer codes: "Style 5"
+ * shows the fifth photo, and picking it brings that photo up. Ten identical tiles that change nothing when tapped was the
  * alternative. When only some options have photos, the rest show the main one.
  */
 export function optionPhoto(
@@ -36,8 +36,13 @@ export function optionPhoto(
   const own = options[index]?.image;
   if (own) return own;
   if (photos.length === 0) return undefined;
+  // Gallery photos are handed out in turn ONLY when the options are importer
+  // codes ("Style 1", "Style 2"…). A real colour name must not be paired with
+  // an arbitrary photo: "Beige" showing a black sweater is worse than the
+  // main photo with a beige dot on it.
   const noneHavePhotos = !options.some((option) => option.image);
-  return noneHavePhotos && photos.length > 1 ? photos[index % photos.length] : photos[0];
+  const allCodes = options.every((option, i) => colourLabel(option.name, i) !== option.name.trim());
+  return noneHavePhotos && allCodes && photos.length > 1 ? photos[index % photos.length] : photos[0];
 }
 
 /**
