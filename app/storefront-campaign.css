@@ -297,7 +297,7 @@ button, input, select, textarea { font-family: inherit; }
 .hx-deal-price {
   margin-top: 6px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-shop-sale-price);
   font-variant-numeric: tabular-nums;
 }

@@ -2,7 +2,7 @@ import { buildHomeFeed } from "@/lib/home-feed";
 import BlackFridayHero from "@/components/home/BlackFridayHero";
 import HomeCarousel from "@/components/home/HomeCarousel";
 import WelcomeBack from "@/components/home/WelcomeBack";
-import LightningDeals from "@/components/home/LightningDeals";
+import BlackNovemberDeals from "@/components/home/BlackNovemberDeals";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
@@ -205,7 +205,7 @@ export default async function Home() {
           <BlackFridayHero />
           <WelcomeBack />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks} />
-          <LightningDeals products={dealPicks} />
+          <BlackNovemberDeals products={dealPicks} returnsDays={settings.commerce.returns_days} />
         </div>
 
         <PickedForYou

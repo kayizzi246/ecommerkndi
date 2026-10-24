@@ -8,7 +8,7 @@ import { breadcrumbJsonLd, collectionJsonLd, productPath } from "@/lib/seo";
 import SortDropdown from "@/components/SortDropdown";
 import SaleBoard from "@/components/SaleBoard";
 import InfiniteProducts from "@/components/home/InfiniteProducts";
-import SaleCountdown from "@/components/SaleCountdown";
+import { getSiteSettings } from "@/lib/site-settings";
 import { PRODUCT_GRID } from "@/lib/product-grid";
 
 export const metadata = {
@@ -129,6 +129,7 @@ export default async function SalePage({
           )
           .slice(0, 3)
       : [];
+  const returnsDays = (await getSiteSettings()).commerce.returns_days;
   const biggestSaving = products.reduce(
     (best, product) => Math.max(best, product.regular_price - product.price),
     0
@@ -175,58 +176,59 @@ export default async function SalePage({
            Every figure here is counted off the products below it, never
            asserted: the deepest cut, how many are live, the biggest single
            saving. The clock counts to midnight, when prices are rechecked. */}
-      <section className="relative mb-4 overflow-hidden bg-gradient-to-br from-[#ffe066] via-[#ffd23f] to-[#ffb800] px-4 py-5 md:rounded-3xl md:px-7 md:py-7">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/25"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/15"
-        />
-        <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#ffcc00]">
-              <svg aria-hidden className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-              </svg>
-              Super Deals
-            </p>
-            <h1 className="mt-3 text-[30px] font-extrabold leading-[1.05] text-[#111111] md:text-[44px]">
-              {deepest > 0 ? (
-                <>
-                  Up to <span className="text-[#c62828]">{deepest}% off</span>
-                </>
-              ) : (
-                "November offers"
-              )}
-            </h1>
-            <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[#3d3200]">
-              {total > 0
-                ? "Explore November offers. Savings are shown when a verified original price is available."
-                : "Nothing is reduced at the moment. New deals are added as prices change."}
-            </p>
-            {total > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-2 text-[12px] font-semibold text-[#111111]">
-                <li className="rounded-full bg-white/80 px-3 py-1.5">
-                  🔥 {total} {total === 1 ? "deal" : "deals"} live
-                </li>
-                {biggestSaving > 0 && (
-                  <li className="rounded-full bg-white/80 px-3 py-1.5">
-                    Save up to {formatPrice(biggestSaving)}
-                  </li>
-                )}
-                <li className="rounded-full bg-white/80 px-3 py-1.5">Pay on delivery</li>
-              </ul>
+      <section className="bn-hero mb-4">
+        <div className="bn-hero-glow" aria-hidden />
+        <div className="bn-hero-main">
+          <p className="hx-hero-eyebrow">
+            <span className="hx-live" aria-hidden />
+            Black November
+          </p>
+          <h1 className="bn-hero-title">
+            {deepest > 0 ? (
+              <>
+                Up to <span className="hx-hero-big bn-hero-big">{deepest}%</span> off
+              </>
+            ) : (
+              "November offers"
             )}
-          </div>
+          </h1>
+          <p className="bn-hero-copy">
+            {total > 0
+              ? "Every deal shows the original price beside today's price, so you can see exactly what you save."
+              : "Nothing is reduced at the moment. New deals are added as prices change."}
+          </p>
+          {total > 0 && (
+            <ul className="bn-hero-stats">
+              <li>
+                <strong>{total}</strong> {total === 1 ? "deal" : "deals"} live
+              </li>
+              {biggestSaving > 0 && (
+                <li>
+                  Save up to <strong>{formatPrice(biggestSaving)}</strong>
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
 
-          <div className="rounded-2xl bg-white/85 px-4 py-3 shadow-[0_8px_24px_rgba(122,90,0,0.18)]">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7a5a00]">
-              Today&apos;s prices end in
-            </p>
-            <SaleCountdown />
-          </div>
+        {/* Why a shopper can buy here with confidence. Every line is a policy
+            the shop actually runs; the returns window comes from wp-admin. */}
+        <div className="bn-trust">
+          <p className="bn-trust-title">Why shop Black November at Kandi</p>
+          <ul>
+            <li>
+              <TrustTick /> <span><strong>Real discounts.</strong> Original price shown on every deal.</span>
+            </li>
+            <li>
+              <TrustTick /> <span><strong>Pay on delivery</strong> within 40 km of Kampala.</span>
+            </li>
+            <li>
+              <TrustTick /> <span><strong>{returnsDays}-day returns.</strong> Not happy? Send it back.</span>
+            </li>
+            <li>
+              <TrustTick /> <span><strong>We call first.</strong> The rider phones before delivery.</span>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -353,6 +355,14 @@ function SpotlightCard({ product, rank }: { product: Product; rank: number }) {
         </span>
       </span>
     </Link>
+  );
+}
+
+function TrustTick() {
+  return (
+    <svg aria-hidden className="bn-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 5 5L20 7" />
+    </svg>
   );
 }
 

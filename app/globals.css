@@ -4141,14 +4141,18 @@ body { font-size: 13px; }
   }
 }
 
-/* Every price in the shop at 700: the figure a shopper decides on should be
+/* Every price in the shop at 800: the figure a shopper decides on should be
    the boldest thing in its row. Last in the file so it wins over the 600s
-   above. */
+   above; black-november.css, imported after this file, follows suit. */
 .price,
 .price-display,
 .tile-type .price,
 .tile-info .tile-price,
 .pc-price,
-.hx-deal-price {
-  font-weight: 700;
+.hx-deal-price,
+.bnd-hero-price,
+.bnd-tile-price,
+.crail-total,
+.crail-price {
+  font-weight: 800;
 }

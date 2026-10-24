@@ -179,7 +179,7 @@
 }
 .pc-price {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 22px;
   color: #222;
   font-variant-numeric: tabular-nums;
@@ -256,7 +256,6 @@
 .pc-urgent,
 .pc-note {
   margin: 0;
-  margin-top: auto;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
