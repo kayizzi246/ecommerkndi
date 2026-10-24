@@ -301,7 +301,7 @@
   /* A little taller than square on a phone: a shoe or a garment fills more
      of a narrow two-column tile, and the photo is what sells. */
   .pc-photo {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1.08;
   }
   /* Staggered on phones: the right-hand column sits 40px lower, so the two
      columns read as a brick pattern rather than a table. An offset rather
