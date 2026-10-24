@@ -171,6 +171,17 @@ const nextConfig: NextConfig = {
   experimental: {
     staticGenerationMaxConcurrency: 3,
     staticGenerationRetryCount: 3,
+    /*
+     * Pages a shopper has already opened are kept in the browser for a minute,
+     * so going back to a category, a search or a product they just looked at
+     * is instant instead of another wait on WordPress. The default for dynamic
+     * pages is 0 — every revisit re-rendered. Prices can be at most a minute
+     * old on a revisit; checkout always prices on the server.
+     */
+    staleTimes: {
+      dynamic: 60,
+      static: 300,
+    },
   },
 
   images: {

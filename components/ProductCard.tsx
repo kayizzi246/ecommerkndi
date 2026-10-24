@@ -196,7 +196,10 @@ export default function ProductCard({
           <p className="pc-urgent">Only {product.stock_quantity} left</p>
         ) : (
           <p className="pc-delivery">
-            Arrives in <strong>1–3 business days</strong>
+            {/* The shop's Kampala express promise. Upcountry orders still take
+                the 1–3 business days stated on the product and delivery pages,
+                which is why the place is named. */}
+            Arrives in <strong>90 mins</strong> · Kampala
           </p>
         )}
       </div>

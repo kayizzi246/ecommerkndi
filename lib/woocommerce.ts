@@ -339,7 +339,10 @@ export function wordpressOrigin(): string | null {
 
 function storeApiBaseUrl(): string {
   const url = baseUrl().replace(/\/$/, "");
-  const wpJsonMatch = url.match(/^(.*\/wp-json)(?:\/[^/]+)?$/i);
+  // Everything after /wp-json is the plugin namespace, and "kandi/v1" is TWO
+  // segments. This used to allow only one, which pointed every Store API call
+  // at /wp-json/kandi/v1/wc/store/v1 — a 404.
+  const wpJsonMatch = url.match(/^(.*?\/wp-json)(?:\/.*)?$/i);
   return wpJsonMatch ? `${wpJsonMatch[1]}/wc/store/v1` : `${url}/wc/store/v1`;
 }
 
@@ -757,6 +760,49 @@ async function withOriginalPrices(products: Product[]): Promise<Product[]> {
     });
   } catch {
     return products;
+  }
+}
+
+/** Today's price and stock for a product, as the Store API reports it. */
+export type CurrentPrice = {
+  id: number;
+  price: number;
+  regular_price: number;
+  on_sale: boolean;
+  in_stock: boolean;
+};
+
+/**
+ * Current prices for a handful of products in one request, for the
+ * homepage's "Welcome back" panel: it compares these with the price each
+ * shopper saw when they last looked. Empty on any failure — the panel then
+ * simply shows the items without price news.
+ */
+export async function getCurrentPrices(ids: number[]): Promise<CurrentPrice[]> {
+  if (ids.length === 0) return [];
+  try {
+    const res = await fetch(
+      `${storeApiBaseUrl()}/products?include=${ids.join(",")}&per_page=${ids.length}`,
+      {
+        next: { revalidate: REVALIDATE_SECONDS, tags: [PRODUCTS_TAG] },
+        signal: AbortSignal.timeout(8_000),
+      }
+    );
+    if (!res.ok) return [];
+    return arr(await res.json()).map((entry) => {
+      const item = obj(entry);
+      const prices = obj(item.prices);
+      const unit = 10 ** num(prices.currency_minor_unit);
+      return {
+        id: num(item.id),
+        price: num(prices.price) / unit,
+        regular_price: num(prices.regular_price) / unit,
+        on_sale: Boolean(item.on_sale),
+        in_stock: item.is_in_stock !== false,
+      };
+    });
+  } catch {
+    return [];
   }
 }
 

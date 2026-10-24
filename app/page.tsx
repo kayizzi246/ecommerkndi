@@ -1,12 +1,12 @@
 import { buildHomeFeed } from "@/lib/home-feed";
 import BlackFridayHero from "@/components/home/BlackFridayHero";
 import HomeCarousel from "@/components/home/HomeCarousel";
+import WelcomeBack from "@/components/home/WelcomeBack";
 import LightningDeals from "@/components/home/LightningDeals";
 import PickedForYou, { type PickedTab } from "@/components/home/PickedForYou";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { brandName, getSiteSettings } from "@/lib/site-settings";
 import { itemListJsonLd, productPath } from "@/lib/seo";
-import { discountPercent } from "@/lib/currency";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -136,10 +136,6 @@ export default async function Home() {
         all.findIndex((other) => other.id === product.id) === index
     )
     .slice(0, 12);
-  const maxDiscount = Math.max(
-    0,
-    ...dealPicks.map((product) => discountPercent(product.regular_price, product.price))
-  );
 
   /* The carousel under the banner: what sells, falling back to the shop's
      own picks on a catalogue too new to have sales. */
@@ -206,7 +202,8 @@ export default async function Home() {
             deals with their prices showing — so the first screen is
             merchandise rather than headings. */}
         <div className="hx">
-          <BlackFridayHero maxDiscount={maxDiscount} />
+          <BlackFridayHero />
+          <WelcomeBack />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks} />
           <LightningDeals products={dealPicks} />
         </div>

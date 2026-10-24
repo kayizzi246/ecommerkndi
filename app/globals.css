@@ -4140,3 +4140,15 @@ body { font-size: 13px; }
     padding: 0.625rem 0.75rem;
   }
 }
+
+/* Every price in the shop at 700: the figure a shopper decides on should be
+   the boldest thing in its row. Last in the file so it wins over the 600s
+   above. */
+.price,
+.price-display,
+.tile-type .price,
+.tile-info .tile-price,
+.pc-price,
+.hx-deal-price {
+  font-weight: 700;
+}

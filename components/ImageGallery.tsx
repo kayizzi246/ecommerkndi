@@ -204,6 +204,16 @@ export default function ImageGallery({
               />
             ))}
 
+        {/* The Black November ribbon, as on the product cards. */}
+        {!soldOut && discount > 0 && (
+          <span className="pc-bn pc-bn-lg" aria-hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+            </svg>
+            Black November · -{discount}%
+          </span>
+        )}
+
         {/* Sold out, across the middle of the frame.
             Centred rather than tucked in a corner with the other flags: this is
             not a badge competing for attention with a discount, it is the one

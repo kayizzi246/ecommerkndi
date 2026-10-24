@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import "./storefront-campaign.css";
 import "./product-cards.css";
+import "./motion.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocommerce";

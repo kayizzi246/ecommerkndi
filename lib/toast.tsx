@@ -8,6 +8,9 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { useCart } from "@/lib/cart";
+import { useCommerceTerms } from "@/lib/commerce-terms";
+import { formatPrice } from "@/lib/currency";
 
 type Toast = {
   id: number;
@@ -32,7 +35,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       setToasts((prev) => [...prev.slice(-2), { id, message, ...options }]);
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 3200);
+      }, options?.showBagLink ? 4500 : 3200);
     },
     []
   );
@@ -47,31 +50,67 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="toast-in bg-black text-white shadow-xl px-4 py-3 flex items-center gap-3"
+            className="toast-in rounded-xl bg-[#111] px-3.5 py-3 text-white shadow-xl"
           >
-            {toast.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={toast.image}
-                alt=""
-                className="w-10 h-10 object-contain bg-white shrink-0"
-              />
-            )}
-            <p className="text-xs tracking-widest uppercase flex-1">
-              {toast.message}
-            </p>
-            {toast.showBagLink && (
-              <Link
-                href="/cart"
-                className="text-xs tracking-widest uppercase underline underline-offset-4 shrink-0 hover:opacity-70"
-              >
-                View bag
-              </Link>
-            )}
+            <div className="flex items-center gap-3">
+              {toast.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={toast.image}
+                  alt=""
+                  className="h-11 w-11 shrink-0 rounded-md bg-white object-contain"
+                />
+              )}
+              <p className="flex-1 text-[13px] font-semibold">
+                {toast.showBagLink && <span className="mr-1 text-shop-primary">✓</span>}
+                {toast.message}
+              </p>
+              {toast.showBagLink && (
+                <Link
+                  href="/cart"
+                  className="shrink-0 rounded-full bg-shop-primary px-3 py-1.5 text-[12px] font-bold text-black hover:bg-shop-primary-dark"
+                >
+                  View cart
+                </Link>
+              )}
+            </div>
+            {toast.showBagLink && <FreeDeliveryNudge />}
           </div>
         ))}
       </div>
     </ToastContext.Provider>
+  );
+}
+
+/**
+ * Under an "Added to cart" toast: how far the basket now is from free
+ * delivery, with a bar that fills as it gets closer — the moment a shopper has
+ * just added something is the moment they are most willing to add one more.
+ * Live from the basket and the threshold set in wp-admin; says nothing when
+ * the shop has no free-delivery threshold.
+ */
+function FreeDeliveryNudge() {
+  const { subtotal } = useCart();
+  const { freeDeliveryFrom } = useCommerceTerms();
+  if (!(freeDeliveryFrom > 0)) return null;
+
+  const away = Math.max(0, freeDeliveryFrom - subtotal);
+  const progress = Math.min(100, (subtotal / freeDeliveryFrom) * 100);
+  return (
+    <div className="mt-2.5">
+      <p className="text-[12px] text-white/85">
+        {away > 0 ? (
+          <>
+            Add <strong className="text-shop-primary">{formatPrice(away)}</strong> more for free delivery
+          </>
+        ) : (
+          <strong className="text-shop-primary">You get free delivery!</strong>
+        )}
+      </p>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className="toast-bar h-full rounded-full bg-shop-primary" style={{ width: `${progress}%` }} />
+      </div>
+    </div>
   );
 }
 

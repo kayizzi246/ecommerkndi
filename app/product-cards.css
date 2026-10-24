@@ -285,9 +285,19 @@
 
 /* ---- Phones: two tiles across a ~390px screen ---- */
 @media (max-width: 639px) {
+  /* Edge to edge on a phone: no gaps and no side padding, so every pixel of a
+     390px screen goes to the photos. Square corners, so two cards that touch
+     do not leave notches between them; the text keeps a little inset. */
   .pc-grid {
-    gap: 14px 8px;
-    padding-inline: 8px;
+    gap: 0;
+    padding-inline: 0;
+  }
+  .pc-grid .pc,
+  .pc-grid .pc-photo {
+    border-radius: 0;
+  }
+  .pc-grid .pc-body {
+    padding: 6px 6px 10px;
   }
   /* Staggered on phones: the right-hand column sits 40px lower, so the two
      columns read as a brick pattern rather than a table. An offset rather
@@ -354,4 +364,67 @@
   to {
     transform: translateX(260%);
   }
+}
+
+/* ---- Black November on the product page ---- */
+.pc-bn-lg {
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.pc-bn-lg svg {
+  width: 15px;
+  height: 15px;
+}
+.bn-strip {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  overflow: hidden;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: linear-gradient(90deg, #0b0b0b, #2a1a08 60%, #0b0b0b);
+  color: var(--color-shop-primary);
+}
+.bn-strip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bn-strip-tag svg {
+  width: 16px;
+  height: 16px;
+}
+.bn-strip-save {
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: var(--color-shop-primary);
+  color: #111;
+  font-size: 13px;
+  font-weight: 700;
+}
+.bn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #111;
+  color: var(--color-shop-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+.bn-link svg {
+  width: 13px;
+  height: 13px;
+}
+.bn-link:hover {
+  background: #000;
 }

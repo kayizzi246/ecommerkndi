@@ -13,65 +13,120 @@ button, input, select, textarea { font-family: inherit; }
   min-width: 0;
 }
 
-/* ---- Banner ---- */
+/* ---- Banner (components/home/BlackFridayHero.tsx) ----
+   Centred: the offer is the whole message, so it sits in the middle of the
+   photo with a dark radial pool behind it to keep the words readable. */
 .hx-hero {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 240px;
+  justify-content: center;
+  min-height: 300px;
   overflow: hidden;
   border-radius: 14px;
   background: #140d07;
   color: #fff;
+  text-align: center;
 }
 .hx-hero-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(10, 6, 2, 0.88) 0%, rgba(10, 6, 2, 0.55) 45%, rgba(10, 6, 2, 0) 80%);
+  background:
+    radial-gradient(ellipse 55% 75% at 50% 50%, rgba(8, 5, 2, 0.82) 0%, rgba(8, 5, 2, 0.55) 55%, rgba(8, 5, 2, 0.15) 100%);
+}
+.hx-sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hx-spark {
+  position: absolute;
+  border-radius: 999px;
+  background: var(--color-shop-primary);
+  box-shadow: 0 0 10px 2px rgba(255, 204, 0, 0.6);
+  opacity: 0;
 }
 .hx-hero-copy {
   position: relative;
   z-index: 1;
-  max-width: 520px;
-  padding: 28px 40px;
+  display: flex;
+  max-width: 640px;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 24px;
 }
 .hx-hero-eyebrow {
-  margin: 0 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  border: 1px solid rgba(255, 204, 0, 0.45);
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.35);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-shop-primary);
 }
+.hx-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff3b30;
+  box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6);
+}
 .hx-hero-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.18em;
   margin: 0;
-  font-size: clamp(30px, 4vw, 46px);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
   color: #fff;
 }
+.hx-hero-upto,
+.hx-hero-off {
+  font-size: clamp(26px, 3.4vw, 44px);
+}
+.hx-hero-big {
+  font-size: clamp(64px, 9vw, 120px);
+  background: linear-gradient(100deg, #ffcc00 0%, #fff3b0 25%, #ffcc00 45%, #f5a300 70%, #ffcc00 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(255, 204, 0, 0.35));
+}
 .hx-hero-sub {
-  margin: 10px 0 0;
-  font-size: 14px;
+  margin: 12px 0 0;
+  font-size: 15px;
   line-height: 1.45;
   color: #f1e3cf;
 }
 .hx-hero-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 .hx-btn {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 999px;
-  padding: 0 20px;
-  font-size: 14px;
+  padding: 0 26px;
+  font-size: 15px;
   font-weight: 700;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+.hx-btn:hover {
+  transform: translateY(-1px);
 }
 .hx-btn-primary {
   background: var(--color-shop-primary);
@@ -242,7 +297,7 @@ button, input, select, textarea { font-family: inherit; }
 .hx-deal-price {
   margin-top: 6px;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-shop-sale-price);
   font-variant-numeric: tabular-nums;
 }
@@ -252,6 +307,93 @@ button, input, select, textarea { font-family: inherit; }
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- Welcome back panel (components/home/WelcomeBack.tsx) ---- */
+.wb-cart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--color-shop-primary-soft);
+  padding: 10px 14px;
+}
+.wb-cart:last-child {
+  margin-bottom: 0;
+}
+.wb-cart-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-shop-primary);
+  color: #111;
+}
+.wb-cart-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.wb-cart-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-shop-body);
+}
+.wb-cart-text strong {
+  font-size: 14px;
+  color: #111;
+}
+.wb-cart-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.wb-cart-cta {
+  border-radius: 999px;
+  background: #111;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-shop-primary);
+}
+.wb-cart-cta:hover {
+  background: #000;
+}
+.wb-hot {
+  margin-left: 4px;
+  color: var(--color-shop-sale-price);
+}
+.wb-row {
+  padding: 0;
+}
+.wb-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--color-shop-sale-price);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+.wb-plain {
+  color: #222;
+}
+.wb-save {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-shop-save);
+}
+
 /* ---- Phone ---- */
 @media (max-width: 639px) {
   .hx {
@@ -259,24 +401,31 @@ button, input, select, textarea { font-family: inherit; }
     padding-inline: 8px;
   }
   .hx-hero {
-    min-height: 190px;
+    min-height: 240px;
     border-radius: 12px;
   }
   .hx-hero-shade {
-    background: linear-gradient(90deg, rgba(10, 6, 2, 0.9) 0%, rgba(10, 6, 2, 0.6) 65%, rgba(10, 6, 2, 0.25) 100%);
+    background: radial-gradient(ellipse 90% 80% at 50% 50%, rgba(8, 5, 2, 0.85) 0%, rgba(8, 5, 2, 0.55) 70%, rgba(8, 5, 2, 0.3) 100%);
   }
   .hx-hero-copy {
-    padding: 20px 18px;
+    padding: 22px 14px;
   }
-  .hx-hero-title {
-    font-size: 28px;
+  .hx-hero-eyebrow {
+    font-size: 10px;
+  }
+  .hx-hero-big {
+    font-size: 64px;
+  }
+  .hx-hero-upto,
+  .hx-hero-off {
+    font-size: 24px;
   }
   .hx-hero-sub {
     font-size: 12.5px;
   }
   .hx-btn {
-    min-height: 36px;
-    padding: 0 16px;
+    min-height: 38px;
+    padding: 0 18px;
     font-size: 13px;
   }
   .hx-panel:not(.hx-deals) {
@@ -302,6 +451,14 @@ button, input, select, textarea { font-family: inherit; }
   }
   .hx-carousel-track {
     gap: 8px;
+  }
+  .wb-hot {
+    display: block;
+    margin: 2px 0 0;
+    font-size: 13px;
+  }
+  .wb-cart-link {
+    display: none;
   }
   .hx-carousel-track > li {
     width: 44%;

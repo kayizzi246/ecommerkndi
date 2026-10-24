@@ -404,9 +404,35 @@ export default function ProductPurchase({
                Big and red, with the saving in red beside it and the original
                struck through in grey — the way the marketplaces this page is
                modelled on set it. Grey and struck when sold out. */}
+          {/* ---- Black November, above the price ----
+               A reduced product carries the campaign strip with its real
+               saving; a full-price one gets a quiet link into the sale, so a
+               shopper who came for one thing finds the deals next door. */}
+          {!soldOut && discount > 0 ? (
+            <div className="bn-strip mt-3">
+              <span className="bn-strip-tag">
+                <svg aria-hidden viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+                </svg>
+                Black November deal
+              </span>
+              <span className="bn-strip-save">
+                -{discount}% · Save {formatPrice(regularPrice - price)}
+              </span>
+            </div>
+          ) : !soldOut ? (
+            <Link href="/sale" className="bn-link mt-3">
+              <svg aria-hidden viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+              </svg>
+              Black November is on — see today&apos;s deals
+              <span aria-hidden>›</span>
+            </Link>
+          ) : null}
+
           <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-2">
             <span
-              className={`price-display text-[32px] font-extrabold leading-none md:text-[36px] ${
+              className={`price-display text-[32px] font-bold leading-none md:text-[36px] ${
                 soldOut ? "text-shop-muted line-through" : "text-[#e2231a]"
               }`}
             >
