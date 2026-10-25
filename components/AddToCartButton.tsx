@@ -9,7 +9,7 @@ import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import ColorSwatch from "../app/products/[id]/ColorSwatch";
 import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
-import { sortSizes, splitSize } from "@/lib/size-labels";
+import { shoeFit, sizeLabel, sortSizes, withSizeLabels } from "@/lib/size-labels";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import QuantityStepper from "@/components/QuantityStepper";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -19,9 +19,6 @@ type Props = {
   onOptionChange?: (name: string, value: string | null) => void;
 };
 
-/** Size charts shoppers can switch between; the chips themselves are the store's own labels. */
-const SIZE_SYSTEMS = ["EU", "UK", "US"];
-
 export default function AddToCartButton({ product, onOptionChange }: Props) {
   const { addItem } = useCart();
   const { notify } = useToast();
@@ -29,7 +26,6 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
   const saved = isWishlisted(product.id);
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
-  const [sizeSystem, setSizeSystem] = useState(SIZE_SYSTEMS[0]);
   /* Every option starts on its first in-stock choice, so Add to cart and Buy
      now work on the first tap. Starting blank meant both buttons answered
      "Please select a colour" — a blocked sale whenever the swatches were hard
@@ -85,6 +81,8 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
   };
 
   const attributes = product.attributes ?? [];
+  // Shoes are shown in UK sizing whatever chart the supplier used.
+  const fit = shoeFit(product);
 
   if (product.stock_status === "outofstock") {
     return (
@@ -127,7 +125,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
         price: variationPrice(product, selected),
         image: product.image,
         options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
-        optionLabels: chosenOptionLabels(attributes, selected),
+        optionLabels: withSizeLabels(chosenOptionLabels(attributes, selected), selected, fit),
       },
       quantity
     );
@@ -192,21 +190,10 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
               <p className="text-[14px] font-bold text-shop-ink">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
-                  {selected[attr.name] ? splitSize(selected[attr.name] as string).size : `Select a ${attr.name.toLowerCase()}`}
+                  {selected[attr.name] ? sizeLabel(selected[attr.name] as string, fit).size : `Select a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
-              {isSize && (
-                <select
-                  aria-label="Size system"
-                  value={sizeSystem}
-                  onChange={(event) => setSizeSystem(event.target.value)}
-                  className="rounded-lg border border-shop-line bg-white px-2.5 py-1.5 text-[12px] text-shop-body focus:border-shop-ink focus:outline-none"
-                >
-                  {SIZE_SYSTEMS.map((system) => (
-                    <option key={system}>{system}</option>
-                  ))}
-                </select>
-              )}
+              {isSize && fit.shoe && <span className="text-[12px] text-shop-muted">UK sizes</span>}
             </div>
 
             <div className="flex flex-wrap gap-2.5">
@@ -223,9 +210,9 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                     className={`size-chip relative ${active ? "size-chip-on" : ""}`}
                   >
                     <span className="flex flex-col items-center leading-none">
-                      <span>{splitSize(option.name).size}</span>
-                      {splitSize(option.name).note && (
-                        <span className="mt-1 text-[10px] font-medium opacity-60">{splitSize(option.name).note}</span>
+                      <span>{sizeLabel(option.name, fit).size}</span>
+                      {sizeLabel(option.name, fit).note && (
+                        <span className="mt-1 text-[10px] font-medium opacity-60">{sizeLabel(option.name, fit).note}</span>
                       )}
                     </span>
                     {!available && (

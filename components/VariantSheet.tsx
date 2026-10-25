@@ -9,7 +9,7 @@ import { formatPrice, hasPriceReduction } from "@/lib/currency";
 import type { Product } from "@/lib/woocommerce";
 import { initialSelection, matchVariation, variationPrice } from "@/lib/variation-match";
 import { chosenOptionLabels, colourLabel, isColourAttribute } from "@/lib/colour-names";
-import { sortSizes, splitSize } from "@/lib/size-labels";
+import { shoeFit, sizeLabel, sortSizes, withSizeLabels } from "@/lib/size-labels";
 import ColorSwatch from "@/app/products/[id]/ColorSwatch";
 import BuyNowLabel, { AddToCartLabel } from "@/components/BuyNowLabel";
 import { recordInterest, INTEREST } from "@/lib/interests";
@@ -43,6 +43,7 @@ export default function VariantSheet({
   const router = useRouter();
 
   const attributes = (product.attributes ?? []).filter((attr) => attr.options.length > 0);
+  const fit = shoeFit(product);
 
   // Pre-picked from one whole in-stock variation, like the buy box, so the
   // sheet's button works on the first tap with a combination that exists.
@@ -148,7 +149,7 @@ export default function VariantSheet({
         price: variationPrice(product, selected),
         image: product.image,
         options: attributes.length > 0 ? (selected as Record<string, string>) : undefined,
-        optionLabels: chosenOptionLabels(attributes, selected),
+        optionLabels: withSizeLabels(chosenOptionLabels(attributes, selected), selected, fit),
       },
       quantity
     );
@@ -253,7 +254,7 @@ export default function VariantSheet({
               <p className="mb-2.5 text-[13px] text-shop-muted">
                 {attr.name}:{" "}
                 <span className="font-semibold text-shop-ink">
-                  {selected[attr.name] ? splitSize(selected[attr.name] as string).size : `Choose a ${attr.name.toLowerCase()}`}
+                  {selected[attr.name] ? sizeLabel(selected[attr.name] as string, fit).size : `Choose a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
               <div className="flex flex-wrap gap-2.5">
@@ -277,9 +278,9 @@ export default function VariantSheet({
                       className={`size-chip ${isSelected ? "size-chip-on" : ""} ${canBuy ? "" : "size-chip-gone"}`}
                     >
                       <span className="flex flex-col items-center leading-none">
-                        <span>{splitSize(option.name).size}</span>
-                        {splitSize(option.name).note && (
-                          <span className="mt-1 text-[10px] font-medium opacity-60">{splitSize(option.name).note}</span>
+                        <span>{sizeLabel(option.name, fit).size}</span>
+                        {sizeLabel(option.name, fit).note && (
+                          <span className="mt-1 text-[10px] font-medium opacity-60">{sizeLabel(option.name, fit).note}</span>
                         )}
                       </span>
                     </button>

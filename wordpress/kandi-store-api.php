@@ -2894,3 +2894,84 @@ function kandi_quick_prices_page() {
 	<?php
 }
 endif;
+
+/* -------------------------------------------------------------------------
+ * Pack prices, applied at sale time.
+ *
+ * Products still waiting for the Pack prices screen above (every pack at the
+ * price of one pair) are charged pairs × that price wherever WooCommerce
+ * prices them: the storefront API, the basket, checkout and the order itself.
+ * The stored prices are not touched, and once a product's packs have been
+ * given their own prices it stops qualifying, so nothing is multiplied twice.
+ *
+ * Skipped inside wp-admin, so the Pack prices and Quick prices screens keep
+ * showing and saving the stored prices.
+ * ---------------------------------------------------------------------- */
+
+/** Whether every variation of a product still shares one regular price. */
+if ( ! function_exists( 'kandi_pack_unpriced' ) ) :
+function kandi_pack_unpriced( $parent_id ) {
+	static $seen = array();
+	$parent_id = (int) $parent_id;
+	if ( isset( $seen[ $parent_id ] ) ) {
+		return $seen[ $parent_id ];
+	}
+	global $wpdb;
+	$prices = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT m.meta_value
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_regular_price'
+			 WHERE p.post_parent = %d AND p.post_type = 'product_variation' AND p.post_status = 'publish'",
+			$parent_id
+		)
+	);
+	return $seen[ $parent_id ] = ( 1 === count( (array) $prices ) );
+}
+endif;
+
+/** The multiplier for a variation: its pairs when the product is unpriced, else 1. */
+if ( ! function_exists( 'kandi_pack_multiplier' ) ) :
+function kandi_pack_multiplier( $variation ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return 1;
+	}
+	if ( ! $variation instanceof WC_Product_Variation ) {
+		return 1;
+	}
+	$pairs = 0;
+	foreach ( (array) $variation->get_attributes() as $value ) {
+		$pairs = max( $pairs, kandi_pack_pairs( $value ) );
+	}
+	if ( $pairs < 2 || ! kandi_pack_unpriced( $variation->get_parent_id() ) ) {
+		return 1;
+	}
+	return $pairs;
+}
+endif;
+
+if ( ! function_exists( 'kandi_pack_scale_price' ) ) :
+function kandi_pack_scale_price( $price, $variation ) {
+	if ( '' === $price || null === $price ) {
+		return $price;
+	}
+	$times = kandi_pack_multiplier( $variation );
+	return $times > 1 ? (string) ( (float) $price * $times ) : $price;
+}
+endif;
+
+foreach ( array( 'price', 'regular_price', 'sale_price' ) as $kandi_pack_field ) {
+	add_filter( "woocommerce_product_variation_get_{$kandi_pack_field}", 'kandi_pack_scale_price', 99, 2 );
+	add_filter( "woocommerce_variation_prices_{$kandi_pack_field}", 'kandi_pack_scale_price', 99, 2 );
+}
+unset( $kandi_pack_field );
+
+/** The variation price cache is keyed on this hash, so ranges refresh with the rule. */
+add_filter(
+	'woocommerce_get_variation_prices_hash',
+	function ( $hash ) {
+		$hash[] = 'kandi-pack-v1';
+		return $hash;
+	},
+	99
+);

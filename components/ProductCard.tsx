@@ -76,7 +76,7 @@ export default function ProductCard({
   return (
     <article className={`pc group ${soldOut ? "pc-soldout" : ""}`}>
       <div className="pc-photo">
-        <Link href={href} tabIndex={-1} aria-hidden className="pc-photo-link">
+        <Link href={href} target="_blank" rel="noopener" tabIndex={-1} aria-hidden className="pc-photo-link">
           {product.image ? (
             <>
               <Image
@@ -142,7 +142,7 @@ export default function ProductCard({
       </div>
 
       <div className="pc-body">
-        <Link href={href} className="pc-name-link">
+        <Link href={href} target="_blank" rel="noopener" className="pc-name-link">
           <h3 className="pc-name">{product.name}</h3>
         </Link>
 
@@ -199,7 +199,7 @@ export default function ProductCard({
       {/* The whole tile is a pointer target. An overlay rather than an anchor
           around the article, so the wishlist and cart buttons are not nested
           inside a link. Hidden from assistive tech: the name is the real link. */}
-      <Link href={href} aria-hidden tabIndex={-1} className="pc-overlay" />
+      <Link href={href} target="_blank" rel="noopener" aria-hidden tabIndex={-1} className="pc-overlay" />
     </article>
   );
 }

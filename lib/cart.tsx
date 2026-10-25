@@ -128,6 +128,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, hydrated]);
 
+  // Products open in their own tab, so a basket changed in one tab is picked
+  // up by the others rather than overwritten by them.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY) return;
+      try {
+        setItems(event.newValue ? JSON.parse(event.newValue) : []);
+      } catch {
+        // ignore corrupted storage
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const addItem = useCallback((item: NewItem, quantity = 1) => {
     const key = cartLineKey(item.productId, item.options);
     setItems((prev) => {

@@ -55,7 +55,7 @@ export default function BlackNovemberDeals({
         {/* ---- The six deepest cuts, large: Deal of the day, then Hot deals ---- */}
         <div className="bnd-heroes">
           {heroes.map((hero, index) => (
-            <Link key={hero.id} href={productPath(hero)} className="bnd-hero">
+            <Link key={hero.id} href={productPath(hero)} target="_blank" rel="noopener" className="bnd-hero">
               <span className="bnd-hero-photo">
                 {hero.image && (
                   <Image
@@ -86,7 +86,7 @@ export default function BlackNovemberDeals({
         <ul className="bnd-grid">
           {grid.map((product) => (
             <li key={product.id}>
-              <Link href={productPath(product)} className="bnd-tile">
+              <Link href={productPath(product)} target="_blank" rel="noopener" className="bnd-tile">
                 <span className="bnd-tile-photo">
                   {product.image && (
                     <Image

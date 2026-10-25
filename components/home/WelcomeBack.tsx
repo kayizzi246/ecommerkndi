@@ -170,6 +170,8 @@ export default function WelcomeBack() {
                     <Link
                       href={`/products/${item.slug || item.productId}`}
                       className="hx-deal"
+                      target="_blank"
+                      rel="noopener"
                       tabIndex={copy ? -1 : undefined}
                     >
                       <span className="hx-deal-photo">
