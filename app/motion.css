@@ -1,28 +1,19 @@
 /* ---------------------------------------------------------------------------
- * Motion: the small movements that make the shop feel alive and pull the eye
- * on to the next product — cards gliding in as the feed grows, the campaign
- * banner breathing, the deals bar shimmering, the cart badge popping when
- * something lands in it.
+ * Motion, kept to what helps a shopper: a card lifts under the pointer, the
+ * cart badge pops when something lands in it, and the free-delivery bar
+ * fills. The decorative layer that was here — cards fading in, a shimmering
+ * "70%", floating sparkles, pulsing badges, glowing buttons, light sweeping
+ * across ribbons — went: it made new rows of products look slow to arrive
+ * and the shop look like a template rather than a store.
  *
- * Everything is inside `prefers-reduced-motion: no-preference`, so a shopper
- * who has asked their device for less motion gets the same shop standing
- * still. Imported last in app/layout.tsx.
+ * Everything is inside `prefers-reduced-motion: no-preference`. Imported
+ * after the other storefront sheets in app/layout.tsx.
  * ------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: no-preference) {
-  /* ---- Product cards glide in as they arrive ----
-     Runs once per card, on mount, so the infinite feed's new rows rise into
-     place while the ones already on screen stay put. */
   .pc {
-    animation: pc-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
     transition: transform 200ms ease, box-shadow 200ms ease;
   }
-  .pc-grid > :nth-child(6n + 2) .pc { animation-delay: 40ms; }
-  .pc-grid > :nth-child(6n + 3) .pc { animation-delay: 80ms; }
-  .pc-grid > :nth-child(6n + 4) .pc { animation-delay: 120ms; }
-  .pc-grid > :nth-child(6n + 5) .pc { animation-delay: 160ms; }
-  .pc-grid > :nth-child(6n) .pc { animation-delay: 200ms; }
-
   @media (hover: hover) {
     .pc:hover {
       transform: translateY(-3px);
@@ -30,62 +21,6 @@
     }
   }
 
-  /* A light sweeping across the Black November ribbon now and then. */
-  .pc-bn {
-    overflow: hidden;
-  }
-  .pc-bn::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(100deg, transparent 30%, rgba(255, 204, 0, 0.35) 50%, transparent 70%);
-    transform: translateX(-100%);
-    animation: sweep 3.2s ease-in-out infinite;
-  }
-
-  /* ---- Campaign banner: a slow zoom on the photo, the copy rising in ---- */
-  .hx-hero > img {
-    animation: hx-zoom 22s ease-in-out infinite alternate;
-  }
-  .hx-hero-copy > * {
-    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-  .hx-hero-copy > :nth-child(2) { animation-delay: 80ms; }
-  .hx-hero-copy > :nth-child(3) { animation-delay: 160ms; }
-  .hx-hero-copy > :nth-child(4) { animation-delay: 240ms; }
-  .hx-btn-primary {
-    animation: glow 2.8s ease-in-out 1s infinite;
-  }
-  .hx-hero-title {
-    animation: pop-in 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) 0.1s both;
-  }
-  .hx-hero-big {
-    animation: gold-shine 3.5s linear infinite;
-  }
-  .hx-spark {
-    animation: spark-float 4.5s ease-in-out infinite;
-  }
-  .hx-live {
-    animation: live-ring 1.6s ease-out infinite;
-  }
-
-  /* ---- Lightning deals: shimmer across the bar, a flicker on the bolt ---- */
-  .hx-deals-bar {
-    position: relative;
-    overflow: hidden;
-  }
-  .hx-deals-bar::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
-    transform: translateX(-100%);
-    animation: sweep 4s ease-in-out infinite;
-  }
-  .hx-deals-title svg {
-    animation: bolt 1.8s ease-in-out infinite;
-  }
   .hx-deal-photo {
     transition: transform 200ms ease, box-shadow 200ms ease;
   }
@@ -94,36 +29,7 @@
     box-shadow: 0 8px 18px rgba(17, 17, 17, 0.12);
   }
 
-  /* ---- Welcome back panel ---- */
-  .wb {
-    animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-  .wb-badge {
-    animation: pulse 2s ease-in-out infinite;
-  }
-  .wb-cart-cta {
-    animation: glow 2.8s ease-in-out 0.6s infinite;
-  }
-
-  /* ---- Black November strip on the product page ---- */
-  .bn-strip::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(100deg, transparent 30%, rgba(255, 204, 0, 0.25) 50%, transparent 70%);
-    transform: translateX(-100%);
-    animation: sweep 3.6s ease-in-out infinite;
-  }
-  .bn-strip-tag svg,
-  .bn-link svg {
-    animation: bolt 1.8s ease-in-out infinite;
-  }
-  .bn-strip-save {
-    animation: pulse 2.2s ease-in-out infinite;
-  }
-
-  /* ---- Cart badge pops each time the count changes (keyed in Header) ---- */
+  /* Cart badge pops each time the count changes (keyed in Header). */
   .cart-pop {
     animation: cart-pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
   }
@@ -134,108 +40,6 @@
   }
 }
 
-@keyframes pc-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-@keyframes hx-zoom {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.08);
-  }
-}
-@keyframes sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  60%,
-  100% {
-    transform: translateX(100%);
-  }
-}
-@keyframes bolt {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  45% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(1.15);
-  }
-  55% {
-    opacity: 1;
-  }
-}
-@keyframes glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.3);
-  }
-}
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.08);
-  }
-}
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-}
-@keyframes gold-shine {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 250% 50%;
-  }
-}
-@keyframes spark-float {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.6);
-  }
-  20% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-70px) scale(1);
-  }
-}
-@keyframes live-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 0 8px rgba(255, 59, 48, 0);
-  }
-}
 @keyframes cart-pop {
   0% {
     transform: scale(0.6);

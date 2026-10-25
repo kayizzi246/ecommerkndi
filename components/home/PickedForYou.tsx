@@ -139,13 +139,19 @@ export default function PickedForYou({
       {/* Each endless grid is keyed, so switching between them starts the
           other's own listing rather than carrying pages loaded for this one. */}
       {active === NEW_IN ? (
-        <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages} perPage={48} />
+        <InfiniteProducts key={NEW_IN} initialProducts={newest} totalPages={latestTotalPages * 2} perPage={24} startPage={2} />
       ) : active === FOR_YOU || !department ? (
         <InfiniteProducts
           key={FOR_YOU}
           initialProducts={latest}
-          perPage={48}
-          totalPages={latestTotalPages}
+          /* The server rendered the first 48 (page 1 at 48 a page). Further
+             pages come 24 at a time — a smaller WordPress query answers
+             faster — starting at 24-a-page page 3, which is exactly where
+             those 48 ended. The real page count replaces this estimate as
+             soon as the first page arrives. */
+          perPage={24}
+          startPage={2}
+          totalPages={latestTotalPages * 2}
           personalize
           pinned={pinned}
         />

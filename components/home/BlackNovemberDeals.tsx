@@ -39,7 +39,6 @@ export default function BlackNovemberDeals({
       <div className="bnd-head">
         <div>
           <p className="hx-hero-eyebrow">
-            <span className="hx-live" aria-hidden />
             Black November
           </p>
           <h2 id="bnd-title" className="bnd-title">

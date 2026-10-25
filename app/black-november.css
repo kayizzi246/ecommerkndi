@@ -398,27 +398,7 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .bnd-hero-off {
-    animation: pulse 2s ease-in-out infinite;
-  }
-  .bnd-hero-cta {
-    animation: glow 2.8s ease-in-out 0.5s infinite;
-  }
-  .bnd::after,
-  .bn-hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(100deg, transparent 35%, rgba(255, 204, 0, 0.08) 50%, transparent 65%);
-    transform: translateX(-100%);
-    animation: sweep 6s ease-in-out infinite;
-  }
-  .bn-hero-glow {
-    animation: pulse 4s ease-in-out infinite;
-  }
-}
+
 
 /* ---- Side cart rail (components/CartRail.tsx) ---- */
 .crail {
@@ -595,14 +575,7 @@
   width: 14px;
   height: 14px;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .crail-checkout {
-    animation: glow 2.8s ease-in-out 1s infinite;
-  }
-  .crail-item {
-    animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-  }
-}
+
 
 /* Deal of the day on narrow screens: badge to the foot of the photo so it
    never meets the discount circle, and prices kept on one line each. */

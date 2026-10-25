@@ -66,16 +66,10 @@ export default function ProductCard({
     product.rating_count >= TOP_RATED_REVIEWS && product.average_rating >= TOP_RATED_AT;
   const isNew = listedRecently(product.date_created);
 
-  /* The one orange line under the price — the strongest true thing about the
-     product, in the order a shopper weighs them. "New" is left to the flag on
-     the photo; saying it twice on one tile is noise. */
-  const highlight = bestSeller
-    ? "Best-selling item"
-    : topRated
-      ? "Top rated item"
-      : discount > 0
-        ? `Save ${formatPrice(product.regular_price - product.price)}`
-        : null;
+  /* One merchandising line under the price, only when it says something
+     the tile does not already: the discount is on the flag and the struck
+     price, and "New" is on the flag, so neither is repeated here. */
+  const highlight = bestSeller ? "Best-selling item" : topRated ? "Top rated item" : null;
 
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
 
@@ -124,16 +118,6 @@ export default function ProductCard({
           <span className="pc-flag pc-flag-new">New</span>
         ) : null}
 
-        {/* The campaign, on every reduced product: a black-and-gold ribbon
-            across the foot of the photo, matching the homepage banner. */}
-        {!soldOut && discount > 0 && (
-          <span className="pc-bn" aria-hidden>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
-            </svg>
-            Black November
-          </span>
-        )}
 
         {/* `z-20` lifts both controls above the whole-card link at the foot of
             this component, so they act instead of navigating. */}

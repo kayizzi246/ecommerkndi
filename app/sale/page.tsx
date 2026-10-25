@@ -180,7 +180,6 @@ export default async function SalePage({
         <div className="bn-hero-glow" aria-hidden />
         <div className="bn-hero-main">
           <p className="hx-hero-eyebrow">
-            <span className="hx-live" aria-hidden />
             Black November
           </p>
           <h1 className="bn-hero-title">

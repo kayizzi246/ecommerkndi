@@ -2378,3 +2378,365 @@ function kandi_pack_prices_page() {
 	<?php
 }
 endif;
+
+/* -------------------------------------------------------------------------
+ * Quick prices — WooCommerce → Quick prices
+ *
+ * Editing a price in WooCommerce means opening the product, opening the
+ * Variations tab, expanding each variation and saving — for a shop with
+ * hundreds of imported products, each with a dozen sizes or colours, that is
+ * an afternoon per promotion. This screen lists products with their regular
+ * and sale prices as plain boxes (one row per variation), so prices can be
+ * typed straight in, and runs promotions in one go:
+ *
+ *   • "% off" on a product sets the sale price of it and every variation to
+ *     that percentage below its regular price;
+ *   • tick several products and apply "% off" or "Remove sale" to all of them.
+ *
+ * Only fields that were actually changed are saved, and a sale price that is
+ * not below the regular price is refused rather than saved, because a "sale"
+ * above the regular price is a broken promotion on the storefront.
+ * ---------------------------------------------------------------------- */
+
+add_action( 'admin_menu', function () {
+	add_submenu_page(
+		'woocommerce',
+		'Quick prices',
+		'Quick prices',
+		'manage_woocommerce',
+		'kandi-quick-prices',
+		'kandi_quick_prices_page'
+	);
+} );
+
+/** A posted price as a clean decimal string, '' for blank, or null when it is not a number. */
+if ( ! function_exists( 'kandi_qp_price' ) ) :
+function kandi_qp_price( $raw ) {
+	$raw = trim( str_replace( array( ',', ' ' ), '', (string) $raw ) );
+	if ( '' === $raw ) {
+		return '';
+	}
+	if ( ! is_numeric( $raw ) || (float) $raw < 0 ) {
+		return null;
+	}
+	return wc_format_decimal( $raw );
+}
+endif;
+
+/** Sets a sale price $percent below the regular price of a simple product or variation. */
+if ( ! function_exists( 'kandi_qp_percent_off' ) ) :
+function kandi_qp_percent_off( $item, $percent ) {
+	$regular = (float) $item->get_regular_price();
+	if ( $regular <= 0 ) {
+		return false;
+	}
+	$item->set_sale_price( (string) round( $regular * ( 100 - $percent ) / 100 ) );
+	$item->set_date_on_sale_from( '' );
+	$item->set_date_on_sale_to( '' );
+	$item->save();
+	return true;
+}
+endif;
+
+/** The product itself, or every variation of a variable product. */
+if ( ! function_exists( 'kandi_qp_priced_items' ) ) :
+function kandi_qp_priced_items( $product ) {
+	if ( ! $product->is_type( 'variable' ) ) {
+		return array( $product );
+	}
+	$items = array();
+	foreach ( array_slice( (array) $product->get_children(), 0, KANDI_MAX_VARIATIONS ) as $child_id ) {
+		$child = wc_get_product( $child_id );
+		if ( $child ) {
+			$items[] = $child;
+		}
+	}
+	return $items;
+}
+endif;
+
+/** After prices change: refresh the parent's price range and every cache that holds it. */
+if ( ! function_exists( 'kandi_qp_refresh' ) ) :
+function kandi_qp_refresh( $product_id ) {
+	$product = wc_get_product( $product_id );
+	if ( $product && $product->is_type( 'variable' ) ) {
+		WC_Product_Variable::sync( $product_id );
+	}
+	wc_delete_product_transients( $product_id );
+	kandi_forget_product_payload( $product_id );
+}
+endif;
+
+if ( ! function_exists( 'kandi_quick_prices_page' ) ) :
+function kandi_quick_prices_page() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'You do not have permission to change prices.' );
+	}
+
+	$messages = array();
+	$errors   = array();
+	$touched  = array();
+
+	if ( isset( $_POST['kandi_qp_save'] ) || isset( $_POST['kandi_qp_bulk'] ) ) {
+		check_admin_referer( 'kandi_quick_prices' );
+
+		// ---- Typed prices: saved only where they differ from what was shown.
+		$prices = isset( $_POST['qp'] ) && is_array( $_POST['qp'] ) ? wp_unslash( $_POST['qp'] ) : array();
+		foreach ( $prices as $item_id => $fields ) {
+			$item_id = (int) $item_id;
+			if ( $item_id <= 0 || ! is_array( $fields ) ) {
+				continue;
+			}
+			$item = wc_get_product( $item_id );
+			if ( ! $item || $item->is_type( 'variable' ) ) {
+				continue;
+			}
+
+			// The page only submits boxes that were edited (see the script
+			// below the table), and a box missing from the post keeps the
+			// price it has. Compared with the database rather than with a copy
+			// in the form, so a stale page cannot write an old price back.
+			$regular = array_key_exists( 'regular', $fields ) ? kandi_qp_price( $fields['regular'] ) : $item->get_regular_price();
+			$sale    = array_key_exists( 'sale', $fields ) ? kandi_qp_price( $fields['sale'] ) : $item->get_sale_price();
+			if ( $regular === $item->get_regular_price() && $sale === $item->get_sale_price() ) {
+				continue;
+			}
+			$label = $item->get_name();
+			if ( null === $regular || null === $sale ) {
+				$errors[] = sprintf( '%s: prices must be numbers.', $label );
+				continue;
+			}
+			if ( '' !== $sale && ( '' === $regular || (float) $sale >= (float) $regular ) ) {
+				$errors[] = sprintf( '%s: the sale price must be lower than the regular price.', $label );
+				continue;
+			}
+
+			$item->set_regular_price( $regular );
+			$item->set_sale_price( $sale );
+			if ( '' === $sale ) {
+				$item->set_date_on_sale_from( '' );
+				$item->set_date_on_sale_to( '' );
+			}
+			$item->save();
+			$touched[ $item->is_type( 'variation' ) ? $item->get_parent_id() : $item->get_id() ] = true;
+		}
+
+		// ---- "% off" typed against one product.
+		$percents = isset( $_POST['qp_pct'] ) && is_array( $_POST['qp_pct'] ) ? wp_unslash( $_POST['qp_pct'] ) : array();
+		foreach ( $percents as $product_id => $percent ) {
+			$percent = trim( (string) $percent );
+			if ( '' === $percent ) {
+				continue;
+			}
+			$product = wc_get_product( (int) $product_id );
+			if ( ! $product ) {
+				continue;
+			}
+			if ( ! is_numeric( $percent ) || (float) $percent <= 0 || (float) $percent >= 100 ) {
+				$errors[] = sprintf( '%s: "%% off" must be between 1 and 99.', $product->get_name() );
+				continue;
+			}
+			foreach ( kandi_qp_priced_items( $product ) as $item ) {
+				kandi_qp_percent_off( $item, (float) $percent );
+			}
+			$touched[ $product->get_id() ] = true;
+		}
+
+		// ---- Bulk: ticked products.
+		if ( isset( $_POST['kandi_qp_bulk'] ) ) {
+			$chosen = array_map( 'intval', (array) ( $_POST['qp_select'] ?? array() ) );
+			$action = sanitize_key( $_POST['qp_bulk_action'] ?? '' );
+			$bulk   = trim( (string) ( $_POST['qp_bulk_pct'] ?? '' ) );
+
+			if ( ! $chosen ) {
+				$errors[] = 'Tick at least one product for the bulk action.';
+			} elseif ( 'percent' === $action && ( ! is_numeric( $bulk ) || (float) $bulk <= 0 || (float) $bulk >= 100 ) ) {
+				$errors[] = 'Enter a "% off" between 1 and 99 for the bulk action.';
+			} else {
+				foreach ( $chosen as $product_id ) {
+					$product = wc_get_product( $product_id );
+					if ( ! $product ) {
+						continue;
+					}
+					foreach ( kandi_qp_priced_items( $product ) as $item ) {
+						if ( 'percent' === $action ) {
+							kandi_qp_percent_off( $item, (float) $bulk );
+						} elseif ( 'clear' === $action ) {
+							$item->set_sale_price( '' );
+							$item->set_date_on_sale_from( '' );
+							$item->set_date_on_sale_to( '' );
+							$item->save();
+						}
+					}
+					$touched[ $product_id ] = true;
+				}
+			}
+		}
+
+		foreach ( array_keys( $touched ) as $product_id ) {
+			kandi_qp_refresh( (int) $product_id );
+		}
+		if ( $touched ) {
+			$messages[] = sprintf( 'Saved prices on %d product(s). The shop updates within a few minutes.', count( $touched ) );
+		}
+	}
+
+	// ---- The list.
+	$search   = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+	$category = isset( $_GET['cat'] ) ? sanitize_title( wp_unslash( $_GET['cat'] ) ) : '';
+	$paged    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+
+	$args = array(
+		'status'   => array( 'publish', 'draft', 'pending' ),
+		'limit'    => 30,
+		'page'     => $paged,
+		'paginate' => true,
+		'orderby'  => 'date',
+		'order'    => 'DESC',
+	);
+	if ( '' !== $search ) {
+		$args['s'] = $search;
+	}
+	if ( '' !== $category ) {
+		$args['category'] = array( $category );
+	}
+	$results    = wc_get_products( $args );
+	$categories = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
+	$base_url   = admin_url( 'admin.php?page=kandi-quick-prices' );
+
+	$box = function ( $name, $value ) {
+		printf(
+			'<input type="text" inputmode="decimal" class="kandi-qp-box" name="%1$s" value="%2$s" data-orig="%2$s" style="width:110px" placeholder="—">',
+			esc_attr( $name ),
+			esc_attr( $value )
+		);
+	};
+	?>
+	<div class="wrap">
+		<h1>Quick prices</h1>
+		<p style="max-width:820px">
+			Type new prices straight into the boxes and press <strong>Save changes</strong>; only boxes you change are saved.
+			For a promotion, type a number into <strong>% off</strong> on a product (it sets the sale price of the product and
+			all its variations), or tick several products and use the bulk action at the bottom. Leave a sale box empty for no sale.
+		</p>
+
+		<?php foreach ( $messages as $message ) : ?>
+			<div class="notice notice-success"><p><?php echo esc_html( $message ); ?></p></div>
+		<?php endforeach; ?>
+		<?php foreach ( $errors as $error ) : ?>
+			<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
+		<?php endforeach; ?>
+
+		<form method="get" style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+			<input type="hidden" name="page" value="kandi-quick-prices">
+			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="Search products" style="min-width:260px">
+			<select name="cat">
+				<option value="">All categories</option>
+				<?php foreach ( is_array( $categories ) ? $categories : array() as $term ) : ?>
+					<option value="<?php echo esc_attr( $term->slug ); ?>" <?php selected( $category, $term->slug ); ?>>
+						<?php echo esc_html( $term->name . ' (' . $term->count . ')' ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+			<button class="button">Filter</button>
+			<span style="color:#646970"><?php echo (int) $results->total; ?> products</span>
+		</form>
+
+		<form method="post" id="kandi-qp-form">
+			<?php wp_nonce_field( 'kandi_quick_prices' ); ?>
+			<table class="widefat striped">
+				<thead>
+					<tr>
+						<th style="width:28px"><input type="checkbox" onclick="document.querySelectorAll('.kandi-qp-pick').forEach(function(b){b.checked=this.checked}.bind(this))"></th>
+						<th style="width:56px"></th>
+						<th>Product</th>
+						<th style="width:130px">Regular (UGX)</th>
+						<th style="width:130px">Sale (UGX)</th>
+						<th style="width:90px">% off</th>
+					</tr>
+				</thead>
+				<tbody>
+				<?php foreach ( $results->products as $product ) :
+					$items    = kandi_qp_priced_items( $product );
+					$variable = $product->is_type( 'variable' );
+					$image    = wp_get_attachment_image_url( $product->get_image_id(), 'thumbnail' );
+					?>
+					<tr>
+						<td><input type="checkbox" class="kandi-qp-pick" name="qp_select[]" value="<?php echo esc_attr( $product->get_id() ); ?>"></td>
+						<td><?php if ( $image ) : ?><img src="<?php echo esc_url( $image ); ?>" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:4px"><?php endif; ?></td>
+						<td>
+							<strong><?php echo esc_html( $product->get_name() ); ?></strong>
+							<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>" style="margin-left:6px">edit</a>
+							<?php if ( $variable ) : ?>
+								<div style="color:#646970"><?php echo count( $items ); ?> variations</div>
+							<?php endif; ?>
+						</td>
+						<?php if ( ! $variable ) : ?>
+							<td>
+								<?php $box( 'qp[' . $product->get_id() . '][regular]', $product->get_regular_price() ); ?>
+							</td>
+							<td>
+								<?php $box( 'qp[' . $product->get_id() . '][sale]', $product->get_sale_price() ); ?>
+							</td>
+						<?php else : ?>
+							<td colspan="2" style="color:#646970">Set per variation below</td>
+						<?php endif; ?>
+						<td><input type="number" min="1" max="99" name="qp_pct[<?php echo esc_attr( $product->get_id() ); ?>]" style="width:70px" placeholder="%"></td>
+					</tr>
+					<?php if ( $variable ) : foreach ( $items as $variation ) : ?>
+						<tr>
+							<td></td>
+							<td></td>
+							<td style="padding-left:24px;color:#3c434a">↳ <?php echo esc_html( wc_get_formatted_variation( $variation, true, false ) ); ?></td>
+							<td>
+								<?php $box( 'qp[' . $variation->get_id() . '][regular]', $variation->get_regular_price() ); ?>
+							</td>
+							<td>
+								<?php $box( 'qp[' . $variation->get_id() . '][sale]', $variation->get_sale_price() ); ?>
+							</td>
+							<td></td>
+						</tr>
+					<?php endforeach; endif; ?>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<p style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px">
+				<button type="submit" name="kandi_qp_save" value="1" class="button button-primary button-large">Save changes</button>
+				<span style="margin-left:24px">Ticked products:</span>
+				<select name="qp_bulk_action">
+					<option value="percent">Put on sale, % off</option>
+					<option value="clear">Remove sale</option>
+				</select>
+				<input type="number" min="1" max="99" name="qp_bulk_pct" placeholder="%" style="width:70px">
+				<button type="submit" name="kandi_qp_bulk" value="1" class="button">Apply to ticked</button>
+			</p>
+		</form>
+		<script>
+		/* Only edited price boxes are sent: hosts cap a form at about 1,000
+		   fields, and a page of variable products easily passes that, which
+		   would silently drop the rest of the changes. */
+		document.getElementById('kandi-qp-form').addEventListener('submit', function () {
+			document.querySelectorAll('.kandi-qp-box').forEach(function (box) {
+				if (box.value === box.getAttribute('data-orig')) { box.disabled = true; }
+			});
+		});
+		</script>
+
+		<?php if ( $results->max_num_pages > 1 ) : ?>
+			<p>
+				<?php for ( $i = 1; $i <= (int) $results->max_num_pages; $i++ ) :
+					$url = add_query_arg( array( 'paged' => $i, 's' => $search, 'cat' => $category ), $base_url );
+					?>
+					<?php if ( $i === $paged ) : ?>
+						<strong style="margin:0 6px"><?php echo (int) $i; ?></strong>
+					<?php else : ?>
+						<a href="<?php echo esc_url( $url ); ?>" style="margin:0 6px"><?php echo (int) $i; ?></a>
+					<?php endif; ?>
+				<?php endfor; ?>
+			</p>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+endif;

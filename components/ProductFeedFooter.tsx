@@ -1,6 +1,8 @@
 "use client";
 
 import type { ProductFeed } from "@/lib/use-product-feed";
+import { ProductCardSkeleton } from "@/components/Skeletons";
+import { PRODUCT_GRID } from "@/lib/product-grid";
 
 /**
  * The foot of an infinite grid: the sentinel, and whatever the feed is doing.
@@ -29,11 +31,21 @@ export default function ProductFeedFooter({
   const { loading, failed, done, loadMore, sentinel } = feed;
 
   return (
-    <div ref={sentinel} className="mt-10 flex justify-center">
+    <div ref={sentinel} className="mt-4 flex justify-center">
+      {/* A row of placeholder cards in the grid's own columns while the next
+          batch loads, so the page reads as "more on the way" instead of
+          ending on a line of grey text. */}
       {loading && (
-        <p className="text-[13px] text-shop-muted" role="status">
-          Loading more…
-        </p>
+        <div className="w-full">
+          <span className="sr-only" role="status">
+            Loading more products…
+          </span>
+          <div className={PRODUCT_GRID} aria-hidden>
+            {Array.from({ length: 6 }, (_, index) => (
+              <ProductCardSkeleton key={index} />
+            ))}
+          </div>
+        </div>
       )}
 
       {failed && (

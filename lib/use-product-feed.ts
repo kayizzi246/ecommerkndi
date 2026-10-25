@@ -62,6 +62,9 @@ function feedUrl(page: number, perPage: number, query: ProductFeedQuery): string
   return `/api/products?${params.toString()}`;
 }
 
+/** Appended batches are a multiple of this: full rows at 2, 3, 4 and 6 columns. */
+const ROW_UNIT = 12;
+
 /** One page of `/api/products`. */
 type FeedPage = { products: Product[]; total_pages: number };
 
@@ -191,6 +194,13 @@ export function useProductFeed({
     // Once per mount: the grid is keyed by its tab, so a new feed remounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /** The list as last rendered, for building the next batch outside a state updater. */
+  const productsRef = useRef(products);
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+  /** Products held back so the grid only ever grows by whole rows. */
+  const held = useRef<Product[]>([]);
   const [page, setPage] = useState(totalPages > 0 ? startPage : 0);
   const [availablePages, setAvailablePages] = useState(Math.max(1, totalPages));
   const [loading, setLoading] = useState(false);
@@ -275,18 +285,34 @@ export function useProductFeed({
       // updater (React may call it twice in development) cannot lose them.
       const boosted = personalize ? boostPool.current.splice(0, 4) : [];
 
-      setProducts((current) => {
-        const seen = new Set(current.map((product) => product.id));
-        const fresh = [...arriving, ...boosted].filter((p) => {
-          if (seen.has(p.id) || p.id === excludeId) return false;
-          seen.add(p.id);
-          return true;
-        });
-        return [
-          ...current,
-          ...(personalize ? arrangeProducts(fresh, interests.current, current) : fresh),
-        ];
+      /* ---- Whole rows only ----
+         A page arrives with some products already on screen (the homepage
+         opens with shoes and picks drawn from the same catalogue), and once
+         those are dropped the batch is an odd size — so the grid used to end
+         on a half-empty row that looked broken while the next page loaded.
+         Products are now appended in multiples of ROW_UNIT, which fills every
+         row at 2, 3, 4 and 6 columns, and the remainder is held back for the
+         next batch. The last page appends everything. */
+      const current = productsRef.current;
+      const seen = new Set(current.map((product) => product.id));
+      const fresh = [...held.current, ...arriving, ...boosted].filter((p) => {
+        if (seen.has(p.id) || p.id === excludeId) return false;
+        seen.add(p.id);
+        return true;
       });
+      held.current = [];
+      let batch = fresh;
+      if (next < payload.total_pages && fresh.length >= ROW_UNIT) {
+        const whole = fresh.length - (fresh.length % ROW_UNIT);
+        held.current = fresh.slice(whole);
+        batch = fresh.slice(0, whole);
+      }
+      const updated = [
+        ...current,
+        ...(personalize ? arrangeProducts(batch, interests.current, current) : batch),
+      ];
+      productsRef.current = updated;
+      setProducts(updated);
       setPage(next);
     } catch {
       setFailed(true);

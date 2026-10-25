@@ -11,6 +11,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { forGrid } from "@/lib/product-grid";
 
+/**
+ * The opening grid trimmed to whole rows (a multiple of 12 fills every row at
+ * 2, 3, 4 and 6 columns), so the first screen never ends on a half-empty row.
+ * Anything trimmed is a product the feed can still bring in later.
+ */
+function wholeRows<T>(products: T[]): T[] {
+  return products.length >= 12 ? products.slice(0, products.length - (products.length % 12)) : products;
+}
+
 /** Shoe-focused homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -210,7 +219,7 @@ export default async function Home() {
         </div>
 
         <PickedForYou
-          latest={forYou.map(forGrid)}
+          latest={wholeRows(forYou).map(forGrid)}
           newest={latest.map(forGrid)}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
