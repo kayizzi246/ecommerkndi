@@ -118,6 +118,14 @@ export default function ProductCard({
           <span className="pc-flag pc-flag-new">New</span>
         ) : null}
 
+        {/* The campaign mark on reduced products: a small tag in the corner
+            of the photo rather than a ribbon across it. */}
+        {!soldOut && discount > 0 && (
+          <span className="pc-bn-tag" aria-hidden>
+            Black November
+          </span>
+        )}
+
 
         {/* `z-20` lifts both controls above the whole-card link at the foot of
             this component, so they act instead of navigating. */}
