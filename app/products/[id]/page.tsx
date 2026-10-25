@@ -138,7 +138,12 @@ export async function generateMetadata({
  * fails because a shared host was busy is worse than both.
  */
 export async function generateStaticParams() {
-  const { products } = await getProductsSafe({ per_page: 60, sort: "popular" });
+  /* Twelve, not sixty. Every deploy pre-built this many product pages, and
+     each one asks WordPress to assemble the product with all its variations
+     — 5–15 seconds of PHP on this host. Sixty of those per push, several
+     pushes a day, was enough to tip the shared server into 503s and lost
+     database connections. The rest are built on first visit and cached. */
+  const { products } = await getProductsSafe({ per_page: 12, sort: "popular" });
 
   return products.map((product) => ({
     id: product.slug || String(product.id),

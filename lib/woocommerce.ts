@@ -967,8 +967,12 @@ export async function findProduct(idOrSlug: string | number): Promise<Product | 
   const origin = storefrontOrigin();
   let lastProblem = "";
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
+  /* Two attempts, a second and a half apart. It was three in quick
+     succession, and when WordPress is overloaded (503s, "Database Error")
+     every retry is one more request on a server that is already refusing
+     them — the retries kept the outage going. */
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
 
     for (const url of urls) {
       try {
