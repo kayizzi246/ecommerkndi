@@ -939,7 +939,7 @@
 @media (min-width: 1024px) {
   .bnd-heroes {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     overflow: visible;
   }
   .bnd-heroes .bnd-hero {
@@ -960,5 +960,25 @@
   .bnd-heroes .bnd-hero-cta {
     max-width: none;
     font-size: 14px;
+  }
+}
+
+/* Six across: price and old price kept on one line, and Buy now pinned to
+   the foot of each card so the six buttons line up. */
+@media (min-width: 1024px) {
+  .bnd-heroes .bnd-hero-info {
+    flex: 1;
+  }
+  .bnd-heroes .bnd-hero-prices {
+    flex-wrap: nowrap;
+  }
+  .bnd-heroes .bnd-hero-price {
+    font-size: 18px;
+  }
+  .bnd-heroes .bnd-hero-was {
+    font-size: 11px;
+  }
+  .bnd-heroes .bnd-hero-cta {
+    margin-top: auto;
   }
 }
