@@ -80,5 +80,9 @@ export async function GET(request: Request) {
       category: p.categories[0]?.name ?? "",
     })),
     stores,
+  }, {
+    // Popular prefixes ("sho", "sneak") are typed by everyone; the CDN
+    // answers them without asking WordPress again.
+    headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=86400" },
   });
 }

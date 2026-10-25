@@ -23,5 +23,8 @@ export async function GET() {
       parent: category.parent ?? 0,
       count: category.count ?? 0,
     })),
+  }, {
+    // Requested by the menus on every page load; categories change rarely.
+    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
   });
 }

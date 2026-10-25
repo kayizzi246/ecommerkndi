@@ -272,7 +272,11 @@ export type Store = {
  * without its own purge webhook, and it is 20× fewer WordPress round trips on
  * the request path than 15 seconds was.
  */
-const REVALIDATE_SECONDS = 300;
+/* 15 minutes (was 5). Every page and listing re-fetches from WordPress when
+   its window lapses, so the window is a direct multiplier on server load, and
+   it is not what keeps the shop current: WordPress pushes a purge to
+   /api/revalidate the moment a product changes. */
+const REVALIDATE_SECONDS = 900;
 
 /**
  * The storefront's own public URL, sent to WordPress on every request so the

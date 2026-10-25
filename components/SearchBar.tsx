@@ -172,7 +172,9 @@ export default function SearchBar({
       }
       setLoading(true);
       try {
-        const res = await fetch(`/api/search-suggest?q=${encodeURIComponent(term)}`);
+        // Lower-cased and trimmed so "Shoes", "shoes" and "shoes " share
+        // one cached answer instead of three WordPress searches.
+        const res = await fetch(`/api/search-suggest?q=${encodeURIComponent(term.trim().toLowerCase())}`);
         const data = await res.json();
         setSuggestions(data.suggestions ?? []);
         setStores(data.stores ?? []);
@@ -182,7 +184,10 @@ export default function SearchBar({
       } finally {
         setLoading(false);
       }
-    }, 180);
+      /* 350 ms after the last keystroke. At 180 a normal typist paused
+         longer than that between letters, so "sneakers" was six WordPress
+         searches — one of the heaviest queries the server runs. */
+    }, 350);
     return () => clearTimeout(timer);
   }, [term]);
 

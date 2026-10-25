@@ -104,7 +104,7 @@ export async function GET(request: Request) {
     // window should ever wait for WordPress.
     return Response.json(
       { products: products.map(forGrid), page, total_pages },
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400" } }
+      { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=86400" } }
     );
   } catch {
     return Response.json({ error: "Products are temporarily unavailable. Please try again." }, { status: 503 });

@@ -18,6 +18,6 @@ export async function GET(request: Request) {
   const prices = await getCurrentPrices([...new Set(ids)]);
   return Response.json(
     { prices },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } }
+    { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=86400" } }
   );
 }

@@ -8,6 +8,11 @@ import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { formatPrice } from "@/lib/currency";
 import type { CurrentPrice } from "@/lib/woocommerce";
 
+/** Where the last price check is kept in the browser, and for how long. */
+const PRICE_CACHE_KEY = "kandi-welcome-prices-v1";
+const PRICE_CACHE_MS = 6 * 60 * 60 * 1000;
+type PriceCache = { ids: string; at: number; prices: CurrentPrice[] };
+
 /**
  * The returning shopper's panel, under the homepage banner.
  *
@@ -39,10 +44,37 @@ export default function WelcomeBack() {
   useEffect(() => {
     if (!idKey) return;
     let cancelled = false;
+    const show = (list: CurrentPrice[]) => {
+      if (!cancelled) setPrices(new Map(list.map((p) => [p.id, p])));
+    };
+
+    /* Each visitor's list of viewed products is different, so the CDN cannot
+       share answers between them and every visit was a WordPress lookup. The
+       answer is kept in this browser for six hours instead, and only asked
+       again when that time has passed or the viewed list has changed. */
+    try {
+      const saved = JSON.parse(localStorage.getItem(PRICE_CACHE_KEY) ?? "null") as PriceCache | null;
+      if (saved && saved.ids === idKey && Date.now() - saved.at < PRICE_CACHE_MS) {
+        const frame = requestAnimationFrame(() => show(saved.prices));
+        return () => {
+          cancelled = true;
+          cancelAnimationFrame(frame);
+        };
+      }
+    } catch {
+      // Storage unavailable (private mode): fall through to a fresh lookup.
+    }
+
     fetch(`/api/products/prices?ids=${idKey}`)
       .then((response) => (response.ok ? response.json() : { prices: [] }))
       .then((payload: { prices?: CurrentPrice[] }) => {
-        if (!cancelled) setPrices(new Map((payload.prices ?? []).map((p) => [p.id, p])));
+        const list = payload.prices ?? [];
+        show(list);
+        try {
+          localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify({ ids: idKey, at: Date.now(), prices: list }));
+        } catch {
+          // Storage full or blocked; the panel still works, it just asks again.
+        }
       })
       .catch(() => {});
     return () => {

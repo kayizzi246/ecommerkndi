@@ -78,6 +78,12 @@ export async function POST(request: Request) {
 
   if (!Number.isInteger(productId) || productId <= 0) return accepted();
 
+  /* Off unless the counting endpoint exists. No installed plugin provides
+     /product-views (it answers 404 — see docs/product-views-plugin-spec.md),
+     so every product view was booting WordPress just to be told "not found".
+     Set KANDI_TRACK_VIEWS=1 once the plugin is installed. */
+  if (process.env.KANDI_TRACK_VIEWS !== "1") return accepted();
+
   const base = process.env.WP_API_URL;
   if (!base) return accepted();
 
