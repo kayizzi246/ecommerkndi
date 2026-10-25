@@ -118,7 +118,11 @@ export default async function Home() {
      load. */
   /* Twenty shoes open it, ahead of the picks: shoes are what this shop is
      known for and what most shoppers arrive looking for. */
-  const forYou = [...leadShoes, ...trending, ...latest].filter(
+  /* Shoes are mixed in, not stacked on top: the grid opens with the shop's
+     picks and the newest stock, and the feed's own arrangement
+     (lib/arrange-feed.ts) spreads departments out so no two neighbours are
+     alike. */
+  const forYou = [...trending, ...latest, ...leadShoes].filter(
     (product, index, all) =>
       all.findIndex((other) => other.id === product.id) === index
   );
@@ -223,7 +227,7 @@ export default async function Home() {
           newest={latest.map(forGrid)}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
-          pinned={new Set(leadShoes.map((product) => product.id)).size}
+          pinned={0}
         />
 
         {/* The shopper's own trail, handed back to them. It renders nothing at

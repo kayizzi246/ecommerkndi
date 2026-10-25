@@ -23,6 +23,20 @@ import type { Interests } from "@/lib/interests";
  * `previous` is the tail of what is already on screen, so a new batch does not
  * start with the same category the last one ended on.
  */
+/**
+ * Product families, so the mixer treats "Hoodies", "Pullover Hoodies" and
+ * "Men's Hoodies" — separate categories in WordPress — as the one thing a
+ * shopper sees, and never runs four of them side by side. Matched against
+ * the category's slug, name and the product's own name.
+ */
+const FAMILIES: [string, RegExp][] = [
+  ["footwear", /shoe|sneaker|sandal|slipper|boot|loafer|heel|crocs|slide|trainer|footwear/i],
+  ["tops", /hoodie|sweatshirt|sweater|pullover|jumper|cardigan|knit|jacket|coat/i],
+  ["bottoms", /pant|trouser|jean|jogger|short|legging|skirt/i],
+  ["tees", /t-?shirt|\btees?\b|shirt|blouse|polo|jersey/i],
+  ["underwear", /\bsocks?\b|panties|brief|boxer|underwear|\bbras?\b|lingerie/i],
+];
+
 export function arrangeProducts(
   products: Product[],
   interests: Interests | null,
@@ -30,7 +44,12 @@ export function arrangeProducts(
 ): Product[] {
   if (products.length < 3) return products;
 
-  const groupOf = (product: Product) => product.categories?.[0]?.slug ?? "none";
+  const groupOf = (product: Product) => {
+    const category = product.categories?.[0];
+    const text = `${category?.slug ?? ""} ${category?.name ?? ""} ${product.name}`;
+    for (const [family, pattern] of FAMILIES) if (pattern.test(text)) return family;
+    return category?.slug ?? "none";
+  };
 
   // Interest of a product = its strongest category, scaled to 0..1.
   const strongest = Math.max(0, ...Object.values(interests ?? {}));
