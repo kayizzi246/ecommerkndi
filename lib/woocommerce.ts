@@ -897,7 +897,8 @@ export async function getProducts(
  * thing, and the caller already has an empty-list contract to honour.
  */
 export async function getProductsSafe(
-  query: ProductQuery = {}
+  query: ProductQuery = {},
+  { retryEmpty = true }: { retryEmpty?: boolean } = {}
 ): Promise<ProductListResponse> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -905,8 +906,10 @@ export async function getProductsSafe(
 
       /* An empty list is not automatically a failure — `on_sale` legitimately
          returns nothing on a shop with no sale running — so the retry is on the
-         first attempt only, and a second empty answer is taken as the truth. */
-      if (result.products.length > 0 || attempt > 0) return result;
+         first attempt only, and a second empty answer is taken as the truth.
+         Search turns it off: "no match" is an everyday answer there, and
+         asking twice doubled the wait for it. */
+      if (result.products.length > 0 || attempt > 0 || !retryEmpty) return result;
     } catch (error) {
       console.error(`[kandi-store] getProducts failed (attempt ${attempt + 1}):`, error);
       if (attempt > 0) return { products: [], total: 0, total_pages: 0 };

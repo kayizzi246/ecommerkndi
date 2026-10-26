@@ -128,7 +128,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, hydrated]);
 
-  // Products open in their own tab, so a basket changed in one tab is picked
+  // A shopper with the shop open in two tabs: a basket changed in one is picked
   // up by the others rather than overwritten by them.
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {

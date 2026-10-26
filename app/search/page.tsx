@@ -81,19 +81,28 @@ export default async function SearchPage({
      with `?sort=newest` and no word, and that lists the whole catalogue in
      that order. */
   const browseTitle = BROWSE_TITLES[sort ?? ""];
-  const [{ products, total, total_pages }, categories] = await Promise.all([
+  /* All three asked for at once. The best sellers used to wait for the
+     results, adding a second WordPress round trip to every thin search; they
+     are the same cached list the rest of the shop uses, so fetching them
+     alongside costs nothing when they are not shown. The term is lower-cased
+     so "Shoes" and "shoes" share one cached answer. */
+  const [{ products, total, total_pages }, categories, bestSellers] = await Promise.all([
     query || browseTitle
-      ? getProductsSafe({
-          ...(query ? { search: query } : {}),
-          page,
-          per_page: 24,
-          ...(scope ? { category: scope } : {}),
-          ...toProductQuery(search),
-        })
+      ? getProductsSafe(
+          {
+            ...(query ? { search: query.toLowerCase() } : {}),
+            page,
+            per_page: 24,
+            ...(scope ? { category: scope } : {}),
+            ...toProductQuery(search),
+          },
+          { retryEmpty: false }
+        )
       : Promise.resolve({ products: [] as Product[], total: 0, total_pages: 0 }),
     // A convenience on a page that works without it: an outage costs the
     // shopper the category chips, not the search.
     getCategories().catch(() => []),
+    getProductsSafe({ per_page: 12, sort: "popular", in_stock: true }),
   ]);
 
   const visible = sortProducts(filterProducts(products, search), sort);
@@ -102,9 +111,7 @@ export default async function SearchPage({
   /* Recommendations: best sellers in stock, minus anything already shown. */
   const recommend =
     visible.length < FEW
-      ? (await getProductsSafe({ per_page: 12, sort: "popular", in_stock: true })).products
-          .filter((product) => !visible.some((shown) => shown.id === product.id))
-          .slice(0, 12)
+      ? bestSellers.products.filter((product) => !visible.some((shown) => shown.id === product.id)).slice(0, 12)
       : [];
 
   /* Category chips: the departments the results actually come from, most

@@ -318,8 +318,6 @@ function SpotlightCard({ product, rank }: { product: Product; rank: number }) {
   return (
     <Link
       href={productPath(product)}
-      target="_blank"
-      rel="noopener"
       className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-shop-edge transition-shadow hover:shadow-[0_10px_28px_rgba(0,0,0,0.10)]"
     >
       <span className="relative block aspect-[4/3] bg-[#f6f6f7]">

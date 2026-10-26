@@ -50,7 +50,7 @@ function saveToStorage() {
 // Initialize on module load (client-side only)
 if (typeof window !== "undefined") {
   loadFromStorage();
-  // Kept in step with other tabs, since products open in a tab of their own.
+  // Kept in step with any other tab the shop is open in.
   window.addEventListener("storage", (event) => {
     if (event.key !== STORAGE_KEY) return;
     loadFromStorage();
