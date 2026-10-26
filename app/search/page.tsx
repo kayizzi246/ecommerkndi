@@ -5,6 +5,7 @@ import { sortProducts, filterProducts, toProductQuery } from "@/lib/sort-product
 import FilteredProductGrid from "@/components/FilteredProductGrid";
 import ProductCard from "@/components/ProductCard";
 import { PRODUCT_GRID, forGrid } from "@/lib/product-grid";
+import { rankByName, searchTerm } from "@/lib/search-rank";
 
 /**
  * Search results are not content, and Google should not hold any.
@@ -84,13 +85,14 @@ export default async function SearchPage({
   /* All three asked for at once. The best sellers used to wait for the
      results, adding a second WordPress round trip to every thin search; they
      are the same cached list the rest of the shop uses, so fetching them
-     alongside costs nothing when they are not shown. The term is lower-cased
-     so "Shoes" and "shoes" share one cached answer. */
+     alongside costs nothing when they are not shown. The term goes as
+     `searchTerm` (lower-case, singular), so "Shoes", "shoes" and "shoe" share
+     one cached answer and a plural still finds the singular. */
   const [{ products, total, total_pages }, categories, bestSellers] = await Promise.all([
     query || browseTitle
       ? getProductsSafe(
           {
-            ...(query ? { search: query.toLowerCase() } : {}),
+            ...(query ? { search: searchTerm(query) } : {}),
             page,
             per_page: 24,
             ...(scope ? { category: scope } : {}),
@@ -105,7 +107,8 @@ export default async function SearchPage({
     getProductsSafe({ per_page: 12, sort: "popular", in_stock: true }),
   ]);
 
-  const visible = sortProducts(filterProducts(products, search), sort);
+  // Name matches first; products that only matched on their description go.
+  const visible = sortProducts(filterProducts(rankByName(products, query), search), sort);
   const filtering = Boolean(search.sale || search.stock || search.max_price || search.min_price || search.brand);
 
   /* Recommendations: best sellers in stock, minus anything already shown. */
@@ -134,7 +137,8 @@ export default async function SearchPage({
   };
 
   const heading = query ? `Results for “${query}”` : (browseTitle ?? "Search the shop");
-  const count = filtering ? visible.length : total;
+  // One page of results is counted as shown, after the name check above.
+  const count = filtering || total_pages <= 1 ? visible.length : total;
 
   return (
     <main className="srch mx-auto w-full max-w-[var(--shell)] px-0 pb-24 pt-3 md:px-8 lg:pb-10">
@@ -234,7 +238,7 @@ export default async function SearchPage({
           totalPages={total_pages}
           startPage={page}
           query={{
-            q: query,
+            q: query ? searchTerm(query) : query,
             category: search.brand || scope,
             sort,
             onSale: search.sale === "1",
