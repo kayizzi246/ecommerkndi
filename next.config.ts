@@ -72,6 +72,9 @@ import type { NextConfig } from "next";
  */
 const DEV = process.env.NODE_ENV !== "production";
 
+const GOOGLE_TAG_HOSTS =
+  "https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com";
+
 const CSP = [
   "default-src 'self'",
   // `challenges.cloudflare.com` is Turnstile, the bot check on checkout. Like
@@ -80,7 +83,11 @@ const CSP = [
   // Listed whether or not the shop has set its keys: a CSP entry for a host
   // that is never contacted costs nothing, and a missing one is a silent
   // failure at the worst possible moment.
-  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""} https://accounts.google.com https://challenges.cloudflare.com`,
+  //
+  // The Google Ads hosts are the Google tag (AW-18476158863) in app/layout.tsx:
+  // its script, the conversion pings it sends, and the frame it uses for
+  // remarketing — so they are named in three directives too.
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ""} https://accounts.google.com https://challenges.cloudflare.com ${GOOGLE_TAG_HOSTS}`,
   // Tailwind and Next both emit inline style attributes; there is no nonce-free
   // way around this one, and injected CSS is a far smaller problem than
   // injected script.
@@ -93,8 +100,8 @@ const CSP = [
   // server. Browsers disagree about whether `'self'` covers a WebSocket on the
   // same origin, so it is named rather than assumed — and, like `'unsafe-eval'`
   // above, it is gated on NODE_ENV so production never carries it.
-  `connect-src 'self'${DEV ? " ws: wss:" : ""} https://accounts.google.com https://challenges.cloudflare.com`,
-  "frame-src 'self' https://accounts.google.com https://*.pesapal.com https://challenges.cloudflare.com",
+  `connect-src 'self'${DEV ? " ws: wss:" : ""} https://accounts.google.com https://challenges.cloudflare.com ${GOOGLE_TAG_HOSTS} https://*.google-analytics.com https://pagead2.googlesyndication.com`,
+  "frame-src 'self' https://accounts.google.com https://*.pesapal.com https://challenges.cloudflare.com https://td.doubleclick.net https://www.googletagmanager.com",
   // Nothing here is a plugin, and `object-src 'none'` closes a whole family of
   // legacy injection tricks.
   "object-src 'none'",

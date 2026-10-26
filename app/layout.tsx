@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -328,6 +329,22 @@ export default async function RootLayout({
              No third-party host is contacted and no cookie is set. */}
         <Analytics />
         <SpeedInsights />
+
+        {/* ---- Google tag (Google Ads, AW-18476158863) ----
+             Needed before any conversion event snippet can be measured.
+             `afterInteractive` so it never delays the shop rendering. Unlike
+             the two above this one IS third-party, so its hosts are listed in
+             the Content-Security-Policy in next.config.ts. */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18476158863"
+          strategy="afterInteractive"
+        />
+        <Script id="google-tag" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'AW-18476158863');`}
+        </Script>
       </body>
     </html>
   );
