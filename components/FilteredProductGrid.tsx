@@ -37,18 +37,7 @@ import type { Product } from "@/lib/woocommerce";
  * pass exists at all; the others are already ordered by the server and
  * re-sorting them is a no-op that costs nothing at this size.
  */
-export default function FilteredProductGrid({
-  initialProducts,
-  totalPages,
-  startPage,
-  query,
-  filters,
-  sort,
-  gridClassName,
-  /** Passed through to the tile, for the pages that override `--shell`. */
-  sizes,
-  doneLabel,
-}: {
+type Props = {
   /** The server's page one, already filtered and sorted. */
   initialProducts: Product[];
   totalPages: number;
@@ -59,7 +48,40 @@ export default function FilteredProductGrid({
   gridClassName: string;
   sizes?: string;
   doneLabel?: string;
-}) {
+};
+
+/**
+ * A new search, sort or filter starts a new feed.
+ *
+ * The feed keeps its products in state, seeded from `initialProducts` once.
+ * Searching again from /search re-renders the same page with new props, so
+ * without this the grid kept the previous search's products under the new
+ * heading ("hoodies" showing black shoes). Keying on the query and the first
+ * products gives every new set of results a fresh feed.
+ */
+export default function FilteredProductGrid(props: Props) {
+  const key = JSON.stringify([
+    props.query,
+    props.filters,
+    props.sort,
+    props.startPage,
+    props.initialProducts.slice(0, 4).map((product) => product.id),
+  ]);
+  return <FeedGrid key={key} {...props} />;
+}
+
+function FeedGrid({
+  initialProducts,
+  totalPages,
+  startPage,
+  query,
+  filters,
+  sort,
+  gridClassName,
+  /** Passed through to the tile, for the pages that override `--shell`. */
+  sizes,
+  doneLabel,
+}: Props) {
   /* `refine` has to be stable or the feed re-subscribes its observer on every
      render — see `useProductFeed`. `filters` is written inline by both callers,
      so it is a fresh object each time and has to be compared by value. */
