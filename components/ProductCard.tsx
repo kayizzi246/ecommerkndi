@@ -120,7 +120,9 @@ export default function ProductCard({
 
         {/* The campaign mark on reduced products: a small tag in the corner
             of the photo rather than a ribbon across it. */}
-        {!soldOut && discount > 0 && (
+        {/* Only on the deepest cuts: a sticker on every reduced photo stopped
+            meaning anything and made the grid look stamped out. */}
+        {!soldOut && discount >= 40 && (
           <span className="pc-bn-tag" aria-hidden>
             Black November
           </span>

@@ -23,8 +23,11 @@ export default function BlackNovemberDeals({
   products: Product[];
   returnsDays: number;
 }) {
+  // One of each product: imports often list the same item twice under
+  // slightly different titles, and two identical cards side by side look fake.
   const deals = products
     .filter((product) => hasPriceReduction(product.regular_price, product.price))
+    .filter((product, index, all) => all.findIndex((other) => nameKey(other.name) === nameKey(product.name)) === index)
     .sort(
       (a, b) =>
         discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
@@ -52,7 +55,7 @@ export default function BlackNovemberDeals({
       </div>
 
       <div className="bnd-body">
-        {/* ---- The six deepest cuts, large: Deal of the day, then Hot deals ---- */}
+        {/* ---- The six deepest cuts, large, the first marked Deal of the day ---- */}
         <div className="bnd-heroes">
           {heroes.map((hero, index) => (
             <Link key={hero.id} href={productPath(hero)} target="_blank" rel="noopener" className="bnd-hero">
@@ -69,14 +72,14 @@ export default function BlackNovemberDeals({
                 <span className="bnd-hero-off">-{discountPercent(hero.regular_price, hero.price)}%</span>
               </span>
               <span className="bnd-hero-info">
-                <span className="bnd-hero-badge">{index === 0 ? "Deal of the day" : "Hot deal"}</span>
+                {index === 0 && <span className="bnd-hero-badge">Deal of the day</span>}
                 <span className="bnd-hero-name">{hero.name}</span>
                 <span className="bnd-hero-prices">
                   <span className="price bnd-hero-price">{formatPrice(hero.price)}</span>
                   <s className="bnd-hero-was">{formatPrice(hero.regular_price)}</s>
                 </span>
                 <span className="bnd-hero-save">You save {formatPrice(hero.regular_price - hero.price)}</span>
-                <span className="bnd-hero-cta">Buy now ›</span>
+                <span className="bnd-hero-cta">View deal</span>
               </span>
             </Link>
           ))}
@@ -136,4 +139,9 @@ function TrustIcon({ d }: { d: string }) {
       <path strokeLinecap="round" strokeLinejoin="round" d={d} />
     </svg>
   );
+}
+
+/** The first few words of a title, lower-cased: enough to spot one product imported twice. */
+function nameKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).slice(0, 5).join(" ");
 }

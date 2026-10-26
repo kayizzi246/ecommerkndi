@@ -81,7 +81,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
   };
 
   const attributes = product.attributes ?? [];
-  // Shoes are shown in UK sizing whatever chart the supplier used.
+  // Shoes are shown in EU sizing whatever chart the supplier used.
   const fit = shoeFit(product);
 
   if (product.stock_status === "outofstock") {
@@ -193,7 +193,7 @@ export default function AddToCartButton({ product, onOptionChange }: Props) {
                   {selected[attr.name] ? sizeLabel(selected[attr.name] as string, fit).size : `Select a ${attr.name.toLowerCase()}`}
                 </span>
               </p>
-              {isSize && fit.shoe && <span className="text-[12px] text-shop-muted">UK sizes</span>}
+              {isSize && fit.shoe && <span className="text-[12px] text-shop-muted">EU sizes</span>}
             </div>
 
             <div className="flex flex-wrap gap-2.5">

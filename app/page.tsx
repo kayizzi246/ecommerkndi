@@ -149,7 +149,9 @@ export default async function Home() {
         product.stock_status !== "outofstock" &&
         all.findIndex((other) => other.id === product.id) === index
     )
-    .slice(0, 14);
+    // A few spare, so a row is still full after BlackNovemberDeals drops
+    // products imported twice.
+    .slice(0, 20);
 
   /* The carousel under the banner: what sells, falling back to the shop's
      own picks on a catalogue too new to have sales. */
@@ -160,6 +162,32 @@ export default async function Home() {
         all.findIndex((other) => other.id === product.id) === index
     )
     .slice(0, 16);
+  /* The deals section sits right under the carousel, so it skips the
+     carousel's products while enough other deals remain to fill it. */
+  const carouselIds = new Set(carouselPicks.map((product) => product.id));
+  const otherDeals = dealPicks.filter((product) => !carouselIds.has(product.id));
+  const dealsShown = otherDeals.length >= 14 ? otherDeals : dealPicks;
+
+  /* The grid opens on products the shopper has not just scrolled past. The
+     carousel and the deals are drawn from the same catalogue, so the grid's
+     first row used to repeat them, which reads as a page assembled by a
+     machine. Those products move to the back of the opening grid, and so do second copies of an item imported twice under a
+     near-identical title. */
+  const shownAbove = new Set([...carouselPicks, ...dealsShown].map((product) => product.id));
+  const titleKey = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).slice(0, 5).join(" ");
+  const seenTitles = new Set<string>();
+  const fresh: typeof forYou = [];
+  const later: typeof forYou = [];
+  for (const product of forYou) {
+    const key = titleKey(product.name);
+    if (shownAbove.has(product.id) || seenTitles.has(key)) later.push(product);
+    else fresh.push(product);
+    seenTitles.add(key);
+  }
+  // Repeats are dropped outright when there is a full screen without them:
+  // they are on the page already, a scroll up.
+  const openingGrid = fresh.length >= 24 ? fresh : [...fresh, ...later];
 
   return (
     <main className="min-w-0 pb-20">
@@ -219,11 +247,11 @@ export default async function Home() {
           <BlackFridayHero />
           <WelcomeBack />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
-          <BlackNovemberDeals products={dealPicks} returnsDays={settings.commerce.returns_days} />
+          <BlackNovemberDeals products={dealsShown} returnsDays={settings.commerce.returns_days} />
         </div>
 
         <PickedForYou
-          latest={wholeRows(forYou).map(forGrid)}
+          latest={wholeRows(openingGrid).map(forGrid)}
           newest={latest.map(forGrid)}
           latestTotalPages={latestTotalPages}
           tabs={tabs}
