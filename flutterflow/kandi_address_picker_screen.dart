@@ -575,7 +575,7 @@ SupabaseClient get _kSupa => Supabase.instance.client;
 
 /// The columns a product card needs; the product page asks for '*'.
 const String _kCardColumns =
-    'id,name,price,regular_price,image,gallery,stock_status,stock_quantity,total_sales,average_rating,rating_count,category_ids,attributes,variations,short_description,description';
+    'id,name,price,regular_price,image,stock_status,stock_quantity,total_sales,average_rating,rating_count,category_ids';
 
 class _KApi {
   static List<_KCategory>? _categories;
