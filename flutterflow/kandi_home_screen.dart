@@ -101,8 +101,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load the shop. Pull down to try again.
-$e';
+        _error = 'Could not load the shop. Pull down to try again.\n$e';
       });
     }
   }

@@ -147,8 +147,7 @@ class _KandiShopScreenState extends State<KandiShopScreen> {
       if (!mounted || request != _request) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load products.
-$e';
+        _error = 'Could not load products.\n$e';
       });
     } finally {
       if (request == _request) _fetching = false;
