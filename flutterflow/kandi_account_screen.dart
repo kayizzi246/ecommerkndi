@@ -10,16 +10,19 @@ import 'package:flutter/material.dart';
 
 // ============================================================
 //  KANDI — ACCOUNT
-//  Phone sign-in, name, points, order history (Supabase
-//  `orders`, kept in step with WooCommerce), addresses, help.
+//  Google sign-in, points, order history and addresses (all
+//  in WooCommerce, through the Kandi Mobile API), help.
 // ============================================================
 
 import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 // Supabase comes through FlutterFlow's own file (Settings > Integrations > Supabase must be on).
 import '/backend/supabase/supabase.dart';
+// Google sign-in comes through FlutterFlow's auth (Settings > Authentication > Supabase, Google on).
+import '/auth/supabase_auth/auth_util.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
@@ -48,10 +51,10 @@ const Map<String, (String, Color)> _statuses = {
 
 class _KandiAccountScreenState extends State<KandiAccountScreen> {
   StreamSubscription<AuthState>? _auth;
-  Map<String, dynamic>? _profile;
+  int _points = 0;
   List<Map<String, dynamic>> _orders = [];
   bool _loading = true;
-  final _name = TextEditingController();
+  String? _error;
 
   @override
   void initState() {
@@ -64,7 +67,6 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
   @override
   void dispose() {
     _auth?.cancel();
-    _name.dispose();
     super.dispose();
   }
 
@@ -74,42 +76,24 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
       return;
     }
     try {
-      final id = _KAuth.user!.id;
-      final profile = await _kSupa.from('profiles').select().eq('id', id).maybeSingle();
-      final orders = await _kSupa
-          .from('orders')
-          .select()
-          .neq('status', 'failed')
-          .neq('status', 'creating')
-          .order('created_at', ascending: false)
-          .limit(50);
+      final results = await Future.wait([_KWoo.get('/me'), _KWoo.get('/orders')]);
       if (!mounted) return;
       setState(() {
-        _profile = profile;
-        _orders = (orders as List).cast<Map<String, dynamic>>();
-        _name.text = '${profile?['full_name'] ?? ''}';
+        _points = ((results[0] as Map)['points'] as num?)?.toInt() ?? 0;
+        _orders = (((results[1] as Map)['orders'] as List?) ?? const [])
+            .map((row) => Map<String, dynamic>.from(row as Map))
+            .toList();
+        _error = null;
         _loading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = _KWoo.message(e);
+          _loading = false;
+        });
+      }
     }
-  }
-
-  Future<void> _editName() async {
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Your name', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: TextField(controller: _name, autofocus: true, decoration: const InputDecoration(hintText: 'First and last name')),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (saved != true) return;
-    await _kSupa.from('profiles').update({'full_name': _name.text.trim()}).eq('id', _KAuth.user!.id);
-    await _load();
   }
 
   @override
@@ -138,13 +122,16 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
             const Text('Welcome to Kandi',
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
             const SizedBox(height: 8),
-            const Text('Sign in with your phone to track orders, save addresses and earn reward points.',
+            const Text('Sign in with Google to track orders, save addresses and earn reward points.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: _KColors.body, height: 1.5)),
             const SizedBox(height: 24),
             _KButton(
-              label: 'Sign in with phone',
-              icon: Icons.phone_iphone_rounded,
-              onPressed: () => _KAuth.ensure(context, reason: 'Sign in to Kandi'),
+              label: 'Continue with Google',
+              icon: Icons.g_mobiledata_rounded,
+              dark: true,
+              onPressed: () async {
+                if (await _KAuth.ensure(context, reason: 'Sign in to Kandi')) _load();
+              },
             ),
           ],
         ),
@@ -153,8 +140,8 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
   }
 
   Widget _signedIn() {
-    final name = '${_profile?['full_name'] ?? ''}'.trim();
-    final points = (_profile?['points_balance'] as num?)?.toInt() ?? 0;
+    final name = _KAuth.name;
+    final photo = _KAuth.photo;
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -166,21 +153,22 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: _KColors.yellow,
-                child: Text(name.isEmpty ? 'K' : name[0].toUpperCase(),
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink)),
+                backgroundImage: photo.isNotEmpty ? CachedNetworkImageProvider(photo) : null,
+                child: photo.isNotEmpty
+                    ? null
+                    : Text(name.isEmpty ? 'K' : name[0].toUpperCase(),
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink)),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: _editName,
-                      child: Text(name.isEmpty ? 'Add your name ✎' : name,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.white)),
-                    ),
-                    Text('${_KAuth.user?.phone != null ? '+${_KAuth.user!.phone!.replaceFirst('+', '')}' : ''}',
-                        style: const TextStyle(color: Color(0xB3FFFFFF))),
+                    Text(name.isEmpty ? 'Kandi shopper' : name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.white)),
+                    Text(_KAuth.email, style: const TextStyle(color: Color(0xB3FFFFFF))),
                   ],
                 ),
               ),
@@ -201,7 +189,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$points points', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                      Text('$_points points', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                       const Text('See rewards ›', style: TextStyle(fontWeight: FontWeight.w700)),
                     ],
                   ),
@@ -210,6 +198,11 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
             ),
           ),
         ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(_error!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700)),
+          ),
         const SizedBox(height: 18),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
@@ -227,14 +220,14 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           for (final order in _orders) _order(order),
         const SizedBox(height: 18),
         _link(Icons.location_on_outlined, 'Delivery addresses', () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiAddressPickerScreen()));
+          _KNav.openAddresses(context);
         }),
         _link(Icons.chat_outlined, 'Chat on WhatsApp', () {
           launchUrl(Uri.parse('https://wa.me/256${_kSupportPhone.substring(1)}'), mode: LaunchMode.externalApplication);
         }),
         _link(Icons.call_outlined, 'Call us: $_kSupportPhone', () => launchUrl(Uri.parse('tel:$_kSupportPhone'))),
         _link(Icons.logout_rounded, 'Sign out', () async {
-          await _kSupa.auth.signOut();
+          await _KAuth.signOut();
           if (mounted) setState(() {});
         }),
         const SizedBox(height: 24),
@@ -244,7 +237,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
 
   Widget _order(Map<String, dynamic> order) {
     final status = _statuses['${order['status']}'] ?? ('${order['status']}', _KColors.muted);
-    final items = (order['items'] as List? ?? const []).cast<Map>();
+    final items = ((order['items'] as List?) ?? const []).map((item) => Map<String, dynamic>.from(item as Map)).toList();
     final created = DateTime.tryParse('${order['created_at']}')?.toLocal();
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -259,7 +252,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
             height: 48,
             child: _KPhoto(items.isNotEmpty ? '${items.first['image'] ?? ''}' : '', radius: 10),
           ),
-          title: Text('Order #${order['woo_order_id'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w900)),
+          title: Text('Order #${order['number'] ?? order['id'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w900)),
           subtitle: Text(
             [
               if (created != null) '${created.day}/${created.month}/${created.year}',
@@ -281,7 +274,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
                       child: Text('${item['quantity']} × ${item['name']}',
                           maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
                     ),
-                    Text(_kMoney(((item['price'] as num?) ?? 0) * ((item['quantity'] as num?) ?? 1)),
+                    Text(_kMoney((item['total'] as num?) ?? 0),
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                   ],
                 ),
@@ -592,11 +585,33 @@ class _KKeys {
 }
 
 class _KNav {
+  /// A product slides up as a tall bottom sheet over the current screen.
   static Future<void> openProduct(BuildContext context, int id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_KKeys.openProduct, id);
     if (!context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiProductScreen()));
+    await sheet(context, const KandiProductScreen(), height: 0.94);
+  }
+
+  /// The address picker, as a bottom sheet. True when an address was chosen.
+  static Future<bool> openAddresses(BuildContext context) async =>
+      await sheet<bool>(context, const KandiAddressPickerScreen(), height: 0.9) == true;
+
+  /// Any screen as a rounded bottom sheet, [height] as a share of the screen.
+  static Future<T?> sheet<T>(BuildContext context, Widget child, {double height = 0.9}) {
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: height,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: child,
+        ),
+      ),
+    );
   }
 
   /// Opens Shop already filtered to a category, a search or a sort.
@@ -739,23 +754,47 @@ class _KCart extends ChangeNotifier {
 }
 
 // ------------------------------------------------------------
-//  Phone sign-in (Supabase Auth, SMS code)
+//  Sign-in (Google, through Supabase) and the shop's own API
+//  (WordPress / WooCommerce: account, addresses, orders, points)
 // ------------------------------------------------------------
+
+/// The Kandi Mobile API on WordPress (wordpress/kandi-mobile-api.php).
+const String _kWooApi = 'https://shop.kandiug.com/wp-json/kandi/v1/mobile';
 
 class _KAuth {
   static User? get user => _kSupa.auth.currentUser;
   static bool get signedIn => user != null;
+
+  /// The shopper's Supabase access token, sent to WordPress with every call.
+  static String get token => _kSupa.auth.currentSession?.accessToken ?? '';
+
+  /// Shown in the app: the Google name, or the email.
+  static String get name {
+    final meta = user?.userMetadata ?? const {};
+    final full = '${meta['full_name'] ?? meta['name'] ?? ''}'.trim();
+    return full.isNotEmpty ? full : (user?.email ?? '');
+  }
+
+  static String get email => user?.email ?? '';
+  static String get photo => '${user?.userMetadata?['avatar_url'] ?? user?.userMetadata?['picture'] ?? ''}';
 
   /// Signed in already, or signs in now through the sheet. True when signed in.
   static Future<bool> ensure(BuildContext context, {String reason = 'Sign in to continue'}) async {
     if (signedIn) return true;
     final ok = await showModalBottomSheet<bool>(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _KPhoneSignInSheet(reason: reason),
+      builder: (_) => _KSignInSheet(reason: reason),
     );
     return ok == true && signedIn;
+  }
+
+  static Future<void> signOut() async {
+    try {
+      await authManager.signOut();
+    } catch (_) {
+      await _kSupa.auth.signOut();
+    }
   }
 
   /// "0772 123 456" / "772123456" / "+256772123456" → "+256772123456", or null.
@@ -767,59 +806,34 @@ class _KAuth {
   }
 }
 
-class _KPhoneSignInSheet extends StatefulWidget {
-  const _KPhoneSignInSheet({super.key, this.reason = 'Sign in to continue'});
+/// One bottom sheet, one button: Continue with Google.
+class _KSignInSheet extends StatefulWidget {
+  const _KSignInSheet({super.key, this.reason = 'Sign in to continue'});
   final String reason;
   @override
-  State<_KPhoneSignInSheet> createState() => _KPhoneSignInSheetState();
+  State<_KSignInSheet> createState() => _KSignInSheetState();
 }
 
-class _KPhoneSignInSheetState extends State<_KPhoneSignInSheet> {
-  final _phone = TextEditingController();
-  final _code = TextEditingController();
-  String? _sentTo;
+class _KSignInSheetState extends State<_KSignInSheet> {
   bool _busy = false;
   String? _error;
 
-  Future<void> _send() async {
-    final phone = _KAuth.ugPhone(_phone.text);
-    if (phone == null) {
-      setState(() => _error = 'Enter an MTN or Airtel number, like 0772 123 456.');
-      return;
-    }
+  Future<void> _google() async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await _kSupa.auth.signInWithOtp(phone: phone);
-      setState(() => _sentTo = phone);
-    } on AuthException catch (e) {
-      setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'Could not send the code. Check your connection and try again.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _verify() async {
-    final code = _code.text.trim();
-    if (code.length < 4 || _sentTo == null) {
-      setState(() => _error = 'Enter the code from the SMS.');
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await _kSupa.auth.verifyOTP(phone: _sentTo!, token: code, type: OtpType.sms);
-      if (mounted) Navigator.of(context).pop(true);
-    } on AuthException catch (e) {
-      setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'That code did not work. Try again.');
+      // FlutterFlow's own Google sign-in for Supabase (Settings > Authentication).
+      await authManager.signInWithGoogle(context);
+      if (!mounted) return;
+      if (_KAuth.signedIn) {
+        Navigator.of(context).pop(true);
+      } else {
+        setState(() => _error = 'Sign-in was cancelled.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not sign in with Google. $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -827,73 +841,77 @@ class _KPhoneSignInSheetState extends State<_KPhoneSignInSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final sent = _sentTo != null;
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        decoration: const BoxDecoration(
-          color: _KColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
-                ),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      decoration: const BoxDecoration(
+        color: _KColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
               ),
-              const SizedBox(height: 18),
-              Text(widget.reason,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
-              const SizedBox(height: 6),
-              Text(
-                sent ? 'We sent a code to $_sentTo.' : 'We will text you a code. No password needed.',
-                style: const TextStyle(fontSize: 14, color: _KColors.muted),
-              ),
-              const SizedBox(height: 18),
-              if (!sent)
-                _KField(
-                  controller: _phone,
-                  label: 'Phone number',
-                  hint: '0772 123 456',
-                  keyboard: TextInputType.phone,
-                  prefix: '+256 ',
-                )
-              else
-                _KField(
-                  controller: _code,
-                  label: 'Code',
-                  hint: '6-digit code',
-                  keyboard: TextInputType.number,
-                ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                Text(_error!, style: const TextStyle(color: _KColors.sale, fontSize: 13, fontWeight: FontWeight.w600)),
-              ],
-              const SizedBox(height: 18),
-              _KButton(
-                label: sent ? 'Sign in' : 'Send code',
-                busy: _busy,
-                onPressed: sent ? _verify : _send,
-              ),
-              if (sent)
-                TextButton(
-                  onPressed: _busy ? null : () => setState(() => _sentTo = null),
-                  child: const Text('Use a different number', style: TextStyle(color: _KColors.ink)),
-                ),
+            ),
+            const SizedBox(height: 18),
+            Text(widget.reason,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
+            const SizedBox(height: 6),
+            const Text('Use your Google account. No password to remember.',
+                style: TextStyle(fontSize: 14, color: _KColors.muted)),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: _KColors.sale, fontSize: 13, fontWeight: FontWeight.w600)),
             ],
-          ),
+            const SizedBox(height: 20),
+            _KButton(label: 'Continue with Google', icon: Icons.g_mobiledata_rounded, dark: true, busy: _busy, onPressed: _google),
+          ],
         ),
       ),
     );
   }
+}
+
+/// Calls to the Kandi Mobile API. Every call carries the shopper's sign-in.
+/// Errors come back as an exception whose message can be shown as it is.
+class _KWoo {
+  static Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Kandi-Token': _KAuth.token,
+      };
+
+  static dynamic _read(http.Response response) {
+    dynamic data;
+    try {
+      data = jsonDecode(response.body);
+    } catch (_) {
+      data = null;
+    }
+    if (response.statusCode >= 200 && response.statusCode < 300) return data;
+    final message = data is Map && data['message'] != null ? '${data['message']}' : 'Something went wrong (${response.statusCode}).';
+    throw Exception(message);
+  }
+
+  static Future<dynamic> get(String path) async =>
+      _read(await http.get(Uri.parse('$_kWooApi$path'), headers: _headers).timeout(const Duration(seconds: 30)));
+
+  static Future<dynamic> post(String path, Map<String, dynamic> body) async => _read(await http
+      .post(Uri.parse('$_kWooApi$path'), headers: _headers, body: jsonEncode(body))
+      .timeout(const Duration(seconds: 45)));
+
+  static Future<dynamic> delete(String path) async =>
+      _read(await http.delete(Uri.parse('$_kWooApi$path'), headers: _headers).timeout(const Duration(seconds: 30)));
+
+  /// "Exception: Choose a delivery address." → "Choose a delivery address."
+  static String message(Object error) => '$error'.replaceFirst('Exception: ', '');
 }
 
 // ------------------------------------------------------------

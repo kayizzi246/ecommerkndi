@@ -1,109 +1,55 @@
-# Kandi app backend: Supabase + WooCommerce
+# Kandi app backend
 
-WooCommerce stays the shop. Supabase is the app's fast copy of the catalogue,
-its sign-in, its order history and its reward points.
+Supabase does two things only: it holds a **copy of the products and
+categories** for the app to read fast, and it does **Google sign-in**.
+Everything else (account, addresses, orders, reward points, payments) stays in
+WooCommerce.
 
 ```
-WooCommerce ──products, categories──▶ woo-sync ──▶ Supabase ──▶ app
-WooCommerce ◀──────── orders ──────── place-order ◀──────────── app
-WooCommerce ──order status──▶ woo-sync ──▶ Supabase (points awarded)
+WooCommerce ──products, categories──▶ woo-sync ──▶ Supabase ──▶ app (browse)
+app ── Google sign-in ──▶ Supabase Auth
+app ── account, addresses, orders, points ──▶ WordPress: kandi-mobile-api.php ──▶ WooCommerce
 ```
-
-Do these steps in order. Each one takes a few minutes.
 
 ---
 
-## 1. Create the project
+## Supabase
 
-[supabase.com](https://supabase.com) > New project (the free plan is enough
-to start). Note the **Project URL** and the **anon** and **service_role**
-keys under Project Settings > API.
+1. **Tables.** SQL Editor: run `migrations/20261109000000_kandi_app.sql`.
+   The app uses only `products` and `categories` from it.
+2. **Sync function.** Edge Functions: `woo-sync` from `functions/woo-sync/index.ts`,
+   **Verify JWT off**, secret `KANDI_SYNC_SECRET`.
+3. **Google sign-in.**
+   - In Google Cloud Console > APIs & Services > Credentials, create an
+     **OAuth client ID** of type **Web application**, with the authorised
+     redirect URI `https://lorcztiuvskywjldjfxc.supabase.co/auth/v1/callback`.
+     (FlutterFlow will also ask for Android/iOS client IDs; create those in the
+     same place when it does.)
+   - Supabase > Authentication > Sign In / Providers > **Google**: on, paste
+     the Web client ID and secret, save.
+4. **Turn off what is no longer used.**
+   - Authentication > Sign In / Providers > **Phone**: off.
+   - Authentication > Auth Hooks: delete the **Send SMS** hook.
+   - Edge Functions: delete **send-sms** and **place-order**.
+   - Secrets you can delete: `SEND_SMS_HOOK_SECRET`, `KANDI_SMS_USERNAME`,
+     `KANDI_SMS_PASSWORD`, `KANDI_SMS_SENDER_ID`, `KANDI_WP_API_URL`,
+     `KANDI_API_SECRET`, `KANDI_CHECKOUT_SECRET`, `KANDI_SITE_URL`.
+     Keep `KANDI_SYNC_SECRET`.
 
-## 2. Create the tables
+## WordPress
 
-**SQL Editor > New query**, paste all of
-`migrations/20261109000000_kandi_app.sql`, press **Run**.
-
-It creates `products`, `categories`, `profiles`, `addresses`, `orders`,
-`points_ledger` and `reward_settings`, with security rules so a shopper can
-only ever see their own orders, addresses and points.
-
-## 3. Deploy the three functions
-
-**Edge Functions > Deploy a new function > Via editor** (or the Supabase CLI).
-Use these exact names and paste the matching `index.ts`:
-
-| Name | File | Verify JWT |
-|---|---|---|
-| `woo-sync` | `functions/woo-sync/index.ts` | **Off** (WordPress calls it with a secret) |
-| `place-order` | `functions/place-order/index.ts` | On |
-| `send-sms` | `functions/send-sms/index.ts` | **Off** (Supabase Auth signs it) |
-
-With the CLI: `supabase functions deploy woo-sync --no-verify-jwt`,
-`supabase functions deploy place-order`,
-`supabase functions deploy send-sms --no-verify-jwt`.
-
-## 4. Add the secrets
-
-**Edge Functions > Secrets** (`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
-are already there):
-
-| Secret | Value |
-|---|---|
-| `KANDI_SYNC_SECRET` | A long random string you make up. The same goes into WordPress (step 6). |
-| `KANDI_WP_API_URL` | `https://<your-wordpress>/wp-json/kandi/v1` (the website's `WP_API_URL`) |
-| `KANDI_API_SECRET` | The website's `KANDI_API_SECRET` |
-| `KANDI_CHECKOUT_SECRET` | The website's `KANDI_CHECKOUT_SECRET`; if the website does not set one, its `KANDI_API_SECRET` |
-| `KANDI_SITE_URL` | `https://kandiug.com` |
-| `KANDI_SMS_USERNAME` | Your EgoSMS username (the website's `KANDI_SMS_USERNAME`) |
-| `KANDI_SMS_PASSWORD` | Your EgoSMS password |
-| `KANDI_SMS_SENDER_ID` | `KandiUg` (optional) |
-| `SEND_SMS_HOOK_SECRET` | From step 5 |
-
-## 5. Turn on phone sign-in
-
-1. **Authentication > Sign In / Providers > Phone**: enable it. Leave the SMS
-   provider settings empty.
-2. **Authentication > Hooks > Send SMS hook**: enable, type **HTTPS**, URL
-   `https://<project>.supabase.co/functions/v1/send-sms`. Generate the secret,
-   copy it (it starts `v1,whsec_`) into the `SEND_SMS_HOOK_SECRET` secret.
-
-Codes are now sent through EgoSMS, the same account the website uses.
-
-## 6. Connect WordPress
-
-1. Upload the updated `wordpress/kandi-store-api.php` (**1.1.0**: lets
-   app orders carry the points discount).
-2. Upload and activate `wordpress/kandi-supabase-sync.php`.
-3. **Products > App sync**: Sync URL
-   `https://<project>.supabase.co/functions/v1/woo-sync`, Sync secret = your
-   `KANDI_SYNC_SECRET`. Save.
-4. Press **Sync everything to the app now**. Check Supabase > Table editor >
-   `products`: your catalogue is there.
-
-From then on every product you save, every stock change and every category
-change reaches the app within seconds, and app orders' status comes back.
-
-## 7. The app
-
-Follow `flutterflow/SETUP.md`.
-
----
+1. **Kandi Store API** 1.1.0 or later (`kandi-store-api.php`).
+2. **Kandi Supabase Sync** (`kandi-supabase-sync.php`), already set up under
+   Products > App sync.
+3. **Kandi Mobile API** (`kandi-mobile-api.php`): upload, activate, then
+   **Settings > Kandi Mobile App**:
+   - Supabase project URL: `https://lorcztiuvskywjldjfxc.supabase.co`
+   - Supabase anon key: the public anon key
+   - Checkout secret: only if the website's Vercel settings have a
+     `KANDI_CHECKOUT_SECRET`; otherwise leave empty.
 
 ## Rewards
 
-- Points are added when an app order is marked **Completed** in WooCommerce,
-  1 point per UGX 1,000 of items (delivery not included).
-- 100 points = UGX 1,000 off. Shoppers can use them from 100 points, for up
-  to 50% of their items.
-- Cancelled, refunded or failed orders give back points that were spent and
-  take back points that were earned.
-- Change the numbers in **Table editor > reward_settings**. To give a shopper
-  points by hand, add a row to `points_ledger` with `reason` = `adjust`.
-
-## Checking it works
-
-- **WordPress > Products > App sync** shows the last message and any error.
-- **Supabase > Edge Functions > (function) > Logs** shows every call.
-- An app order appears in WooCommerce with "Created via: kandi-app" and the
-  order note "Kandi points (N)" when points were used.
+Kept on each shopper's WooCommerce account: 1 point per UGX 1,000 of items,
+added when the order is marked **Completed**; 100 points = UGX 1,000 off, up
+to half the items. Cancelled, refunded or failed orders give spent points back.

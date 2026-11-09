@@ -1,98 +1,79 @@
 # Kandi app in FlutterFlow
 
-Eight screens, each one **self-contained custom widget**. Nothing to declare,
-no parameters, no shared file. Do the Supabase setup first
-(`supabase/README.md`), because the app reads everything from it.
+**Six pages, two bottom sheets.** Everything is a self-contained custom widget:
+no parameters, no shared file.
 
-| Name it exactly | Paste this file | What it is |
+| Widget name (exact) | File | Shown as |
 |---|---|---|
-| `KandiHomeScreen` | `kandi_home_screen.dart` | Search, departments, Super deals, New in, a carousel per department, Best sellers |
-| `KandiShopScreen` | `kandi_shop_screen.dart` | Search, filters by department and section, sort, endless grid |
-| `KandiProductScreen` | `kandi_product_screen.dart` | Photos, price, sizes and colours, add to cart, similar products |
-| `KandiCartScreen` | `kandi_cart_screen.dart` | The basket |
-| `KandiCheckoutScreen` | `kandi_checkout_screen.dart` | Address, delivery price, points, cash on delivery or Mobile Money / card |
-| `KandiAddressPickerScreen` | `kandi_address_picker_screen.dart` | Saved addresses and the new-address form |
-| `KandiAccountScreen` | `kandi_account_screen.dart` | Phone sign-in, orders, addresses, help |
-| `KandiRewardsScreen` | `kandi_rewards_screen.dart` | Points balance, how it works, history |
+| `KandiHomeScreen` | `kandi_home_screen.dart` | **Page**: Home (first page) |
+| `KandiShopScreen` | `kandi_shop_screen.dart` | **Page**: Shop (search, departments, sort) |
+| `KandiCartScreen` | `kandi_cart_screen.dart` | **Page**: Cart |
+| `KandiCheckoutScreen` | `kandi_checkout_screen.dart` | **Page**: Checkout |
+| `KandiAccountScreen` | `kandi_account_screen.dart` | **Page**: Account (orders, sign out) |
+| `KandiRewardsScreen` | `kandi_rewards_screen.dart` | **Page**: Rewards |
+| `KandiProductScreen` | `kandi_product_screen.dart` | **Bottom sheet** when a product is tapped |
+| `KandiAddressPickerScreen` | `kandi_address_picker_screen.dart` | **Bottom sheet** from Checkout and Account |
 
-The seller screens and the old Search, Wishlist, Orders, Deals, Stores,
-Categories, Track order and Verify screens are gone. Search and categories
-are inside Shop, orders are inside Account.
+The last two need **no page**: the other screens open them as sheets.
 
----
+## Where the data lives
 
-## 1. Connect Supabase (once)
-
-**Settings > Integrations > Supabase**: turn it on and paste your project's
-**URL** and **anon (public) key** (Supabase > Project Settings > API). Never
-paste the `service_role` key into the app.
-
-This also adds the `supabase_flutter` package the screens use.
-
-## 2. Add one dependency (once)
-
-**Custom Code > Dependencies**: add
-
-```yaml
-webview_flutter: ^4.7.0
-```
-
-It is the Pesapal payment sheet on checkout. iOS needs a minimum deployment
-target of 12.0, which FlutterFlow already sets.
-
-## 3. Add the eight widgets
-
-For each row of the table: **Custom Code > Widgets > + > Widget**, give it the
-name exactly as shown, select everything in the editor and paste the whole
-file over it, then **Save**. Leave the parameter list empty.
-
-- Names must match exactly. Other screens open each other by these names.
-- The files import Supabase through FlutterFlow's own
-  `'/backend/supabase/supabase.dart'`, which only exists when **Settings >
-  Integrations > Supabase** is switched on (step 1). If FlutterFlow also adds
-  that line at the top by itself, leave it; importing it twice is fine.
-- **Never type anything above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`**.
-  FlutterFlow rewrites those lines on save.
-
-Paste all eight, then compile once at the end: they refer to each other, so
-the project only compiles when the set is complete.
-
-## 4. Make the pages
-
-Create one page per screen (Home, Shop, Product, Cart, Checkout, Address,
-Account, Rewards). On each page add its custom widget, set it to fill the page
-(width and height = infinity), and remove the page's own app bar. Set
-**Home** as the initial page.
-
-Navigation is handled inside the widgets (the bottom bar, product taps, the
-checkout flow), so you do not need to wire any Navigate actions. If you add
-your own, they work too: screens pass information through the device, not
-through route parameters.
+- **Products and categories:** Supabase (copied from WooCommerce automatically).
+- **Sign-in:** Google, through Supabase.
+- **Account, saved addresses, orders, reward points:** WooCommerce, through
+  the WordPress plugin `kandi-mobile-api.php`.
+- **Delivery price, place search, Pesapal payment:** the website, the same
+  code the web checkout uses.
 
 ---
 
-## How the data flows
+## 1. Connect Supabase
 
-- **Products and categories**: WooCommerce sends them to Supabase
-  (`kandi-supabase-sync.php`), the app reads them from Supabase.
-- **Sign in**: phone number and SMS code (Supabase Auth, sent through EgoSMS).
-- **Orders**: the app calls the Supabase function `place-order`, which creates
-  the real order in WooCommerce with the website's prices, stock and delivery
-  rules, and keeps a copy for the app. Status changes in WooCommerce come back
-  to the app automatically.
-- **Delivery price, place search and Pesapal**: from the website
-  (`https://kandiug.com`), the same code the web checkout uses.
-- **Rewards**: 1 point per UGX 1,000 of items, added when the order is marked
-  **Completed** in WooCommerce; 100 points = UGX 1,000 off, up to half the
-  items. Change the numbers in Supabase > Table editor > `reward_settings`.
+**Settings & Integrations > Integrations > Supabase**: on, with
+`https://lorcztiuvskywjldjfxc.supabase.co` and the **anon** key. Click
+**Get Schema**.
 
-## Keys kept on the device
+## 2. Turn on Google sign-in
+
+1. **Settings & Integrations > App Settings > Authentication**: enable,
+   **Authentication Type = Supabase**.
+2. Set **Entry Page** and **Logged In Page** both to **Home** (the app works
+   signed out and only asks to sign in at checkout).
+3. Under the sign-in methods, switch **Google** on and follow FlutterFlow's
+   prompts for the Google client IDs (the same Web client ID you put in
+   Supabase, see `supabase/README.md`).
+
+This is what gives the screens `'/auth/supabase_auth/auth_util.dart'`, which
+they use for the Google button. Without it they do not compile.
+
+## 3. Add one dependency
+
+**Custom Code > Dependencies**: `webview_flutter: ^4.7.0` (the Pesapal sheet).
+
+## 4. Add the eight widgets
+
+For each row of the table: **Custom Code > Widgets > + > Widget**, the name
+exactly as shown, select everything in the editor, paste the whole file,
+**Save**. Leave the parameters empty.
+
+Delete every older Kandi widget that is not in the table (Categories, Deals,
+Orders, Search, Seller…, Stores, Track order, Verify, Wishlist).
+
+Never type above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.
+
+## 5. Make the six pages
+
+Home, Shop, Cart, Checkout, Account, Rewards: on each, add its widget, make it
+fill the page (width and height infinity), remove the page's own app bar.
+Home is the first page. No navigation actions are needed.
+
+---
+
+## Keys kept on the phone
 
 | Key | Holds |
 |---|---|
 | `kandi-cart-v2` | The basket |
-| `kandi-open-product` | The product the Product screen should show |
-| `kandi-shop-category`, `kandi-shop-query`, `kandi-shop-sort` | What Shop should open on |
-| `kandi-address-id` | The delivery address chosen at checkout |
-
-The sign-in session is kept by Supabase itself.
+| `kandi-open-product` | The product the product sheet shows |
+| `kandi-shop-category`, `kandi-shop-query`, `kandi-shop-sort` | What Shop opens on |
+| `kandi-address-id` | The address chosen at checkout |
