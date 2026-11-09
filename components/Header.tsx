@@ -634,7 +634,7 @@ export default function Header({
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
-              className="my-1.5 hidden shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg border border-shop-line px-3.5 py-1.5 text-[12px] font-medium text-shop-ink transition-colors hover:border-shop-flame hover:text-shop-flame md:flex lg:hidden"
+              className="my-1.5 hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-shop-ink px-3.5 py-1.5 text-[13px] font-bold text-white transition-colors hover:bg-black md:flex lg:hidden"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -650,7 +650,7 @@ export default function Header({
                 costs one link at the end of a row that has room for it. */}
             <Link
               href="/sell"
-              className="hidden shrink-0 whitespace-nowrap px-3 py-2.5 text-[12px] font-medium text-shop-primary hover:text-shop-primary-dark lg:block"
+              className="my-1.5 hidden shrink-0 whitespace-nowrap rounded-full border-2 border-shop-ink px-3.5 py-1 text-[13px] font-bold text-shop-ink transition-colors hover:bg-shop-ink hover:text-white lg:block"
             >
               Sell on Kandi
             </Link>

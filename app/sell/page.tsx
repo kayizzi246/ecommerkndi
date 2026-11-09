@@ -98,55 +98,81 @@ export default async function SellPage() {
   return (
     <main className="bg-white pb-20 md:pb-0">
       {/* ================= Hero ================= */}
-      <section className="border-b border-shop-line bg-[#faf9f6]">
-        <div className="mx-auto grid max-w-[1200px] items-start gap-10 px-4 py-10 md:px-8 md:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+      {/* Black, heavy and loud: the one page on the site that is selling a
+          business rather than a product. The yellow is the shop's own. */}
+      <section className="relative overflow-hidden bg-[#0d0d0d] text-white">
+        {/* A single soft yellow glow behind the calculator; decoration kept to one. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-40 top-1/2 h-[520px] w-[520px] -translate-y-1/2 rounded-full bg-shop-primary/20 blur-[120px]"
+        />
+        <div className="relative mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-12 md:px-8 md:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           <div>
-            <h1 className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-shop-ink md:text-[38px] lg:text-[44px]">
-              Sell your shoes and clothes to all of Uganda
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-bold uppercase tracking-[0.12em] text-shop-primary">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-shop-primary" />
+              {brand.name} for sellers
+            </p>
+            <h1 className="mt-5 text-[38px] font-black leading-[1.02] tracking-[-0.035em] md:text-[52px] lg:text-[60px]">
+              Sell to <span className="text-shop-primary">all of Uganda.</span>
+              <br />
+              We do the rest.
             </h1>
-            <p className="mt-4 max-w-[46ch] text-[15px] leading-[1.6] text-shop-body md:text-[16px]">
-              Open your store on {brand.name} today. We take the payments and deliver the orders.
-              You list and pack.
+            <p className="mt-5 max-w-[44ch] text-[16px] leading-[1.6] text-white/70 md:text-[17px]">
+              Open your store today. We take the payments and deliver every order. You list your
+              shoes and clothes, and pack.
             </p>
 
-            <ul className="mt-6 space-y-2.5 text-[14px] font-medium text-shop-ink md:text-[15px]">
-              <Check>No listing fees, list as many products as you want</Check>
-              <Check>Only {rate}% when you make a sale</Check>
-              <Check>Paid to mobile money every {seller.payout_days} days</Check>
-            </ul>
+            {/* The offer as three big figures rather than a ticked list. */}
+            <dl className="mt-8 grid max-w-[520px] grid-cols-3 gap-3">
+              {[
+                { value: "0", label: "listing fees" },
+                { value: `${rate}%`, label: "only when you sell" },
+                { value: `${seller.payout_days} days`, label: "to your mobile money" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+                  <dt className="sr-only">{item.label}</dt>
+                  <dd className="text-[24px] font-black leading-none tracking-[-0.02em] text-white md:text-[28px]">
+                    {item.value}
+                  </dd>
+                  <dd className="mt-1.5 text-[12px] leading-snug text-white/60">{item.label}</dd>
+                </div>
+              ))}
+            </dl>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href="/seller/register" className="btn-shop px-7 py-3.5 text-[15px]">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/seller/register"
+                className="inline-flex items-center gap-2 rounded-full bg-shop-primary px-7 py-3.5 text-[15px] font-bold text-shop-ink transition-colors hover:bg-shop-primary-dark"
+              >
                 Open your store
+                <svg aria-hidden viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M7.3 4.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4-1.4L11.6 10 7.3 5.7a1 1 0 0 1 0-1.4Z" />
+                </svg>
               </Link>
               <a
                 href={contactHref}
                 target={whatsappDigits ? "_blank" : undefined}
                 rel={whatsappDigits ? "noopener noreferrer" : undefined}
-                className="btn-shop-outline px-6 py-3.5 text-[15px]"
+                className="inline-flex items-center rounded-full border border-white/25 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:border-white"
               >
                 {contactLabel}
               </a>
             </div>
 
-            {storeCount >= 5 ? (
-              <p className="mt-5 text-[13px] text-shop-muted">
-                <strong className="text-shop-ink">{storeCount} stores</strong> already sell{" "}
-                {productCount > 0 && (
-                  <>
-                    <strong className="text-shop-ink">{productCount.toLocaleString("en-UG")} products</strong>{" "}
-                  </>
-                )}
-                on {brand.name}.{" "}
-                <Link href="/sellers" className="font-semibold text-shop-ink underline underline-offset-4">
-                  See them
-                </Link>
-              </p>
-            ) : null}
-
-            <p className="mt-3 text-[13px] text-shop-muted">
+            <p className="mt-6 text-[13px] text-white/55">
+              {storeCount >= 5 && (
+                <>
+                  <strong className="text-white">{storeCount} stores</strong>
+                  {productCount > 0 && (
+                    <>
+                      {" "}and <strong className="text-white">{productCount.toLocaleString("en-UG")} products</strong>
+                    </>
+                  )}{" "}
+                  already on {brand.name} ·{" "}
+                </>
+              )}
               Already selling?{" "}
-              <Link href="/seller/login" className="font-semibold text-shop-ink underline underline-offset-4">
+              <Link href="/seller/login" className="font-semibold text-white underline underline-offset-4">
                 Sign in
               </Link>
             </p>

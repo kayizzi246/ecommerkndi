@@ -309,7 +309,7 @@ export default function OnboardingFlow({ registrationFee, commissionRate }: Prop
       //
       // The panel beside it is the surface now, so this side can be plain.
       <SellerAuthLayout eyebrow="Sell on Kandi">
-        <h1 className="mt-2 text-[29px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+        <h1 className="mt-3 text-[32px] font-black leading-[1.05] tracking-[-0.03em] text-shop-ink">
           Open your store
         </h1>
         <p className="mt-2.5 text-[14px] leading-relaxed text-shop-body">

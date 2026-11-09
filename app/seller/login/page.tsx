@@ -201,7 +201,7 @@ export default function SellerLoginPage() {
       <SellerAuthLayout eyebrow="Seller Centre">
         {sentTo ? (
           <>
-            <h1 className="mt-2 text-[27px] font-extrabold leading-tight tracking-tight text-shop-ink">
+            <h1 className="mt-3 text-[28px] font-black leading-tight tracking-[-0.03em] text-shop-ink">
               Check your email
             </h1>
             <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
@@ -226,7 +226,7 @@ export default function SellerLoginPage() {
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-[27px] font-extrabold leading-tight tracking-tight text-shop-ink">
+            <h1 className="mt-3 text-[28px] font-black leading-tight tracking-[-0.03em] text-shop-ink">
               Reset your password
             </h1>
             <p className="mt-3 text-[14px] leading-relaxed text-shop-muted">
@@ -307,7 +307,7 @@ export default function SellerLoginPage() {
      through {@link SellerAuthLayout}, so they cannot come apart again. */
   return (
     <SellerAuthLayout eyebrow="Seller Centre">
-      <h1 className="mt-2 text-[29px] font-extrabold leading-[1.15] tracking-tight text-shop-ink">
+      <h1 className="mt-3 text-[32px] font-black leading-[1.05] tracking-[-0.03em] text-shop-ink">
         Welcome back
       </h1>
       <p className="mt-2.5 text-[14px] leading-relaxed text-shop-body">

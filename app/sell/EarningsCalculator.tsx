@@ -32,9 +32,16 @@ export default function EarningsCalculator({ commissionRate, registrationFee }: 
   const keep = Math.max(0, sales - commission - registrationFee);
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_24px_48px_-16px_rgba(0,0,0,0.14)] ring-1 ring-shop-ink/[0.06] md:p-6">
-      <h2 className="text-[17px] font-bold tracking-[-0.01em] text-shop-ink">How much could you make?</h2>
+    <div className="overflow-hidden rounded-3xl bg-white text-shop-ink shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6)]">
+      {/* The answer first, in the shop's yellow; the controls that move it below. */}
+      <div className="bg-shop-primary px-5 pb-5 pt-4 md:px-6">
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.1em]">You could keep every month</h2>
+        <p className="mt-2 text-[36px] font-black leading-none tracking-[-0.03em] tabular-nums md:text-[42px]">
+          {formatPrice(keep)}
+        </p>
+      </div>
 
+      <div className="px-5 pb-5 md:px-6">
       <Slider
         label="Items you sell a month"
         display={`${units}${units === UNITS_MAX ? "+" : ""}`}
@@ -54,25 +61,22 @@ export default function EarningsCalculator({ commissionRate, registrationFee }: 
         onChange={setPrice}
       />
 
-      <div className="mt-5 rounded-xl bg-pop-green-soft p-4">
-        <p className="text-[13px] font-semibold text-pop-green">You keep every month</p>
-        <p className="mt-1 text-[30px] font-bold leading-none tracking-[-0.02em] text-pop-green tabular-nums">
-          {formatPrice(keep)}
-        </p>
-      </div>
-
-      <dl className="mt-4 space-y-2 text-[13px]">
+      <dl className="mt-5 space-y-2 text-[13px]">
         <Row label="Your sales" value={formatPrice(sales)} />
         <Row label={`Commission (${commissionRate}%)`} value={`− ${formatPrice(commission)}`} />
         {registrationFee > 0 && <Row label="Monthly fee" value={`− ${formatPrice(registrationFee)}`} />}
       </dl>
 
-      <Link href="/seller/register" className="btn-shop mt-5 w-full py-3.5 text-[15px]">
+      <Link
+        href="/seller/register"
+        className="mt-5 flex w-full items-center justify-center rounded-full bg-shop-ink py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-black"
+      >
         Open your store
       </Link>
       <p className="mt-3 text-center text-[12px] text-shop-muted">
         An example using your numbers, not a promise of sales.
       </p>
+      </div>
     </div>
   );
 }

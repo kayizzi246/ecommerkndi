@@ -45,10 +45,23 @@
   text-underline-offset: 3px;
 }
 
+/* One swipeable row: six tiles in view on a desktop, the rest a scroll or an
+   arrow away (components/home/DealsTrack.tsx). */
 .bnd-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.bnd-grid::-webkit-scrollbar {
+  display: none;
+}
+.bnd-grid > li {
+  width: calc((100% - 40px) / 6);
+  flex-shrink: 0;
+  scroll-snap-align: start;
 }
 .bnd-tile {
   display: flex;
@@ -97,7 +110,8 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 12px;
-  color: #555;
+  font-weight: 600;
+  color: #333;
 }
 .bnd-prices {
   display: flex;
@@ -133,8 +147,8 @@
 }
 
 @media (max-width: 1023px) {
-  .bnd-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .bnd-grid > li {
+    width: calc((100% - 24px) / 4);
   }
 }
 @media (max-width: 639px) {
@@ -151,21 +165,11 @@
   }
   /* One swipeable row on phones, with the next tile peeking in. */
   .bnd-grid {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
     scroll-padding-left: 12px;
     padding: 0 12px;
-    scrollbar-width: none;
-  }
-  .bnd-grid::-webkit-scrollbar {
-    display: none;
   }
   .bnd-grid > li {
     width: 38%;
-    flex-shrink: 0;
-    scroll-snap-align: start;
   }
 }
 

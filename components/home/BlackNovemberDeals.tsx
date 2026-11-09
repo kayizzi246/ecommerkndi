@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Product } from "@/lib/woocommerce";
 import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency";
 import { productPath } from "@/lib/seo";
+import DealsTrack from "@/components/home/DealsTrack";
 
 /**
  * The homepage's Black November deals: the deepest real discounts in the shop,
@@ -30,7 +31,7 @@ export default function BlackNovemberDeals({
       (a, b) =>
         discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price)
     )
-    .slice(0, 12);
+    .slice(0, 20);
   if (deals.length < 6) return null;
 
   const deepest = discountPercent(deals[0].regular_price, deals[0].price);
@@ -49,7 +50,7 @@ export default function BlackNovemberDeals({
         </Link>
       </div>
 
-      <ul className="bnd-grid">
+      <DealsTrack>
         {deals.map((product, index) => (
           <li key={product.id}>
             <Link href={productPath(product)} className="bnd-tile">
@@ -84,7 +85,7 @@ export default function BlackNovemberDeals({
             </Link>
           </li>
         ))}
-      </ul>
+      </DealsTrack>
 
       <p className="bnd-trust">
         <span>Pay on delivery in Kampala</span>

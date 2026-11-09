@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { CategoryNode, Product } from "@/lib/woocommerce";
 import { findCategorySlug, findDepartment } from "@/lib/departments";
 import { formatPrice, hasPriceReduction } from "@/lib/currency";
@@ -39,17 +40,34 @@ import { formatPrice, hasPriceReduction } from "@/lib/currency";
  * department is opened and then cached for the life of the page, so a second
  * hover is instant and a department never opened costs nothing.
  */
-const NAV: { label: string; href?: string; match?: string; hot?: boolean }[] = [
-  { label: "Super Deals", href: "/sale", hot: true },
-  { label: "New Arrivals", href: "/search?sort=newest" },
-  { label: "Best Sellers", href: "/search?sort=popular" },
-  { label: "Men", match: "men" },
-  { label: "Women", match: "women" },
-  { label: "Kids", match: "kids" },
-  { label: "Home & Living", match: "home" },
-  { label: "Electronics", match: "electronics" },
-  { label: "Beauty", match: "beauty" },
-  { label: "Top Brands", href: "/sellers" },
+/**
+ * `tone` is the hover and current-page colour: the same tint and ink as that
+ * department's carousel on the homepage (`.hx-tone-*`), so Men is blue and
+ * Women pink wherever a shopper meets them. Written out in full so Tailwind
+ * sees every class.
+ */
+const TONES = {
+  deal: "",
+  plain: "hover:bg-[#f1f1f1] data-[current=true]:bg-[#f1f1f1]",
+  men: "hover:bg-[#e3edff] hover:text-[#1d4ed8] data-[current=true]:bg-[#e3edff] data-[current=true]:text-[#1d4ed8]",
+  women: "hover:bg-[#ffe3ee] hover:text-[#be185d] data-[current=true]:bg-[#ffe3ee] data-[current=true]:text-[#be185d]",
+  kids: "hover:bg-[#dff6e6] hover:text-[#15803d] data-[current=true]:bg-[#dff6e6] data-[current=true]:text-[#15803d]",
+  home: "hover:bg-[#ffead6] hover:text-[#c2410c] data-[current=true]:bg-[#ffead6] data-[current=true]:text-[#c2410c]",
+  violet: "hover:bg-[#efe7ff] hover:text-[#6d28d9] data-[current=true]:bg-[#efe7ff] data-[current=true]:text-[#6d28d9]",
+  teal: "hover:bg-[#d9f4f2] hover:text-[#0f766e] data-[current=true]:bg-[#d9f4f2] data-[current=true]:text-[#0f766e]",
+} as const;
+
+const NAV: { label: string; href?: string; match?: string; hot?: boolean; tone: keyof typeof TONES }[] = [
+  { label: "Super Deals", href: "/sale", hot: true, tone: "deal" },
+  { label: "New Arrivals", href: "/search?sort=newest", tone: "plain" },
+  { label: "Best Sellers", href: "/search?sort=popular", tone: "plain" },
+  { label: "Men", match: "men", tone: "men" },
+  { label: "Women", match: "women", tone: "women" },
+  { label: "Kids", match: "kids", tone: "kids" },
+  { label: "Home & Living", match: "home", tone: "home" },
+  { label: "Electronics", match: "electronics", tone: "teal" },
+  { label: "Beauty", match: "beauty", tone: "violet" },
+  { label: "Top Brands", href: "/sellers", tone: "plain" },
 ];
 
 // The matcher moved to lib/departments.ts: the homepage fills its Men, Women
@@ -70,6 +88,7 @@ export default function CuratedNav({
   departments: CategoryNode[];
   className?: string;
 }) {
+  const pathname = usePathname();
   /** The label of the department whose panel is open, or null for none. */
   const [open, setOpen] = useState<string | null>(null);
 
@@ -150,7 +169,7 @@ export default function CuratedNav({
          panel off at the height of the nav bar. It is only ever needed below
          `lg`, and the panel is only ever opened by a hover, which is a pointer
          the small screens do not have. */
-      className={`relative flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar lg:overflow-x-visible ${className}`}
+      className={`relative flex min-w-0 items-center gap-0.5 overflow-x-auto no-scrollbar lg:overflow-x-visible ${className}`}
       onMouseLeave={scheduleClose}
     >
       {NAV.map((entry) => {
@@ -191,48 +210,26 @@ export default function CuratedNav({
                   if (department) loadTopSellers(department.slug);
                 }
               }}
-              /* Bold, in ink rather than slate.
-
-                 These were 500 in `--color-shop-body`, which put the shop's
-                 whole department nav a shade lighter and a weight lighter than
-                 the product titles underneath it — so the eye landed on the grid
-                 first and the way to navigate it second. At 700 in near-black
-                 the row reads as the primary navigation it is.
-
-                 The deal link is still the one entry that is a claim about
-                 price rather than a place, so it still gets a colour of its
-                 own. That colour is the brand's deep orange rather than sale
-                 red now — red across the shop means "something is wrong", and
-                 the deal language everywhere else (the corner flags, the Super
-                 Deal chips, reduced prices) moved to `shop-primary-ink` with
-                 it. See the corner-flag note in `ProductCard`. */
-              /* ---- 13.5px at 400, down from 14.5 at 700 ----
-
-                 A department row set in bold is a row of shouted words, and at
-                 700 every entry was competing with the masthead above it and
-                 with the product names below. The reference for this row is
-                 not a marketplace's own nav; it is the top bar of a modern
-                 commerce product — Shopify, Stripe, Linear — where navigation
-                 is small, plain-weight and dark, and the colour and the
-                 spacing do the separating.
-
-                 The active state moves off weight and onto colour, which is
-                 what makes 400 affordable here: a bolded item in a row of
-                 regular ones is a size change that shifts its neighbours, and
-                 an orange one in a row of near-black ones is not. */
-              /* `px-2.5` until there is room for `px-3`. Ten fixed labels at
-               13.5px need about 960px of row, and at 1280 the row has 1216 to
-               share with the Categories pill and the seller link. Four pixels
-               a side across ten links is the 40px that turns a bar with 20px
-               of slack into one with 60. */
-            className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap px-2.5 py-2.5 text-[12px] font-normal transition-colors 2xl:px-3 ${
+              // Lit while its panel is open or on its own page. Links that
+              // carry a query (New Arrivals, Best Sellers) share /search, so
+              // they never claim to be the current page.
+              data-current={
+                !entry.hot && (isOpen || (!href.includes("?") && pathname === href)) ? "true" : undefined
+              }
+              /* Bold pills. Each department lights up in its own colour on
+                 hover, while its panel is open and on its own page; Super
+                 Deals is the one filled pill in the row. */
+              className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-bold transition-colors 2xl:px-3 ${
                 entry.hot
-                  ? "font-medium text-shop-primary-ink"
-                  : isOpen
-                    ? "text-shop-flame"
-                    : "text-shop-ink hover:text-shop-flame"
+                  ? "bg-shop-primary text-shop-ink hover:bg-shop-primary-dark"
+                  : `text-shop-ink ${TONES[entry.tone]}`
               }`}
             >
+              {entry.hot && (
+                <svg aria-hidden className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+                </svg>
+              )}
               {entry.label}
               {hasPanel && (
                 <svg
@@ -245,11 +242,6 @@ export default function CuratedNav({
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
                 </svg>
-              )}
-              {entry.hot && (
-                <span className="absolute -right-1 -top-0.5 rounded-full rounded-bl-none bg-shop-primary-ink px-1.5 py-px text-[9px] font-bold leading-tight text-white">
-                  HOT
-                </span>
               )}
             </Link>
 

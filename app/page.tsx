@@ -159,7 +159,7 @@ export default async function Home() {
     )
     // A few spare, so a row is still full after BlackNovemberDeals drops
     // products imported twice.
-    .slice(0, 20);
+    .slice(0, 28);
 
   /* The carousel under the banner: what sells, falling back to the shop's
      own picks on a catalogue too new to have sales. */
