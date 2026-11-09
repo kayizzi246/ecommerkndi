@@ -450,10 +450,10 @@ class _KProduct {
 
   factory _KProduct.fromRow(Map<String, dynamic> row) {
     final attributes = <_KAttribute>[];
-    for (final raw in (row['attributes'] as List? ?? const [])) {
+    for (final raw in (row['attributes'] is List ? row['attributes'] as List : const [])) {
       if (raw is! Map) continue;
       final options = <_KOption>[];
-      for (final option in (raw['options'] as List? ?? const [])) {
+      for (final option in (raw['options'] is List ? raw['options'] as List : const [])) {
         if (option is Map) {
           options.add(_KOption('${option['name'] ?? ''}', option['value']?.toString(), option['image']?.toString()));
         } else {
@@ -464,10 +464,11 @@ class _KProduct {
     }
 
     final variations = <_KVariation>[];
-    for (final raw in (row['variations'] as List? ?? const [])) {
+    for (final raw in (row['variations'] is List ? row['variations'] as List : const [])) {
       if (raw is! Map) continue;
       final attrs = <String, String>{};
-      (raw['attributes'] as Map? ?? const {}).forEach((key, value) => attrs['$key'] = '$value');
+      final rawAttributes = raw['attributes'];
+      if (rawAttributes is Map) rawAttributes.forEach((key, value) => attrs['$key'] = '$value');
       variations.add(_KVariation(
         id: (raw['id'] as num?)?.toInt() ?? 0,
         price: _num(raw['price']),
@@ -484,13 +485,13 @@ class _KProduct {
       price: _num(row['price']),
       regularPrice: _num(row['regular_price']),
       image: '${row['image'] ?? ''}',
-      gallery: (row['gallery'] as List? ?? const []).map((url) => '$url').toList(),
+      gallery: (row['gallery'] is List ? row['gallery'] as List : const []).map((url) => '$url').toList(),
       stockStatus: '${row['stock_status'] ?? 'instock'}',
       stockQuantity: (row['stock_quantity'] as num?)?.toInt(),
       totalSales: (row['total_sales'] as num?)?.toInt() ?? 0,
       rating: _num(row['average_rating']),
       ratingCount: (row['rating_count'] as num?)?.toInt() ?? 0,
-      categoryIds: (row['category_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toList(),
+      categoryIds: (row['category_ids'] is List ? row['category_ids'] as List : const []).map((id) => id is num ? id.toInt() : int.tryParse('$id') ?? 0).toList(),
       attributes: attributes,
       variations: variations,
       shortDescription: '${row['short_description'] ?? ''}',
@@ -670,7 +671,7 @@ class _KCartLine {
         image: '${json['image'] ?? ''}',
         price: (json['price'] as num?)?.toDouble() ?? 0,
         quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-        options: (json['options'] as Map? ?? const {}).map((k, v) => MapEntry('$k', '$v')),
+        options: (json['options'] is Map ? json['options'] as Map : const {}).map((k, v) => MapEntry('$k', '$v')),
       );
 }
 
