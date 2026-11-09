@@ -47,9 +47,10 @@ name exactly as shown, select everything in the editor and paste the whole
 file over it, then **Save**. Leave the parameter list empty.
 
 - Names must match exactly. Other screens open each other by these names.
-- If FlutterFlow added `import '/backend/supabase/supabase.dart';` or
-  `import '/backend/backend.dart';` at the top, you can leave them; the files do
-  not need them.
+- The files import Supabase through FlutterFlow's own
+  `'/backend/supabase/supabase.dart'`, which only exists when **Settings >
+  Integrations > Supabase** is switched on (step 1). If FlutterFlow also adds
+  that line at the top by itself, leave it; importing it twice is fine.
 - **Never type anything above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`**.
   FlutterFlow rewrites those lines on save.
 

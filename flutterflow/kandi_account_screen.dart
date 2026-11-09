@@ -18,7 +18,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase comes through FlutterFlow's own file (Settings > Integrations > Supabase must be on).
+import '/backend/supabase/supabase.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
