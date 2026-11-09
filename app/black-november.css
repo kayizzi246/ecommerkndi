@@ -64,9 +64,12 @@
   display: block;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: #f4f4f4;
+  background: #f5f5f5;
+  isolation: isolate;
 }
+/* White photo backgrounds blend into the tile; see `.pc-photo img`. */
 .bnd-photo img {
+  mix-blend-mode: multiply;
   transition: transform 300ms ease;
 }
 .bnd-tile:hover .bnd-photo img {

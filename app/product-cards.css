@@ -35,6 +35,16 @@
   overflow: hidden;
   border-radius: 10px;
   background: #f5f5f5;
+  /* Keeps the photo's blend (below) inside the tile. */
+  isolation: isolate;
+}
+/* Sellers' photos arrive on every kind of white: pure, greyish, slightly
+   blue. Multiplying the photo onto the tile turns all of them into the
+   same #f5f5f5, so a grid of mismatched white boxes reads as one even shelf.
+   Coloured or room backgrounds are left as they are, and a real photo is
+   darkened by only ~4%. */
+.pc-photo img {
+  mix-blend-mode: multiply;
 }
 .pc-photo-link {
   position: absolute;
