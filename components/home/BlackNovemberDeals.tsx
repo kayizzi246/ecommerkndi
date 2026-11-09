@@ -59,7 +59,10 @@ export default function BlackNovemberDeals({
                     src={product.image}
                     alt={product.name}
                     fill
-                    sizes="(max-width: 639px) 38vw, (max-width: 1023px) 24vw, 190px"
+                    // The tile is ~270px wide on a desktop; a smaller hint
+                    // made the browser fetch a 192px file and stretch it.
+                    sizes="(max-width: 639px) 40vw, (max-width: 1023px) 25vw, 300px"
+                    quality={90}
                     className="object-cover"
                     priority={index < 3}
                   />

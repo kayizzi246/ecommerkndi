@@ -20,6 +20,17 @@ function wholeRows<T>(products: T[]): T[] {
   return products.length >= 12 ? products.slice(0, products.length - (products.length % 12)) : products;
 }
 
+/**
+ * Each department carousel's colour (see `.hx-tone-*` in
+ * storefront-campaign.css). Known departments keep their own; anything added
+ * later takes the next spare colour.
+ */
+function railTone(slug: string, index: number): string {
+  const known: Record<string, string> = { men: "men", women: "women", kids: "kids", "home-decor": "home" };
+  const spare = ["violet", "teal", "home", "kids"];
+  return known[slug] ?? spare[index % spare.length];
+}
+
 /** Homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -256,13 +267,14 @@ export default async function Home() {
               New in first, then Men, Women and Kids, then every other
               top-level category, each mixed across its sections so shoes do
               not take over the row. */}
-          <HomeCarousel title="New in" href="/search?sort=newest" products={newIn.map(forGrid)} />
-          {categoryRails.map((rail) => (
+          <HomeCarousel title="New in" href="/search?sort=newest" products={newIn.map(forGrid)} tone="new" />
+          {categoryRails.map((rail, index) => (
             <HomeCarousel
               key={rail.slug}
               title={rail.title}
               href={`/category/${rail.slug}`}
               products={rail.products.map(forGrid)}
+              tone={railTone(rail.slug, index)}
             />
           ))}
         </div>

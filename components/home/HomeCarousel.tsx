@@ -14,10 +14,16 @@ export default function HomeCarousel({
   title,
   href,
   products,
+  tone,
 }: {
   title: string;
   href: string;
   products: Product[];
+  /**
+   * A colour theme (`men`, `women`, `kids`, `home`, `new`, …) from
+   * storefront-campaign.css. The panel washes into it as it scrolls into view.
+   */
+  tone?: string;
 }) {
   // Several carousels share the page, so each heading needs its own id.
   const titleId = useId();
@@ -49,7 +55,10 @@ export default function HomeCarousel({
   };
 
   return (
-    <section className="hx-panel hx-carousel" aria-labelledby={titleId}>
+    <section
+      className={`hx-panel hx-carousel ${tone ? `hx-tone hx-tone-${tone}` : ""}`}
+      aria-labelledby={titleId}
+    >
       <div className="hx-panel-head">
         <h2 id={titleId} className="hx-panel-title">
           {title}

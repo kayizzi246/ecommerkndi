@@ -180,6 +180,102 @@ button, input, select, textarea { font-family: inherit; }
   flex-shrink: 0;
   scroll-snap-align: start;
 }
+
+/* Carousel headings: heavy and large, so each shelf reads as its own
+   department rather than one more row of the same page. */
+.hx-carousel .hx-panel-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.hx-carousel .hx-panel-head {
+  margin-bottom: 12px;
+}
+@media (max-width: 639px) {
+  .hx-carousel .hx-panel-title {
+    font-size: 21px;
+  }
+}
+
+/* ---- A colour per department ----
+   Each carousel has its own tint and heading colour. The tint sits behind the
+   cards, never on them: the cards stay white, so no product photo picks up a
+   colour cast. Where the browser supports scroll-driven animation the panel
+   starts white and washes into its colour as it scrolls into view, with the
+   heading rising in; everywhere else it simply shows its colour. */
+.hx-tone {
+  background: var(--tone-bg);
+}
+.hx-tone .hx-panel-title,
+.hx-tone .hx-see-all {
+  color: var(--tone-ink);
+}
+.hx-tone .hx-see-all:hover {
+  color: var(--tone-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hx-tone-new {
+  --tone-bg: #fff4c2;
+  --tone-ink: #8a5a00;
+}
+.hx-tone-men {
+  --tone-bg: #e3edff;
+  --tone-ink: #1d4ed8;
+}
+.hx-tone-women {
+  --tone-bg: #ffe3ee;
+  --tone-ink: #be185d;
+}
+.hx-tone-kids {
+  --tone-bg: #dff6e6;
+  --tone-ink: #15803d;
+}
+.hx-tone-home {
+  --tone-bg: #ffead6;
+  --tone-ink: #c2410c;
+}
+.hx-tone-violet {
+  --tone-bg: #efe7ff;
+  --tone-ink: #6d28d9;
+}
+.hx-tone-teal {
+  --tone-bg: #d9f4f2;
+  --tone-ink: #0f766e;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hx-tone {
+      animation: hx-tone-wash linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+    .hx-tone .hx-panel-title {
+      animation: hx-tone-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 80%;
+    }
+  }
+}
+@keyframes hx-tone-wash {
+  from {
+    background-color: #fff;
+  }
+  to {
+    background-color: var(--tone-bg);
+  }
+}
+@keyframes hx-tone-rise {
+  from {
+    opacity: 0.2;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 .hx-arrow {
   position: absolute;
   top: 34%;

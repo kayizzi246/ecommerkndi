@@ -174,7 +174,7 @@ export default function WelcomeBack() {
                     >
                       <span className="hx-deal-photo">
                         {item.image && (
-                          <Image src={item.image} alt="" fill sizes="(max-width: 640px) 36vw, 180px" className="object-cover" />
+                          <Image src={item.image} alt="" fill sizes="(max-width: 640px) 40vw, 260px" quality={90} className="object-cover" />
                         )}
                         {dropBy > 0 ? (
                           <span className="wb-badge">Price drop</span>
