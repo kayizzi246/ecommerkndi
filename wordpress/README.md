@@ -8,6 +8,8 @@ Five plugins power the Next.js storefront. Install them in this order.
 | `kandi-seller-api.php` | Seller Centre — registration, email verification, approvals, seller products and photo uploads, order acceptance, commission ledger, payouts (`kandi/v1/seller/*`), the public store directory, plus the wp-admin control panel |
 | `kandi-owner-api.php` | **Owner product manager** — add, edit and delete *any* product from the storefront's `/admin` screen, no seller account involved (`kandi/v1/owner/*`) |
 | `kandi-storefront-settings.php` | **Logo, brand name and all promotional wording**, edited in *wp-admin → Kandi Storefront* (`kandi/v1/settings`) |
+| `kandi-supabase-sync.php` | **Mobile app catalogue**: copies products and categories to the app's Supabase database (Products > App sync) |
+| `kandi-mobile-api.php` | **Mobile app account**: checks the app's Google sign-in and serves addresses, orders and reward points from WooCommerce (`kandi/v1/mobile/*`, Settings > Kandi Mobile App) |
 | `kandi-notifications.php` | **Branded transactional email** — shopper order receipts, and the shared template the Seller Centre sends verification codes and order alerts through. Optional but recommended; without it the other plugins fall back to plain-text `wp_mail` |
 
 All but the settings plugin require WooCommerce. `kandi-owner-api.php` is optional and
