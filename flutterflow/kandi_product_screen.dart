@@ -940,7 +940,7 @@ class _KCart extends ChangeNotifier {
     await load();
     final existing = lines.where((l) => l.key == line.key).toList();
     if (existing.isNotEmpty) {
-      existing.first.quantity = (existing.first.quantity + line.quantity).clamp(1, 20);
+      existing.first.quantity = (existing.first.quantity + line.quantity).clamp(1, 20).toInt();
     } else {
       lines.add(line);
     }
@@ -951,7 +951,7 @@ class _KCart extends ChangeNotifier {
     if (quantity <= 0) {
       lines.remove(line);
     } else {
-      line.quantity = quantity.clamp(1, 20);
+      line.quantity = quantity.clamp(1, 20).toInt();
     }
     await _save();
   }
