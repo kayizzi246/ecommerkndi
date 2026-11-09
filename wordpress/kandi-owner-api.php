@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kandi Owner API
  * Description: Owner-only REST endpoints (kandi/v1/owner) that let the shop owner add, edit and delete ANY product from the Kandi storefront without a seller account.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Kandi UG
  *
  * WHY THIS EXISTS
@@ -270,6 +270,8 @@ function kandi_owner_set_category( $product_id, $category ) {
 	}
 	if ( ! is_wp_error( $term ) ) {
 		wp_set_object_terms( $product_id, (int) $term['term_id'], 'product_cat' );
+		// The owner chose this by hand: automatic filing must not undo it.
+		update_post_meta( $product_id, '_kandi_autocat_done', 'owner' );
 	}
 }
 endif;
@@ -864,3 +866,457 @@ add_action( 'rest_api_init', function () {
 		},
 	) );
 } );
+
+/* -------------------------------------------------------------------------
+ * 5. Automatic categories
+ *
+ * Imported and seller-listed products arrive in the wrong place more often
+ * than the right one: men's watches under Women, sweatpants under Hoodies,
+ * slippers under Formal Shoes, a fifth of them under nothing at all. A shopper
+ * who opens Men > Shoes > Sneakers and finds a dish rack stops trusting the
+ * menu.
+ *
+ * Product titles here are long and descriptive ("Men's Casual Sneakers ...",
+ * "Unisex Hoodie ...", "Kids School Backpack ..."), so the title says both WHO
+ * an item is for and WHAT it is. These rules read both and file the product
+ * under the shop's EXISTING category tree, matched by name, so nothing is ever
+ * created and a category renamed in wp-admin simply stops matching rather than
+ * being recreated.
+ *
+ *   - New products are filed automatically the first time they are published,
+ *     at the end of the request, after any importer has set its own terms.
+ *   - Existing products are filed from the admin's Categories screen, which
+ *     previews every change before anything is written.
+ *   - A category the owner picks by hand in /admin is never overridden.
+ *   - A title that matches no rule is left exactly as it is.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The rules, in priority order: the first type whose pattern matches wins.
+ *
+ * Each type maps a department to path alternatives under it, tried in order;
+ * when none exists in the shop's tree, the deepest existing ancestor of the
+ * first one is used. `shoes` and `hoodie` choose their sub-category from the
+ * title (see kandi_autocat_shoe_paths / kandi_autocat_hoodie_paths).
+ */
+if ( ! function_exists( 'kandi_autocat_types' ) ) :
+function kandi_autocat_types() {
+	$plain = array( 'Men' => array( array() ), 'Women' => array( array() ), 'Kids' => array( array() ) );
+
+	return array(
+		array( 'home-bin', '/\b(trash can|dustbin|waste bin|garbage)\b/', array( 'Home' => array( array( 'Storage & Organization' ) ) ) ),
+		array( 'home-kitchen', '/\b(dish|kitchen|fruit basket|fruit storage|vegetable|sponge holder|drain rack|cutlery|spice|cookware|plate rack|frother|mixer|blender)\b/', array( 'Home' => array( array( 'Kitchen & Dining' ) ) ) ),
+		array( 'home-storage', '/\b(drying rack|clothes ?line|laundry|garment rack|floor hanger|mop|organi[sz]er|storage box|shoe rack)\b/', array( 'Home' => array( array( 'Storage & Organization' ) ) ) ),
+		array( 'home-rug', '/\b(carpets?|rugs?|doormats?)\b/', array( 'Home' => array( array( 'Rugs & Carpets' ), array( 'Rugs' ) ) ) ),
+		array( 'home-light', '/\b(lamps?|chandeliers?|night light|led strip)\b/', array( 'Home' => array( array( 'Lamps & Lighting' ), array( 'Lighting' ) ) ) ),
+		array( 'home-bed', '/\b(curtains?|bedsheets?|bed sheets?|duvets?|pillowcases?|bedding)\b/', array( 'Home' => array( array( 'Bedding & Curtains' ) ) ) ),
+		array( 'home-misc', '/\b(cushion covers?|sofa cushions?|throw pillows?|vases?|planters?|wall art|wall clocks?|mirrors?|candles?)\b/', array( 'Home' => array( array() ) ) ),
+		array( 'watch', '/\b(watch|watches|wristwatch)\b/', array( 'Men' => array( array( 'Watches' ) ), 'Women' => array( array( 'Watches' ) ), 'Kids' => array( array() ) ) ),
+		array( 'grooming', '/\bbeard\b/', array( 'Men' => array( array() ), 'Women' => array( array( 'Beauty & Makeup' ) ), 'Kids' => array( array() ) ) ),
+		array( 'hair', '/\b(wigs?|bonnets?|hair growth|hair oil|hair essential|hair extensions?)\b/', array( 'Women' => array( array( 'Wigs & Hair' ) ), 'Men' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'beauty', '/\b(derma ?roller|micro ?needl\w*|teeth whitening|makeup|lipstick|serum|skin ?care|face mask)\b/', array( 'Women' => array( array( 'Beauty & Makeup' ) ), 'Men' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'perfume', '/\b(perfumes?|fragrances?|cologne|eau de)\b/', array( 'Men' => array( array( 'Perfumes' ) ), 'Women' => array( array( 'Perfumes' ) ), 'Kids' => array( array() ) ) ),
+		array( 'necklace', '/\b(necklaces?|pendants?)\b/', array( 'Men' => array( array( 'Jewelry', 'Necklaces' ) ), 'Women' => array( array( 'Jewelry', 'Necklaces' ) ), 'Kids' => array( array( 'Jewelry', 'Necklaces' ) ) ) ),
+		array( 'bracelet', '/\b(bracelets?|bangles?)\b/', array( 'Men' => array( array( 'Jewelry', 'Bracelets' ) ), 'Women' => array( array( 'Jewelry', 'Bracelets' ) ), 'Kids' => array( array( 'Jewelry', 'Bracelets' ) ) ) ),
+		array( 'earring', '/\b(earrings?|ear studs?)\b/', array( 'Women' => array( array( 'Jewelry', 'Earrings' ) ), 'Kids' => array( array( 'Jewelry', 'Earrings' ) ), 'Men' => array( array( 'Jewelry' ) ) ) ),
+		array( 'anklet', '/\banklets?\b/', array( 'Women' => array( array( 'Jewelry', 'Anklets' ) ), 'Men' => array( array( 'Jewelry' ) ), 'Kids' => array( array( 'Jewelry' ) ) ) ),
+		array( 'ring', '/\b(rings?)\b/', array( 'Men' => array( array( 'Jewelry', 'Rings' ) ), 'Women' => array( array( 'Jewelry', 'Rings' ) ), 'Kids' => array( array( 'Jewelry' ) ) ) ),
+		array( 'bag', '/\b(bags?|backpacks?|bookbag|schoolbag|wallets?|purses?|totes?|handbags?|satchels?|duffel|luggage|suitcases?)\b/', array( 'Men' => array( array( 'Bags & Wallets' ) ), 'Women' => array( array( 'Handbags' ) ), 'Kids' => array( array() ) ) ),
+		array( 'belt', '/\bbelts?\b/', array( 'Men' => array( array( 'Belts' ) ), 'Women' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'eyewear', '/\b(sunglasses|glasses|eyewear|spectacles)\b/', $plain ),
+		// Shoes before clothing: "Wedding Formal Dress Shoes" is shoes, not a dress.
+		array( 'shoes', '/\b(shoes?|sneakers?|trainers?|boots?|sandals?|slippers?|slides|flip ?flops?|clogs?|loafers?|oxfords?|derby|heels|pumps|flats|mules|crocs|birkenstock|footwear|runners|moccasins?)\b/', 'SHOES' ),
+		array( 'hoodie', '/\b(hoodies?|hooded|sweatshirts?)\b/', 'HOODIE' ),
+		array( 'bottoms', '/\b(sweatpants?|trousers|pants|jeans|joggers?|chinos)\b/', array( 'Men' => array( array( 'Trousers & Jeans' ) ), 'Women' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'underwear', '/\b(underwear|boxers?|briefs|underpants|bras?|panties|socks)\b/', $plain ),
+		array( 'shorts', '/\bshorts\b/', $plain ),
+		array( 'dress', '/\b(dress|dresses|gowns?|skirts?)\b/', array( 'Women' => array( array( 'Dresses' ) ), 'Men' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'top', '/\b(jerseys?|t-?shirts?|tees?|shirts?|polos?|blouses?)\b/', array( 'Men' => array( array( 'Shirts & T-shirts' ) ), 'Women' => array( array() ), 'Kids' => array( array() ) ) ),
+		array( 'outerwear', '/\b(coats?|jackets?|parkas?|blazers?|sweaters?|cardigans?|pullover)\b/', $plain ),
+	);
+}
+endif;
+
+if ( ! function_exists( 'kandi_autocat_shoe_paths' ) ) :
+function kandi_autocat_shoe_paths( $n ) {
+	if ( preg_match( '/\b(slippers?|slides|flip ?flops?|clogs?|mules|crocs|hole shoes?)\b/', $n ) ) {
+		$leaves = array( 'Slippers', 'Sandals' );
+	} elseif ( preg_match( '/\bsandals?\b|birkenstock/', $n ) ) {
+		$leaves = array( 'Sandals' );
+	} elseif ( preg_match( '/\bboots?\b/', $n ) ) {
+		$leaves = array( 'Boots' );
+	} elseif ( preg_match( '/\b(heels|pumps|stilettos?)\b/', $n ) ) {
+		$leaves = array( 'Heels' );
+	} elseif ( preg_match( '/\bschool shoes?\b/', $n ) ) {
+		$leaves = array( 'School Shoes' );
+	} elseif ( preg_match( '/\b(loafers?|oxfords?|derby|formal|dress shoes?|wedding|brogues?|moccasins?)\b/', $n ) ) {
+		$leaves = array( 'Formal Shoes' );
+	} elseif ( preg_match( '/\b(running|jogging|marathon|runners)\b/', $n ) ) {
+		$leaves = array( 'Running Shoes', 'Sneakers' );
+	} elseif ( preg_match( '/\b(sneakers?|trainers?|skate|skateboard|board shoes?|basketball)\b/', $n ) ) {
+		$leaves = array( 'Sneakers' );
+	} elseif ( preg_match( '/\b(leather shoes?|business|casual shoes?)\b/', $n ) ) {
+		$leaves = array( 'Formal Shoes' );
+	} elseif ( preg_match( '/\b(flats|ballet)\b/', $n ) ) {
+		$leaves = array( 'Flats', 'Sneakers' );
+	} else {
+		$leaves = array( 'Sneakers' );
+	}
+
+	$paths = array();
+	foreach ( $leaves as $leaf ) {
+		$paths[] = array( 'Shoes', $leaf );
+	}
+	return array( 'Men' => $paths, 'Women' => $paths, 'Kids' => $paths );
+}
+endif;
+
+if ( ! function_exists( 'kandi_autocat_hoodie_paths' ) ) :
+function kandi_autocat_hoodie_paths( $n ) {
+	if ( preg_match( '/\bzip/', $n ) ) {
+		$sub = 'Zip-Up Hoodies';
+	} elseif ( preg_match( '/\bcrop/', $n ) ) {
+		$sub = 'Cropped Hoodies';
+	} elseif ( preg_match( '/\boversiz/', $n ) ) {
+		$sub = 'Oversized Hoodies';
+	} elseif ( preg_match( '/\b(graphic|print|printed|cartoon|letter)\b/', $n ) ) {
+		$sub = 'Graphic Hoodies';
+	} else {
+		$sub = 'Pullover Hoodies';
+	}
+	$paths = array( array( 'Hoodies', $sub ), array( 'Hoodies', 'Pullover Hoodies' ) );
+	return array( 'Men' => $paths, 'Women' => $paths, 'Kids' => $paths );
+}
+endif;
+
+/**
+ * Who the title says the item is for. Falls back to the departments the
+ * product is already filed under, then to Men and Women, so a title that names
+ * no-one keeps the department a seller or importer gave it.
+ *
+ * "Kids Girls Boys" is Kids only; "girl" on its own is Women, because that is
+ * how imported fashion titles use it. "Youth" is ignored for the same reason.
+ */
+if ( ! function_exists( 'kandi_autocat_audience' ) ) :
+function kandi_autocat_audience( $n, $current ) {
+	$kids        = (bool) preg_match( "/\b(kids?|children|child|toddlers?|baby|babies|infants?|boys?|junior)\b/", $n );
+	$unisex      = (bool) preg_match( "/\b(unisex|couples?|men'?s? (and|&|\/) women'?s?|women'?s? (and|&|\/) men'?s?|men women|women men|him (and|&) her)\b/", $n );
+	$adult_women = (bool) preg_match( "/\b(women|woman|womens|women's|female|ladies|lady|mujer)\b/", $n );
+	$adult_men   = (bool) preg_match( "/\b(men|man|mens|men's|male|gentleman|gents)\b/", $n );
+
+	$out = array();
+	if ( $unisex || $adult_men ) {
+		$out[] = 'Men';
+	}
+	if ( $unisex || $adult_women || ( ! $kids && preg_match( '/\bgirls?\b/', $n ) ) ) {
+		$out[] = 'Women';
+	}
+	if ( $kids ) {
+		$out[] = 'Kids';
+	}
+	if ( ! empty( $out ) ) {
+		return $out;
+	}
+	return ! empty( $current ) ? $current : array( 'Men', 'Women' );
+}
+endif;
+
+/**
+ * Every product category as "men > shoes > sneakers" => term id, decoded and
+ * lower-cased, built once per request.
+ */
+if ( ! function_exists( 'kandi_autocat_tree' ) ) :
+function kandi_autocat_tree( $refresh = false ) {
+	static $tree = null;
+	if ( null !== $tree && ! $refresh ) {
+		return $tree;
+	}
+
+	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+	$tree  = array( 'paths' => array(), 'parents' => array(), 'roots' => array() );
+	if ( is_wp_error( $terms ) ) {
+		return $tree;
+	}
+
+	$by_id = array();
+	foreach ( $terms as $term ) {
+		$by_id[ $term->term_id ] = $term;
+	}
+	foreach ( $terms as $term ) {
+		$names  = array();
+		$cursor = $term;
+		$guard  = 0;
+		while ( $cursor && $guard++ < 10 ) {
+			array_unshift( $names, kandi_autocat_norm( $cursor->name ) );
+			$cursor = $cursor->parent && isset( $by_id[ $cursor->parent ] ) ? $by_id[ $cursor->parent ] : null;
+		}
+		$tree['paths'][ implode( ' > ', $names ) ] = (int) $term->term_id;
+		$tree['parents'][ (int) $term->term_id ]   = (int) $term->parent;
+		$tree['roots'][ (int) $term->term_id ]     = $names[0];
+	}
+	return $tree;
+}
+endif;
+
+if ( ! function_exists( 'kandi_autocat_norm' ) ) :
+function kandi_autocat_norm( $text ) {
+	$text = html_entity_decode( wp_specialchars_decode( (string) $text, ENT_QUOTES ), ENT_QUOTES, 'UTF-8' );
+	$text = str_replace( array( '’', '‘' ), "'", $text );
+	return function_exists( 'mb_strtolower' ) ? mb_strtolower( trim( $text ), 'UTF-8' ) : strtolower( trim( $text ) );
+}
+endif;
+
+/**
+ * The category ids a product should have, leaf plus every ancestor, or null
+ * when no rule matches the title (the product is then left alone).
+ */
+if ( ! function_exists( 'kandi_autocat_classify' ) ) :
+function kandi_autocat_classify( $name, $current_ids = array() ) {
+	$n    = kandi_autocat_norm( $name );
+	$tree = kandi_autocat_tree();
+
+	$map = null;
+	foreach ( kandi_autocat_types() as $type ) {
+		if ( preg_match( $type[1], $n ) ) {
+			$map = 'SHOES' === $type[2] ? kandi_autocat_shoe_paths( $n ) : ( 'HOODIE' === $type[2] ? kandi_autocat_hoodie_paths( $n ) : $type[2] );
+			break;
+		}
+	}
+	if ( null === $map ) {
+		return null;
+	}
+
+	if ( isset( $map['Home'] ) ) {
+		$audiences = array( 'Home' );
+	} else {
+		// Departments the product is already under, for a title that names no-one.
+		$current = array();
+		foreach ( (array) $current_ids as $id ) {
+			$root = isset( $tree['roots'][ (int) $id ] ) ? $tree['roots'][ (int) $id ] : '';
+			foreach ( array( 'men' => 'Men', 'women' => 'Women', 'kids' => 'Kids' ) as $key => $label ) {
+				if ( $root === $key && ! in_array( $label, $current, true ) ) {
+					$current[] = $label;
+				}
+			}
+		}
+		$audiences = kandi_autocat_audience( $n, $current );
+	}
+
+	$ids = array();
+	foreach ( $audiences as $audience ) {
+		$root = 'Home' === $audience ? 'home decor' : strtolower( $audience );
+		$alts = isset( $map[ $audience ] ) ? $map[ $audience ] : array( array() );
+		$leaf = 0;
+
+		foreach ( $alts as $alt ) {
+			$key = implode( ' > ', array_merge( array( $root ), array_map( 'kandi_autocat_norm', $alt ) ) );
+			if ( isset( $tree['paths'][ $key ] ) ) {
+				$leaf = $tree['paths'][ $key ];
+				break;
+			}
+		}
+		if ( ! $leaf ) {
+			$path = array_merge( array( $root ), array_map( 'kandi_autocat_norm', $alts[0] ) );
+			for ( $i = count( $path ); $i > 0 && ! $leaf; $i-- ) {
+				$key = implode( ' > ', array_slice( $path, 0, $i ) );
+				if ( isset( $tree['paths'][ $key ] ) ) {
+					$leaf = $tree['paths'][ $key ];
+				}
+			}
+		}
+
+		// Leaf plus ancestors, so the product shows under Men as well as
+		// under Men > Shoes > Sneakers whichever way a listing is queried.
+		$guard = 0;
+		while ( $leaf && $guard++ < 10 ) {
+			$ids[] = $leaf;
+			$leaf  = isset( $tree['parents'][ $leaf ] ) ? $tree['parents'][ $leaf ] : 0;
+		}
+	}
+
+	$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+	sort( $ids );
+	return empty( $ids ) ? null : $ids;
+}
+endif;
+
+/** A product's current category ids, sorted. */
+if ( ! function_exists( 'kandi_autocat_current' ) ) :
+function kandi_autocat_current( $product_id ) {
+	$ids = wp_get_object_terms( $product_id, 'product_cat', array( 'fields' => 'ids' ) );
+	$ids = is_wp_error( $ids ) ? array() : array_map( 'intval', $ids );
+	sort( $ids );
+	return $ids;
+}
+endif;
+
+/** Files one product. Returns true when its categories changed. */
+if ( ! function_exists( 'kandi_autocat_apply' ) ) :
+function kandi_autocat_apply( $product_id ) {
+	$current = kandi_autocat_current( $product_id );
+	$target  = kandi_autocat_classify( get_the_title( $product_id ), $current );
+	update_post_meta( $product_id, '_kandi_autocat_done', 'auto' );
+
+	if ( null === $target || $target === $current ) {
+		return false;
+	}
+	wp_set_object_terms( $product_id, $target, 'product_cat', false );
+	if ( function_exists( 'wc_delete_product_transients' ) ) {
+		wc_delete_product_transients( $product_id );
+	}
+	return true;
+}
+endif;
+
+/* ---- New products: filed once, at the end of the request they are published in ----
+ *
+ * Not on save itself: WooCommerce and most importers write a product's terms
+ * AFTER the post is inserted, so anything set during the save would be
+ * overwritten a moment later. Queued, and handled on shutdown, when every
+ * term the request was going to write has been written. */
+if ( ! function_exists( 'kandi_autocat_queue' ) ) :
+function kandi_autocat_queue( $product_id = null ) {
+	static $queue = array();
+	if ( null !== $product_id ) {
+		$queue[ (int) $product_id ] = true;
+	}
+	return array_keys( $queue );
+}
+endif;
+
+add_action( 'save_post_product', function ( $post_id, $post ) {
+	if ( wp_is_post_revision( $post_id ) || 'publish' !== $post->post_status ) {
+		return;
+	}
+	if ( ! get_option( 'kandi_autocat_enabled', 1 ) || get_post_meta( $post_id, '_kandi_autocat_done', true ) ) {
+		return;
+	}
+	kandi_autocat_queue( $post_id );
+}, 20, 2 );
+
+add_action( 'shutdown', function () {
+	foreach ( kandi_autocat_queue() as $product_id ) {
+		// The owner may have picked a category later in the same request.
+		if ( get_post_meta( $product_id, '_kandi_autocat_done', true ) ) {
+			continue;
+		}
+		kandi_autocat_apply( $product_id );
+	}
+} );
+
+/* ---- GET /owner/categorize (preview) and POST /owner/categorize (apply) ---- */
+add_action( 'rest_api_init', function () {
+	$names = function ( $ids ) {
+		$out = array();
+		foreach ( $ids as $id ) {
+			$term = get_term( $id, 'product_cat' );
+			if ( $term && ! is_wp_error( $term ) ) {
+				// Leaves only: "Men > Shoes > Sneakers" already says Men.
+				$out[ $id ] = $term;
+			}
+		}
+		$leaves = array();
+		foreach ( $out as $id => $term ) {
+			$is_parent = false;
+			foreach ( $out as $other ) {
+				if ( (int) $other->parent === (int) $id ) {
+					$is_parent = true;
+					break;
+				}
+			}
+			if ( ! $is_parent ) {
+				$leaves[] = kandi_autocat_label( $id );
+			}
+		}
+		return $leaves;
+	};
+
+	register_rest_route( 'kandi/v1', '/owner/categorize', array(
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'permission_callback' => 'kandi_owner_permission',
+			'callback'            => function () use ( $names ) {
+				kandi_autocat_tree( true );
+				$ids     = get_posts( array(
+					'post_type'      => 'product',
+					'post_status'    => array( 'publish', 'pending', 'draft', 'private' ),
+					'posts_per_page' => 2000,
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				) );
+				$changes = array();
+				$skipped = 0;
+				foreach ( $ids as $product_id ) {
+					if ( 'owner' === get_post_meta( $product_id, '_kandi_autocat_done', true ) ) {
+						$skipped++;
+						continue;
+					}
+					$current = kandi_autocat_current( $product_id );
+					$target  = kandi_autocat_classify( get_the_title( $product_id ), $current );
+					if ( null === $target || $target === $current ) {
+						continue;
+					}
+					$image     = get_post_thumbnail_id( $product_id );
+					$changes[] = array(
+						'id'    => (int) $product_id,
+						'name'  => html_entity_decode( get_the_title( $product_id ), ENT_QUOTES, 'UTF-8' ),
+						'image' => $image ? (string) wp_get_attachment_image_url( $image, 'thumbnail' ) : '',
+						'from'  => $names( $current ),
+						'to'    => $names( $target ),
+					);
+				}
+				return rest_ensure_response( array(
+					'checked'      => count( $ids ),
+					'changes'      => $changes,
+					'owner_locked' => $skipped,
+					'auto_enabled' => (bool) get_option( 'kandi_autocat_enabled', 1 ),
+				) );
+			},
+		),
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'permission_callback' => 'kandi_owner_permission',
+			'callback'            => function ( WP_REST_Request $request ) {
+				$body = (array) $request->get_json_params();
+
+				if ( isset( $body['auto_enabled'] ) ) {
+					update_option( 'kandi_autocat_enabled', $body['auto_enabled'] ? 1 : 0 );
+				}
+
+				$ids     = isset( $body['ids'] ) && is_array( $body['ids'] ) ? array_map( 'intval', $body['ids'] ) : array();
+				$applied = 0;
+				kandi_autocat_tree( true );
+				foreach ( array_slice( $ids, 0, 2000 ) as $product_id ) {
+					if ( 'product' !== get_post_type( $product_id ) ) {
+						continue;
+					}
+					if ( 'owner' === get_post_meta( $product_id, '_kandi_autocat_done', true ) ) {
+						continue;
+					}
+					if ( kandi_autocat_apply( $product_id ) ) {
+						$applied++;
+					}
+				}
+				return rest_ensure_response( array(
+					'ok'           => true,
+					'applied'      => $applied,
+					'auto_enabled' => (bool) get_option( 'kandi_autocat_enabled', 1 ),
+				) );
+			},
+		),
+	) );
+} );
+
+/** "Men > Shoes > Sneakers" for a term id. */
+if ( ! function_exists( 'kandi_autocat_label' ) ) :
+function kandi_autocat_label( $term_id ) {
+	$parts = array();
+	$guard = 0;
+	$term  = get_term( $term_id, 'product_cat' );
+	while ( $term && ! is_wp_error( $term ) && $guard++ < 10 ) {
+		array_unshift( $parts, html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ) );
+		$term = $term->parent ? get_term( $term->parent, 'product_cat' ) : null;
+	}
+	return implode( ' > ', $parts );
+}
+endif;

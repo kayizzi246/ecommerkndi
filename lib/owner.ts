@@ -93,6 +93,25 @@ export type OwnerStats = {
   products_sold_out: number;
 };
 
+/** One proposed move from GET /owner/categorize. */
+export type CategoryChange = {
+  id: number;
+  name: string;
+  image: string;
+  /** Leaf category paths, e.g. "Men > Shoes > Sneakers". */
+  from: string[];
+  to: string[];
+};
+
+export type CategorizePreview = {
+  checked: number;
+  changes: CategoryChange[];
+  /** Products whose category the owner set by hand, which are never moved. */
+  owner_locked: number;
+  /** Whether new products are filed automatically when first published. */
+  auto_enabled: boolean;
+};
+
 export class OwnerApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -135,6 +154,14 @@ export const ownerApi = {
   categories: () => request<{ categories: OwnerCategory[] }>("/categories"),
 
   stats: (range: string) => request<OwnerStats>(`/stats?range=${encodeURIComponent(range)}`),
+
+  categorizePreview: () => request<CategorizePreview>("/categorize"),
+
+  categorizeApply: (input: { ids?: number[]; auto_enabled?: boolean }) =>
+    request<{ ok: true; applied: number; auto_enabled: boolean }>("/categorize", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 
   products: (search = "") =>
     request<{ products: OwnerProduct[] }>(

@@ -20,10 +20,10 @@ function wholeRows<T>(products: T[]): T[] {
   return products.length >= 12 ? products.slice(0, products.length - (products.length % 12)) : products;
 }
 
-/** Shoe-focused homepage metadata. */
+/** Homepage metadata. */
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
-  const title = "Online Shopping in Uganda | Shoes & Home | KandiUg";
+  const title = "Online Shopping in Uganda | Fashion, Shoes & Home | KandiUg";
   const description = `Shop shoes, fashion, home and everyday essentials at KandiUg. Compare prices in UGX, browse offers and enjoy ${settings.commerce.returns_days}-day returns. Delivery options across Uganda.`;
   return {
     alternates: { canonical: "/" },
@@ -93,7 +93,7 @@ export default async function Home() {
     settings,
     trending,
     departmentRails,
-    leadShoes,
+    categoryRails,
     latest,
     latestTotalPages,
     deals,
@@ -116,13 +116,10 @@ export default async function Home() {
      catalogue and overlap whenever the shop has featured something recent. A
      grid whose first row repeats four screens down reads as products failing to
      load. */
-  /* Twenty shoes open it, ahead of the picks: shoes are what this shop is
-     known for and what most shoppers arrive looking for. */
-  /* Shoes are mixed in, not stacked on top: the grid opens with the shop's
-     picks and the newest stock, and the feed's own arrangement
-     (lib/arrange-feed.ts) spreads departments out so no two neighbours are
-     alike. */
-  const forYou = [...trending, ...latest, ...leadShoes].filter(
+  /* No block of shoes ahead of everything else any more: the grid opens with
+     the shop's picks and the newest stock across every department, and each
+     department has its own carousel above it. */
+  const forYou = [...trending, ...latest].filter(
     (product, index, all) =>
       all.findIndex((other) => other.id === product.id) === index
   );
@@ -167,6 +164,12 @@ export default async function Home() {
   const carouselIds = new Set(carouselPicks.map((product) => product.id));
   const otherDeals = dealPicks.filter((product) => !carouselIds.has(product.id));
   const dealsShown = otherDeals.length >= 14 ? otherDeals : dealPicks;
+
+  /* "New in": the newest listings in stock, across every department. */
+  const newIn = [...latest]
+    .filter((product) => product.stock_status !== "outofstock" && product.date_created)
+    .sort((a, b) => Date.parse(b.date_created!) - Date.parse(a.date_created!))
+    .slice(0, 16);
 
   /* The grid opens on products the shopper has not just scrolled past. The
      carousel and the deals are drawn from the same catalogue, so the grid's
@@ -248,6 +251,20 @@ export default async function Home() {
           <WelcomeBack />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
           <BlackNovemberDeals products={dealsShown} returnsDays={settings.commerce.returns_days} />
+
+          {/* ---- One carousel per department, before the grid ----
+              New in first, then Men, Women and Kids, then every other
+              top-level category, each mixed across its sections so shoes do
+              not take over the row. */}
+          <HomeCarousel title="New in" href="/search?sort=newest" products={newIn.map(forGrid)} />
+          {categoryRails.map((rail) => (
+            <HomeCarousel
+              key={rail.slug}
+              title={rail.title}
+              href={`/category/${rail.slug}`}
+              products={rail.products.map(forGrid)}
+            />
+          ))}
         </div>
 
         <PickedForYou

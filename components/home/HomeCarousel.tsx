@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import type { Product } from "@/lib/woocommerce";
 
@@ -19,6 +19,8 @@ export default function HomeCarousel({
   href: string;
   products: Product[];
 }) {
+  // Several carousels share the page, so each heading needs its own id.
+  const titleId = useId();
   const trackRef = useRef<HTMLUListElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -47,9 +49,9 @@ export default function HomeCarousel({
   };
 
   return (
-    <section className="hx-panel hx-carousel" aria-labelledby="hx-carousel-title">
+    <section className="hx-panel hx-carousel" aria-labelledby={titleId}>
       <div className="hx-panel-head">
-        <h2 id="hx-carousel-title" className="hx-panel-title">
+        <h2 id={titleId} className="hx-panel-title">
           {title}
         </h2>
         <Link href={href} className="hx-see-all">

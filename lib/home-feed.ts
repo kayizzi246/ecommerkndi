@@ -302,6 +302,12 @@ export type HomeFeed = {
   departmentRails: DepartmentRailData[];
   /** Up to twenty shoes, which open the endless grid on the homepage. */
   leadShoes: Product[];
+  /**
+   * One carousel per top-level category (Men, Women, Kids, then the rest by
+   * size), each spread across its sections so no single type, shoes above
+   * all, fills a row. Shown on the homepage above the grid.
+   */
+  categoryRails: CategoryRail[];
   /** The general catalogue behind "Picked for you" / the endless grid. */
   latest: Product[];
   latestTotalPages: number;
@@ -406,6 +412,52 @@ const DEPARTMENTS = [
   },
 ] as const;
 
+export type CategoryRail = { slug: string; title: string; products: Product[] };
+
+/** Products per category carousel, and the fewest worth a carousel at all. */
+const CATEGORY_RAIL_SIZE = 16;
+const CATEGORY_RAIL_MINIMUM = 6;
+/** Departments shoppers look for first, in this order; the rest follow by size. */
+const CATEGORY_RAIL_LEAD = ["men", "women", "kids"];
+
+/**
+ * A department's products dealt out section by section: one from Shoes, one
+ * from Hoodies, one from Watches, one from Bags, then round again. Men here is
+ * two-thirds shoes, so a plain newest-first row was a shoe shelf with a
+ * different heading; this way every section the department has shows up in
+ * the first screen of the carousel.
+ */
+function spreadBySection(products: Product[], top: CategoryNode): Product[] {
+  const sectionOf = new Map<string, string>();
+  const walk = (node: CategoryNode, section: string) => {
+    sectionOf.set(node.slug, section);
+    node.children.forEach((child) => walk(child, section));
+  };
+  top.children.forEach((child) => walk(child, child.slug));
+
+  const groups = new Map<string, Product[]>();
+  for (const product of products) {
+    const key =
+      product.categories.map((category) => sectionOf.get(category.slug)).find(Boolean) ?? "_rest";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(product);
+  }
+
+  const out: Product[] = [];
+  const queues = [...groups.values()];
+  while (queues.some((queue) => queue.length > 0)) {
+    for (const queue of queues) {
+      const next = queue.shift();
+      if (next) out.push(next);
+    }
+  }
+  return out;
+}
+
+function decodeName(name: string): string {
+  return name.replace(/&amp;/g, "&").replace(/&#039;|&#8217;/g, "'");
+}
+
 export async function buildHomeFeed(): Promise<HomeFeed> {
   const [settings, onSale, featured, latest, stores, departments] = await Promise.all([
     getSiteSettings(),
@@ -453,6 +505,43 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
       return { ...department, slug, products, total };
     })
   );
+
+  /* ---- A carousel per top-level category ----
+     Every department the shop has, not a hand-picked few: Men, Women and Kids
+     lead, anything else (Home Decor, and whatever is added in wp-admin later)
+     follows by size. A product already shown in an earlier carousel (a unisex
+     trainer is under Men and Women) moves to the back of the later one. */
+  const topLevel = departments
+    .filter((node) => node.slug !== "uncategorized")
+    .sort((a, b) => {
+      const lead = (node: CategoryNode) => {
+        const index = CATEGORY_RAIL_LEAD.indexOf(node.slug);
+        return index === -1 ? CATEGORY_RAIL_LEAD.length : index;
+      };
+      return lead(a) - lead(b) || (b.count ?? 0) - (a.count ?? 0);
+    })
+    .slice(0, 8);
+
+  const categoryPools = await Promise.all(
+    topLevel.map(async (node) => ({
+      node,
+      products: (await getProductsSafe({ category: node.slug, per_page: 32 })).products.filter(
+        (product) => product.stock_status !== "outofstock"
+      ),
+    }))
+  );
+
+  const railSeen = new Set<number>();
+  const categoryRails: CategoryRail[] = categoryPools
+    .map(({ node, products }) => {
+      const spread = spreadBySection(products, node);
+      const fresh = spread.filter((product) => !railSeen.has(product.id));
+      const repeat = spread.filter((product) => railSeen.has(product.id));
+      const picked = [...fresh, ...repeat].slice(0, CATEGORY_RAIL_SIZE);
+      picked.forEach((product) => railSeen.add(product.id));
+      return { slug: node.slug, title: decodeName(node.name), products: picked };
+    })
+    .filter((rail) => rail.products.length >= CATEGORY_RAIL_MINIMUM);
 
   /**
    * Departments that are not big enough to send a shopper into yet.
@@ -741,6 +830,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     departmentRails,
     leadShoes:
       departmentPools.find((department) => department.id === "dept-shoes")?.products ?? [],
+    categoryRails,
     /**
      * The endless grid is deliberately *not* deduplicated.
      *

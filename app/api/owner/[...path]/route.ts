@@ -15,7 +15,7 @@ import { callOwnerApi, PRODUCTS_TAG } from "@/lib/owner-server";
 
 type Context = { params: Promise<{ path: string[] }> };
 
-const ALLOWED_ROOTS = new Set(["me", "products", "categories", "stats"]);
+const ALLOWED_ROOTS = new Set(["me", "products", "categories", "stats", "categorize"]);
 
 async function proxy(request: Request, context: Context, method: string) {
   const { path } = await context.params;
