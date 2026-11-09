@@ -7,251 +7,24 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// Imports go BELOW the header — FlutterFlow rewrites it on save and drops
-// anything added there. Do not add the `/backend/` imports it offers.
+
+// ============================================================
+//  KANDI — ACCOUNT
+//  Phone sign-in, name, points, order history (Supabase
+//  `orders`, kept in step with WooCommerce), addresses, help.
+// ============================================================
+
+import 'dart:async';
 import 'dart:convert';
-
-import 'package:flutter/services.dart';
-
-import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Navigation only — the five top-level destinations plus this page's own detail
-// screens. Circular between the tab pages, which Dart allows: they reference
-// each other's widget classes and nothing at load time.
-import '/custom_code/widgets/kandi_orders_screen.dart';
-import '/custom_code/widgets/kandi_wishlist_screen.dart';
-import '/custom_code/widgets/kandi_cart_screen.dart';
-import '/custom_code/widgets/kandi_seller_screen.dart';
-import '/custom_code/widgets/kandi_shop_screen.dart';
-import '/custom_code/widgets/kandi_categories_screen.dart';
-import '/custom_code/widgets/kandi_deals_screen.dart';
-import '/custom_code/widgets/kandi_stores_screen.dart';
-import '/custom_code/widgets/kandi_track_order_screen.dart';
-
-// ============================================================
-//  KANDI — ACCOUNT PAGE
-//
-//  Sign in, and everything a signed-in shopper reaches from
-//  here. Self-contained like every page; the architecture is at
-//  the head of kandi_home_screen.dart.
-//
-//  ---- There is no password ----
-//
-//  This page used to take an email and a password. It does not
-//  any more, and the reason is who shops here: most arrive on a
-//  phone, a good number have no email they read, and a password
-//  chosen at a checkout is one they will have forgotten by
-//  their second order. Every one of those shoppers ended up in
-//  the same place — a "Forgot password" link out to a browser —
-//  which is a sign-in flow that mostly does not sign anybody in.
-//
-//  What replaces it is a code. The shopper gives a phone number
-//  or an email address, `/api/otp/start` sends six digits, and
-//  `/api/app/auth/otp` trades those digits for the same bearer
-//  token the password route used to return. WordPress finds the
-//  customer behind that contact, or creates one — see
-//  `/customers/otp-session`.
-//
-//  Either channel works here. The CHECKOUT is stricter and
-//  takes a phone only, because the number on an order is what a
-//  rider calls; see the note at the head of that file.
-//
-//  ---- The token is the account ----
-//
-//  It is stored under `kandi-auth-v1` and every authenticated
-//  request in the app sends it. Signing out deletes it, which
-//  is the whole of signing out — there is no server session to
-//  end.
-//
-//  Storing a token in SharedPreferences is the standard trade
-//  for an app of this kind: it is private to the app's sandbox
-//  on both platforms, and it survives a restart, which is what
-//  stops a shopper signing in every time they open the shop. It
-//  is NOT encrypted at rest, and now there is nothing else to
-//  keep — a code is used once and a password no longer exists.
-//
-//  ---- Signing in is optional ----
-//
-//  Browsing, the basket and the saved list all work signed out,
-//  and this page says so rather than blocking the app behind a
-//  form. The only thing an account buys is order history, which
-//  is exactly what the page offers as the reason to sign in.
-// ============================================================
-
-class _KColors {
-  const _KColors._();
-  static const Color canvas = Color(0xFFFFFFFF);
-  static const Color panel = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF0B0B0B);
-  static const Color body = Color(0xFF414346);
-  static const Color muted = Color(0xFF5D6066);
-  static const Color line = Color(0xFFE0E0E0);
-  static const Color hairline = Color(0xFFF2F2F2);
-  static const Color primary = Color(0xFFFF6A00);
-  static const Color primarySoft = Color(0xFFFFF3E8);
-  static const Color warn = Color(0xFFB45309);
-  static const Color warnSoft = Color(0xFFFDF3E6);
-
-  /// ---- The money colour ----
-  ///
-  /// Every price on the page is printed in it. A price set in the same ink as
-  /// the product name is a price a scanning eye has to hunt for, and on a grid
-  /// of forty tiles that hunt is the whole difference between browsing and
-  /// giving up.
-  ///
-  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
-  /// value works as a ground under white button text AND as text on white at
-  /// the 11px a card's price line runs at. The brighter reds do one or the
-  /// other, never both.
-  static const Color flame = Color(0xFFD62200);
-
-  /// ---- The edge that makes a white card visible on a white page ----
-  ///
-  /// The app used to stand its tiles on #F5F5F5 and let the contrast do the
-  /// separating. The site does not: its canvas is #ffffff, the same as the
-  /// panel, so the tile is drawn by a 1px ring and nothing else. Matching the
-  /// ground without matching the ring would have produced a grid of tiles with
-  /// no edges at all.
-  static const Color edge = Color(0xFFDEDEDE);
-
-
-}
-
-class _KSpace {
-  const _KSpace._();
-  static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 24;
-}
-
-/// ---- Panel corners: 16, where this was 12 ----
-///
-/// This governs the CHROME only - sheets, the shelf grounds, the terms
-/// strip, the panels on the account, checkout and seller pages. It does not
-/// reach the product tile, which has square corners and a drawn ring copied
-/// row by row off the website's `.tile-card` and must stay that way: the
-/// site squares its tiles so they can touch in a flush grid, and a tile
-/// rounded here and square there is the most obvious way the two clients
-/// stop looking like one shop.
-///
-/// So the app now draws two corner radii on purpose - a square catalogue on
-/// softened furniture - and that is the distinction rather than an
-/// inconsistency. 12 sat between the two and read as neither.
-const double _rPanel = 16;
-const double _rChip = 8;
-
-/// ---- The brand gradient ----
-///
-/// It carries the chrome — app bars, the home band, the primary buttons — so
-/// that every screen is recognisably one shop.
-///
-/// Three stops on a diagonal, where this was two across the horizontal. Both
-/// changes are the same change: a two-stop ramp between two colours half a hue
-/// apart is a flat wash with a slight lean, and on a 56px app bar it reads as
-/// one muddy orange. Running it corner to corner gives the ramp the bar's
-/// diagonal to travel rather than its width, and the middle stop is what stops
-/// the two ends averaging into the middle.
-///
-/// The dark end went DOWN, from #D62200 to #A81100, and that is a legibility
-/// change rather than a taste one. Every app bar in this app sets white type
-/// on this gradient; white on #FF6A00 is 2.9:1, which is why the palette note
-/// says brand orange is never a large ground under white text. It is one here
-/// whatever the note says, so the answer is to make most of the ground darker:
-/// white on #A81100 is 8.1:1, and the bright end is now a corner rather than
-/// half the bar.
-const LinearGradient _brandGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFF6A00), Color(0xFFE03400), Color(0xFFA81100)],
-  stops: [0.0, 0.52, 1.0],
-);
-
-/// The brand gradient with a light bloom over it.
-///
-/// ---- Why the bloom is a second layer ----
-///
-/// A LinearGradient can only ramp along a line, and what makes a coloured
-/// surface look LIT rather than filled is a highlight that falls off in a
-/// circle. Painting a soft white radial over the top-left corner is the whole
-/// of it: the bar stops being a coloured rectangle and starts having a light
-/// source, which is the cheapest thing that separates a designed surface from
-/// a filled one.
-///
-/// White rather than a lighter orange, on purpose. A lighter orange moves the
-/// hue and puts the bar back in the 2.9:1 band the gradient above just climbed
-/// out of; white at 18% lifts the value and leaves the hue alone, and the
-/// corner it lifts is the corner that was already brightest.
-///
-/// ---- It takes its size from its child ----
-///
-/// The gradients are `Positioned.fill` and the child is not, so the Stack
-/// measures the child and the paint stretches to it. That is the only
-/// arrangement that works in both places this is used: an AppBar's
-/// `flexibleSpace`, which hands down a finite height, and the home page's
-/// masthead, which sits in a Column inside a sliver where the height
-/// constraint is unbounded.
-///
-/// Written the obvious way - a `SizedBox.expand` in each gradient layer -
-/// the bar is correct and the masthead throws, because an expand under an
-/// unbounded constraint asks for infinity. The rule the old DecoratedBox
-/// followed still holds underneath: a decoration with nothing in it has no
-/// size and paints nothing at all, which is why the child is required.
-class _BrandSurface extends StatelessWidget {
-  const _BrandSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(gradient: _brandGradient),
-          ),
-        ),
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(-0.75, -1.1),
-                radius: 1.5,
-                colors: [Color(0x2EFFFFFF), Color(0x00FFFFFF)],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
-    );
-  }
-}
-
-/// Fully rounded. The primary calls to action are pills, which is what tells
-/// them apart from the square panels they sit on.
-const double _rPill = 999;
-const String _apiBase = 'https://kandiug.com';
-
-// Read only, to put the count on the tab bar.
-const String _basketKey = 'kandi-cart-v1';
-
-// The keys every page in this app agrees on.
-const String _authKey = 'kandi-auth-v1';
-const String _authNameKey = 'kandi-auth-name';
-
-/// The phone number this device has proved, in +2567XXXXXXXX form.
-///
-/// Written here so that a shopper who signs in on this page walks onto the
-/// checkout already verified. Only set when the channel was SMS — an email
-/// sign-in leaves it alone, and the checkout will ask for a number.
-const String _verifiedPhoneKey = 'kandi-verified-phone';
+// Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
 
 class KandiAccountScreen extends StatefulWidget {
   const KandiAccountScreen({super.key, this.width, this.height});
-
   final double? width;
   final double? height;
 
@@ -259,686 +32,945 @@ class KandiAccountScreen extends StatefulWidget {
   State<KandiAccountScreen> createState() => _KandiAccountScreenState();
 }
 
+/// WooCommerce status → what the shopper reads, and its colour.
+const Map<String, (String, Color)> _statuses = {
+  'creating': ('Placing', _KColors.muted),
+  'checkout-draft': ('Awaiting payment', Color(0xFFC2410C)),
+  'pending': ('Awaiting payment', Color(0xFFC2410C)),
+  'on-hold': ('Confirmed', Color(0xFF1D4ED8)),
+  'processing': ('Being prepared', Color(0xFF1D4ED8)),
+  'completed': ('Delivered', _KColors.green),
+  'cancelled': ('Cancelled', _KColors.muted),
+  'refunded': ('Refunded', _KColors.muted),
+  'failed': ('Not placed', _KColors.sale),
+};
+
 class _KandiAccountScreenState extends State<KandiAccountScreen> {
+  StreamSubscription<AuthState>? _auth;
+  Map<String, dynamic>? _profile;
+  List<Map<String, dynamic>> _orders = [];
   bool _loading = true;
-  bool _busy = false;
-  String? _token;
-  String _name = '';
-  String? _error;
+  final _name = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _restore();
-    _countBasket();
+    _KCart.instance.load(); // the bottom bar and cart badge read it
+    _auth = _kSupa.auth.onAuthStateChange.listen((_) => _load());
+    _load();
   }
 
-  /// How many items are in the basket, for the badge on the tab bar.
-  ///
-  /// Read from the shared basket rather than passed in — like everything else
-  /// in this app, the page finds out by looking, not by being told.
-  int _cartCount = 0;
+  @override
+  void dispose() {
+    _auth?.cancel();
+    _name.dispose();
+    super.dispose();
+  }
 
-  Future<void> _countBasket() async {
-    int count = 0;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_basketKey);
-      if (raw != null) {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          for (final entry in decoded) {
-            if (entry is! Map) continue;
-            final quantity = entry['quantity'];
-            count += quantity is int ? quantity : 1;
-          }
-        }
-      }
-    } catch (_) {
-      count = 0;
+  Future<void> _load() async {
+    if (!_KAuth.signedIn) {
+      if (mounted) setState(() => _loading = false);
+      return;
     }
-    if (mounted) setState(() => _cartCount = count);
-  }
-
-
-
-  Future<void> _restore() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(_authKey);
-      final name = prefs.getString(_authNameKey) ?? '';
+      final id = _KAuth.user!.id;
+      final profile = await _kSupa.from('profiles').select().eq('id', id).maybeSingle();
+      final orders = await _kSupa
+          .from('orders')
+          .select()
+          .neq('status', 'failed')
+          .neq('status', 'creating')
+          .order('created_at', ascending: false)
+          .limit(50);
       if (!mounted) return;
       setState(() {
-        _token = (token != null && token.isNotEmpty) ? token : null;
-        _name = name;
+        _profile = profile;
+        _orders = (orders as List).cast<Map<String, dynamic>>();
+        _name.text = '${profile?['full_name'] ?? ''}';
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  /// Sends a code, and signs the shopper in if they read it back.
-  ///
-  /// All of the network work is in `_KOtpSheet` at the foot of this file. This
-  /// only records what came back, which is the same three things the password
-  /// flow recorded: a token, a name for the greeting, and — when the channel
-  /// was SMS — the number, so the checkout does not ask for it again.
-  Future<void> _signIn() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    final result = await showModalBottomSheet<_KVerified>(
+  Future<void> _editName() async {
+    final saved = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      // A stray tap on the scrim should not throw away a code the shop has
-      // already paid an SMS to send.
-      isDismissible: false,
-      builder: (_) => const _KOtpSheet(),
-    );
-
-    if (!mounted) return;
-
-    if (result == null) {
-      setState(() => _busy = false);
-      return;
-    }
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_authKey, result.token);
-      await prefs.setString(
-          _authNameKey, result.name.isNotEmpty ? result.name : result.contact);
-      if (result.channel == 'sms') {
-        await prefs.setString(_verifiedPhoneKey, result.contact);
-      }
-    } catch (_) {
-      // The session still works for this run; it just will not survive a
-      // restart. Not worth failing a sign-in that actually succeeded.
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _token = result.token;
-      _name = result.name.isNotEmpty ? result.name : result.contact;
-    });
-  }
-
-  /// Switches to a top-level tab without growing the stack.
-  ///
-  /// `popUntil(isFirst)` returns to the app's root — Home — and the target is
-  /// pushed on top of it. Without this, Home → Shop → Account → Basket leaves
-  /// four screens stacked and four back taps to escape. With it the stack is
-  /// never deeper than Home plus one tab, and Back always means Home.
-  ///
-  /// A null target is Home itself: pop and push nothing.
-  Future<void> _tab(Widget? target) async {
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    if (target == null || !mounted) return;
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => target));
-    // The basket can come back changed — the shopper may have added to it or
-    // emptied it on the screen they just left. Re-counting is cheaper than
-    // showing a stale number on the tab bar.
-    if (mounted) await _countBasket();
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: _KColors.panel,
-        border: Border(top: BorderSide(color: _KColors.line)),
-        boxShadow: [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, -2)),
+      builder: (_) => AlertDialog(
+        title: const Text('Your name', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: TextField(controller: _name, autofocus: true, decoration: const InputDecoration(hintText: 'First and last name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Save')),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          // ---- Measured, where this was a flat 58 ----
-          //
-          // 58 was the height of the contents at the default text size, and
-          // it stayed 58 when a reader raised theirs: at a 1.3 scale the
-          // label was clipped by 7px on all five tabbed screens. That is a
-          // failure `flutter analyze` cannot see and only a pumped widget
-          // test catches.
-          //
-          // Added up instead: a 30 capsule, a 2 gap, and one line of a 10.5
-          // label at 1.25 leading, scaled - plus 12 of breathing room. The
-          // scaler is the reader's own setting, so the bar grows with the
-          // type rather than around it.
-          height: 30 +
-              2 +
-              MediaQuery.textScalerOf(context).scale(10.5) * 1.25 +
-              12,
-          child: Row(
-            children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: 'Home',
-                active: 4 == 0,
-                onTap: () => _tab(null),
-              ),
-              _NavItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Shop',
-                active: 4 == 1,
-                onTap: 4 == 1 ? null : () => _tab(const KandiShopScreen()),
-              ),
-              _NavItem(
-                icon: Icons.favorite_border_rounded,
-                label: 'Saved',
-                active: 4 == 2,
-                onTap: 4 == 2 ? null : () => _tab(const KandiWishlistScreen()),
-              ),
-              _NavItem(
-                icon: Icons.shopping_cart_outlined,
-                label: 'Basket',
-                active: 4 == 3,
-                badge: _cartCount,
-                onTap: 4 == 3 ? null : () => _tab(const KandiCartScreen()),
-              ),
-              _NavItem(
-                icon: Icons.person_outline_rounded,
-                label: 'Account',
-                active: 4 == 4,
-                onTap: 4 == 4 ? null : () => _tab(const KandiAccountScreen()),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
-  }
-
-  Future<void> _signOut() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_authKey);
-      await prefs.remove(_authNameKey);
-      // The proved number goes with the session. Leaving it behind would let
-      // the next person to pick up the phone check out against a number they
-      // never proved — which is the one thing the checkout gate exists to
-      // stop.
-      await prefs.remove(_verifiedPhoneKey);
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {
-      _token = null;
-      _name = '';
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Signed out. Your basket is still here.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  /// Opens a page of the website in the browser.
-  ///
-  /// This used to carry registration and password resets as well. Neither
-  /// exists any more — a code IS the registration — so what is left is the
-  /// help centre and the other read-only pages, which are long, change often,
-  /// and would be a second copy to keep in step if the app drew them itself.
-  Future<void> _openWeb(String path) async {
-    try {
-      await launchUrl(Uri.parse('$_apiBase$path'),
-          mode: LaunchMode.externalApplication);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open the browser.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    if (saved != true) return;
+    await _kSupa.from('profiles').update({'full_name': _name.text.trim()}).eq('id', _KAuth.user!.id);
+    await _load();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: Scaffold(
-        backgroundColor: _KColors.canvas,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          // The gradient goes behind the bar rather than in `backgroundColor`,
-          // which only takes a flat colour. `flexibleSpace` fills the whole
-          // bar including the status-bar strip above it, so the ramp starts at
-          // the top of the screen and not under the clock.
-          // SizedBox.expand is load-bearing. A childless DecoratedBox has
-          // no size, and AppBar puts flexibleSpace in a Stack under loose
-          // constraints — so the gradient painted nothing at all and every
-          // sub-page had a white title on a white bar.
-          flexibleSpace: const _BrandSurface(child: SizedBox.expand()),
-          systemOverlayStyle: SystemUiOverlayStyle.light,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text('Account',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white)),
-        ),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: _KColors.primary))
-            : (_token == null ? _buildSignIn() : _buildAccount()),
-        bottomNavigationBar: _buildBottomNav(),
+    return Scaffold(
+      backgroundColor: _KColors.ground,
+      bottomNavigationBar: const _KBottomNav(current: 4),
+      body: SafeArea(
+        bottom: false,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(color: _KColors.ink))
+            : !_KAuth.signedIn
+                ? _signedOut()
+                : RefreshIndicator(color: _KColors.ink, onRefresh: _load, child: _signedIn()),
       ),
     );
   }
 
-  Widget _buildSignIn() {
-    return ListView(
-      padding: const EdgeInsets.all(_KSpace.md),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(_KSpace.lg),
-          decoration: BoxDecoration(
-            color: _KColors.panel,
-            borderRadius: BorderRadius.circular(_rPanel),
-            border: Border.all(color: _KColors.edge),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Sign in',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: _KColors.ink)),
-              const SizedBox(height: 4),
-              const Text(
-                'To see your orders. Browsing, your basket and your saved items all work without an account.',
-                style:
-                    TextStyle(fontSize: 13, height: 1.45, color: _KColors.body),
-              ),
-              const SizedBox(height: _KSpace.lg),
-
-              // ---- No fields on the page itself ----
-              //
-              // The number or the address is asked for inside the sheet, not
-              // here. Two forms for one job — a field on the page and a field
-              // in a dialog on top of it — is how a shopper ends up typing
-              // their number twice, and the sheet has to own the field anyway
-              // because it is what knows whether a code has been sent yet.
-              //
-              // What is left on the page is the promise: what will happen when
-              // the button is pressed, in the two lines below. A shopper who
-              // knows a code is coming does not read the SMS as a phishing
-              // attempt, which is a real cost of not saying so.
-              Container(
-                padding: const EdgeInsets.all(_KSpace.md),
-                decoration: BoxDecoration(
-                  color: _KColors.primarySoft,
-                  borderRadius: BorderRadius.circular(_rChip),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.password_rounded,
-                        size: 18, color: _KColors.primary),
-                    SizedBox(width: _KSpace.sm),
-                    Expanded(
-                      child: Text(
-                        'No password. Give us your phone number or your email, '
-                        'and we send you a 6-digit code to type back.',
-                        style: TextStyle(
-                            fontSize: 12.5, height: 1.45, color: _KColors.ink),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: _KSpace.md),
-                Container(
-                  padding: const EdgeInsets.all(_KSpace.md),
-                  decoration: BoxDecoration(
-                    color: _KColors.warnSoft,
-                    borderRadius: BorderRadius.circular(_rChip),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.error_outline_rounded,
-                          size: 17, color: _KColors.warn),
-                      const SizedBox(width: _KSpace.sm),
-                      Expanded(
-                        child: Text(_error!,
-                            style: const TextStyle(
-                                fontSize: 12.5,
-                                height: 1.4,
-                                color: _KColors.warn)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: _KSpace.lg),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  onPressed: _busy ? null : _signIn,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _KColors.flame,
-                    // Lifted on a wash of its own dark end rather than on black.
-                    // Black under a saturated colour greys the pixels it falls on
-                    // and reads as dirt; the same hue reads as the colour bleeding
-                    // onto the paper, which is what a lit object does.
-                    elevation: 6,
-                    shadowColor: const Color(0x59A81100),
-                    disabledBackgroundColor: _KColors.line,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_rPill)),
-                  ),
-                  child: Text(_busy ? 'Please wait…' : 'Send me a code',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
-                ),
-              ),
-
-              // ---- The two links that used to live here are gone ----
-              //
-              // "Forgot password" has nothing left to forget, and "Create
-              // account" has nothing left to create: the first sign-in with a
-              // new number IS the account, made by /customers/otp-session
-              // without asking the shopper to fill anything in. Leaving either
-              // link would send somebody to a web page to solve a problem this
-              // page no longer has.
-              const SizedBox(height: _KSpace.md),
-              const Text(
-                'First time? Signing in makes your account. Nothing to fill in.',
-                style: TextStyle(fontSize: 12, color: _KColors.muted),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: _KSpace.md),
-        _browse(),
-        const SizedBox(height: _KSpace.md),
-        _links(),
-      ],
-    );
-  }
-
-  Widget _buildAccount() {
-    return ListView(
-      padding: const EdgeInsets.all(_KSpace.md),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(_KSpace.lg),
-          decoration: BoxDecoration(
-            color: _KColors.panel,
-            borderRadius: BorderRadius.circular(_rPanel),
-            border: Border.all(color: _KColors.edge),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                    color: _KColors.primarySoft, shape: BoxShape.circle),
-                child: const Icon(Icons.person_rounded,
-                    size: 26, color: _KColors.primary),
-              ),
-              const SizedBox(width: _KSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Signed in as',
-                        style:
-                            TextStyle(fontSize: 12, color: _KColors.muted)),
-                    const SizedBox(height: 2),
-                    Text(_name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: _KColors.ink)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: _KSpace.md),
-        _browse(),
-        const SizedBox(height: _KSpace.md),
-        _links(signedIn: true),
-        const SizedBox(height: _KSpace.md),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton(
-            onPressed: _signOut,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _KColors.ink,
-              side: const BorderSide(color: _KColors.line),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(_rPill)),
-            ),
-            child: const Text('Sign out',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-          ),
-        ),
-        const SizedBox(height: _KSpace.xl),
-      ],
-    );
-  }
-
-  /// ---- The ways into the rest of the shop ----
-  ///
-  /// Categories, deals, the store directory and order tracking are all real
-  /// screens in this app and none of them is a tab. This panel is how they are
-  /// reached, and it sits ABOVE the account rows on purpose: three of the four
-  /// are things a shopper does before they have bought anything, and one of
-  /// them — tracking — is the answer for the majority of this shop's customers,
-  /// who ordered without an account and cannot use My orders at all.
-  ///
-  /// The bottom bar was the obvious home for browse destinations and it is
-  /// full: five tabs is the most a phone bar carries legibly, and every one of
-  /// the five earns its place. A panel of rows costs one tap more and no
-  /// ambiguity.
-  Widget _browse() {
-    return Container(
-      decoration: BoxDecoration(
-        color: _KColors.panel,
-        borderRadius: BorderRadius.circular(_rPanel),
-        border: Border.all(color: _KColors.edge),
-      ),
-      child: Column(
-        children: [
-          _Row(
-            icon: Icons.category_outlined,
-            label: 'All categories',
-            detail: 'Every department, shelf by shelf',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const KandiCategoriesScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.local_offer_outlined,
-            label: "Today's deals",
-            detail: 'Everything reduced, deepest first',
-            onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const KandiDealsScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.storefront_outlined,
-            label: 'Shop by store',
-            detail: 'The traders selling on Kandi',
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const KandiStoresScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.local_shipping_outlined,
-            label: 'Track an order',
-            // Said out loud, because this is the row that rescues the shopper
-            // who is about to tap My orders, find a sign-in form, and conclude
-            // the shop has lost their parcel.
-            detail: 'No account needed',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const KandiTrackOrderScreen())),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _links({bool signedIn = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _KColors.panel,
-        borderRadius: BorderRadius.circular(_rPanel),
-        border: Border.all(color: _KColors.edge),
-      ),
-      child: Column(
-        children: [
-          _Row(
-            icon: Icons.receipt_long_rounded,
-            label: 'My orders',
-            // Offered signed out too: tapping it is how a shopper discovers
-            // that orders are the reason to sign in, and the orders page says
-            // so itself rather than this one guessing.
-            detail: signedIn ? null : 'Sign in to see them',
-            onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const KandiOrdersScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.favorite_border_rounded,
-            label: 'Saved items',
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const KandiWishlistScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.shopping_bag_outlined,
-            label: 'Basket',
-            onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const KandiCartScreen())),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          _Row(
-            icon: Icons.help_outline_rounded,
-            label: 'Help and delivery',
-            trailing: Icons.open_in_new_rounded,
-            onTap: () => _openWeb('/help'),
-          ),
-          const Divider(height: 1, color: _KColors.hairline),
-          // ---- The way into the other half of the marketplace ----
-          //
-          // This used to open /sell in a browser, which is the right
-          // destination for somebody who does not sell yet and the wrong one
-          // for somebody who does — a trader wanting today's takings was sent
-          // to a recruitment page.
-          //
-          // The Seller Centre handles both: signed in it shows the figures,
-          // signed out it shows the sign-in with "become a seller" underneath.
-          // One row, and it is correct for whoever taps it.
-          _Row(
-            icon: Icons.storefront_outlined,
-            label: 'Seller Centre',
-            detail: 'Your sales, stock and payouts',
-            onTap: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const KandiSellerScreen())),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Row extends StatelessWidget {
-  const _Row({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.detail,
-    this.trailing = Icons.chevron_right_rounded,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final String? detail;
-  final IconData trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+  Widget _signedOut() {
+    return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: _KSpace.lg, vertical: _KSpace.md + 2),
-        child: Row(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: _KColors.ink),
-            const SizedBox(width: _KSpace.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: _KColors.ink)),
-                  if (detail != null)
-                    Text(detail!,
-                        style: const TextStyle(
-                            fontSize: 12, color: _KColors.muted)),
-                ],
-              ),
+            const Text('Welcome to Kandi',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
+            const SizedBox(height: 8),
+            const Text('Sign in with your phone to track orders, save addresses and earn reward points.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: _KColors.body, height: 1.5)),
+            const SizedBox(height: 24),
+            _KButton(
+              label: 'Sign in with phone',
+              icon: Icons.phone_iphone_rounded,
+              onPressed: () => _KAuth.ensure(context, reason: 'Sign in to Kandi'),
             ),
-            Icon(trailing, size: 19, color: _KColors.muted),
           ],
         ),
       ),
     );
   }
+
+  Widget _signedIn() {
+    final name = '${_profile?['full_name'] ?? ''}'.trim();
+    final points = (_profile?['points_balance'] as num?)?.toInt() ?? 0;
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: _KColors.ink, borderRadius: BorderRadius.circular(22)),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: _KColors.yellow,
+                child: Text(name.isEmpty ? 'K' : name[0].toUpperCase(),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: _editName,
+                      child: Text(name.isEmpty ? 'Add your name ✎' : name,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.white)),
+                    ),
+                    Text('${_KAuth.user?.phone != null ? '+${_KAuth.user!.phone!.replaceFirst('+', '')}' : ''}',
+                        style: const TextStyle(color: Color(0xB3FFFFFF))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => _KNav.tab(context, 2),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(18)),
+            child: Row(
+              children: [
+                const Icon(Icons.stars_rounded, size: 30),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$points points', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                      const Text('See rewards ›', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text('My orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        ),
+        const SizedBox(height: 8),
+        if (_orders.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
+            child: const Text('No orders yet. Your orders will show here with their delivery status.',
+                style: TextStyle(color: _KColors.body)),
+          )
+        else
+          for (final order in _orders) _order(order),
+        const SizedBox(height: 18),
+        _link(Icons.location_on_outlined, 'Delivery addresses', () {
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiAddressPickerScreen()));
+        }),
+        _link(Icons.chat_outlined, 'Chat on WhatsApp', () {
+          launchUrl(Uri.parse('https://wa.me/256${_kSupportPhone.substring(1)}'), mode: LaunchMode.externalApplication);
+        }),
+        _link(Icons.call_outlined, 'Call us: $_kSupportPhone', () => launchUrl(Uri.parse('tel:$_kSupportPhone'))),
+        _link(Icons.logout_rounded, 'Sign out', () async {
+          await _kSupa.auth.signOut();
+          if (mounted) setState(() {});
+        }),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _order(Map<String, dynamic> order) {
+    final status = _statuses['${order['status']}'] ?? ('${order['status']}', _KColors.muted);
+    final items = (order['items'] as List? ?? const []).cast<Map>();
+    final created = DateTime.tryParse('${order['created_at']}')?.toLocal();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+          leading: SizedBox(
+            width: 48,
+            height: 48,
+            child: _KPhoto(items.isNotEmpty ? '${items.first['image'] ?? ''}' : '', radius: 10),
+          ),
+          title: Text('Order #${order['woo_order_id'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w900)),
+          subtitle: Text(
+            [
+              if (created != null) '${created.day}/${created.month}/${created.year}',
+              _kMoney((order['total'] as num?) ?? 0),
+            ].join(' · '),
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: status.$2.withOpacity(0.12), borderRadius: BorderRadius.circular(999)),
+            child: Text(status.$1, style: TextStyle(color: status.$2, fontWeight: FontWeight.w800, fontSize: 12)),
+          ),
+          children: [
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('${item['quantity']} × ${item['name']}',
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                    ),
+                    Text(_kMoney(((item['price'] as num?) ?? 0) * ((item['quantity'] as num?) ?? 1)),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            if (((order['points_earned'] as num?) ?? 0) > 0)
+              Text('+${order['points_earned']} points earned',
+                  style: const TextStyle(color: _KColors.green, fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _link(IconData icon, String label, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        leading: Icon(icon, color: _KColors.ink),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
+      ),
+    );
+  }
 }
 
-class _Field extends StatelessWidget {
-  const _Field({
+// ============================================================
+//  Shared building blocks, private to this file
+//  (the same in every Kandi screen; change one, change all)
+// ============================================================
+
+/// The website: delivery quotes, place search and Pesapal.
+const String _kSiteUrl = 'https://kandiug.com';
+
+/// Support line shown on Account.
+const String _kSupportPhone = '0704892253';
+
+// ------------------------------------------------------------
+//  Colours and type
+// ------------------------------------------------------------
+
+class _KColors {
+  static const ink = Color(0xFF111111);
+  static const body = Color(0xFF3A3A3A);
+  static const muted = Color(0xFF767676);
+  static const line = Color(0xFFE8E8E6);
+  static const ground = Color(0xFFF5F5F2);
+  static const yellow = Color(0xFFFFCC00);
+  static const yellowSoft = Color(0xFFFFF4C2);
+  static const sale = Color(0xFFD32F2F);
+  static const green = Color(0xFF15803D);
+  static const greenSoft = Color(0xFFDFF6E6);
+  static const white = Colors.white;
+}
+
+/// "UGX 12,000".
+String _kMoney(num amount) {
+  final whole = amount.round().abs().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) buffer.write(',');
+    buffer.write(whole[i]);
+  }
+  return '${amount < 0 ? '−' : ''}UGX $buffer';
+}
+
+/// 1234 → "1.2K".
+String _kCompact(int value) {
+  if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+  if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+  return '$value';
+}
+
+/// Strips HTML from a WooCommerce description for plain display.
+String _kPlain(String? html) {
+  if (html == null) return '';
+  return html
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
+      .replaceAll(RegExp(r'<[^>]+>'), '')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll(RegExp(r'&#0?39;|&#8217;'), "'")
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+}
+
+// ------------------------------------------------------------
+//  Models
+// ------------------------------------------------------------
+
+class _KOption {
+  _KOption(this.name, this.value, this.image);
+  final String name;
+  final String? value; // a colour hex, when the shop set one
+  final String? image;
+}
+
+class _KAttribute {
+  _KAttribute(this.name, this.options);
+  final String name;
+  final List<_KOption> options;
+}
+
+class _KVariation {
+  _KVariation({
+    required this.id,
+    required this.price,
+    required this.regularPrice,
+    required this.attributes,
+    required this.inStock,
+    this.image,
+  });
+  final int id;
+  final double price;
+  final double regularPrice;
+  final Map<String, String> attributes;
+  final bool inStock;
+  final String? image;
+}
+
+class _KProduct {
+  _KProduct({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.regularPrice,
+    required this.image,
+    required this.gallery,
+    required this.stockStatus,
+    required this.stockQuantity,
+    required this.totalSales,
+    required this.rating,
+    required this.ratingCount,
+    required this.categoryIds,
+    required this.attributes,
+    required this.variations,
+    required this.shortDescription,
+    required this.description,
+  });
+
+  final int id;
+  final String name;
+  final double price;
+  final double regularPrice;
+  final String image;
+  final List<String> gallery;
+  final String stockStatus;
+  final int? stockQuantity;
+  final int totalSales;
+  final double rating;
+  final int ratingCount;
+  final List<int> categoryIds;
+  final List<_KAttribute> attributes;
+  final List<_KVariation> variations;
+  final String shortDescription;
+  final String description;
+
+  bool get soldOut => stockStatus == 'outofstock';
+  bool get reduced => regularPrice > price && price > 0;
+  int get discount => reduced ? (((regularPrice - price) / regularPrice) * 100).floor() : 0;
+  List<String> get photos => [image, ...gallery].where((url) => url.isNotEmpty).toSet().toList();
+
+  static double _num(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+  factory _KProduct.fromRow(Map<String, dynamic> row) {
+    final attributes = <_KAttribute>[];
+    for (final raw in (row['attributes'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final options = <_KOption>[];
+      for (final option in (raw['options'] as List? ?? const [])) {
+        if (option is Map) {
+          options.add(_KOption('${option['name'] ?? ''}', option['value']?.toString(), option['image']?.toString()));
+        } else {
+          options.add(_KOption('$option', null, null));
+        }
+      }
+      if (options.isNotEmpty) attributes.add(_KAttribute('${raw['name'] ?? ''}', options));
+    }
+
+    final variations = <_KVariation>[];
+    for (final raw in (row['variations'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final attrs = <String, String>{};
+      (raw['attributes'] as Map? ?? const {}).forEach((key, value) => attrs['$key'] = '$value');
+      variations.add(_KVariation(
+        id: (raw['id'] as num?)?.toInt() ?? 0,
+        price: _num(raw['price']),
+        regularPrice: _num(raw['regular_price']),
+        attributes: attrs,
+        inStock: raw['is_in_stock'] != false,
+        image: raw['image']?.toString(),
+      ));
+    }
+
+    return _KProduct(
+      id: (row['id'] as num).toInt(),
+      name: '${row['name'] ?? ''}',
+      price: _num(row['price']),
+      regularPrice: _num(row['regular_price']),
+      image: '${row['image'] ?? ''}',
+      gallery: (row['gallery'] as List? ?? const []).map((url) => '$url').toList(),
+      stockStatus: '${row['stock_status'] ?? 'instock'}',
+      stockQuantity: (row['stock_quantity'] as num?)?.toInt(),
+      totalSales: (row['total_sales'] as num?)?.toInt() ?? 0,
+      rating: _num(row['average_rating']),
+      ratingCount: (row['rating_count'] as num?)?.toInt() ?? 0,
+      categoryIds: (row['category_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toList(),
+      attributes: attributes,
+      variations: variations,
+      shortDescription: '${row['short_description'] ?? ''}',
+      description: '${row['description'] ?? ''}',
+    );
+  }
+}
+
+class _KCategory {
+  _KCategory({required this.id, required this.name, required this.slug, required this.parent, required this.count, this.image});
+  final int id;
+  final String name;
+  final String slug;
+  final int parent;
+  final int count;
+  final String? image;
+
+  factory _KCategory.fromRow(Map<String, dynamic> row) => _KCategory(
+        id: (row['id'] as num).toInt(),
+        name: '${row['name'] ?? ''}',
+        slug: '${row['slug'] ?? ''}',
+        parent: (row['parent'] as num?)?.toInt() ?? 0,
+        count: (row['count'] as num?)?.toInt() ?? 0,
+        image: row['image']?.toString(),
+      );
+}
+
+// ------------------------------------------------------------
+//  Supabase queries
+// ------------------------------------------------------------
+
+SupabaseClient get _kSupa => Supabase.instance.client;
+
+/// The columns a product card needs; the product page asks for '*'.
+const String _kCardColumns =
+    'id,name,price,regular_price,image,gallery,stock_status,stock_quantity,total_sales,average_rating,rating_count,category_ids,attributes,variations,short_description,description';
+
+class _KApi {
+  static List<_KCategory>? _categories;
+
+  /// Every category with products in it (a category with none, or with only
+  /// empty children, is left out so the app never shows an empty shelf).
+  static Future<List<_KCategory>> categories({bool refresh = false}) async {
+    if (_categories != null && !refresh) return _categories!;
+    final rows = await _kSupa.from('categories').select().order('count', ascending: false);
+    final all = (rows as List).map((row) => _KCategory.fromRow(row as Map<String, dynamic>)).toList();
+    bool hasProducts(_KCategory category) =>
+        category.count > 0 || all.any((child) => child.parent == category.id && hasProducts(child));
+    _categories = all.where(hasProducts).toList();
+    return _categories!;
+  }
+
+  static Future<List<_KCategory>> departments() async =>
+      (await categories()).where((category) => category.parent == 0 && category.slug != 'uncategorized').toList();
+
+  static Future<List<_KCategory>> childrenOf(int id) async =>
+      (await categories()).where((category) => category.parent == id).toList();
+
+  /// Products, newest first unless [order] says otherwise.
+  static Future<List<_KProduct>> products({
+    int? categoryId,
+    bool onlyReduced = false,
+    String order = 'date_created',
+    bool ascending = false,
+    String search = '',
+    int offset = 0,
+    int limit = 20,
+    List<int> excludeIds = const [],
+  }) async {
+    var query = _kSupa.from('products').select(_kCardColumns).neq('stock_status', 'outofstock');
+    if (categoryId != null) query = query.contains('category_ids', [categoryId]);
+    if (onlyReduced) query = query.gt('discount_percent', 0);
+    if (search.trim().isNotEmpty) query = query.ilike('name', '%${search.trim()}%');
+    if (excludeIds.isNotEmpty) query = query.not('id', 'in', '(${excludeIds.join(',')})');
+    final rows = await query.order(order, ascending: ascending).range(offset, offset + limit - 1);
+    return (rows as List).map((row) => _KProduct.fromRow(row as Map<String, dynamic>)).toList();
+  }
+
+  static Future<_KProduct?> product(int id) async {
+    final row = await _kSupa.from('products').select().eq('id', id).maybeSingle();
+    return row == null ? null : _KProduct.fromRow(row);
+  }
+}
+
+// ------------------------------------------------------------
+//  Small hand-offs between screens, kept on the device
+//  (so FlutterFlow's own Navigate To actions work too)
+// ------------------------------------------------------------
+
+class _KKeys {
+  static const openProduct = 'kandi-open-product';
+  static const shopCategory = 'kandi-shop-category';
+  static const shopQuery = 'kandi-shop-query';
+  static const shopSort = 'kandi-shop-sort';
+  static const cart = 'kandi-cart-v2';
+  static const address = 'kandi-address-id';
+}
+
+class _KNav {
+  static Future<void> openProduct(BuildContext context, int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_KKeys.openProduct, id);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiProductScreen()));
+  }
+
+  /// Opens Shop already filtered to a category, a search or a sort.
+  static Future<void> openShop(BuildContext context, {int? categoryId, String? query, String? sort}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (categoryId != null) await prefs.setInt(_KKeys.shopCategory, categoryId);
+    if (query != null) await prefs.setString(_KKeys.shopQuery, query);
+    if (sort != null) await prefs.setString(_KKeys.shopSort, sort);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+  }
+
+  /// The bottom bar's tabs swap the screen rather than stacking it.
+  static void tab(BuildContext context, int index) {
+    const screens = <Widget>[
+      KandiHomeScreen(),
+      KandiShopScreen(),
+      KandiRewardsScreen(),
+      KandiCartScreen(),
+      KandiAccountScreen(),
+    ];
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => screens[index],
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (_) => false,
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  The cart, kept on the device
+// ------------------------------------------------------------
+
+class _KCartLine {
+  _KCartLine({
+    required this.productId,
+    required this.variationId,
+    required this.name,
+    required this.image,
+    required this.price,
+    required this.quantity,
+    required this.options,
+  });
+
+  final int productId;
+  final int variationId;
+  final String name;
+  final String image;
+  final double price;
+  int quantity;
+  final Map<String, String> options;
+
+  String get key => '$productId:$variationId:${options.entries.map((e) => '${e.key}=${e.value}').join('|')}';
+  String get optionText => options.entries.map((e) => '${e.key}: ${e.value}').join(' · ');
+
+  Map<String, dynamic> toJson() => {
+        'product_id': productId,
+        'variation_id': variationId,
+        'name': name,
+        'image': image,
+        'price': price,
+        'quantity': quantity,
+        'options': options,
+      };
+
+  factory _KCartLine.fromJson(Map<String, dynamic> json) => _KCartLine(
+        productId: (json['product_id'] as num).toInt(),
+        variationId: (json['variation_id'] as num?)?.toInt() ?? 0,
+        name: '${json['name'] ?? ''}',
+        image: '${json['image'] ?? ''}',
+        price: (json['price'] as num?)?.toDouble() ?? 0,
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        options: (json['options'] as Map? ?? const {}).map((k, v) => MapEntry('$k', '$v')),
+      );
+}
+
+class _KCart extends ChangeNotifier {
+  _KCart._();
+  static final _KCart instance = _KCart._();
+
+  final List<_KCartLine> lines = [];
+
+  int get count => lines.fold(0, (sum, line) => sum + line.quantity);
+  double get subtotal => lines.fold(0.0, (sum, line) => sum + line.price * line.quantity);
+
+  /// Re-reads the basket from the device. Every screen keeps its own copy of
+  /// this class, so the device is the one place the basket really lives, and
+  /// each screen reads it fresh before showing or changing it.
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_KKeys.cart);
+    if (raw != null) {
+      try {
+        lines
+          ..clear()
+          ..addAll((jsonDecode(raw) as List).map((e) => _KCartLine.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_KKeys.cart, jsonEncode(lines.map((line) => line.toJson()).toList()));
+    notifyListeners();
+  }
+
+  Future<void> add(_KCartLine line) async {
+    await load();
+    final existing = lines.where((l) => l.key == line.key).toList();
+    if (existing.isNotEmpty) {
+      existing.first.quantity = (existing.first.quantity + line.quantity).clamp(1, 20);
+    } else {
+      lines.add(line);
+    }
+    await _save();
+  }
+
+  Future<void> setQuantity(_KCartLine line, int quantity) async {
+    if (quantity <= 0) {
+      lines.remove(line);
+    } else {
+      line.quantity = quantity.clamp(1, 20);
+    }
+    await _save();
+  }
+
+  Future<void> remove(_KCartLine line) async {
+    lines.remove(line);
+    await _save();
+  }
+
+  Future<void> clear() async {
+    lines.clear();
+    await _save();
+  }
+}
+
+// ------------------------------------------------------------
+//  Phone sign-in (Supabase Auth, SMS code)
+// ------------------------------------------------------------
+
+class _KAuth {
+  static User? get user => _kSupa.auth.currentUser;
+  static bool get signedIn => user != null;
+
+  /// Signed in already, or signs in now through the sheet. True when signed in.
+  static Future<bool> ensure(BuildContext context, {String reason = 'Sign in to continue'}) async {
+    if (signedIn) return true;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _KPhoneSignInSheet(reason: reason),
+    );
+    return ok == true && signedIn;
+  }
+
+  /// "0772 123 456" / "772123456" / "+256772123456" → "+256772123456", or null.
+  static String? ugPhone(String raw) {
+    var digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('256')) digits = digits.substring(3);
+    if (digits.startsWith('0')) digits = digits.substring(1);
+    return RegExp(r'^7\d{8}$').hasMatch(digits) ? '+256$digits' : null;
+  }
+}
+
+class _KPhoneSignInSheet extends StatefulWidget {
+  const _KPhoneSignInSheet({super.key, this.reason = 'Sign in to continue'});
+  final String reason;
+  @override
+  State<_KPhoneSignInSheet> createState() => _KPhoneSignInSheetState();
+}
+
+class _KPhoneSignInSheetState extends State<_KPhoneSignInSheet> {
+  final _phone = TextEditingController();
+  final _code = TextEditingController();
+  String? _sentTo;
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _send() async {
+    final phone = _KAuth.ugPhone(_phone.text);
+    if (phone == null) {
+      setState(() => _error = 'Enter an MTN or Airtel number, like 0772 123 456.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _kSupa.auth.signInWithOtp(phone: phone);
+      setState(() => _sentTo = phone);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Could not send the code. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _verify() async {
+    final code = _code.text.trim();
+    if (code.length < 4 || _sentTo == null) {
+      setState(() => _error = 'Enter the code from the SMS.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _kSupa.auth.verifyOTP(phone: _sentTo!, token: code, type: OtpType.sms);
+      if (mounted) Navigator.of(context).pop(true);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'That code did not work. Try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = _sentTo != null;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: const BoxDecoration(
+          color: _KColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(widget.reason,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
+              const SizedBox(height: 6),
+              Text(
+                sent ? 'We sent a code to $_sentTo.' : 'We will text you a code. No password needed.',
+                style: const TextStyle(fontSize: 14, color: _KColors.muted),
+              ),
+              const SizedBox(height: 18),
+              if (!sent)
+                _KField(
+                  controller: _phone,
+                  label: 'Phone number',
+                  hint: '0772 123 456',
+                  keyboard: TextInputType.phone,
+                  prefix: '+256 ',
+                )
+              else
+                _KField(
+                  controller: _code,
+                  label: 'Code',
+                  hint: '6-digit code',
+                  keyboard: TextInputType.number,
+                ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, style: const TextStyle(color: _KColors.sale, fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+              const SizedBox(height: 18),
+              _KButton(
+                label: sent ? 'Sign in' : 'Send code',
+                busy: _busy,
+                onPressed: sent ? _verify : _send,
+              ),
+              if (sent)
+                TextButton(
+                  onPressed: _busy ? null : () => setState(() => _sentTo = null),
+                  child: const Text('Use a different number', style: TextStyle(color: _KColors.ink)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  Building blocks
+// ------------------------------------------------------------
+
+class _KButton extends StatelessWidget {
+  const _KButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.busy = false,
+    this.dark = false,
+    this.outline = false,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool busy;
+  final bool dark;
+  final bool outline;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = outline ? _KColors.white : (dark ? _KColors.ink : _KColors.yellow);
+    final foreground = dark && !outline ? _KColors.white : _KColors.ink;
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: busy ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: background,
+          foregroundColor: foreground,
+          disabledBackgroundColor: background.withOpacity(0.6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: outline ? const BorderSide(color: _KColors.ink, width: 1.5) : BorderSide.none,
+          ),
+        ),
+        child: busy
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
+                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _KField extends StatelessWidget {
+  const _KField({
+    super.key,
     required this.controller,
     required this.label,
-    required this.hint,
-    required this.icon,
-    this.keyboardType,
+    this.hint,
+    this.keyboard,
+    this.prefix,
+    this.maxLines = 1,
     this.onChanged,
   });
 
   final TextEditingController controller;
   final String label;
-  final String hint;
-  final IconData icon;
-  final TextInputType? keyboardType;
-
-  /// Optional because most fields on this page are read once, on submit. The
-  /// code field is not: it submits itself on the sixth digit, which needs a
-  /// keystroke callback.
+  final String? hint;
+  final TextInputType? keyboard;
+  final String? prefix;
+  final int maxLines;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -946,33 +978,24 @@ class _Field extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: _KColors.body)),
-        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _KColors.ink)),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
-          keyboardType: keyboardType,
+          keyboardType: keyboard,
+          maxLines: maxLines,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 14.5, color: _KColors.ink),
+          style: const TextStyle(fontSize: 16, color: _KColors.ink),
           decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: _KColors.hairline,
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14, color: _KColors.muted),
-            prefixIcon: Icon(icon, size: 19, color: _KColors.muted),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: _KSpace.md, vertical: _KSpace.md),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(_rChip),
-              borderSide: BorderSide.none,
-            ),
+            prefixText: prefix,
+            filled: true,
+            fillColor: _KColors.ground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(_rChip),
-              borderSide: const BorderSide(color: _KColors.flame, width: 1.4),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _KColors.ink, width: 1.5),
             ),
           ),
         ),
@@ -981,254 +1004,110 @@ class _Field extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------
-//  The bottom bar
-// ------------------------------------------------------------
-
-/// One of the five top-level destinations.
-///
-/// Duplicated in each tab page rather than imported: every page in this app is
-/// self-contained, and a shared widget would be the one import that reintroduces
-/// the paste-order problem the whole architecture exists to avoid.
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    this.onTap,
-    this.active = false,
-    this.badge = 0,
-  });
-
-  final IconData icon;
-  final String label;
-  /// Null on the tab you are already on: InkWell then draws no ripple, which
-  /// is the honest signal for "nothing will happen". An empty closure would
-  /// ripple and promise otherwise.
-  final VoidCallback? onTap;
-  final bool active;
-  final int badge;
+/// A product photo on the shop's grey, with white backgrounds blended in.
+class _KPhoto extends StatelessWidget {
+  const _KPhoto(this.url, {super.key, this.fit = BoxFit.cover, this.radius = 0});
+  final String url;
+  final BoxFit fit;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final colour = active ? _KColors.flame : _KColors.muted;
-
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        // The ripple used to be a rectangle the full height of the bar,
-        // which on a five-across row is a grey slab with no relationship to
-        // the mark it is acknowledging. Bounded to the capsule, it lands
-        // where the finger did.
-        borderRadius: BorderRadius.circular(_rPill),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ---- The capsule is what marks the tab you are on ----
-            //
-            // The active tab used to be signalled by colour alone: the icon
-            // and its label turned from grey to flame and nothing else
-            // moved. That is one channel, it is the channel a
-            // colour-deficient shopper does not have, and at 22px on a white
-            // bar it is a weak signal even with normal vision.
-            //
-            // A filled capsule behind the icon adds shape and ground to the
-            // same fact, which is the standard answer and also the one that
-            // makes the bar look drawn rather than defaulted. It carries the
-            // brand gradient rather than a flat fill because every other
-            // primary surface in the app now does.
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  width: 46,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    gradient: active ? _brandGradient : null,
-                    borderRadius: BorderRadius.circular(_rPill),
-                    boxShadow: active
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x33D62200),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(icon,
-                      size: 20, color: active ? Colors.white : colour),
-                ),
-                if (badge > 0)
-                  Positioned(
-                    right: -4,
-                    top: -5,
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      constraints: const BoxConstraints(minWidth: 16),
-                      decoration: BoxDecoration(
-                        color: _KColors.flame,
-                        borderRadius: BorderRadius.circular(8),
-                        // A white ring keeps the badge legible over the icon,
-                        // and over the capsule when the tab is the live one.
-                        border: Border.all(color: Colors.white, width: 1.4),
-                      ),
-                      child: Text(
-                        badge > 99 ? '99+' : '$badge',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 9,
-                            height: 1.3,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            // One line, ellipsised, and never wider than its fifth of the
-            // bar. 'Account' at a raised text size is what used to push the
-            // row wide enough to clip.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 10.5,
-                      height: 1.25,
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                      color: colour)),
-            ),
-          ],
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        color: _KColors.ground,
+        child: url.isEmpty
+            ? const Center(child: Icon(Icons.image_outlined, color: _KColors.muted))
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: fit,
+                width: double.infinity,
+                height: double.infinity,
+                color: _KColors.ground,
+                colorBlendMode: BlendMode.multiply,
+                fadeInDuration: const Duration(milliseconds: 150),
+                errorWidget: (_, __, ___) => const Center(child: Icon(Icons.image_not_supported_outlined, color: _KColors.muted)),
+              ),
       ),
     );
   }
 }
 
-// ------------------------------------------------------------
-//  Signing in with a code
-// ------------------------------------------------------------
-
-/// A Ugandan mobile number in the one shape the shop stores, or null.
-///
-/// +2567XXXXXXXX, which is what the storefront normalises to and what
-/// WordPress matches `billing_phone` against. Getting this wrong does not fail
-/// loudly — it fails as a second account for the same shopper — so the app
-/// normalises before it sends rather than hoping the server will.
-///
-/// Written as a digit sweep rather than a regular expression on purpose: it
-/// has to accept 0772 123 456, +256 772 123 456 and 256772123456, which is
-/// three patterns and one loop.
-String? _normalisePhone(String raw) {
-  final digits = StringBuffer();
-  for (final unit in raw.codeUnits) {
-    if (unit >= 48 && unit <= 57) digits.writeCharCode(unit);
-  }
-
-  var value = digits.toString();
-  if (value.startsWith('256')) value = value.substring(3);
-  if (value.startsWith('0')) value = value.substring(1);
-
-  // Every Ugandan mobile prefix is 7X. Nine digits starting with anything else
-  // is a landline or a typo, and both mean the rider cannot call.
-  if (value.length != 9 || !value.startsWith('7')) return null;
-  return '+256' + value;
-}
-
-/// Loose on purpose. The only test of an address that means anything is
-/// whether a message sent to it arrives, and that is exactly what the next
-/// step does.
-bool _looksLikeEmail(String raw) {
-  final at = raw.indexOf('@');
-  if (at < 1) return false;
-  final dot = raw.indexOf('.', at + 2);
-  return dot > at + 1 && dot < raw.length - 1;
-}
-
-/// A proved contact and the session it bought.
-class _KVerified {
-  const _KVerified({
-    required this.token,
-    required this.contact,
-    required this.channel,
-    required this.name,
-  });
-
-  /// The bearer token, as `/api/app/auth/otp` returned it.
-  final String token;
-
-  /// The contact in the shape the shop stores — +2567XXXXXXXX for a phone,
-  /// lower-cased for an email. Kept rather than what was typed, because the
-  /// difference is what makes a stored number fail to match itself later.
-  final String contact;
-
-  /// 'sms' or 'email'. The checkout only accepts a number, so this is what
-  /// tells the caller whether it has one worth writing down.
-  final String channel;
-
-  /// For the greeting. Empty is not an error.
-  final String name;
-}
-
-/// One of the two channels, drawn as a card rather than a Radio.
-///
-/// Material's own radio is 20px of tap target in a 48px row and the label is
-/// not part of it, which on a phone means a shopper aiming at the word misses.
-/// The whole card is the target here.
-class _ChannelTile extends StatelessWidget {
-  const _ChannelTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
+/// The product tile used everywhere: photo, discount, name, price, sold.
+class _KProductCard extends StatelessWidget {
+  const _KProductCard(this.product, {super.key, this.width});
+  final _KProduct product;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      onTap: () => _KNav.openProduct(context, product.id),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: _KSpace.md, vertical: _KSpace.md),
-        decoration: BoxDecoration(
-          color: selected ? _KColors.primarySoft : _KColors.panel,
-          borderRadius: BorderRadius.circular(_rChip),
-          // Selection is carried by the border AND the tint, not by one of
-          // them. A tint alone is invisible to a shopper with a colour
-          // deficiency; a border alone is easy to miss on a bright screen
-          // outdoors, which is where a lot of this shop is used.
-          border: Border.all(
-            color: selected ? _KColors.primary : _KColors.line,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
+        width: width,
+        decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(14)),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon,
-                size: 20, color: selected ? _KColors.primary : _KColors.muted),
-            const SizedBox(height: 6),
-            Text(title,
-                style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? _KColors.ink : _KColors.body)),
-            Text(subtitle,
-                style: const TextStyle(fontSize: 11.5, color: _KColors.muted)),
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _KPhoto(product.image),
+                  if (product.discount > 0)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: const BoxDecoration(
+                          color: _KColors.yellow,
+                          borderRadius: BorderRadius.only(bottomRight: Radius.circular(10)),
+                        ),
+                        child: Text('-${product.discount}%',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _KColors.ink)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _KColors.body)),
+                  const SizedBox(height: 3),
+                  Text(_kMoney(product.price),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: product.reduced ? _KColors.sale : _KColors.ink,
+                      )),
+                  Row(
+                    children: [
+                      if (product.reduced)
+                        Flexible(
+                          child: Text(_kMoney(product.regularPrice),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 11, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
+                        ),
+                      if (product.reduced && product.totalSales > 0) const SizedBox(width: 6),
+                      if (product.totalSales > 0)
+                        Text('${_kCompact(product.totalSales)} sold',
+                            style: const TextStyle(fontSize: 11, color: _KColors.muted)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1236,412 +1115,213 @@ class _ChannelTile extends StatelessWidget {
   }
 }
 
-/// Sends a one-time code and trades it for a session.
-///
-/// ---- Two requests, and what each one is for ----
-///
-/// `POST /api/otp/start` takes a channel and a contact and sends six digits by
-/// SMS or by email. It answers with a `challenge`: the code, sealed and
-/// encrypted, that the app cannot read and cannot forge.
-///
-/// `POST /api/app/auth/otp` takes that challenge back with the digits the
-/// shopper typed. If they match, it finds or creates the WordPress customer
-/// for that contact and returns a bearer token. That token is the account.
-///
-/// ---- The code is never checked here ----
-///
-/// Worth stating because it would be easy, and wrong, to compare the two on
-/// the phone: the challenge would have to contain the code in a form the app
-/// could read, which is a code an attacker can read too. Everything about the
-/// check happens on the server, and this sheet only learns whether it passed.
-///
-/// ---- Why this is duplicated in the checkout ----
-///
-/// The checkout screen has its own copy, fixed to SMS. Every page in this app
-/// is self-contained — see the architecture note at the head of
-/// kandi_home_screen.dart — and a shared sheet would be the one import that
-/// reintroduces the paste-order problem the whole arrangement exists to avoid.
-class _KOtpSheet extends StatefulWidget {
-  const _KOtpSheet();
+/// A titled, swipeable row of product cards, optionally on a colour.
+class _KCarousel extends StatelessWidget {
+  const _KCarousel({
+    super.key,
+    required this.title,
+    required this.products,
+    this.onSeeAll,
+    this.background = _KColors.white,
+    this.titleColor = _KColors.ink,
+  });
 
-  @override
-  State<_KOtpSheet> createState() => _KOtpSheetState();
-}
-
-class _KOtpSheetState extends State<_KOtpSheet> {
-  final TextEditingController _contact = TextEditingController();
-  final TextEditingController _code = TextEditingController();
-
-  /// SMS by default, because that is how most of this shop's customers reach
-  /// it. Email is the second option rather than the first for the same reason.
-  String _channel = 'sms';
-
-  String _challenge = '';
-  String _sentTo = '';
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _contact.dispose();
-    _code.dispose();
-    super.dispose();
-  }
-
-  /// Step one: ask the server to send a code.
-  Future<void> _send() async {
-    final typed = _contact.text.trim();
-
-    // Checked here as well as on the server, because a round trip to find out
-    // that 070 is not a phone number is three seconds a shopper spends
-    // watching a spinner for an answer the app already had.
-    final destination =
-        _channel == 'sms' ? _normalisePhone(typed) : typed.toLowerCase();
-
-    if (_channel == 'sms' && destination == null) {
-      setState(
-          () => _error = 'Enter a Ugandan mobile number, like 0772 123 456.');
-      return;
-    }
-    if (_channel == 'email' && !_looksLikeEmail(typed)) {
-      setState(() => _error = 'Enter an email address we can send the code to.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/otp/start'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'channel': _channel, 'to': destination}),
-          )
-          .timeout(const Duration(seconds: 25));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    if (status != 200 || data is! Map) {
-      setState(() {
-        _busy = false;
-        // The server's own wording where there is one: it knows whether the
-        // gateway rejected the number or the shop has been rate limited, and
-        // this sheet does not.
-        _error = (data is Map && data['message'] != null)
-            ? data['message'].toString()
-            : 'Could not send the code. Check your connection and try again.';
-      });
-      return;
-    }
-
-    setState(() {
-      _busy = false;
-      _challenge = (data['challenge'] ?? '').toString();
-      _sentTo = (data['sentTo'] ?? destination).toString();
-      // A sheet asking for a code nobody sent is worse than an error.
-      if (_challenge.isEmpty) {
-        _error =
-            'Verification is not available right now. Please try again shortly.';
-      }
-    });
-  }
-
-  /// Step two: trade the code for a session.
-  Future<void> _confirm() async {
-    if (_code.text.trim().length < 6) {
-      setState(() => _error = 'The code is six digits.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/app/auth/otp'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'challenge': _challenge,
-              'code': _code.text.trim(),
-            }),
-          )
-          .timeout(const Duration(seconds: 25));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    final token = (data is Map) ? (data['token'] ?? '').toString() : '';
-    if (status != 200 || token.isEmpty) {
-      setState(() {
-        _busy = false;
-        _error = (data is Map && data['message'] != null)
-            ? data['message'].toString()
-            : 'That code is not right. Check it, or ask for a new one.';
-      });
-      return;
-    }
-
-    final customer = (data as Map)['customer'];
-    final name = (customer is Map)
-        ? (customer['firstName'] ?? customer['name'] ?? '').toString()
-        : '';
-
-    final proved = _channel == 'sms'
-        ? (_normalisePhone(_contact.text) ?? _contact.text.trim())
-        : _contact.text.trim().toLowerCase();
-
-    Navigator.of(context).pop(_KVerified(
-      token: token,
-      contact: proved,
-      channel: _channel,
-      name: name,
-    ));
-  }
+  final String title;
+  final List<_KProduct> products;
+  final VoidCallback? onSeeAll;
+  final Color background;
+  final Color titleColor;
 
   @override
   Widget build(BuildContext context) {
-    final sent = _challenge.isNotEmpty;
-
-    return Padding(
-      // The sheet has to sit above the keyboard, and `viewInsets` is the only
-      // measurement that knows how tall it is. Without this the code field is
-      // under the keys on every phone with a short screen.
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.all(_KSpace.lg),
-        decoration: const BoxDecoration(
-          color: _KColors.panel,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(_rPanel + 6)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    if (products.length < 3) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: const BoxDecoration(
-                      color: _KColors.primarySoft, shape: BoxShape.circle),
-                  child: Icon(
-                      _channel == 'sms'
-                          ? Icons.sms_outlined
-                          : Icons.mail_outline_rounded,
-                      size: 20,
-                      color: _KColors.primary),
-                ),
-                const SizedBox(width: _KSpace.md),
                 Expanded(
-                  child: Text(sent ? 'Enter the code' : 'Sign in',
-                      style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.ink)),
+                  child: Text(title,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: titleColor, letterSpacing: -0.5)),
                 ),
-                IconButton(
-                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded,
-                      size: 22, color: _KColors.muted),
-                ),
+                if (onSeeAll != null)
+                  GestureDetector(
+                    onTap: onSeeAll,
+                    child: Text('See all ›', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: titleColor)),
+                  ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              sent
-                  ? 'We sent six digits to $_sentTo. It expires in 10 minutes.'
-                  : 'Choose where we should send your code. Either one signs you '
-                      'into the same account.',
-              style: const TextStyle(
-                  fontSize: 13, height: 1.45, color: _KColors.body),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 248,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              scrollDirection: Axis.horizontal,
+              itemCount: products.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, index) => _KProductCard(products[index], width: 158),
             ),
-            const SizedBox(height: _KSpace.lg),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            if (!sent) ...[
-              // IntrinsicHeight so the two cards match whichever is taller.
-              // Without it a one-line subtitle beside a two-line one leaves a
-              // step in the row, which reads as a rendering fault rather than
-              // as a choice.
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _ChannelTile(
-                        icon: Icons.smartphone_rounded,
-                        title: 'Phone',
-                        subtitle: 'By SMS',
-                        selected: _channel == 'sms',
-                        onTap: _busy
-                            ? () {}
-                            : () => setState(() {
-                                  _channel = 'sms';
-                                  _error = null;
-                                }),
-                      ),
-                    ),
-                    const SizedBox(width: _KSpace.sm),
-                    Expanded(
-                      child: _ChannelTile(
-                        icon: Icons.mail_outline_rounded,
-                        title: 'Email',
-                        subtitle: 'By email',
-                        selected: _channel == 'email',
-                        onTap: _busy
-                            ? () {}
-                            : () => setState(() {
-                                  _channel = 'email';
-                                  _error = null;
-                                }),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: _KSpace.md),
-              _Field(
-                controller: _contact,
-                label: _channel == 'sms' ? 'Phone number' : 'Email',
-                hint: _channel == 'sms' ? '07XX XXX XXX' : 'you@example.com',
-                icon: _channel == 'sms'
-                    ? Icons.phone_outlined
-                    : Icons.mail_outline_rounded,
-                keyboardType: _channel == 'sms'
-                    ? TextInputType.phone
-                    : TextInputType.emailAddress,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: _KSpace.sm),
-              const Text(
-                'Verifying a phone number here also clears the check at '
-                'checkout, so you are not asked twice.',
-                style: TextStyle(fontSize: 11.5, color: _KColors.muted),
-              ),
-            ] else
-              _Field(
-                controller: _code,
-                label: '6-digit code',
-                hint: '000000',
-                icon: Icons.password_rounded,
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  // Submits itself on the sixth digit. Six digits and then a
-                  // reach for a button is one interaction too many on a screen
-                  // whose only possible next step is "check this".
-                  setState(() {});
-                  if (value.trim().length == 6 && !_busy) _confirm();
-                },
-              ),
+/// A two-column grid of product cards as a sliver.
+class _KProductGrid extends StatelessWidget {
+  const _KProductGrid(this.products, {super.key});
+  final List<_KProduct> products;
 
-            if (_error != null) ...[
-              const SizedBox(height: _KSpace.md),
-              Container(
-                padding: const EdgeInsets.all(_KSpace.md),
-                decoration: BoxDecoration(
-                  color: _KColors.warnSoft,
-                  borderRadius: BorderRadius.circular(_rChip),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 17, color: _KColors.warn),
-                    const SizedBox(width: _KSpace.sm),
-                    Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                              fontSize: 12.5,
-                              height: 1.4,
-                              color: _KColors.warn)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: _KSpace.lg),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: _busy ? null : (sent ? _confirm : _send),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _KColors.flame,
-                  // Lifted on a wash of its own dark end rather than on black.
-                  // Black under a saturated colour greys the pixels it falls on
-                  // and reads as dirt; the same hue reads as the colour bleeding
-                  // onto the paper, which is what a lit object does.
-                  elevation: 6,
-                  shadowColor: const Color(0x59A81100),
-                  disabledBackgroundColor: _KColors.line,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(_rPill)),
-                ),
-                child: Text(
-                    _busy
-                        ? 'Please wait…'
-                        : (sent ? 'Confirm' : 'Send me a code'),
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700)),
-              ),
-            ),
-
-            if (sent) ...[
-              const SizedBox(height: _KSpace.sm),
-              Center(
-                child: TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                            // Back to the first step rather than straight to a
-                            // resend. A shopper asking for a new code has
-                            // usually mistyped the contact, and sending a
-                            // second one to the same wrong place is the shop
-                            // paying twice to fail twice.
-                            _challenge = '';
-                            _code.clear();
-                            _error = null;
-                          }),
-                  child: const Text('Wrong number? Start again',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _KColors.flame)),
-                ),
-              ),
-            ],
-            SizedBox(
-                height: MediaQuery.of(context).padding.bottom + _KSpace.sm),
-          ],
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.66,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (_, index) => _KProductCard(products[index]),
+          childCount: products.length,
         ),
       ),
     );
   }
+}
+
+/// The app's five tabs. Cart shows its count.
+class _KBottomNav extends StatelessWidget {
+  const _KBottomNav({super.key, required this.current});
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (Icons.home_outlined, Icons.home, 'Home'),
+      (Icons.grid_view_outlined, Icons.grid_view_rounded, 'Shop'),
+      (Icons.stars_outlined, Icons.stars_rounded, 'Rewards'),
+      (Icons.shopping_bag_outlined, Icons.shopping_bag, 'Cart'),
+      (Icons.person_outline, Icons.person, 'Account'),
+    ];
+    return AnimatedBuilder(
+      animation: _KCart.instance,
+      builder: (context, _) => Container(
+        decoration: const BoxDecoration(
+          color: _KColors.white,
+          border: Border(top: BorderSide(color: _KColors.line)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: InkWell(
+                      onTap: i == current ? null : () => _KNav.tab(context, i),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Badge(
+                            isLabelVisible: i == 3 && _KCart.instance.count > 0,
+                            label: Text('${_KCart.instance.count}'),
+                            backgroundColor: _KColors.sale,
+                            child: Icon(i == current ? items[i].$2 : items[i].$1,
+                                color: i == current ? _KColors.ink : _KColors.muted, size: 26),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(items[i].$3,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: i == current ? FontWeight.w800 : FontWeight.w500,
+                                color: i == current ? _KColors.ink : _KColors.muted,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A grey placeholder block while data loads.
+class _KSkeleton extends StatelessWidget {
+  const _KSkeleton({super.key, this.height = 120, this.radius = 16});
+  final double height;
+  final double radius;
+  @override
+  Widget build(BuildContext context) => Container(
+        height: height,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(radius)),
+      );
+}
+
+/// A centred message with an optional action, for empty and error states.
+class _KEmpty extends StatelessWidget {
+  const _KEmpty({super.key, required this.icon, required this.title, this.message, this.action, this.onAction});
+  final IconData icon;
+  final String title;
+  final String? message;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(color: _KColors.yellowSoft, shape: BoxShape.circle),
+            child: Icon(icon, size: 34, color: _KColors.ink),
+          ),
+          const SizedBox(height: 16),
+          Text(title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.ink)),
+          if (message != null) ...[
+            const SizedBox(height: 6),
+            Text(message!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: _KColors.muted)),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: 18),
+            SizedBox(width: 220, child: _KButton(label: action!, onPressed: onAction)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A short message at the bottom of the screen.
+void _kToast(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: _KColors.ink,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ));
 }

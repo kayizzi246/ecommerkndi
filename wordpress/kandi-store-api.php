@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kandi Store API
  * Description: Custom REST endpoints (kandi/v1) that expose WooCommerce products and accept orders from the Kandi Next.js storefront.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Kandi UG
  *
  * HOW TO INSTALL (choose ONE):
@@ -1196,6 +1196,27 @@ add_action( 'rest_api_init', function () {
 				$order->add_item( $rate );
 			}
 
+			// A discount the caller has already earned the right to give, such
+			// as Kandi app reward points. Only reachable with the shared secret,
+			// so it never comes from a shopper's browser. A negative fee line,
+			// which shows on the invoice and in the order total.
+			$discount = isset( $body['discount'] ) && is_array( $body['discount'] ) ? $body['discount'] : null;
+			if ( $discount && (float) ( $discount['amount'] ?? 0 ) > 0 && class_exists( 'WC_Order_Item_Fee' ) ) {
+				$fee = new WC_Order_Item_Fee();
+				$fee->set_name( sanitize_text_field( $discount['label'] ?? 'Discount' ) );
+				$fee->set_amount( (string) -abs( (float) $discount['amount'] ) );
+				$fee->set_total( (string) -abs( (float) $discount['amount'] ) );
+				$fee->set_tax_status( 'none' );
+				$order->add_item( $fee );
+			}
+
+			// Placed from the Kandi app: remember its id there, so status changes
+			// can be sent back (kandi-supabase-sync.php).
+			if ( ! empty( $body['app_order_id'] ) ) {
+				$order->add_meta_data( '_kandi_app_order_id', sanitize_text_field( (string) $body['app_order_id'] ), true );
+				$order->set_created_via( 'kandi-app' );
+			}
+
 			// The customer's exact drop point, so the rider has something better
 			// to work from than a typed address.
 			if ( ! empty( $body['delivery_point']['lat'] ) && ! empty( $body['delivery_point']['lng'] ) ) {
@@ -1208,7 +1229,9 @@ add_action( 'rest_api_init', function () {
 				);
 			}
 
-			$order->set_created_via( 'kandi-storefront' );
+			if ( empty( $body['app_order_id'] ) ) {
+				$order->set_created_via( 'kandi-storefront' );
+			}
 			$order->calculate_totals();
 
 			// Cash on delivery is confirmed the moment it is placed.

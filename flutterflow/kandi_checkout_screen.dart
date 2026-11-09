@@ -7,344 +7,30 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// Imports go BELOW the header — FlutterFlow rewrites it on save and drops
-// anything added there. Do not add the `/backend/` imports it offers.
+
+// ============================================================
+//  KANDI — CHECKOUT
+//  Address, delivery price, items, reward points, payment.
+//
+//  The order is placed by the Supabase Edge Function
+//  `place-order`, which creates the real order in WooCommerce
+//  (same prices, stock and delivery rules as the website) and
+//  keeps a copy in Supabase. Mobile Money and card go through
+//  Pesapal on the website, exactly as the web checkout does.
+// ============================================================
+
 import 'dart:convert';
-
-import 'package:flutter/services.dart';
-
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-// ============================================================
-//  KANDI — CHECKOUT PAGE
-//
-//  Where the order is placed. Self-contained like every page
-//  here; the architecture is at the head of
-//  kandi_home_screen.dart.
-//
-//  ---- Payment happens here now, not in a browser ----
-//
-//  This screen used to collect the delivery details and then
-//  hand the shopper to kandiug.com to pay. The argument for
-//  that was real: the website is where Pesapal is wired and
-//  where the order is written, and a second implementation of
-//  the one thing in this business that must never be subtly
-//  wrong would drift from the first.
-//
-//  What it cost was the order. Being thrown into a browser at
-//  the moment of payment is where app checkouts are abandoned:
-//  the shopper leaves the app, lands on a page that does not
-//  look like the app, and has to be trusted enough to come
-//  back. Measured against every marketplace this shop competes
-//  with, none of them do it.
-//
-//  The drift is avoided a different way instead: NOTHING about
-//  the payment is reimplemented here. The order is placed by
-//  POSTing to the same /api/checkout the website posts to, the
-//  payment is opened by the same /api/payments/pesapal/start,
-//  and Pesapal's own page — the real one, on Pesapal's domain —
-//  is what the shopper types into. This screen contributes a
-//  WebView and a poll, and nothing that handles money.
-//
-//  ---- The gate in front of it ----
-//
-//  A shopper cannot reach the payment button without a verified
-//  phone number. The code is sent over SMS by /api/otp/start and
-//  proved to /api/app/auth/otp, which hands back the session
-//  token that /api/checkout then requires. So the verification
-//  is not a decoration this screen draws: the server will not
-//  accept the order without it.
-//
-//  A verified number is also the number the rider calls, which
-//  is why the checkout requires a PHONE specifically. The
-//  account page will take an email instead — see that file.
-//
-//  ---- Details are saved, not just sent ----
-//
-//  A shopper who abandons at payment and comes back should not
-//  retype their name and their village. The four fields persist
-//  under `kandi-checkout-v1` and refill on the next visit.
-// ============================================================
-
-class _KColors {
-  const _KColors._();
-  static const Color canvas = Color(0xFFFFFFFF);
-  static const Color panel = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF0B0B0B);
-  static const Color body = Color(0xFF414346);
-  static const Color muted = Color(0xFF5D6066);
-  static const Color line = Color(0xFFE0E0E0);
-  static const Color hairline = Color(0xFFF2F2F2);
-  static const Color primary = Color(0xFFFF6A00);
-  static const Color save = Color(0xFF15803D);
-  /// The tint behind a success mark. Light enough that the green sits on it
-  /// at full contrast, which a 10% wash of the same green would not be.
-  static const Color saveSoft = Color(0xFFE8F5EC);
-  static const Color primarySoft = Color(0xFFFFF3E8);
-  static const Color warn = Color(0xFFB45309);
-  static const Color warnSoft = Color(0xFFFDF3E6);
-
-  /// ---- The money colour ----
-  ///
-  /// Every price on the page is printed in it. A price set in the same ink as
-  /// the product name is a price a scanning eye has to hunt for, and on a grid
-  /// of forty tiles that hunt is the whole difference between browsing and
-  /// giving up.
-  ///
-  /// #D62200 rather than a brighter red: white on it is 5.1:1, so the same
-  /// value works as a ground under white button text AND as text on white at
-  /// the 11px a card's price line runs at. The brighter reds do one or the
-  /// other, never both.
-  static const Color flame = Color(0xFFD62200);
-
-  /// ---- The edge that makes a white card visible on a white page ----
-  ///
-  /// The app used to stand its tiles on #F5F5F5 and let the contrast do the
-  /// separating. The site does not: its canvas is #ffffff, the same as the
-  /// panel, so the tile is drawn by a 1px ring and nothing else. Matching the
-  /// ground without matching the ring would have produced a grid of tiles with
-  /// no edges at all.
-  static const Color edge = Color(0xFFDEDEDE);
-
-
-}
-
-class _KSpace {
-  const _KSpace._();
-  static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 24;
-}
-
-/// ---- Panel corners: 16, where this was 12 ----
-///
-/// This governs the CHROME only - sheets, the shelf grounds, the terms
-/// strip, the panels on the account, checkout and seller pages. It does not
-/// reach the product tile, which has square corners and a drawn ring copied
-/// row by row off the website's `.tile-card` and must stay that way: the
-/// site squares its tiles so they can touch in a flush grid, and a tile
-/// rounded here and square there is the most obvious way the two clients
-/// stop looking like one shop.
-///
-/// So the app now draws two corner radii on purpose - a square catalogue on
-/// softened furniture - and that is the distinction rather than an
-/// inconsistency. 12 sat between the two and read as neither.
-const double _rPanel = 16;
-const double _rPhoto = 8;
-
-/// The `Accept` header every photograph in this app is fetched with. See the
-/// note in kandi_search_screen.dart — Dart's HTTP client sends none of its own,
-/// so without this the storefront's optimiser has to guess and sends JPEG.
-const Map<String, String> _kImageHeaders = <String, String>{
-  'Accept': 'image/webp,image/*;q=0.8',
-};
-const double _rChip = 8;
-
-/// ---- The brand gradient ----
-///
-/// It carries the chrome — app bars, the home band, the primary buttons — so
-/// that every screen is recognisably one shop.
-///
-/// Three stops on a diagonal, where this was two across the horizontal. Both
-/// changes are the same change: a two-stop ramp between two colours half a hue
-/// apart is a flat wash with a slight lean, and on a 56px app bar it reads as
-/// one muddy orange. Running it corner to corner gives the ramp the bar's
-/// diagonal to travel rather than its width, and the middle stop is what stops
-/// the two ends averaging into the middle.
-///
-/// The dark end went DOWN, from #D62200 to #A81100, and that is a legibility
-/// change rather than a taste one. Every app bar in this app sets white type
-/// on this gradient; white on #FF6A00 is 2.9:1, which is why the palette note
-/// says brand orange is never a large ground under white text. It is one here
-/// whatever the note says, so the answer is to make most of the ground darker:
-/// white on #A81100 is 8.1:1, and the bright end is now a corner rather than
-/// half the bar.
-const LinearGradient _brandGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFF6A00), Color(0xFFE03400), Color(0xFFA81100)],
-  stops: [0.0, 0.52, 1.0],
-);
-
-/// The brand gradient with a light bloom over it.
-///
-/// ---- Why the bloom is a second layer ----
-///
-/// A LinearGradient can only ramp along a line, and what makes a coloured
-/// surface look LIT rather than filled is a highlight that falls off in a
-/// circle. Painting a soft white radial over the top-left corner is the whole
-/// of it: the bar stops being a coloured rectangle and starts having a light
-/// source, which is the cheapest thing that separates a designed surface from
-/// a filled one.
-///
-/// White rather than a lighter orange, on purpose. A lighter orange moves the
-/// hue and puts the bar back in the 2.9:1 band the gradient above just climbed
-/// out of; white at 18% lifts the value and leaves the hue alone, and the
-/// corner it lifts is the corner that was already brightest.
-///
-/// ---- It takes its size from its child ----
-///
-/// The gradients are `Positioned.fill` and the child is not, so the Stack
-/// measures the child and the paint stretches to it. That is the only
-/// arrangement that works in both places this is used: an AppBar's
-/// `flexibleSpace`, which hands down a finite height, and the home page's
-/// masthead, which sits in a Column inside a sliver where the height
-/// constraint is unbounded.
-///
-/// Written the obvious way - a `SizedBox.expand` in each gradient layer -
-/// the bar is correct and the masthead throws, because an expand under an
-/// unbounded constraint asks for infinity. The rule the old DecoratedBox
-/// followed still holds underneath: a decoration with nothing in it has no
-/// size and paints nothing at all, which is why the child is required.
-class _BrandSurface extends StatelessWidget {
-  const _BrandSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(gradient: _brandGradient),
-          ),
-        ),
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(-0.75, -1.1),
-                radius: 1.5,
-                colors: [Color(0x2EFFFFFF), Color(0x00FFFFFF)],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
-    );
-  }
-}
-
-/// Fully rounded. The primary calls to action are pills, which is what tells
-/// them apart from the square panels they sit on.
-const double _rPill = 999;
-const String _apiBase = 'https://kandiug.com';
-
-// The keys every page in this app agrees on.
-const String _basketKey = 'kandi-cart-v1';
-const String _checkoutKey = 'kandi-checkout-v1';
-
-/// The session the app signs in with. Shared with the account and orders
-/// pages, which is the point: verifying at checkout signs a shopper in, and
-/// signing in on the account page means checkout asks for nothing.
-const String _authKey = 'kandi-auth-v1';
-const String _authNameKey = 'kandi-auth-name';
-
-/// The phone number this device has proved, in +2567XXXXXXXX form.
-///
-/// Kept beside the token rather than derived from it because the token is
-/// opaque to the app — it is WordPress's, and the app cannot read a number out
-/// of it. This is what lets the screen say WHICH number is verified without
-/// asking the server on every build.
-const String _verifiedPhoneKey = 'kandi-verified-phone';
-
-String _money(num amount) {
-  final whole = amount.round().toString();
-  final out = StringBuffer();
-  for (int i = 0; i < whole.length; i++) {
-    if (i > 0 && (whole.length - i) % 3 == 0) out.write(',');
-    out.write(whole[i]);
-  }
-  return 'UGX $out';
-}
-
-/// A Ugandan mobile number in the one shape the shop stores, or null.
-///
-/// +2567XXXXXXXX, which is what lib/phone.ts on the storefront normalises to
-/// and what WordPress matches `billing_phone` against. Getting this wrong does
-/// not fail loudly — it fails as a second account for the same shopper — so the
-/// app normalises before it sends rather than hoping the server will.
-///
-/// Written as a digit sweep rather than a regular expression on purpose: it has
-/// to accept 0772 123 456, +256 772 123 456 and 256772123456, which is three
-/// patterns and one loop.
-String? _normalisePhone(String raw) {
-  final digits = StringBuffer();
-  for (final unit in raw.codeUnits) {
-    if (unit >= 48 && unit <= 57) digits.writeCharCode(unit);
-  }
-
-  var value = digits.toString();
-  if (value.startsWith('256')) value = value.substring(3);
-  if (value.startsWith('0')) value = value.substring(1);
-
-  // Every Ugandan mobile prefix is 7X. Nine digits starting with anything else
-  // is a landline or a typo, and both mean the rider cannot call.
-  if (value.length != 9 || !value.startsWith('7')) return null;
-  return '+256' + value;
-}
-
-/// Loose on purpose. The only test of an address that means anything is whether
-/// a message sent to it arrives, and that is exactly what the next step does.
-bool _looksLikeEmail(String raw) {
-  final at = raw.indexOf('@');
-  if (at < 1) return false;
-  final dot = raw.indexOf('.', at + 2);
-  return dot > at + 1 && dot < raw.length - 1;
-}
-
-class _KLine {
-  const _KLine({
-    required this.productId,
-    required this.name,
-    required this.price,
-    required this.quantity,
-    this.image = '',
-    this.variantLabel,
-  });
-
-  final int productId;
-  final String name;
-  final num price;
-  final int quantity;
-
-  /// The photograph, as the basket stored it.
-  ///
-  /// Every page that writes a line writes an image with it, so this costs no
-  /// request. It was being thrown away here, and a checkout summary set purely
-  /// in text is the one screen in the app where a shopper cannot see what they
-  /// are about to pay for — which is exactly the moment they want to check.
-  final String image;
-  final String? variantLabel;
-
-  num get lineTotal => price * quantity;
-
-  static _KLine? from(dynamic json) {
-    if (json is! Map) return null;
-    final id = json['productId'];
-    final quantity = json['quantity'];
-    if (id is! int || quantity is! int || quantity < 1) return null;
-    return _KLine(
-      productId: id,
-      name: (json['name'] ?? '').toString(),
-      price: json['price'] is num ? json['price'] as num : 0,
-      quantity: quantity,
-      image: (json['image'] ?? '').toString(),
-      variantLabel: json['variantLabel']?.toString(),
-    );
-  }
-}
+// Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
 
 class KandiCheckoutScreen extends StatefulWidget {
   const KandiCheckoutScreen({super.key, this.width, this.height});
-
   final double? width;
   final double? height;
 
@@ -352,1136 +38,1349 @@ class KandiCheckoutScreen extends StatefulWidget {
   State<KandiCheckoutScreen> createState() => _KandiCheckoutScreenState();
 }
 
+/// Cash on delivery: within 40 km of central Kampala (the website's rule).
+bool _codAllowed(double? lat, double? lng) {
+  if (lat == null || lng == null) return false;
+  double rad(double deg) => deg * math.pi / 180;
+  const centreLat = 0.3476, centreLng = 32.5825;
+  final dLat = rad(lat - centreLat), dLng = rad(lng - centreLng);
+  final h = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(rad(centreLat)) * math.cos(rad(lat)) * math.pow(math.sin(dLng / 2), 2);
+  return 2 * 6371 * math.asin(math.sqrt(h)) <= 40;
+}
+
 class _KandiCheckoutScreenState extends State<KandiCheckoutScreen> {
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _phone = TextEditingController();
-  final TextEditingController _town = TextEditingController();
-  final TextEditingController _address = TextEditingController();
+  final _cart = _KCart.instance;
+  final _notes = TextEditingController();
 
-  List<_KLine> _lines = const [];
-  bool _loading = true;
-  bool _sending = false;
-  num _freeDeliveryFrom = 0;
-  int _returnsDays = 0;
+  Map<String, dynamic>? _address;
+  Map<String, dynamic>? _quote;
+  bool _quoting = false;
+  String? _quoteError;
 
-  /// The app session, and the number it was proved with.
-  ///
-  /// Both or neither. A token with no number is a shopper who signed in with an
-  /// email on the account page, and that is NOT enough to check out — the rider
-  /// calls a phone. The screen asks such a shopper for a number, which signs
-  /// them in again against the same account.
-  String? _token;
-  String? _verifiedPhone;
+  int _balance = 0;
+  int _pointValue = 10;
+  int _minRedeem = 100;
+  int _maxPercent = 50;
+  bool _usePoints = false;
 
-  /// What the shopper is paying with. Both go to Pesapal; the difference is
-  /// which tab Pesapal opens on, and saying it here rather than making the
-  /// shopper find it in a web page is most of what the in-app flow buys.
-  String _method = 'mobile';
+  String _payment = 'pesapal';
+  bool _placing = false;
+  String? _error;
+  Map<String, dynamic>? _placed;
 
+  /// An order already created in WooCommerce whose Pesapal payment did not
+  /// finish. Paying again pays for THIS order, instead of creating a second one
+  /// and spending the shopper's points twice.
+  Map<String, dynamic>? _unpaid;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _start();
   }
 
-  @override
-  void dispose() {
-    _name.dispose();
-    _phone.dispose();
-    _town.dispose();
-    _address.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    final lines = <_KLine>[];
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final raw = prefs.getString(_basketKey);
-      if (raw != null) {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          for (final entry in decoded) {
-            final line = _KLine.from(entry);
-            if (line != null) lines.add(line);
-          }
-        }
+  Future<void> _start() async {
+    await _cart.load();
+    if (!_KAuth.signedIn) {
+      final ok = await _KAuth.ensure(context, reason: 'Sign in to check out');
+      if (!ok) {
+        if (mounted) Navigator.of(context).pop();
+        return;
       }
-
-      // Refill the details from last time, so an abandoned checkout does not
-      // cost the shopper their name and their village a second time.
-      final saved = prefs.getString(_checkoutKey);
-      if (saved != null) {
-        final decoded = jsonDecode(saved);
-        if (decoded is Map) {
-          _name.text = (decoded['name'] ?? '').toString();
-          _phone.text = (decoded['phone'] ?? '').toString();
-          _town.text = (decoded['town'] ?? '').toString();
-          _address.text = (decoded['address'] ?? '').toString();
-        }
-      }
-    } catch (_) {
-      // Both are recoverable: an unreadable basket shows the empty state, and
-      // unreadable details just mean typing them again.
     }
-
-    String? token;
-    String? verified;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      token = prefs.getString(_authKey);
-      verified = prefs.getString(_verifiedPhoneKey);
-    } catch (_) {
-      // Signed out is the safe reading of an unreadable store: the worst it
-      // costs is one verification the shopper has already done.
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _lines = lines;
-      _token = (token != null && token.isNotEmpty) ? token : null;
-      _verifiedPhone = (verified != null && verified.isNotEmpty) ? verified : null;
-      // A proved number is the one the rider should call, so it wins over
-      // whatever was typed here last time.
-      if (_verifiedPhone != null) _phone.text = _verifiedPhone!;
-      _loading = false;
-    });
-
-    _loadTerms();
+    await Future.wait([_loadAddress(), _loadPoints()]);
   }
 
-  /// The delivery threshold and returns window, for the summary.
-  ///
-  /// Read from the home feed rather than hard-coded, so this screen cannot
-  /// promise a threshold the checkout does not apply.
-  Future<void> _loadTerms() async {
+  Future<void> _loadPoints() async {
     try {
-      final response = await http
-          .get(Uri.parse('$_apiBase/api/app/home'))
-          .timeout(const Duration(seconds: 12));
-      if (response.statusCode != 200) return;
-      final data = jsonDecode(response.body);
-      if (data is! Map) return;
-      final commerce = data['commerce'];
-      if (commerce is! Map) return;
+      final settings = await _kSupa.from('reward_settings').select().eq('id', 1).maybeSingle();
+      final profile = await _kSupa.from('profiles').select('points_balance').eq('id', _KAuth.user!.id).maybeSingle();
       if (!mounted) return;
       setState(() {
-        _freeDeliveryFrom = commerce['freeDeliveryFrom'] is num
-            ? commerce['freeDeliveryFrom'] as num
-            : 0;
-        _returnsDays =
-            commerce['returnsDays'] is int ? commerce['returnsDays'] as int : 0;
+        _balance = (profile?['points_balance'] as num?)?.toInt() ?? 0;
+        _pointValue = (settings?['point_value_ugx'] as num?)?.toInt() ?? 10;
+        _minRedeem = (settings?['min_redeem_points'] as num?)?.toInt() ?? 100;
+        _maxPercent = (settings?['max_redeem_percent'] as num?)?.toInt() ?? 50;
       });
-    } catch (_) {
-      // The summary simply omits the line. Not worth an error a shopper at
-      // checkout cannot act on.
-    }
-  }
-
-  num get _subtotal =>
-      _lines.fold<num>(0, (total, line) => total + line.lineTotal);
-
-  int get _count => _lines.fold<int>(0, (total, line) => total + line.quantity);
-
-  /// Which required fields are still empty.
-  ///
-  /// Named rather than just disabling the button: a greyed button with no
-  /// explanation is the most common way a shopper abandons a checkout.
-  List<String> get _missing => [
-        if (_name.text.trim().isEmpty) 'your name',
-        if (_phone.text.trim().length < 9) 'a phone number',
-        if (_town.text.trim().isEmpty) 'your town',
-      ];
-
-  /// Whether what is currently typed in the phone field is the number this
-  /// device has actually proved.
-  ///
-  /// Compared after normalising, so 0772123456 and +256772123456 are the same
-  /// number — which they are, and a shopper who retypes their own number in a
-  /// different shape should not be sent a second code for it.
-  bool _verifiedFor(String typed) {
-    if (_token == null || _verifiedPhone == null) return false;
-    return _normalisePhone(typed) == _verifiedPhone;
-  }
-
-  /// The one thing the app still hands to the browser.
-  ///
-  /// Cash on delivery is priced from a point on a map — see `codZoneFor` on the
-  /// storefront — and this screen has a town and a landmark. Rather than guess
-  /// a zone, it sends the shopper to the page that can ask properly, carrying
-  /// the basket and the details so nothing is retyped. Everything else about
-  /// payment now happens in the app; this is the exception, and it is here
-  /// because the app is missing an ADDRESS PICKER, not a payment flow.
-  Future<void> _openCashCheckout() async {
-    await _persistDetails();
-
-    final basket =
-        _lines.map((line) => '${line.productId}:${line.quantity}').join(',');
-
-    final uri = Uri.parse('$_apiBase/checkout').replace(queryParameters: {
-      'app': '1',
-      'pay': 'cod',
-      'items': basket,
-      'name': _name.text.trim(),
-      'phone': _phone.text.trim(),
-      'town': _town.text.trim(),
-      if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
-    });
-
-    bool opened = false;
-    try {
-      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      opened = false;
-    }
-
-    if (!opened) {
-      _say('Could not open the browser. Try mobile money or a card instead.');
-    }
-  }
-
-  Future<void> _persistDetails() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _checkoutKey,
-        jsonEncode({
-          'name': _name.text.trim(),
-          'phone': _phone.text.trim(),
-          'town': _town.text.trim(),
-          'address': _address.text.trim(),
-        }),
-      );
-    } catch (_) {
-      // Costs only the refill next time.
-    }
-  }
-
-  /// Sends the shopper a code and, if they read it back, signs them in.
-  ///
-  /// Returns true when the screen ends up with a proved phone number. The sheet
-  /// itself is `_KOtpSheet` at the foot of this file; everything that touches
-  /// the network lives in there, and this only records what came back.
-  ///
-  /// ---- Why the checkout insists on a PHONE ----
-  ///
-  /// The account page will verify either channel. This one will not: the number
-  /// on an order is what a rider rings from the gate, and an order carrying an
-  /// email and a number nobody has checked is an order that gets to the street
-  /// and then fails. Signing in by email and then checking out asks once for a
-  /// number, which lands on the same account either way — WordPress matches on
-  /// `billing_phone` and updates it. See `/customers/otp-session`.
-  Future<bool> _verifyPhone() async {
-    final result = await showModalBottomSheet<_KVerified>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      // Not dismissible by a stray tap on the scrim. A shopper who has already
-      // been sent an SMS and loses the sheet to a mis-tap has to burn a second
-      // code, and the shop pays for both.
-      isDismissible: false,
-      builder: (_) => _KOtpSheet(
-        channel: 'sms',
-        initialContact: _phone.text.trim(),
-        name: _name.text.trim(),
-        reason:
-            'The rider calls this number to deliver your order, so we check it '
-            'before you pay.',
-      ),
-    );
-
-    if (result == null || !mounted) return false;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_authKey, result.token);
-      await prefs.setString(_verifiedPhoneKey, result.contact);
-      if (result.name.isNotEmpty) {
-        await prefs.setString(_authNameKey, result.name);
-      }
-    } catch (_) {
-      // The session still works for this run. Not worth stopping an order the
-      // shopper has just proved they are entitled to place.
-    }
-
-    if (!mounted) return false;
-    setState(() {
-      _token = result.token;
-      _verifiedPhone = result.contact;
-      _phone.text = result.contact;
-    });
-    return true;
-  }
-
-  /// Places the order and takes the payment, without leaving the app.
-  ///
-  /// Four steps, in this order, and the order matters:
-  ///
-  ///   1. Verify the phone, if it is not already. `/api/checkout` rejects an
-  ///      order with no session, so doing this first turns what would be a 403
-  ///      into a sheet the shopper can actually answer.
-  ///   2. POST the basket to `/api/checkout`. WooCommerce writes the order and
-  ///      hands back its id and a short-lived `payment_token`. Nothing has been
-  ///      charged at this point — the order exists, awaiting payment.
-  ///   3. POST to `/api/payments/pesapal/start` with that token, which opens a
-  ///      Pesapal session and returns a URL.
-  ///   4. Show that URL in a WebView and wait for it to land back on
-  ///      `/payment/callback`, then ask the server what actually happened.
-  ///
-  /// ---- Prices are not sent, and that is deliberate ----
-  ///
-  /// Ids and quantities only. What each line costs is the server's to decide;
-  /// a figure posted from a phone is one the shop would have to either trust or
-  /// ignore, and there is no third option.
-  ///
-  /// ---- Step 4 asks the server rather than believing the WebView ----
-  ///
-  /// The callback URL carries a tracking id and nothing about whether the money
-  /// moved. Reading "success" off a redirect is how an app ships a free-order
-  /// bug: the URL is whatever the last page navigated to, and a shopper with a
-  /// proxy can navigate anywhere. `/api/app/payment/status` settles it against
-  /// Pesapal's own API, server side, and that answer is the only one this
-  /// screen acts on.
-  Future<void> _placeOrder() async {
-    if (_missing.isNotEmpty || _sending) return;
-
-    final phone = _normalisePhone(_phone.text);
-    if (phone == null) {
-      _say('That does not look like a Ugandan mobile number. Try 07XX XXX XXX.');
-      return;
-    }
-
-    // Verified, and verified as THIS number. A shopper who proves 0772… and
-    // then edits the field to 0700… has an unverified number on the order
-    // again, which is the whole thing the gate is for.
-    if (_token == null || _verifiedPhone != phone) {
-      final proved = await _verifyPhone();
-      if (!proved) return;
-    }
-
-    setState(() => _sending = true);
-    await _persistDetails();
-
-    final placed = await _createOrder();
-    if (placed == null) return;
-
-    await _payFor(placed.id, placed.paymentToken);
-  }
-
-  /// Step 2. Writes the order, awaiting payment.
-  ///
-  /// Returns null when anything went wrong, having already told the shopper
-  /// what. `_sending` is cleared on every failing path here rather than by the
-  /// caller, because a stuck spinner on a checkout reads as a placed order.
-  Future<_KPlaced?> _createOrder({bool mayRetry = true}) async {
-    final items = _lines
-        .map((line) => {
-              'productId': line.productId,
-              'quantity': line.quantity,
-            })
-        .toList();
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/checkout'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Bearer ${_token ?? ''}',
-              // The same order, sent twice, is what a stalled mobile
-              // connection and a double tap both look like to the server.
-              // See lib/idempotency.ts — this key is what lets it tell a
-              // retry from a second order.
-              'Idempotency-Key': _idempotencyKey(),
-            },
-            body: jsonEncode({
-              'customer': {
-                'first_name': _name.text.trim(),
-                'phone': _phone.text.trim(),
-                'address_1': _address.text.trim().isEmpty
-                    ? _town.text.trim()
-                    : _address.text.trim(),
-                'city': _town.text.trim(),
-              },
-              'items': items,
-              'payment_method': _method,
-              // The order is created BEFORE the money moves, so it has to be
-              // marked as such. Without this the shop would see a paid order
-              // for a payment that may yet be abandoned.
-              'awaiting_payment': true,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return null;
-
-    /* ---- An expired session, caught rather than reported ----
-     *
-     * `verification_required` means the server did not accept the token — it
-     * has lapsed, or WordPress no longer knows it. The shopper has done nothing
-     * wrong and there is nothing in the message for them to act on, so showing
-     * it would be a dead end at the exact moment they are trying to pay.
-     *
-     * Instead the stale token is dropped and the sheet is reopened. One retry,
-     * not a loop: if the second attempt is refused too then something is wrong
-     * that another code will not fix, and a checkout that keeps texting codes
-     * to a shopper is worse than one that admits it is stuck. */
-    if (status == 403 &&
-        data is Map &&
-        data['code'] == 'verification_required' &&
-        mayRetry) {
-      setState(() {
-        _token = null;
-        _verifiedPhone = null;
-        _sending = false;
-      });
-
-      final proved = await _verifyPhone();
-      if (!proved || !mounted) return null;
-
-      setState(() => _sending = true);
-      return _createOrder(mayRetry: false);
-    }
-
-    if (status != 200 || data is! Map) {
-      setState(() => _sending = false);
-      _say((data is Map && data['error'] != null)
-          ? data['error'].toString()
-          : 'Could not place the order. Check your connection and try again.');
-      return null;
-    }
-
-    final id = data['id'];
-    if (id is! int || id <= 0) {
-      setState(() => _sending = false);
-      _say('The shop did not return an order number. Nothing has been charged.');
-      return null;
-    }
-
-    return _KPlaced(
-        id: id, paymentToken: (data['payment_token'] ?? '').toString());
-  }
-
-  /// Steps 3 and 4. Opens Pesapal in a sheet and settles what came of it.
-  Future<void> _payFor(int orderId, String paymentToken) async {
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/payments/pesapal/start'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'purpose': {'kind': 'order', 'orderId': orderId},
-              // The app has no cookie jar, so the token that authorises this
-              // payment travels in the body. /api/payments/pesapal/start
-              // accepts either; see `authorise` in that route.
-              'token': paymentToken,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    final url = (data is Map) ? (data['redirect_url'] ?? '').toString() : '';
-    if (status != 200 || url.isEmpty) {
-      setState(() => _sending = false);
-      _unpaidOrder(
-        orderId,
-        (data is Map && data['error'] != null)
-            ? data['error'].toString()
-            : 'Could not open the payment page.',
-      );
-      return;
-    }
-
-    final outcome = await showModalBottomSheet<_KPayOutcome>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KPaymentSheet(url: url, amount: _money(_subtotal)),
-    );
-
-    if (!mounted) return;
-    setState(() => _sending = false);
-
-    if (outcome == null || outcome.cancelled) {
-      _unpaidOrder(orderId, 'Payment was cancelled.');
-      return;
-    }
-
-    if (!outcome.paid) {
-      _unpaidOrder(orderId, outcome.message);
-      return;
-    }
-
-    // Paid. The basket is emptied only now, and only on the server's word —
-    // clearing it when the sheet opened would lose the basket of every shopper
-    // whose payment failed.
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_basketKey);
     } catch (_) {}
-
-    if (!mounted) return;
-    setState(() => _lines = const []);
-    await _showPaid(orderId);
   }
 
-  /// What the screen says when an order exists but is not paid for.
-  ///
-  /// The order NUMBER is the important half. It is real, it is in WooCommerce,
-  /// and the shop can find it — so a shopper whose payment failed has something
-  /// to quote rather than an apology, and the basket is deliberately left alone
-  /// so that trying again costs nothing.
-  ///
-  /// Retrying passes an empty payment token on purpose. The one minted with the
-  /// order is a single short-lived grant and it has been spent; the route falls
-  /// back to the cookie it will not find and answers with its own error, which
-  /// is the honest outcome. A retry that silently reused a spent token would be
-  /// a payment authorised by nothing.
-  void _unpaidOrder(int orderId, String message) {
+  Future<void> _loadAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString(_KKeys.address);
+    final rows = (await _kSupa.from('addresses').select().order('is_default', ascending: false).order('created_at')
+        as List).cast<Map<String, dynamic>>();
+    Map<String, dynamic>? chosen;
+    for (final row in rows) {
+      if (row['id'] == id) chosen = row;
+    }
+    chosen ??= rows.isNotEmpty ? rows.first : null;
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$message Order #$orderId is saved and not paid for.'),
-        duration: const Duration(seconds: 6),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Try again',
-          textColor: Colors.white,
-          onPressed: () {
-            setState(() => _sending = true);
-            _payFor(orderId, '');
-          },
-        ),
-      ),
+    setState(() => _address = chosen);
+    if (chosen == null) {
+      await _changeAddress();
+    } else {
+      await _price();
+    }
+  }
+
+  Future<void> _changeAddress() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const KandiAddressPickerScreen()),
     );
+    if (changed == true) await _loadAddress();
   }
 
-  /// The one screen in this app that says money has changed hands.
-  ///
-  /// A dialog rather than a snackbar, and not dismissible by tapping outside: a
-  /// shopper who has just paid should have to acknowledge the order number,
-  /// because it is the only thing they can quote if anything goes wrong later.
-  Future<void> _showPaid(int orderId) async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _KColors.panel,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(_rPanel)),
-        title: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
-                  color: _KColors.saveSoft, shape: BoxShape.circle),
-              child:
-                  const Icon(Icons.check_rounded, size: 20, color: _KColors.save),
-            ),
-            const SizedBox(width: _KSpace.sm),
-            const Expanded(
-              child: Text('Payment received',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: _KColors.ink)),
-            ),
-          ],
-        ),
-        content: Text(
-          'Order #$orderId is paid and on its way. We will call the number you '
-          'verified before it is delivered.',
-          style:
-              const TextStyle(fontSize: 13.5, height: 1.5, color: _KColors.body),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: FilledButton.styleFrom(
-              backgroundColor: _KColors.flame,
-              // Lifted on a wash of its own dark end rather than on black.
-              // Black under a saturated colour greys the pixels it falls on
-              // and reads as dirt; the same hue reads as the colour bleeding
-              // onto the paper, which is what a lit object does.
-              elevation: 6,
-              shadowColor: const Color(0x59A81100),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(_rPill)),
-            ),
-            child: const Text('Done',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
+  /// Delivery price from the website's own quote, the same one the web checkout uses.
+  Future<void> _price() async {
+    final address = _address;
+    if (address == null) return;
+    setState(() {
+      _quoting = true;
+      _quoteError = null;
+    });
+    try {
+      final lat = (address['lat'] as num?)?.toDouble();
+      final lng = (address['lng'] as num?)?.toDouble();
+      final response = await http
+          .post(
+            Uri.parse('$_kSiteUrl/api/delivery/quote'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode(lat != null && lng != null
+                ? {'subtotal': _cart.subtotal, 'point': {'lat': lat, 'lng': lng}}
+                : {
+                    'subtotal': _cart.subtotal,
+                    'address': [address['street'], address['area'], address['city']]
+                        .where((part) => part != null && '$part'.isNotEmpty)
+                        .join(', '),
+                  }),
+          )
+          .timeout(const Duration(seconds: 20));
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _quoting = false;
+        if (data['fee'] is num) {
+          _quote = data;
+          final point = data['point'];
+          final ok = _codAllowed(
+            (point is Map ? point['lat'] as num? : null)?.toDouble() ?? lat,
+            (point is Map ? point['lng'] as num? : null)?.toDouble() ?? lng,
+          );
+          if (!ok && _payment == 'cod') _payment = 'pesapal';
+        } else {
+          _quote = null;
+          _quoteError = '${data['error'] ?? 'We could not price delivery to this address.'}';
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _quoting = false;
+          _quoteError = 'Could not price delivery. Check your connection.';
+        });
+      }
+    }
+  }
 
+  bool get _codHere {
+    final point = _quote?['point'];
+    final lat = (point is Map ? point['lat'] as num? : null)?.toDouble() ?? (_address?['lat'] as num?)?.toDouble();
+    final lng = (point is Map ? point['lng'] as num? : null)?.toDouble() ?? (_address?['lng'] as num?)?.toDouble();
+    return _codAllowed(lat, lng);
+  }
+
+  int get _redeemable {
+    final cap = (_cart.subtotal * _maxPercent / 100 / math.max(_pointValue, 1)).floor();
+    final points = math.min(_balance, cap);
+    return points >= _minRedeem ? points : 0;
+  }
+
+  double get _fee => ((_quote?['fee'] as num?) ?? 0).toDouble();
+  double get _discount => _usePoints ? (_redeemable * _pointValue).toDouble() : 0;
+  double get _total => math.max(0, _cart.subtotal + _fee - _discount);
+
+  Future<void> _place() async {
+    if (_address == null || _quote == null || _cart.lines.isEmpty) return;
+    if (_quote?['deliverable'] == false) {
+      setState(() => _error = 'We do not deliver to this address yet.');
+      return;
+    }
+    setState(() {
+      _placing = true;
+      _error = null;
+    });
+
+    if (_unpaid != null && _payment == 'pesapal') {
+      final order = _unpaid!;
+      final paid = await _pay(order);
+      if (!mounted) return;
+      if (!paid) {
+        setState(() {
+          _placing = false;
+          _error = 'Order #${order['woo_order_id']} is still not paid. Try again, or call us on $_kSupportPhone.';
+        });
+        return;
+      }
+      await _cart.clear();
+      if (!mounted) return;
+      setState(() {
+        _placing = false;
+        _placed = order;
+      });
+      return;
+    }
+
+    // Assigned in the try; both catch branches return before it is read.
+    late final Map<String, dynamic> result;
+    try {
+      final response = await _kSupa.functions.invoke('place-order', body: {
+        'items': _cart.lines
+            .map((line) => {
+                  'product_id': line.productId,
+                  'variation_id': line.variationId,
+                  'quantity': line.quantity,
+                  'options': line.options,
+                })
+            .toList(),
+        'address_id': _address!['id'],
+        'payment_method': _payment,
+        'redeem_points': _usePoints ? _redeemable : 0,
+        'notes': _notes.text.trim(),
+      });
+      result = (response.data as Map).cast<String, dynamic>();
+    } on FunctionException catch (e) {
+      final details = e.details;
+      setState(() {
+        _placing = false;
+        _error = details is Map && details['error'] != null ? '${details['error']}' : 'Could not place your order.';
+      });
+      return;
+    } catch (_) {
+      setState(() {
+        _placing = false;
+        _error = 'Could not place your order. Check your connection and try again.';
+      });
+      return;
+    }
+
+    final placed = result;
+    if (_payment == 'pesapal') {
+      final paid = await _pay(placed);
+      if (!mounted) return;
+      if (!paid) {
+        setState(() {
+          _placing = false;
+          _unpaid = placed;
+          _error = 'Your order #${placed['woo_order_id']} is saved but not paid yet. Tap Pay to try again.';
+        });
+        return;
+      }
+    }
+
+    await _cart.clear();
     if (!mounted) return;
-    // Back to wherever the shopper came from. The basket is empty behind this,
-    // so leaving them on a checkout for an order they have paid for would be
-    // the one screen guaranteed to confuse.
-    Navigator.of(context).maybePop();
+    setState(() {
+      _placing = false;
+      _placed = placed;
+    });
   }
 
-  void _say(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  /// A key unique to this basket and this minute.
-  ///
-  /// It has to be stable across a retry of the SAME order and different for a
-  /// new one, which is exactly what the server needs to tell a stalled
-  /// connection from a shopper who genuinely wants two. The basket contents
-  /// supply the first half and the clock, coarsened to the minute, the second.
-  ///
-  /// Capped at 120 characters because a fifty-line basket would otherwise send
-  /// a header longer than some proxies will forward.
-  String _idempotencyKey() {
-    final basket =
-        _lines.map((line) => '${line.productId}x${line.quantity}').join('-');
-    final minute = DateTime.now().millisecondsSinceEpoch ~/ 60000;
-    final key = 'app-$minute-$basket';
-    return key.length > 120 ? key.substring(0, 120) : key;
+  /// Opens Pesapal in a sheet. True when the money arrived.
+  Future<bool> _pay(Map<String, dynamic> order) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_kSiteUrl/api/payments/pesapal/start'),
+            headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: jsonEncode({
+              'purpose': {'kind': 'order', 'orderId': order['woo_order_id']},
+              'token': order['payment_token'],
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      final data = jsonDecode(response.body);
+      final url = data is Map ? '${data['redirect_url'] ?? ''}' : '';
+      if (response.statusCode != 200 || url.isEmpty || !mounted) return false;
+      final outcome = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _PaymentSheet(url: url, amount: _kMoney((order['total'] as num?) ?? _total)),
+      );
+      return outcome == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: Scaffold(
-        backgroundColor: _KColors.canvas,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          // The gradient goes behind the bar rather than in `backgroundColor`,
-          // which only takes a flat colour. `flexibleSpace` fills the whole
-          // bar including the status-bar strip above it, so the ramp starts at
-          // the top of the screen and not under the clock.
-          // SizedBox.expand is load-bearing. A childless DecoratedBox has
-          // no size, and AppBar puts flexibleSpace in a Stack under loose
-          // constraints — so the gradient painted nothing at all and every
-          // sub-page had a white title on a white bar.
-          flexibleSpace: const _BrandSurface(child: SizedBox.expand()),
-          systemOverlayStyle: SystemUiOverlayStyle.light,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text('Checkout',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white)),
-        ),
-        body: _buildBody(),
-        bottomNavigationBar: _lines.isEmpty ? null : _buildBar(),
+    if (_placed != null) return _success();
+
+    return Scaffold(
+      backgroundColor: _KColors.ground,
+      appBar: AppBar(
+        backgroundColor: _KColors.white,
+        foregroundColor: _KColors.ink,
+        elevation: 0,
+        title: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
       ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_loading) {
-      return const Center(
-          child: CircularProgressIndicator(color: _KColors.primary));
-    }
-
-    if (_lines.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(_KSpace.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.shopping_bag_outlined,
-                  size: 44, color: _KColors.muted),
-              const SizedBox(height: _KSpace.md),
-              const Text('Your basket is empty',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: _KColors.ink)),
-              const SizedBox(height: _KSpace.sm),
-              const Text('Add something before checking out.',
-                  style: TextStyle(fontSize: 13.5, color: _KColors.body)),
-              const SizedBox(height: _KSpace.lg),
-              FilledButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _KColors.flame,
-                  // A pill, like every other button in the app. This one was
-                  // left at Material's default rounded rectangle, which is a
-                  // shape nothing else here uses.
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(_rPill)),
-                  // Lifted on a wash of its own dark end rather than on
-                  // black. Black under a saturated colour greys the pixels
-                  // it falls on and reads as dirt; the same hue reads as
-                  // the colour bleeding onto the paper.
-                  elevation: 6,
-                  shadowColor: const Color(0x59A81100),
-                ),
-                child: const Text('Back to basket'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(_KSpace.md),
-      children: [
-        _panel(
-          title: 'Delivery details',
-          child: Column(
-            children: [
-              _Field(
-                controller: _name,
-                label: 'Full name',
-                hint: 'The name on the delivery',
-                icon: Icons.person_outline_rounded,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: _KSpace.md),
-              _Field(
-                controller: _phone,
-                label: 'Phone number',
-                hint: '07XX XXX XXX',
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: _KSpace.md),
-              _Field(
-                controller: _town,
-                label: 'Town or city',
-                hint: 'Kampala, Jinja, Mbarara…',
-                icon: Icons.location_city_rounded,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: _KSpace.md),
-              _Field(
-                controller: _address,
-                label: 'Address or landmark (optional)',
-                hint: 'What the courier should look for',
-                icon: Icons.place_outlined,
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: _KSpace.md),
-        _panel(
-          title: 'How you are paying',
-          child: Column(
-            children: [
-              // Both of these end at the same Pesapal session; the difference
-              // is which tab it opens on and, more to the point, that the
-              // choice is made HERE. A shopper who picks "MTN or Airtel"
-              // before they tap knows what is about to be asked of them, which
-              // is the whole reason a payment page is not a surprise.
-              _MethodTile(
-                icon: Icons.smartphone_rounded,
-                title: 'Mobile money',
-                subtitle: 'MTN MoMo or Airtel Money. Approve on your phone.',
-                selected: _method == 'mobile',
-                onTap: () => setState(() => _method = 'mobile'),
-              ),
-              const SizedBox(height: _KSpace.sm),
-              _MethodTile(
-                icon: Icons.credit_card_rounded,
-                title: 'Card',
-                subtitle: 'Visa or Mastercard, entered on Pesapal.',
-                selected: _method == 'card',
-                onTap: () => setState(() => _method = 'card'),
-              ),
-              const SizedBox(height: _KSpace.md),
-              // Said plainly rather than left for a shopper to discover at the
-              // door. Cash on delivery needs a map point to decide whether the
-              // address is in a zone the riders collect from, and this screen
-              // collects a town and a landmark instead — so the app cannot
-              // honestly offer it. Sending them to a page that can is better
-              // than a greyed-out option with no explanation.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 15, color: _KColors.muted),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _openCashCheckout(),
-                      child: const Text(
-                        'Paying cash on delivery? Tap here — it needs your exact '
-                        'drop-off point, which the website asks for on a map.',
-                        style: TextStyle(
-                            fontSize: 12, height: 1.4, color: _KColors.muted),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: _KSpace.md),
-        _panel(
-          title: 'Your order',
-          child: Column(
-            children: [
-              for (final line in _lines)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: _KSpace.sm),
-                  child: Row(
+      body: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _card(
+            title: 'Deliver to',
+            action: _address == null ? 'Add' : 'Change',
+            onAction: _changeAddress,
+            child: _address == null
+                ? const Text('Add the address we should deliver to.', style: TextStyle(color: _KColors.muted))
+                : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // The photograph, with the quantity riding its corner.
-                      // A separate "2×" column was costing a line of width on
-                      // every row to say something the badge says in the space
-                      // the picture was already taking.
-                      Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(_rPhoto),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              color: _KColors.hairline,
-                              child: line.image.isEmpty
-                                  ? const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      size: 16,
-                                      color: _KColors.muted)
-                                  : CachedNetworkImage(
-                                      imageUrl: line.image,
-                                      httpHeaders: _kImageHeaders,
-                                      // Contain, never cover: a supplier
-                                      // photograph cropped to 44px loses the
-                                      // product and keeps its background.
-                                      fit: BoxFit.contain,
-                                      placeholder: (_, __) => const ColoredBox(
-                                          color: _KColors.hairline),
-                                      errorWidget: (_, __, ___) =>
-                                          const ColoredBox(
-                                              color: _KColors.hairline),
-                                    ),
-                            ),
-                          ),
-                          if (line.quantity > 1)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: _KColors.ink,
-                                  borderRadius: BorderRadius.circular(_rPill),
-                                ),
-                                child: Text('${line.quantity}',
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white)),
-                              ),
-                            ),
-                        ],
+                      Text('${_address!['recipient']} · ${_address!['phone']}',
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(
+                        [_address!['street'], _address!['area'], _address!['city']]
+                            .where((part) => part != null && '$part'.isNotEmpty)
+                            .join(', '),
+                        style: const TextStyle(color: _KColors.body),
                       ),
-                      const SizedBox(width: _KSpace.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 10),
+                      if (_quoting)
+                        const LinearProgressIndicator(color: _KColors.ink, backgroundColor: _KColors.line)
+                      else if (_quoteError != null)
+                        Text(_quoteError!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700))
+                      else if (_quote != null)
+                        Row(
                           children: [
-                            Text(line.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    height: 1.35,
-                                    color: _KColors.ink)),
-                            if (line.variantLabel != null &&
-                                line.variantLabel!.isNotEmpty)
-                              Text(line.variantLabel!,
-                                  style: const TextStyle(
-                                      fontSize: 11.5, color: _KColors.muted)),
+                            const Icon(Icons.local_shipping_outlined, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('${_quote!['label'] ?? 'Delivery'}', style: const TextStyle(color: _KColors.body))),
+                            Text(_fee == 0 ? 'Free' : _kMoney(_fee),
+                                style: TextStyle(fontWeight: FontWeight.w900, color: _fee == 0 ? _KColors.green : _KColors.ink)),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: _KSpace.sm),
-                      Text(_money(line.lineTotal),
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _KColors.ink)),
                     ],
                   ),
-                ),
-              const Divider(color: _KColors.line, height: _KSpace.lg),
-              Row(
-                children: [
-                  Text('Subtotal · $_count ${_count == 1 ? 'item' : 'items'}',
-                      style: const TextStyle(
-                          fontSize: 13.5, color: _KColors.muted)),
-                  const Spacer(),
-                  Text(_money(_subtotal),
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.ink)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Text('Delivery',
-                      style: TextStyle(fontSize: 13.5, color: _KColors.muted)),
-                  const Spacer(),
-                  Text(
-                    _freeDeliveryFrom > 0 && _subtotal >= _freeDeliveryFrom
-                        ? 'Free'
-                        : 'Calculated at payment',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          _subtotal >= _freeDeliveryFrom && _freeDeliveryFrom > 0
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                      color:
-                          _subtotal >= _freeDeliveryFrom && _freeDeliveryFrom > 0
-                              ? _KColors.save
-                              : _KColors.muted,
+          ),
+          _card(
+            title: '${_cart.count} ${_cart.count == 1 ? 'item' : 'items'}',
+            child: Column(
+              children: [
+                for (final line in _cart.lines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 48, height: 48, child: _KPhoto(line.image, radius: 10)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(line.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                              Text(
+                                [if (line.optionText.isNotEmpty) line.optionText, 'Qty ${line.quantity}'].join(' · '),
+                                style: const TextStyle(fontSize: 12, color: _KColors.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(_kMoney(line.price * line.quantity), style: const TextStyle(fontWeight: FontWeight.w800)),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: _KSpace.md),
-        // Said before the shopper taps, not after. Being asked for a code is
-        // surprising if it is not announced, and a surprise at payment is
-        // where orders are lost.
-        //
-        // Two states, because they are two different messages: one is "there
-        // is a step coming", the other is "that step is done, here is the
-        // number we hold". The second is worth its space — it is the number
-        // the rider will call, and this is the shopper's chance to notice it
-        // is the wrong one.
-        Container(
-          padding: const EdgeInsets.all(_KSpace.md),
-          decoration: BoxDecoration(
-            color: _verifiedFor(_phone.text)
-                ? _KColors.saveSoft
-                : _KColors.warnSoft,
-            borderRadius: BorderRadius.circular(_rPanel),
+          _card(
+            title: 'Reward points',
+            child: _redeemable > 0
+                ? SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: _KColors.ink,
+                    value: _usePoints,
+                    onChanged: (value) => setState(() => _usePoints = value),
+                    title: Text('Use $_redeemable points', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    subtitle: Text('Save ${_kMoney(_redeemable * _pointValue)} · you have $_balance'),
+                  )
+                : Text(
+                    _balance > 0
+                        ? 'You have $_balance points. You can use them from $_minRedeem points.'
+                        : 'You will earn about ${(_cart.subtotal / 1000).floor()} points when this order is delivered.',
+                    style: const TextStyle(color: _KColors.body),
+                  ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                  _verifiedFor(_phone.text)
-                      ? Icons.verified_user_rounded
-                      : Icons.sms_outlined,
-                  size: 18,
-                  color: _verifiedFor(_phone.text)
-                      ? _KColors.save
-                      : _KColors.warn),
-              const SizedBox(width: _KSpace.sm),
-              Expanded(
-                child: Text(
-                  _verifiedFor(_phone.text)
-                      ? 'Verified. We will call ${_verifiedPhone ?? ''} about this delivery, '
-                          'and your order history is now on this phone.'
-                      : 'We text you a 6-digit code before payment, because the rider '
-                          'calls this number to deliver your order. Payment itself '
-                          'stays in the app.',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.45,
-                      color: _verifiedFor(_phone.text)
-                          ? _KColors.save
-                          : _KColors.warn),
+          _card(
+            title: 'Payment',
+            child: Column(
+              children: [
+                _payOption('pesapal', 'Mobile Money or card', 'MTN MoMo, Airtel Money, Visa, Mastercard', true),
+                _payOption(
+                  'cod',
+                  'Cash on delivery',
+                  _unpaid != null
+                      ? 'Finish paying order #${_unpaid!['woo_order_id']} first'
+                      : _codHere
+                          ? 'Pay the rider when it arrives'
+                          : 'Only within 40 km of central Kampala',
+                  _codHere && _unpaid == null,
                 ),
+              ],
+            ),
+          ),
+          _card(
+            title: 'Note for the rider (optional)',
+            child: TextField(
+              controller: _notes,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Call when you reach the gate',
+                filled: true,
+                fillColor: _KColors.ground,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
               ),
-            ],
+            ),
+          ),
+          if (_error != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFFDECEC), borderRadius: BorderRadius.circular(14)),
+              child: Text(_error!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700)),
+            ),
+          const SizedBox(height: 80),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(color: _KColors.white, border: Border(top: BorderSide(color: _KColors.line))),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _row('Items', _kMoney(_cart.subtotal)),
+                _row('Delivery', _quote == null ? '—' : (_fee == 0 ? 'Free' : _kMoney(_fee))),
+                if (_discount > 0) _row('Points', '−${_kMoney(_discount)}', color: _KColors.green),
+                const SizedBox(height: 4),
+                _row('Total', _kMoney(_total), bold: true),
+                const SizedBox(height: 10),
+                _KButton(
+                  label: _payment == 'cod' ? 'Place order' : 'Pay ${_kMoney(_total)}',
+                  busy: _placing,
+                  onPressed: _address == null || _quote == null || _cart.lines.isEmpty ? null : _place,
+                ),
+              ],
+            ),
           ),
         ),
-        if (_returnsDays > 0) ...[
-          const SizedBox(height: _KSpace.md),
-          Row(
-            children: [
-              const Icon(Icons.verified_outlined, size: 16, color: _KColors.save),
-              const SizedBox(width: 6),
-              Text('$_returnsDays-day returns on everything',
-                  style: const TextStyle(fontSize: 12.5, color: _KColors.body)),
-            ],
-          ),
-        ],
-        const SizedBox(height: _KSpace.xl),
-      ],
+      ),
     );
   }
 
-  Widget _panel({required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(_KSpace.lg),
-      decoration: BoxDecoration(
-        color: _KColors.panel,
-        borderRadius: BorderRadius.circular(_rPanel),
-        border: Border.all(color: _KColors.edge),
+  Widget _row(String label, String value, {bool bold = false, Color? color}) {
+    final style = TextStyle(
+      fontSize: bold ? 18 : 14,
+      fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+      color: color ?? (bold ? _KColors.ink : _KColors.body),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(children: [Text(label, style: style), const Spacer(), Text(value, style: style)]),
+    );
+  }
+
+  Widget _payOption(String value, String title, String subtitle, bool enabled) {
+    final on = _payment == value;
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: GestureDetector(
+        onTap: enabled ? () => setState(() => _payment = value) : null,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: on ? _KColors.ink : _KColors.line, width: on ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Icon(on ? Icons.radio_button_checked : Icons.radio_button_off, color: _KColors.ink),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(subtitle, style: const TextStyle(fontSize: 12, color: _KColors.muted)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _card({required String title, required Widget child, String? action, VoidCallback? onAction}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The same heading the shelves on Home carry: a short bar of the
-          // brand gradient, then the title. It costs three pixels of width and
-          // it is what makes a panel on this page read as part of the same shop
-          // as the screen the shopper arrived from.
           Row(
             children: [
-              Container(
-                width: 3,
-                height: 15,
-                decoration: BoxDecoration(
-                  gradient: _brandGradient,
-                  borderRadius: BorderRadius.circular(_rPill),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))),
+              if (action != null)
+                GestureDetector(
+                  onTap: onAction,
+                  child: Text(action, style: const TextStyle(fontWeight: FontWeight.w800, decoration: TextDecoration.underline)),
                 ),
-              ),
-              const SizedBox(width: _KSpace.sm),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: _KColors.ink)),
             ],
           ),
-          const SizedBox(height: _KSpace.md),
+          const SizedBox(height: 10),
           child,
         ],
       ),
     );
   }
 
-  Widget _buildBar() {
-    final missing = _missing;
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        _KSpace.lg,
-        _KSpace.md,
-        _KSpace.lg,
-        // Clears the home indicator on a gesture-navigation phone.
-        _KSpace.md + MediaQuery.of(context).padding.bottom,
+  Widget _success() {
+    return Scaffold(
+      backgroundColor: _KColors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: const BoxDecoration(color: _KColors.greenSoft, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded, size: 56, color: _KColors.green),
+              ),
+              const SizedBox(height: 20),
+              const Text('Order placed!', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+              const SizedBox(height: 8),
+              Text(
+                'Order #${_placed!['woo_order_id']} · ${_kMoney((_placed!['total'] as num?) ?? 0)}\nWe will call you before delivery.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, color: _KColors.body, height: 1.5),
+              ),
+              const SizedBox(height: 28),
+              _KButton(label: 'Keep shopping', onPressed: () => _KNav.tab(context, 0)),
+              const SizedBox(height: 10),
+              _KButton(
+                label: 'See my orders',
+                outline: true,
+                onPressed: () => Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const KandiAccountScreen()),
+                  (_) => false,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// Pesapal inside the app. When Pesapal sends the shopper to the website's
+/// /payment/callback, the website is asked whether the money actually arrived.
+class _PaymentSheet extends StatefulWidget {
+  const _PaymentSheet({required this.url, required this.amount});
+  final String url;
+  final String amount;
+  @override
+  State<_PaymentSheet> createState() => _PaymentSheetState();
+}
+
+class _PaymentSheetState extends State<_PaymentSheet> {
+  late final WebViewController _controller;
+  bool _loading = true;
+  bool _settling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (_) {
+          if (mounted) setState(() => _loading = true);
+        },
+        onPageFinished: (_) {
+          if (mounted) setState(() => _loading = false);
+        },
+        onNavigationRequest: (request) {
+          final uri = Uri.tryParse(request.url);
+          if (uri == null || !uri.path.contains('/payment/callback')) return NavigationDecision.navigate;
+          if (_settling) return NavigationDecision.prevent;
+          _settling = true;
+          _finish(
+            cancelled: uri.queryParameters['cancelled'] != null,
+            tracking: uri.queryParameters['OrderTrackingId'] ?? '',
+            reference: uri.queryParameters['OrderMerchantReference'] ?? '',
+          );
+          return NavigationDecision.prevent;
+        },
+      ))
+      ..loadRequest(Uri.parse(widget.url));
+  }
+
+  Future<void> _finish({required bool cancelled, required String tracking, required String reference}) async {
+    if (cancelled || tracking.isEmpty) {
+      if (mounted) Navigator.of(context).pop(false);
+      return;
+    }
+    if (mounted) setState(() => _loading = true);
+    var paid = false;
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_kSiteUrl/api/app/payment/status'),
+            headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: jsonEncode({'order_tracking_id': tracking, 'merchant_reference': reference}),
+          )
+          .timeout(const Duration(seconds: 30));
+      final data = jsonDecode(response.body);
+      paid = response.statusCode == 200 && data is Map && data['paid'] == true;
+    } catch (_) {}
+    if (mounted) Navigator.of(context).pop(paid);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
-        color: _KColors.panel,
-        border: Border(top: BorderSide(color: _KColors.line)),
+        color: _KColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          if (missing.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: _KSpace.sm),
-              child: Text('Add ${missing.join(', ')} to continue',
-                  style: const TextStyle(fontSize: 12, color: _KColors.muted)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Pay ${widget.amount}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
             ),
-          _GradientButton(
-            // Three labels for three different waits, because "Opening…" over
-            // a thirty-second call to WooCommerce is the point at which a
-            // shopper taps again. What the button says is the only thing
-            // telling them the app has not hung.
-            label: _sending
-                ? 'Working…'
-                : _verifiedFor(_phone.text)
-                    ? 'Pay ${_money(_subtotal)}'
-                    : 'Verify and pay · ${_money(_subtotal)}',
-            enabled: missing.isEmpty && !_sending,
-            onTap: _placeOrder,
           ),
+          if (_loading) const LinearProgressIndicator(color: _KColors.ink, backgroundColor: _KColors.line),
+          Expanded(child: WebViewWidget(controller: _controller)),
         ],
       ),
     );
   }
 }
 
-class _Field extends StatelessWidget {
-  const _Field({
+// ============================================================
+//  Shared building blocks, private to this file
+//  (the same in every Kandi screen; change one, change all)
+// ============================================================
+
+/// The website: delivery quotes, place search and Pesapal.
+const String _kSiteUrl = 'https://kandiug.com';
+
+/// Support line shown on Account.
+const String _kSupportPhone = '0704892253';
+
+// ------------------------------------------------------------
+//  Colours and type
+// ------------------------------------------------------------
+
+class _KColors {
+  static const ink = Color(0xFF111111);
+  static const body = Color(0xFF3A3A3A);
+  static const muted = Color(0xFF767676);
+  static const line = Color(0xFFE8E8E6);
+  static const ground = Color(0xFFF5F5F2);
+  static const yellow = Color(0xFFFFCC00);
+  static const yellowSoft = Color(0xFFFFF4C2);
+  static const sale = Color(0xFFD32F2F);
+  static const green = Color(0xFF15803D);
+  static const greenSoft = Color(0xFFDFF6E6);
+  static const white = Colors.white;
+}
+
+/// "UGX 12,000".
+String _kMoney(num amount) {
+  final whole = amount.round().abs().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) buffer.write(',');
+    buffer.write(whole[i]);
+  }
+  return '${amount < 0 ? '−' : ''}UGX $buffer';
+}
+
+/// 1234 → "1.2K".
+String _kCompact(int value) {
+  if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+  if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+  return '$value';
+}
+
+/// Strips HTML from a WooCommerce description for plain display.
+String _kPlain(String? html) {
+  if (html == null) return '';
+  return html
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n')
+      .replaceAll(RegExp(r'<li[^>]*>', caseSensitive: false), '• ')
+      .replaceAll(RegExp(r'<[^>]+>'), '')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll(RegExp(r'&#0?39;|&#8217;'), "'")
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+}
+
+// ------------------------------------------------------------
+//  Models
+// ------------------------------------------------------------
+
+class _KOption {
+  _KOption(this.name, this.value, this.image);
+  final String name;
+  final String? value; // a colour hex, when the shop set one
+  final String? image;
+}
+
+class _KAttribute {
+  _KAttribute(this.name, this.options);
+  final String name;
+  final List<_KOption> options;
+}
+
+class _KVariation {
+  _KVariation({
+    required this.id,
+    required this.price,
+    required this.regularPrice,
+    required this.attributes,
+    required this.inStock,
+    this.image,
+  });
+  final int id;
+  final double price;
+  final double regularPrice;
+  final Map<String, String> attributes;
+  final bool inStock;
+  final String? image;
+}
+
+class _KProduct {
+  _KProduct({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.regularPrice,
+    required this.image,
+    required this.gallery,
+    required this.stockStatus,
+    required this.stockQuantity,
+    required this.totalSales,
+    required this.rating,
+    required this.ratingCount,
+    required this.categoryIds,
+    required this.attributes,
+    required this.variations,
+    required this.shortDescription,
+    required this.description,
+  });
+
+  final int id;
+  final String name;
+  final double price;
+  final double regularPrice;
+  final String image;
+  final List<String> gallery;
+  final String stockStatus;
+  final int? stockQuantity;
+  final int totalSales;
+  final double rating;
+  final int ratingCount;
+  final List<int> categoryIds;
+  final List<_KAttribute> attributes;
+  final List<_KVariation> variations;
+  final String shortDescription;
+  final String description;
+
+  bool get soldOut => stockStatus == 'outofstock';
+  bool get reduced => regularPrice > price && price > 0;
+  int get discount => reduced ? (((regularPrice - price) / regularPrice) * 100).floor() : 0;
+  List<String> get photos => [image, ...gallery].where((url) => url.isNotEmpty).toSet().toList();
+
+  static double _num(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+  factory _KProduct.fromRow(Map<String, dynamic> row) {
+    final attributes = <_KAttribute>[];
+    for (final raw in (row['attributes'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final options = <_KOption>[];
+      for (final option in (raw['options'] as List? ?? const [])) {
+        if (option is Map) {
+          options.add(_KOption('${option['name'] ?? ''}', option['value']?.toString(), option['image']?.toString()));
+        } else {
+          options.add(_KOption('$option', null, null));
+        }
+      }
+      if (options.isNotEmpty) attributes.add(_KAttribute('${raw['name'] ?? ''}', options));
+    }
+
+    final variations = <_KVariation>[];
+    for (final raw in (row['variations'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final attrs = <String, String>{};
+      (raw['attributes'] as Map? ?? const {}).forEach((key, value) => attrs['$key'] = '$value');
+      variations.add(_KVariation(
+        id: (raw['id'] as num?)?.toInt() ?? 0,
+        price: _num(raw['price']),
+        regularPrice: _num(raw['regular_price']),
+        attributes: attrs,
+        inStock: raw['is_in_stock'] != false,
+        image: raw['image']?.toString(),
+      ));
+    }
+
+    return _KProduct(
+      id: (row['id'] as num).toInt(),
+      name: '${row['name'] ?? ''}',
+      price: _num(row['price']),
+      regularPrice: _num(row['regular_price']),
+      image: '${row['image'] ?? ''}',
+      gallery: (row['gallery'] as List? ?? const []).map((url) => '$url').toList(),
+      stockStatus: '${row['stock_status'] ?? 'instock'}',
+      stockQuantity: (row['stock_quantity'] as num?)?.toInt(),
+      totalSales: (row['total_sales'] as num?)?.toInt() ?? 0,
+      rating: _num(row['average_rating']),
+      ratingCount: (row['rating_count'] as num?)?.toInt() ?? 0,
+      categoryIds: (row['category_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toList(),
+      attributes: attributes,
+      variations: variations,
+      shortDescription: '${row['short_description'] ?? ''}',
+      description: '${row['description'] ?? ''}',
+    );
+  }
+}
+
+class _KCategory {
+  _KCategory({required this.id, required this.name, required this.slug, required this.parent, required this.count, this.image});
+  final int id;
+  final String name;
+  final String slug;
+  final int parent;
+  final int count;
+  final String? image;
+
+  factory _KCategory.fromRow(Map<String, dynamic> row) => _KCategory(
+        id: (row['id'] as num).toInt(),
+        name: '${row['name'] ?? ''}',
+        slug: '${row['slug'] ?? ''}',
+        parent: (row['parent'] as num?)?.toInt() ?? 0,
+        count: (row['count'] as num?)?.toInt() ?? 0,
+        image: row['image']?.toString(),
+      );
+}
+
+// ------------------------------------------------------------
+//  Supabase queries
+// ------------------------------------------------------------
+
+SupabaseClient get _kSupa => Supabase.instance.client;
+
+/// The columns a product card needs; the product page asks for '*'.
+const String _kCardColumns =
+    'id,name,price,regular_price,image,gallery,stock_status,stock_quantity,total_sales,average_rating,rating_count,category_ids,attributes,variations,short_description,description';
+
+class _KApi {
+  static List<_KCategory>? _categories;
+
+  /// Every category with products in it (a category with none, or with only
+  /// empty children, is left out so the app never shows an empty shelf).
+  static Future<List<_KCategory>> categories({bool refresh = false}) async {
+    if (_categories != null && !refresh) return _categories!;
+    final rows = await _kSupa.from('categories').select().order('count', ascending: false);
+    final all = (rows as List).map((row) => _KCategory.fromRow(row as Map<String, dynamic>)).toList();
+    bool hasProducts(_KCategory category) =>
+        category.count > 0 || all.any((child) => child.parent == category.id && hasProducts(child));
+    _categories = all.where(hasProducts).toList();
+    return _categories!;
+  }
+
+  static Future<List<_KCategory>> departments() async =>
+      (await categories()).where((category) => category.parent == 0 && category.slug != 'uncategorized').toList();
+
+  static Future<List<_KCategory>> childrenOf(int id) async =>
+      (await categories()).where((category) => category.parent == id).toList();
+
+  /// Products, newest first unless [order] says otherwise.
+  static Future<List<_KProduct>> products({
+    int? categoryId,
+    bool onlyReduced = false,
+    String order = 'date_created',
+    bool ascending = false,
+    String search = '',
+    int offset = 0,
+    int limit = 20,
+    List<int> excludeIds = const [],
+  }) async {
+    var query = _kSupa.from('products').select(_kCardColumns).neq('stock_status', 'outofstock');
+    if (categoryId != null) query = query.contains('category_ids', [categoryId]);
+    if (onlyReduced) query = query.gt('discount_percent', 0);
+    if (search.trim().isNotEmpty) query = query.ilike('name', '%${search.trim()}%');
+    if (excludeIds.isNotEmpty) query = query.not('id', 'in', '(${excludeIds.join(',')})');
+    final rows = await query.order(order, ascending: ascending).range(offset, offset + limit - 1);
+    return (rows as List).map((row) => _KProduct.fromRow(row as Map<String, dynamic>)).toList();
+  }
+
+  static Future<_KProduct?> product(int id) async {
+    final row = await _kSupa.from('products').select().eq('id', id).maybeSingle();
+    return row == null ? null : _KProduct.fromRow(row);
+  }
+}
+
+// ------------------------------------------------------------
+//  Small hand-offs between screens, kept on the device
+//  (so FlutterFlow's own Navigate To actions work too)
+// ------------------------------------------------------------
+
+class _KKeys {
+  static const openProduct = 'kandi-open-product';
+  static const shopCategory = 'kandi-shop-category';
+  static const shopQuery = 'kandi-shop-query';
+  static const shopSort = 'kandi-shop-sort';
+  static const cart = 'kandi-cart-v2';
+  static const address = 'kandi-address-id';
+}
+
+class _KNav {
+  static Future<void> openProduct(BuildContext context, int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_KKeys.openProduct, id);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiProductScreen()));
+  }
+
+  /// Opens Shop already filtered to a category, a search or a sort.
+  static Future<void> openShop(BuildContext context, {int? categoryId, String? query, String? sort}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (categoryId != null) await prefs.setInt(_KKeys.shopCategory, categoryId);
+    if (query != null) await prefs.setString(_KKeys.shopQuery, query);
+    if (sort != null) await prefs.setString(_KKeys.shopSort, sort);
+    if (!context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+  }
+
+  /// The bottom bar's tabs swap the screen rather than stacking it.
+  static void tab(BuildContext context, int index) {
+    const screens = <Widget>[
+      KandiHomeScreen(),
+      KandiShopScreen(),
+      KandiRewardsScreen(),
+      KandiCartScreen(),
+      KandiAccountScreen(),
+    ];
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => screens[index],
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (_) => false,
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  The cart, kept on the device
+// ------------------------------------------------------------
+
+class _KCartLine {
+  _KCartLine({
+    required this.productId,
+    required this.variationId,
+    required this.name,
+    required this.image,
+    required this.price,
+    required this.quantity,
+    required this.options,
+  });
+
+  final int productId;
+  final int variationId;
+  final String name;
+  final String image;
+  final double price;
+  int quantity;
+  final Map<String, String> options;
+
+  String get key => '$productId:$variationId:${options.entries.map((e) => '${e.key}=${e.value}').join('|')}';
+  String get optionText => options.entries.map((e) => '${e.key}: ${e.value}').join(' · ');
+
+  Map<String, dynamic> toJson() => {
+        'product_id': productId,
+        'variation_id': variationId,
+        'name': name,
+        'image': image,
+        'price': price,
+        'quantity': quantity,
+        'options': options,
+      };
+
+  factory _KCartLine.fromJson(Map<String, dynamic> json) => _KCartLine(
+        productId: (json['product_id'] as num).toInt(),
+        variationId: (json['variation_id'] as num?)?.toInt() ?? 0,
+        name: '${json['name'] ?? ''}',
+        image: '${json['image'] ?? ''}',
+        price: (json['price'] as num?)?.toDouble() ?? 0,
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        options: (json['options'] as Map? ?? const {}).map((k, v) => MapEntry('$k', '$v')),
+      );
+}
+
+class _KCart extends ChangeNotifier {
+  _KCart._();
+  static final _KCart instance = _KCart._();
+
+  final List<_KCartLine> lines = [];
+
+  int get count => lines.fold(0, (sum, line) => sum + line.quantity);
+  double get subtotal => lines.fold(0.0, (sum, line) => sum + line.price * line.quantity);
+
+  /// Re-reads the basket from the device. Every screen keeps its own copy of
+  /// this class, so the device is the one place the basket really lives, and
+  /// each screen reads it fresh before showing or changing it.
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_KKeys.cart);
+    if (raw != null) {
+      try {
+        lines
+          ..clear()
+          ..addAll((jsonDecode(raw) as List).map((e) => _KCartLine.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_KKeys.cart, jsonEncode(lines.map((line) => line.toJson()).toList()));
+    notifyListeners();
+  }
+
+  Future<void> add(_KCartLine line) async {
+    await load();
+    final existing = lines.where((l) => l.key == line.key).toList();
+    if (existing.isNotEmpty) {
+      existing.first.quantity = (existing.first.quantity + line.quantity).clamp(1, 20);
+    } else {
+      lines.add(line);
+    }
+    await _save();
+  }
+
+  Future<void> setQuantity(_KCartLine line, int quantity) async {
+    if (quantity <= 0) {
+      lines.remove(line);
+    } else {
+      line.quantity = quantity.clamp(1, 20);
+    }
+    await _save();
+  }
+
+  Future<void> remove(_KCartLine line) async {
+    lines.remove(line);
+    await _save();
+  }
+
+  Future<void> clear() async {
+    lines.clear();
+    await _save();
+  }
+}
+
+// ------------------------------------------------------------
+//  Phone sign-in (Supabase Auth, SMS code)
+// ------------------------------------------------------------
+
+class _KAuth {
+  static User? get user => _kSupa.auth.currentUser;
+  static bool get signedIn => user != null;
+
+  /// Signed in already, or signs in now through the sheet. True when signed in.
+  static Future<bool> ensure(BuildContext context, {String reason = 'Sign in to continue'}) async {
+    if (signedIn) return true;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _KPhoneSignInSheet(reason: reason),
+    );
+    return ok == true && signedIn;
+  }
+
+  /// "0772 123 456" / "772123456" / "+256772123456" → "+256772123456", or null.
+  static String? ugPhone(String raw) {
+    var digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('256')) digits = digits.substring(3);
+    if (digits.startsWith('0')) digits = digits.substring(1);
+    return RegExp(r'^7\d{8}$').hasMatch(digits) ? '+256$digits' : null;
+  }
+}
+
+class _KPhoneSignInSheet extends StatefulWidget {
+  const _KPhoneSignInSheet({super.key, this.reason = 'Sign in to continue'});
+  final String reason;
+  @override
+  State<_KPhoneSignInSheet> createState() => _KPhoneSignInSheetState();
+}
+
+class _KPhoneSignInSheetState extends State<_KPhoneSignInSheet> {
+  final _phone = TextEditingController();
+  final _code = TextEditingController();
+  String? _sentTo;
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _send() async {
+    final phone = _KAuth.ugPhone(_phone.text);
+    if (phone == null) {
+      setState(() => _error = 'Enter an MTN or Airtel number, like 0772 123 456.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _kSupa.auth.signInWithOtp(phone: phone);
+      setState(() => _sentTo = phone);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Could not send the code. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _verify() async {
+    final code = _code.text.trim();
+    if (code.length < 4 || _sentTo == null) {
+      setState(() => _error = 'Enter the code from the SMS.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _kSupa.auth.verifyOTP(phone: _sentTo!, token: code, type: OtpType.sms);
+      if (mounted) Navigator.of(context).pop(true);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'That code did not work. Try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = _sentTo != null;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: const BoxDecoration(
+          color: _KColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(widget.reason,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
+              const SizedBox(height: 6),
+              Text(
+                sent ? 'We sent a code to $_sentTo.' : 'We will text you a code. No password needed.',
+                style: const TextStyle(fontSize: 14, color: _KColors.muted),
+              ),
+              const SizedBox(height: 18),
+              if (!sent)
+                _KField(
+                  controller: _phone,
+                  label: 'Phone number',
+                  hint: '0772 123 456',
+                  keyboard: TextInputType.phone,
+                  prefix: '+256 ',
+                )
+              else
+                _KField(
+                  controller: _code,
+                  label: 'Code',
+                  hint: '6-digit code',
+                  keyboard: TextInputType.number,
+                ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, style: const TextStyle(color: _KColors.sale, fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+              const SizedBox(height: 18),
+              _KButton(
+                label: sent ? 'Sign in' : 'Send code',
+                busy: _busy,
+                onPressed: sent ? _verify : _send,
+              ),
+              if (sent)
+                TextButton(
+                  onPressed: _busy ? null : () => setState(() => _sentTo = null),
+                  child: const Text('Use a different number', style: TextStyle(color: _KColors.ink)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  Building blocks
+// ------------------------------------------------------------
+
+class _KButton extends StatelessWidget {
+  const _KButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.busy = false,
+    this.dark = false,
+    this.outline = false,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool busy;
+  final bool dark;
+  final bool outline;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = outline ? _KColors.white : (dark ? _KColors.ink : _KColors.yellow);
+    final foreground = dark && !outline ? _KColors.white : _KColors.ink;
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: busy ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: background,
+          foregroundColor: foreground,
+          disabledBackgroundColor: background.withOpacity(0.6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: outline ? const BorderSide(color: _KColors.ink, width: 1.5) : BorderSide.none,
+          ),
+        ),
+        child: busy
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
+                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _KField extends StatelessWidget {
+  const _KField({
+    super.key,
     required this.controller,
     required this.label,
-    required this.hint,
-    required this.icon,
-    required this.onChanged,
-    this.keyboardType,
+    this.hint,
+    this.keyboard,
+    this.prefix,
+    this.maxLines = 1,
+    this.onChanged,
   });
 
   final TextEditingController controller;
   final String label;
-  final String hint;
-  final IconData icon;
-  final ValueChanged<String> onChanged;
-  final TextInputType? keyboardType;
+  final String? hint;
+  final TextInputType? keyboard;
+  final String? prefix;
+  final int maxLines;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: _KColors.body)),
-        const SizedBox(height: 5),
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _KColors.ink)),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
+          keyboardType: keyboard,
+          maxLines: maxLines,
           onChanged: onChanged,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14.5, color: _KColors.ink),
+          style: const TextStyle(fontSize: 16, color: _KColors.ink),
           decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: _KColors.hairline,
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14, color: _KColors.muted),
-            prefixIcon: Icon(icon, size: 19, color: _KColors.muted),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: _KSpace.md, vertical: _KSpace.md),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(_rChip),
-              borderSide: BorderSide.none,
-            ),
+            prefixText: prefix,
+            filled: true,
+            fillColor: _KColors.ground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(_rChip),
-              borderSide: const BorderSide(color: _KColors.flame, width: 1.4),
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _KColors.ink, width: 1.5),
             ),
           ),
         ),
@@ -1490,197 +1389,110 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// The primary call to action: a gradient pill, full width.
-///
-/// Duplicated from the basket rather than shared. Every page here carries its
-/// own copy of everything it draws; a shared widget would be the one import
-/// that reintroduces the paste-order problem the architecture exists to avoid.
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
+/// A product photo on the shop's grey, with white backgrounds blended in.
+class _KPhoto extends StatelessWidget {
+  const _KPhoto(this.url, {super.key, this.fit = BoxFit.cover, this.radius = 0});
+  final String url;
+  final BoxFit fit;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        gradient: enabled ? _brandGradient : null,
-        color: enabled ? null : _KColors.line,
-        borderRadius: BorderRadius.circular(_rPill),
-        // ---- A coloured shadow, not a grey one ----
-        //
-        // The page is white and so is every panel on it, so a button drawn
-        // flat on that page is the same plane as everything else and has to
-        // rely on its fill alone to read as pressable.
-        //
-        // The shadow is a wash of the button's own dark end at 20% rather
-        // than black at 20%. Black under a saturated colour greys the
-        // pixels it falls on and reads as dirt; the same hue reads as the
-        // colour bleeding onto the paper, which is what a lit object
-        // actually does. It is only drawn when the button is live - a
-        // disabled control that floats is a disabled control that gets
-        // tapped.
-        boxShadow: enabled
-            ? const [
-                BoxShadow(
-                  color: Color(0x33A81100),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(_rPill),
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w800,
-                  color: enabled ? Colors.white : _KColors.muted),
-            ),
-          ),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        color: _KColors.ground,
+        child: url.isEmpty
+            ? const Center(child: Icon(Icons.image_outlined, color: _KColors.muted))
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: fit,
+                width: double.infinity,
+                height: double.infinity,
+                color: _KColors.ground,
+                colorBlendMode: BlendMode.multiply,
+                fadeInDuration: const Duration(milliseconds: 150),
+                errorWidget: (_, __, ___) => const Center(child: Icon(Icons.image_not_supported_outlined, color: _KColors.muted)),
+              ),
       ),
     );
   }
 }
 
-// ------------------------------------------------------------
-//  The small results these sheets hand back
-// ------------------------------------------------------------
-
-/// A proved contact and the session it bought.
-class _KVerified {
-  const _KVerified({
-    required this.token,
-    required this.contact,
-    required this.name,
-  });
-
-  /// The bearer token, as `/api/app/auth/otp` returned it.
-  final String token;
-
-  /// The contact in the shape the server normalised it to — +2567XXXXXXXX for
-  /// a phone, lower-cased for an email. Stored rather than what was typed, so
-  /// that comparing it against a re-typed number actually works.
-  final String contact;
-
-  /// For the greeting on the account page. Empty is not an error.
-  final String name;
-}
-
-/// An order that exists in WooCommerce and has not been paid for.
-class _KPlaced {
-  const _KPlaced({required this.id, required this.paymentToken});
-
-  final int id;
-
-  /// A short-lived grant authorising exactly one payment for exactly this
-  /// order. Minted by `/api/checkout`; see `mintPaymentToken`.
-  final String paymentToken;
-}
-
-/// What became of a trip through Pesapal.
-///
-/// `paid` is the server's word, never the WebView's — see `_KPaymentSheet`.
-class _KPayOutcome {
-  const _KPayOutcome({
-    required this.paid,
-    required this.cancelled,
-    required this.message,
-  });
-
-  final bool paid;
-  final bool cancelled;
-  final String message;
-}
-
-// ------------------------------------------------------------
-//  One payment method
-// ------------------------------------------------------------
-
-/// A radio row, drawn as a card rather than a Radio.
-///
-/// Material's own radio is 20px of tap target in a 48px row and the label is
-/// not part of it, which on a phone means a shopper aiming at the word misses.
-/// The whole card is the target here.
-class _MethodTile extends StatelessWidget {
-  const _MethodTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
+/// The product tile used everywhere: photo, discount, name, price, sold.
+class _KProductCard extends StatelessWidget {
+  const _KProductCard(this.product, {super.key, this.width});
+  final _KProduct product;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      onTap: () => _KNav.openProduct(context, product.id),
       child: Container(
-        padding: const EdgeInsets.all(_KSpace.md),
-        decoration: BoxDecoration(
-          color: selected ? _KColors.primarySoft : _KColors.panel,
-          borderRadius: BorderRadius.circular(_rChip),
-          // Selection is carried by the border AND the tint, not by one of
-          // them. A tint alone is invisible to a shopper with a colour
-          // deficiency; a border alone is easy to miss on a bright screen
-          // outdoors, which is where a lot of this shop is used.
-          border: Border.all(
-            color: selected ? _KColors.primary : _KColors.line,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
+        width: width,
+        decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(14)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon,
-                size: 22,
-                color: selected ? _KColors.primary : _KColors.muted),
-            const SizedBox(width: _KSpace.md),
-            Expanded(
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _KPhoto(product.image),
+                  if (product.discount > 0)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: const BoxDecoration(
+                          color: _KColors.yellow,
+                          borderRadius: BorderRadius.only(bottomRight: Radius.circular(10)),
+                        ),
+                        child: Text('-${product.discount}%',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _KColors.ink)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
+                  Text(product.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _KColors.body)),
+                  const SizedBox(height: 3),
+                  Text(_kMoney(product.price),
                       style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: selected ? _KColors.ink : _KColors.body)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, height: 1.35, color: _KColors.muted)),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: product.reduced ? _KColors.sale : _KColors.ink,
+                      )),
+                  Row(
+                    children: [
+                      if (product.reduced)
+                        Flexible(
+                          child: Text(_kMoney(product.regularPrice),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 11, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
+                        ),
+                      if (product.reduced && product.totalSales > 0) const SizedBox(width: 6),
+                      if (product.totalSales > 0)
+                        Text('${_kCompact(product.totalSales)} sold',
+                            style: const TextStyle(fontSize: 11, color: _KColors.muted)),
+                    ],
+                  ),
                 ],
               ),
             ),
-            Icon(
-                selected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: 20,
-                color: selected ? _KColors.primary : _KColors.line),
           ],
         ),
       ),
@@ -1688,613 +1500,213 @@ class _MethodTile extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------
-//  The verification sheet
-// ------------------------------------------------------------
-
-/// Sends a one-time code and trades it for a session.
-///
-/// ---- Two requests, and what each one is for ----
-///
-/// `POST /api/otp/start` takes a channel and a contact and sends six digits by
-/// SMS or by email. It answers with a `challenge`: the code, sealed and
-/// encrypted, that the app cannot read and cannot forge.
-///
-/// `POST /api/app/auth/otp` takes that challenge back with the digits the
-/// shopper typed. If they match, it finds or creates the WordPress customer for
-/// that contact and returns a bearer token. That token is the account.
-///
-/// ---- The code is never checked here ----
-///
-/// Worth stating because it would be easy, and wrong, to compare the two on the
-/// phone: the challenge would have to contain the code in a form the app could
-/// read, which is a code an attacker can read too. Everything about the check
-/// happens on the server, and this sheet only knows whether it passed.
-class _KOtpSheet extends StatefulWidget {
-  const _KOtpSheet({
-    required this.channel,
-    required this.initialContact,
-    required this.name,
-    required this.reason,
+/// A titled, swipeable row of product cards, optionally on a colour.
+class _KCarousel extends StatelessWidget {
+  const _KCarousel({
+    super.key,
+    required this.title,
+    required this.products,
+    this.onSeeAll,
+    this.background = _KColors.white,
+    this.titleColor = _KColors.ink,
   });
 
-  /// Always 'sms' here. The checkout proves a phone number and nothing else —
-  /// see the note on `_verifyPhone`. The account page's copy of this sheet
-  /// takes either channel and lets the shopper pick.
-  final String channel;
-  final String initialContact;
-
-  /// Passed to the server so a brand-new account has something better than a
-  /// generated username on it. Empty is fine.
-  final String name;
-
-  /// One sentence saying why this is being asked. A code request with no reason
-  /// is indistinguishable from a phishing attempt, and shoppers are right to
-  /// treat it as one.
-  final String reason;
-
-  @override
-  State<_KOtpSheet> createState() => _KOtpSheetState();
-}
-
-class _KOtpSheetState extends State<_KOtpSheet> {
-  final TextEditingController _contact = TextEditingController();
-  final TextEditingController _code = TextEditingController();
-
-  late String _channel;
-  String _challenge = '';
-  String _sentTo = '';
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _channel = widget.channel;
-    _contact.text = widget.initialContact;
-  }
-
-  @override
-  void dispose() {
-    _contact.dispose();
-    _code.dispose();
-    super.dispose();
-  }
-
-  /// Step one: ask the server to send a code.
-  Future<void> _send() async {
-    final typed = _contact.text.trim();
-
-    // Checked here as well as on the server, because the round trip to find out
-    // that 070 is not a phone number is three seconds a shopper spends watching
-    // a spinner for an answer the app already had.
-    final destination =
-        _channel == 'sms' ? _normalisePhone(typed) : (typed.toLowerCase());
-
-    if (_channel == 'sms' && destination == null) {
-      setState(() => _error = 'Enter a Ugandan mobile number, like 0772 123 456.');
-      return;
-    }
-    if (_channel == 'email' && !_looksLikeEmail(typed)) {
-      setState(() => _error = 'Enter an email address we can send the code to.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/otp/start'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({'channel': _channel, 'to': destination}),
-          )
-          .timeout(const Duration(seconds: 25));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    if (status != 200 || data is! Map) {
-      setState(() {
-        _busy = false;
-        // The server's own wording where there is one: it knows whether the
-        // gateway rejected the number or the shop has been rate limited, and
-        // this sheet does not.
-        _error = (data is Map && data['message'] != null)
-            ? data['message'].toString()
-            : 'Could not send the code. Check your connection and try again.';
-      });
-      return;
-    }
-
-    setState(() {
-      _busy = false;
-      _challenge = (data['challenge'] ?? '').toString();
-      _sentTo = (data['sentTo'] ?? destination).toString();
-      // `alreadyVerified` means this browser proved this contact before. The
-      // app has no such cookie, so it never comes back true here — but if the
-      // route ever learns to say it for a device, an empty challenge is what
-      // arrives, and a sheet asking for a code nobody sent is worse than an
-      // error.
-      if (_challenge.isEmpty) {
-        _error = 'Verification is not available right now. Please try again shortly.';
-      }
-    });
-  }
-
-  /// Step two: trade the code for a session.
-  Future<void> _confirm() async {
-    if (_code.text.trim().length < 6) {
-      setState(() => _error = 'The code is six digits.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/app/auth/otp'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'challenge': _challenge,
-              'code': _code.text.trim(),
-              'name': widget.name,
-            }),
-          )
-          .timeout(const Duration(seconds: 25));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    final token = (data is Map) ? (data['token'] ?? '').toString() : '';
-    if (status != 200 || token.isEmpty) {
-      setState(() {
-        _busy = false;
-        _error = (data is Map && data['message'] != null)
-            ? data['message'].toString()
-            : 'That code is not right. Check it, or ask for a new one.';
-      });
-      return;
-    }
-
-    final customer = (data as Map)['customer'];
-    final name = (customer is Map)
-        ? (customer['firstName'] ?? customer['name'] ?? '').toString()
-        : '';
-
-    // The contact the server normalised, not the one that was typed. They
-    // differ for every shopper who writes 0772 rather than +256772, and the
-    // difference is what makes a stored number fail to match itself later.
-    final proved = _channel == 'sms'
-        ? (_normalisePhone(_contact.text) ?? _contact.text.trim())
-        : _contact.text.trim().toLowerCase();
-
-    Navigator.of(context).pop(_KVerified(
-      token: token,
-      contact: proved,
-      name: name,
-    ));
-  }
+  final String title;
+  final List<_KProduct> products;
+  final VoidCallback? onSeeAll;
+  final Color background;
+  final Color titleColor;
 
   @override
   Widget build(BuildContext context) {
-    final sent = _challenge.isNotEmpty;
-
-    return Padding(
-      // The sheet has to sit above the keyboard, and `viewInsets` is the only
-      // measurement that knows how tall it is. Without this the code field is
-      // under the keys on every phone with a short screen.
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.all(_KSpace.lg),
-        decoration: const BoxDecoration(
-          color: _KColors.panel,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(_rPanel + 6)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    if (products.length < 3) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: const BoxDecoration(
-                      color: _KColors.primarySoft, shape: BoxShape.circle),
-                  child: Icon(
-                      _channel == 'sms'
-                          ? Icons.sms_outlined
-                          : Icons.mail_outline_rounded,
-                      size: 20,
-                      color: _KColors.primary),
-                ),
-                const SizedBox(width: _KSpace.md),
                 Expanded(
-                  child: Text(sent ? 'Enter the code' : 'Verify your number',
-                      style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: _KColors.ink)),
+                  child: Text(title,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: titleColor, letterSpacing: -0.5)),
                 ),
-                IconButton(
-                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded,
-                      size: 22, color: _KColors.muted),
-                ),
+                if (onSeeAll != null)
+                  GestureDetector(
+                    onTap: onSeeAll,
+                    child: Text('See all ›', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: titleColor)),
+                  ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              sent
-                  ? 'We sent six digits to $_sentTo. It expires in 10 minutes.'
-                  : widget.reason,
-              style: const TextStyle(
-                  fontSize: 13, height: 1.45, color: _KColors.body),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 248,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              scrollDirection: Axis.horizontal,
+              itemCount: products.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, index) => _KProductCard(products[index], width: 158),
             ),
-            const SizedBox(height: _KSpace.lg),
-
-            if (!sent) ...[
-              _Field(
-                controller: _contact,
-                label: _channel == 'sms' ? 'Phone number' : 'Email',
-                hint: _channel == 'sms' ? '07XX XXX XXX' : 'you@example.com',
-                icon: _channel == 'sms'
-                    ? Icons.phone_outlined
-                    : Icons.mail_outline_rounded,
-                keyboardType: _channel == 'sms'
-                    ? TextInputType.phone
-                    : TextInputType.emailAddress,
-                onChanged: (_) => setState(() {}),
-              ),
-            ] else
-              _Field(
-                controller: _code,
-                label: '6-digit code',
-                hint: '000000',
-                icon: Icons.password_rounded,
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  // Submits itself on the sixth digit. Six digits and then a
-                  // reach for a button is one interaction too many on a screen
-                  // whose only possible next step is "check this".
-                  setState(() {});
-                  if (value.trim().length == 6 && !_busy) _confirm();
-                },
-              ),
-
-            if (_error != null) ...[
-              const SizedBox(height: _KSpace.md),
-              Container(
-                padding: const EdgeInsets.all(_KSpace.md),
-                decoration: BoxDecoration(
-                  color: _KColors.warnSoft,
-                  borderRadius: BorderRadius.circular(_rChip),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 17, color: _KColors.warn),
-                    const SizedBox(width: _KSpace.sm),
-                    Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                              fontSize: 12.5,
-                              height: 1.4,
-                              color: _KColors.warn)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: _KSpace.lg),
-            _GradientButton(
-              label: _busy
-                  ? 'Please wait…'
-                  : (sent ? 'Confirm' : 'Send me a code'),
-              enabled: !_busy,
-              onTap: sent ? _confirm : _send,
-            ),
-
-            if (sent) ...[
-              const SizedBox(height: _KSpace.sm),
-              Center(
-                child: TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                            // Back to the first step rather than straight to a
-                            // resend. A shopper asking for a new code has
-                            // usually mistyped the number, and sending a
-                            // second one to the same wrong number is the shop
-                            // paying twice to fail twice.
-                            _challenge = '';
-                            _code.clear();
-                            _error = null;
-                          }),
-                  child: const Text('Wrong number? Start again',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _KColors.flame)),
-                ),
-              ),
-            ],
-            SizedBox(height: MediaQuery.of(context).padding.bottom + _KSpace.sm),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ------------------------------------------------------------
-//  The payment sheet
-// ------------------------------------------------------------
-
-/// Pesapal's own page, in a sheet, with the app's chrome around it.
-///
-/// ---- What is in the WebView, and what is not ----
-///
-/// The page inside is Pesapal's, served from Pesapal's domain over TLS. This
-/// app does not see the PIN or the card number, does not inject script into
-/// that page, and does not read anything out of it. The only thing it watches
-/// is WHERE the WebView navigates.
-///
-/// ---- The one navigation that matters ----
-///
-/// When Pesapal is finished it sends the browser back to
-/// `kandiug.com/payment/callback?OrderTrackingId=…`. That URL is the signal
-/// that the trip is over. It is NOT the answer to whether the money moved:
-/// `_settle` below asks the server, which asks Pesapal's API with credentials
-/// this app does not hold. Believing the URL instead would be a free-order bug
-/// one proxy away.
-///
-/// ---- Closing early is safe ----
-///
-/// The close button stays live for the whole payment. If money has already left
-/// the shopper's account, Pesapal's IPN settles the order server-side whatever
-/// this sheet does — so abandoning costs nothing, and a sheet that traps a
-/// shopper on a payment page they no longer want is how an app gets uninstalled.
-class _KPaymentSheet extends StatefulWidget {
-  const _KPaymentSheet({required this.url, required this.amount});
-
-  final String url;
-
-  /// Printed in the header. A payment page that does not say what is being
-  /// charged asks for trust it has not earned.
-  final String amount;
-
-  @override
-  State<_KPaymentSheet> createState() => _KPaymentSheetState();
-}
-
-class _KPaymentSheetState extends State<_KPaymentSheet> {
-  late final WebViewController _controller;
-
-  bool _loading = true;
-
-  /// True from the moment the callback URL is seen. It stops a second
-  /// navigation — Pesapal's callback page redirects once more on some flows —
-  /// from starting a second settle and popping the sheet twice.
-  bool _settling = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = WebViewController()
-      // Pesapal's checkout is a JavaScript application; without this it renders
-      // as a blank white box and nothing says why.
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) {
-            if (mounted) setState(() => _loading = true);
-          },
-          onPageFinished: (_) {
-            if (mounted) setState(() => _loading = false);
-          },
-          onNavigationRequest: (request) {
-            final uri = Uri.tryParse(request.url);
-            if (uri == null || !uri.path.contains('/payment/callback')) {
-              return NavigationDecision.navigate;
-            }
-
-            if (_settling) return NavigationDecision.prevent;
-            _settling = true;
-
-            final cancelled = uri.queryParameters['cancelled'] != null;
-            final tracking = uri.queryParameters['OrderTrackingId'] ?? '';
-            final reference =
-                uri.queryParameters['OrderMerchantReference'] ?? '';
-
-            // Prevented rather than navigated: the callback page is a web page
-            // meant for a browser, and letting it paint inside the sheet shows
-            // the shopper a second, differently-styled result screen behind the
-            // one this app is about to show.
-            _finish(cancelled: cancelled, tracking: tracking, reference: reference);
-            return NavigationDecision.prevent;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
-  }
-
-  Future<void> _finish({
-    required bool cancelled,
-    required String tracking,
-    required String reference,
-  }) async {
-    if (cancelled || tracking.isEmpty) {
-      if (!mounted) return;
-      Navigator.of(context).pop(const _KPayOutcome(
-        paid: false,
-        cancelled: true,
-        message: 'Payment was cancelled.',
-      ));
-      return;
-    }
-
-    if (mounted) setState(() => _loading = true);
-
-    dynamic data;
-    int status = 0;
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_apiBase/api/app/payment/status'),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'order_tracking_id': tracking,
-              'merchant_reference': reference,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-      status = response.statusCode;
-      data = jsonDecode(response.body);
-    } catch (_) {
-      status = 0;
-    }
-
-    if (!mounted) return;
-
-    final paid = status == 200 && data is Map && data['paid'] == true;
-
-    Navigator.of(context).pop(_KPayOutcome(
-      paid: paid,
-      cancelled: false,
-      message: (data is Map && data['description'] != null)
-          ? data['description'].toString()
-          // Said carefully. The app could not reach the server, which is not
-          // the same as the payment failing — and telling a shopper their money
-          // is gone when it may not be is the worst thing this sheet can say.
-          : 'We could not confirm the payment. If money left your account, '
-              'your order is safe.',
-    ));
-  }
+/// A two-column grid of product cards as a sliver.
+class _KProductGrid extends StatelessWidget {
+  const _KProductGrid(this.products, {super.key});
+  final List<_KProduct> products;
 
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      // Not full height. The strip of scrim above the sheet is what says this
-      // is a step inside the app rather than a new screen, and it is where a
-      // shopper's thumb goes to get out.
-      heightFactor: 0.92,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: _KColors.panel,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(_rPanel + 6)),
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.66,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(
-                  _KSpace.lg, _KSpace.md, _KSpace.sm, _KSpace.md),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: _KColors.line)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pay ${widget.amount}',
-                            style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: _KColors.ink)),
-                        const SizedBox(height: 1),
-                        const Row(
-                          children: [
-                            Icon(Icons.lock_rounded,
-                                size: 12, color: _KColors.save),
-                            SizedBox(width: 4),
-                            Text('Secured by Pesapal',
-                                style: TextStyle(
-                                    fontSize: 11.5, color: _KColors.muted)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    // Live throughout, and safe throughout — see the note on
-                    // this class.
-                    onPressed: () => Navigator.of(context).pop(
-                      const _KPayOutcome(
-                        paid: false,
-                        cancelled: true,
-                        message: 'Payment was cancelled.',
-                      ),
-                    ),
-                    icon: const Icon(Icons.close_rounded,
-                        size: 22, color: _KColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  WebViewWidget(controller: _controller),
-                  if (_loading)
-                    const ColoredBox(
-                      color: _KColors.panel,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: _KColors.primary),
-                            SizedBox(height: _KSpace.md),
-                            Text('Opening payment…',
-                                style: TextStyle(
-                                    fontSize: 13, color: _KColors.muted)),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+        delegate: SliverChildBuilderDelegate(
+          (_, index) => _KProductCard(products[index]),
+          childCount: products.length,
         ),
       ),
     );
   }
+}
+
+/// The app's five tabs. Cart shows its count.
+class _KBottomNav extends StatelessWidget {
+  const _KBottomNav({super.key, required this.current});
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (Icons.home_outlined, Icons.home, 'Home'),
+      (Icons.grid_view_outlined, Icons.grid_view_rounded, 'Shop'),
+      (Icons.stars_outlined, Icons.stars_rounded, 'Rewards'),
+      (Icons.shopping_bag_outlined, Icons.shopping_bag, 'Cart'),
+      (Icons.person_outline, Icons.person, 'Account'),
+    ];
+    return AnimatedBuilder(
+      animation: _KCart.instance,
+      builder: (context, _) => Container(
+        decoration: const BoxDecoration(
+          color: _KColors.white,
+          border: Border(top: BorderSide(color: _KColors.line)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: InkWell(
+                      onTap: i == current ? null : () => _KNav.tab(context, i),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Badge(
+                            isLabelVisible: i == 3 && _KCart.instance.count > 0,
+                            label: Text('${_KCart.instance.count}'),
+                            backgroundColor: _KColors.sale,
+                            child: Icon(i == current ? items[i].$2 : items[i].$1,
+                                color: i == current ? _KColors.ink : _KColors.muted, size: 26),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(items[i].$3,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: i == current ? FontWeight.w800 : FontWeight.w500,
+                                color: i == current ? _KColors.ink : _KColors.muted,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A grey placeholder block while data loads.
+class _KSkeleton extends StatelessWidget {
+  const _KSkeleton({super.key, this.height = 120, this.radius = 16});
+  final double height;
+  final double radius;
+  @override
+  Widget build(BuildContext context) => Container(
+        height: height,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(radius)),
+      );
+}
+
+/// A centred message with an optional action, for empty and error states.
+class _KEmpty extends StatelessWidget {
+  const _KEmpty({super.key, required this.icon, required this.title, this.message, this.action, this.onAction});
+  final IconData icon;
+  final String title;
+  final String? message;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(color: _KColors.yellowSoft, shape: BoxShape.circle),
+            child: Icon(icon, size: 34, color: _KColors.ink),
+          ),
+          const SizedBox(height: 16),
+          Text(title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.ink)),
+          if (message != null) ...[
+            const SizedBox(height: 6),
+            Text(message!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: _KColors.muted)),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: 18),
+            SizedBox(width: 220, child: _KButton(label: action!, onPressed: onAction)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A short message at the bottom of the screen.
+void _kToast(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: _KColors.ink,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ));
 }
