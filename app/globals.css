@@ -980,7 +980,7 @@
      downloaded: Apple devices draw true Helvetica, and Windows and Android,
      which do not ship it, fall back to Arial, which is metrically matched to
      it and reads the same at tile sizes. */
-  --font-ui: var(--font-inter), Arial, sans-serif;
+  --font-ui: var(--font-figtree), Arial, sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -1004,7 +1004,8 @@
    * back to `--font-ui`. A supplier's 90-character title is body copy that
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
-  --font-display: var(--font-ui);
+  /* Headings: Bricolage Grotesque, falling back to the UI face. */
+  --font-display: var(--font-bricolage), var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —
      but the call sites are worth keeping tagged, because they are exactly the
@@ -1147,10 +1148,11 @@ textarea {
    loose at its default spacing, and the tightening is what makes a title read as
    a solid block rather than a row of letters.
  *
- * This rule sits outside Tailwind's layers, so it wins over any `font-*` utility
- * on the same element: a heading is one weight everywhere in the store, not
- * whatever each component happened to type. Anything that genuinely wants to be
- * lighter says so with `.font-normal-heading` below. */
+ * In Tailwind's base layer, so this is the DEFAULT for a heading and a
+ * `font-black` or `text-[Npx]` written on the element wins. It used to sit
+ * outside the layers, which silently flattened every heavy hero headline to
+ * 600. Anything that wants the reading face says so with `.font-normal-heading`. */
+@layer base {
 h1,
 h2,
 h3,
@@ -1165,7 +1167,7 @@ h6,
      at a glance, and at 600 it sat close enough to the product titles beneath
      it that the eye had to stop and check. 700 is well within Inter's
      variable range, so nothing here is a synthesised bold. */
-  font-weight: 600;
+  font-weight: 700;
   /* Tightened, but only just.
 
      This was -0.03em, which pushed "Daily Deals" and "Trending now" into a
@@ -1176,6 +1178,7 @@ h6,
      correction Inter itself asks for above body size: the face is spaced for
      12–14px, so at 20–24px it reads slack unless it is pulled back in. */
   letter-spacing: -0.012em;
+}
 }
 
 /* ---------- Product prices — 800, 14–15px ----------

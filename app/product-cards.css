@@ -163,6 +163,8 @@
   min-width: 0;
 }
 .pc-name {
+  /* An h3 for structure, but a supplier title is read, not scanned. */
+  font-family: var(--font-ui);
   margin: 0;
   overflow: hidden;
   white-space: nowrap;
