@@ -9,7 +9,73 @@
 --  keeps a copy here for the shopper's order history and rewards.
 --
 --  Paste this whole file into Supabase > SQL Editor > New query > Run.
+--  Safe to run more than once.
+--
+--  THE APP NEEDS SEVEN TABLES
+--    products         copy of WooCommerce products (filled by the sync)
+--    categories       copy of WooCommerce categories (filled by the sync)
+--    profiles         one per shopper: phone, name, points balance
+--    addresses        each shopper's delivery addresses
+--    orders           the app's copy of each WooCommerce order
+--    points_ledger    every point earned, spent, returned
+--    reward_settings  the points rules (one row, edit it in the table editor)
+--
+--  The cart is kept on the phone, so no cart table is needed. Tables this app
+--  does not use (cart_items, wishlist, return_requests from a template) are
+--  left alone; delete them later if nothing else uses them.
 -- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 0. Existing tables with the same names but a different shape
+--
+-- A template project may already have `products`, `orders` or `profiles` with
+-- other columns. Those are RENAMED to *_old (nothing is deleted, the data is
+-- still there) so the right tables can be created in their place. A table
+-- that already has this app's shape is left exactly as it is.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  t record;
+begin
+  for t in
+    select * from (values
+      ('products', 'category_ids'),
+      ('orders',   'woo_order_id'),
+      ('profiles', 'points_balance'),
+      ('categories', 'parent'),
+      ('addresses', 'recipient')
+    ) as wanted(tbl, marker)
+  loop
+    if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = t.tbl)
+       and not exists (select 1 from information_schema.columns
+                       where table_schema = 'public' and table_name = t.tbl and column_name = t.marker) then
+      execute format('alter table public.%I rename to %I', t.tbl, t.tbl || '_old');
+      raise notice 'Kept the old %.% as %_old', 'public', t.tbl, t.tbl;
+    end if;
+  end loop;
+end $$;
+
+-- A template's own "create a profile on sign-up" trigger would now write to the
+-- new profiles table with columns it does not have, and break sign-in. Remove
+-- any such trigger; this file installs its own (on_auth_user_created).
+do $$
+declare
+  trg record;
+begin
+  for trg in
+    select t.tgname
+    from pg_trigger t
+    join pg_proc p on p.oid = t.tgfoid
+    where t.tgrelid = 'auth.users'::regclass
+      and not t.tgisinternal
+      and t.tgname <> 'on_auth_user_created'
+      and pg_get_functiondef(p.oid) ilike '%profiles%'
+  loop
+    execute format('drop trigger if exists %I on auth.users', trg.tgname);
+    raise notice 'Removed old sign-up trigger %', trg.tgname;
+  end loop;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Catalogue (written only by the woo-sync function, read by everyone)
