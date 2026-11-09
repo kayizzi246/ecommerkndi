@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kandi Owner API
  * Description: Owner-only REST endpoints (kandi/v1/owner) that let the shop owner add, edit and delete ANY product from the Kandi storefront without a seller account.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Kandi UG
  *
  * WHY THIS EXISTS
@@ -1320,3 +1320,226 @@ function kandi_autocat_label( $term_id ) {
 	return implode( ' > ', $parts );
 }
 endif;
+
+/* -------------------------------------------------------------------------
+ * 6. Automatic categories, from wp-admin
+ *
+ * The same filing as /admin/categories, without leaving WordPress:
+ *
+ *   - Products > Auto categories: one button that files every product, a
+ *     preview of what will move, and the switch for new products.
+ *   - Products > All Products: a "Put in right categories" bulk action for
+ *     the ticked products.
+ *   - Products > Categories: a notice pointing at the button, because that
+ *     screen's own bulk action is Delete and it is where people look first.
+ *
+ * Products whose category the owner set by hand in /admin are skipped.
+ * ---------------------------------------------------------------------- */
+
+/** Every product id the filer may touch (anything not hand-filed). */
+if ( ! function_exists( 'kandi_autocat_candidate_ids' ) ) :
+function kandi_autocat_candidate_ids() {
+	$ids = get_posts( array(
+		'post_type'      => 'product',
+		'post_status'    => array( 'publish', 'pending', 'draft', 'private' ),
+		'posts_per_page' => 2000,
+		'fields'         => 'ids',
+		'no_found_rows'  => true,
+	) );
+	return array_values( array_filter( $ids, function ( $id ) {
+		return 'owner' !== get_post_meta( $id, '_kandi_autocat_done', true );
+	} ) );
+}
+endif;
+
+/** "Men > Shoes > Sneakers" labels for the leaf categories in a set of ids. */
+if ( ! function_exists( 'kandi_autocat_leaf_labels' ) ) :
+function kandi_autocat_leaf_labels( $ids ) {
+	$terms = array();
+	foreach ( (array) $ids as $id ) {
+		$term = get_term( $id, 'product_cat' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			$terms[ (int) $id ] = $term;
+		}
+	}
+	$labels = array();
+	foreach ( $terms as $id => $term ) {
+		$is_parent = false;
+		foreach ( $terms as $other ) {
+			if ( (int) $other->parent === $id ) {
+				$is_parent = true;
+				break;
+			}
+		}
+		if ( ! $is_parent ) {
+			$labels[] = kandi_autocat_label( $id );
+		}
+	}
+	return $labels;
+}
+endif;
+
+/** Files a list of products; returns how many changed. */
+if ( ! function_exists( 'kandi_autocat_apply_many' ) ) :
+function kandi_autocat_apply_many( $ids ) {
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	}
+	kandi_autocat_tree( true );
+	$moved = 0;
+	foreach ( $ids as $product_id ) {
+		if ( 'product' !== get_post_type( $product_id ) ) {
+			continue;
+		}
+		if ( 'owner' === get_post_meta( $product_id, '_kandi_autocat_done', true ) ) {
+			continue;
+		}
+		if ( kandi_autocat_apply( (int) $product_id ) ) {
+			$moved++;
+		}
+	}
+	// The storefront caches product reads: ask it to refresh (kandi-storefront-settings.php).
+	if ( $moved > 0 && function_exists( 'kandi_purge_storefront_cache' ) ) {
+		kandi_purge_storefront_cache();
+	}
+	return $moved;
+}
+endif;
+
+/* ---- Products > Auto categories ---- */
+add_action( 'admin_menu', function () {
+	add_submenu_page(
+		'edit.php?post_type=product',
+		'Auto categories',
+		'Auto categories',
+		'manage_woocommerce',
+		'kandi-autocat',
+		'kandi_autocat_admin_page'
+	);
+} );
+
+if ( ! function_exists( 'kandi_autocat_admin_page' ) ) :
+function kandi_autocat_admin_page() {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		return;
+	}
+
+	$notice = '';
+	if ( isset( $_POST['kandi_autocat_action'] ) ) {
+		check_admin_referer( 'kandi_autocat_run' );
+		$action = sanitize_key( wp_unslash( $_POST['kandi_autocat_action'] ) );
+
+		if ( 'run' === $action ) {
+			$moved  = kandi_autocat_apply_many( kandi_autocat_candidate_ids() );
+			$notice = sprintf( '%d %s moved to the right category. Everything else was already in place.', $moved, 1 === $moved ? 'product' : 'products' );
+		} elseif ( 'toggle' === $action ) {
+			update_option( 'kandi_autocat_enabled', get_option( 'kandi_autocat_enabled', 1 ) ? 0 : 1 );
+			$notice = get_option( 'kandi_autocat_enabled', 1 ) ? 'New products will be filed automatically.' : 'Automatic filing of new products is off.';
+		}
+	}
+
+	// The preview: what pressing the button would change right now.
+	kandi_autocat_tree( true );
+	$changes = array();
+	foreach ( kandi_autocat_candidate_ids() as $product_id ) {
+		$current = kandi_autocat_current( $product_id );
+		$target  = kandi_autocat_classify( get_the_title( $product_id ), $current );
+		if ( null !== $target && $target !== $current ) {
+			$changes[] = array( $product_id, $current, $target );
+		}
+	}
+	$auto = (bool) get_option( 'kandi_autocat_enabled', 1 );
+	?>
+	<div class="wrap">
+		<h1>Auto categories</h1>
+		<p style="max-width:720px;font-size:14px">
+			Reads every product name to work out who it is for (men, women, kids, unisex) and what it is
+			(sneakers, slippers, hoodie, watch, bag, dish rack and so on), then puts it in the right one of
+			your existing categories. It never creates or deletes a category. Products whose category you
+			chose by hand in the shop's /admin are left alone.
+		</p>
+
+		<?php if ( $notice ) : ?>
+			<div class="notice notice-success"><p><?php echo esc_html( $notice ); ?></p></div>
+		<?php endif; ?>
+
+		<form method="post" style="margin:20px 0">
+			<?php wp_nonce_field( 'kandi_autocat_run' ); ?>
+			<input type="hidden" name="kandi_autocat_action" value="run" />
+			<button type="submit" class="button button-primary button-hero" <?php disabled( empty( $changes ) ); ?>>
+				<?php
+				echo esc_html(
+					empty( $changes )
+						? 'Every product is already in the right category'
+						: sprintf( 'Put %d %s in the right category', count( $changes ), 1 === count( $changes ) ? 'product' : 'products' )
+				);
+				?>
+			</button>
+		</form>
+
+		<form method="post" style="margin:0 0 24px">
+			<?php wp_nonce_field( 'kandi_autocat_run' ); ?>
+			<input type="hidden" name="kandi_autocat_action" value="toggle" />
+			<p>
+				<strong>New products:</strong>
+				<?php echo $auto ? 'filed automatically when they are published.' : 'not filed automatically.'; ?>
+				<button type="submit" class="button"><?php echo $auto ? 'Turn off' : 'Turn on'; ?></button>
+			</p>
+		</form>
+
+		<?php if ( ! empty( $changes ) ) : ?>
+			<h2>What will move</h2>
+			<table class="widefat striped" style="max-width:1100px">
+				<thead><tr><th>Product</th><th>Now in</th><th>Will be in</th></tr></thead>
+				<tbody>
+				<?php foreach ( array_slice( $changes, 0, 300 ) as $change ) : ?>
+					<tr>
+						<td><a href="<?php echo esc_url( get_edit_post_link( $change[0] ) ); ?>"><?php echo esc_html( html_entity_decode( get_the_title( $change[0] ), ENT_QUOTES, 'UTF-8' ) ); ?></a></td>
+						<td style="color:#888"><?php echo esc_html( implode( ', ', kandi_autocat_leaf_labels( $change[1] ) ) ?: 'No category' ); ?></td>
+						<td style="color:#0a7a35;font-weight:600"><?php echo esc_html( implode( ' + ', kandi_autocat_leaf_labels( $change[2] ) ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+endif;
+
+/* ---- Products > All Products: bulk action ---- */
+add_filter( 'bulk_actions-edit-product', function ( $actions ) {
+	$actions['kandi_autocat'] = 'Put in right categories';
+	return $actions;
+} );
+
+add_filter( 'handle_bulk_actions-edit-product', function ( $redirect, $action, $ids ) {
+	if ( 'kandi_autocat' !== $action || ! current_user_can( 'manage_woocommerce' ) ) {
+		return $redirect;
+	}
+	$moved = kandi_autocat_apply_many( array_map( 'intval', (array) $ids ) );
+	return add_query_arg( 'kandi_autocat_moved', $moved, $redirect );
+}, 10, 3 );
+
+/* ---- Notices: the bulk-action result, and a pointer on the Categories screen ---- */
+add_action( 'admin_notices', function () {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen ) {
+		return;
+	}
+
+	if ( 'edit-product' === $screen->id && isset( $_GET['kandi_autocat_moved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		$moved = (int) $_GET['kandi_autocat_moved']; // phpcs:ignore WordPress.Security.NonceVerification
+		printf(
+			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+			esc_html( sprintf( '%d %s moved to the right category.', $moved, 1 === $moved ? 'product' : 'products' ) )
+		);
+	}
+
+	if ( 'edit-product_cat' === $screen->id && current_user_can( 'manage_woocommerce' ) ) {
+		printf(
+			'<div class="notice notice-info"><p><strong>Want products sorted into the right categories?</strong> Use <a class="button button-primary" style="margin-left:6px" href="%s">Auto categories</a> &nbsp;Do not use Bulk actions here: on this screen it only deletes categories.</p></div>',
+			esc_url( admin_url( 'edit.php?post_type=product&page=kandi-autocat' ) )
+		);
+	}
+} );
