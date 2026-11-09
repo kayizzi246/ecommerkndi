@@ -151,10 +151,6 @@ export default function ProductPurchase({
     (attr) => isColourAttribute(attr.name)
   );
 
-  // Derived from the product id so the figure is stable across renders and
-  // between server and client — never a random number.
-  const viewers = 120 + ((product.id * 37) % 260);
-
   /** False until the first colour report, which is the picker's own on load. */
   const colourTapped = useRef(false);
 
@@ -617,9 +613,14 @@ export default function ProductPurchase({
               Only {product.stock_quantity} left in stock
             </p>
           ) : (
-            <p className="mt-2.5 flex items-center gap-2 text-[12px] text-shop-muted">
+            // A true statement rather than the old "N people viewed this in the
+            // last 24 hours", which was computed from the product id and never
+            // counted anything. Invented social proof is a misrepresentation
+            // risk under Google's Shopping and Ads policies, which this shop
+            // now advertises through.
+            <p className="mt-2.5 flex items-center gap-2 text-[13px] font-medium text-shop-success">
               <span className="h-1.5 w-1.5 rounded-full bg-shop-success" aria-hidden />
-              {viewers} people viewed this in the last 24 hours
+              In stock, ready to send
             </p>
           )}
 

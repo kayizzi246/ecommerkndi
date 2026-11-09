@@ -27,7 +27,7 @@ export default function OwnerLoginPage() {
     setError(null);
     try {
       await ownerApi.login(passcode.trim());
-      router.replace("/admin/products");
+      router.replace("/admin");
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not sign you in.");

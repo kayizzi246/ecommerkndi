@@ -55,6 +55,44 @@ export type OwnerProductInput = {
   image_urls?: string[];
 };
 
+/** One order as the admin's action lists show it. */
+export type OwnerOrderRow = {
+  id: number;
+  number: string;
+  status: string;
+  total: number;
+  customer: string;
+  phone: string;
+  city: string;
+  items: string[];
+  units: number;
+  created_at: string | null;
+  /** The order's wp-admin edit screen. */
+  edit_url: string;
+};
+
+/** GET /owner/stats — the sales-first admin overview. */
+export type OwnerStats = {
+  currency: string;
+  revenue: number;
+  revenue_change: number;
+  orders: number;
+  orders_change: number;
+  average_order: number;
+  units_sold: number;
+  revenue_series: { date: string; revenue: number; orders: number }[];
+  top_products: { id: number; name: string; units: number; revenue: number }[];
+  /** Shoppers who reached payment in the last 7 days and did not finish, one per phone. */
+  recover: OwnerOrderRow[];
+  recover_total: number;
+  /** Paid orders still waiting to be sent, oldest first. */
+  to_ship: OwnerOrderRow[];
+  /** Products that have sold before and are now out of stock, best sellers first. */
+  sold_out_best: { id: number; name: string; units_sold: number; price: number; image: string }[];
+  products_live: number;
+  products_sold_out: number;
+};
+
 export class OwnerApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -95,6 +133,8 @@ export const ownerApi = {
   me: () => request<{ ok: true; site_name: string; products: number }>("/me"),
 
   categories: () => request<{ categories: OwnerCategory[] }>("/categories"),
+
+  stats: (range: string) => request<OwnerStats>(`/stats?range=${encodeURIComponent(range)}`),
 
   products: (search = "") =>
     request<{ products: OwnerProduct[] }>(

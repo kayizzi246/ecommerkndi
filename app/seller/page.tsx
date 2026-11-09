@@ -15,10 +15,11 @@ import GettingStarted from "@/components/seller/GettingStarted";
 /**
  * Dashboard home.
  *
- * Ordered by what the seller has to *do*, not by what is easiest to plot: the
- * jobs list comes first, then the quick actions, then the figures. A seller
- * opening this page at 7am wants to know what is out of stock, not admire a
- * chart.
+ * Sales first. The headline figures (revenue, orders, views and what is ready
+ * to pay out) open the page, because "am I selling?" is the question every
+ * seller opens it with. The jobs that unblock more sales follow straight
+ * after (out of stock, nothing live, payout waiting), then the quick actions,
+ * and the detailed charts come last.
  */
 export default function SellerOverviewPage() {
   const { seller } = useSellerSession();
@@ -149,6 +150,92 @@ export default function SellerOverviewPage() {
         </div>
       )}
 
+      {/* ---- Sales, first ----
+           The headline numbers for the chosen range. Approved stores only:
+           before that every figure is a zero. */}
+      {approvedStore && (
+        <section className="mb-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-[17px] font-extrabold text-shop-ink">Your sales</h2>
+            <RangeFilter
+              value={range}
+              onChange={(next) => {
+                setRefreshing(true);
+                setRange(next);
+              }}
+            />
+          </div>
+
+          {error && (
+            <p
+              role="alert"
+              className="mb-5 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
+            >
+              {error}
+            </p>
+          )}
+
+          {!stats ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[0, 1, 2, 3].map((index) => (
+                <div key={index} className="h-32 animate-skeleton rounded-2xl bg-shop-hairline" />
+              ))}
+            </div>
+          ) : (
+            // While refetching, the frame is held at reduced opacity, no skeleton, no jump.
+            // Five across once views are being measured, four before then.
+            <div
+              className={`grid gap-4 sm:grid-cols-2 ${
+                stats.views === undefined ? "xl:grid-cols-4" : "xl:grid-cols-5"
+              } ${refreshing ? "opacity-60 transition-opacity" : "transition-opacity"}`}
+            >
+              <StatTile
+                label="Revenue"
+                value={formatPrice(stats.revenue)}
+                delta={stats.revenue_change}
+                deltaPeriod={rangeLabel}
+                trend={stats.revenue_series.map((point) => point.revenue)}
+              />
+              <StatTile
+                label="Orders"
+                value={String(stats.orders)}
+                delta={stats.orders_change}
+                deltaPeriod={rangeLabel}
+                trend={stats.revenue_series.map((point) => point.orders)}
+              />
+              {/* Only when the shop is actually counting: `undefined` means
+                  this install has no view counter, and "0 views" would tell a
+                  seller their listings are dead when nothing was measured. */}
+              {stats.views !== undefined && (
+                <StatTile
+                  label="Product views"
+                  value={stats.views.toLocaleString("en-UG")}
+                  delta={stats.views_change}
+                  deltaPeriod={rangeLabel}
+                  hint={
+                    stats.views > 0 && stats.orders > 0
+                      ? `${((stats.orders / stats.views) * 100).toFixed(1)}% of views ordered`
+                      : stats.views > 0
+                        ? "No orders from these views yet"
+                        : undefined
+                  }
+                />
+              )}
+              <StatTile
+                label="Units sold"
+                value={String(stats.units_sold)}
+                hint={`Across ${stats.products_live} live ${stats.products_live === 1 ? "listing" : "listings"}`}
+              />
+              <StatTile
+                label="Ready to pay out"
+                value={formatPrice(stats.payout_due)}
+                hint={`${formatPrice(stats.commission_owed)} commission outstanding`}
+              />
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ---- What needs you ----
            Every job here links to Products, Orders or Earnings, none of which
            an unapproved store can use. Until then the checklist above is the
@@ -260,90 +347,11 @@ export default function SellerOverviewPage() {
         </section>
       ) : (
         <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[17px] font-extrabold text-shop-ink">Your numbers</h2>
-        <RangeFilter
-          value={range}
-          onChange={(next) => {
-            setRefreshing(true);
-            setRange(next);
-          }}
-        />
-      </div>
-
-      {error && (
-        <p
-          role="alert"
-          className="mb-5 rounded-xl bg-pop-red-soft px-4 py-3 text-[14px] font-medium text-pop-red"
-        >
-          {error}
-        </p>
-      )}
-
-      {!stats ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((index) => (
-            <div key={index} className="h-32 animate-skeleton rounded-2xl bg-shop-hairline" />
-          ))}
-        </div>
-      ) : (
-        // While refetching, the frame is held at reduced opacity — no skeleton, no jump.
+      {stats && (
+        // The headline tiles are at the top of the page; this is the detail.
         <div className={refreshing ? "opacity-60 transition-opacity" : "transition-opacity"}>
-          {/* Five across once views are being measured, four before then.
-              The column count follows the tiles rather than the tiles being
-              padded out to fill a fixed grid — a placeholder "—" where a real
-              number will one day sit is worse than the number being absent. */}
-          <div
-            className={`grid gap-4 sm:grid-cols-2 ${
-              stats.views === undefined ? "xl:grid-cols-4" : "xl:grid-cols-5"
-            }`}
-          >
-            <StatTile
-              label="Revenue"
-              value={formatPrice(stats.revenue)}
-              delta={stats.revenue_change}
-              deltaPeriod={rangeLabel}
-              trend={stats.revenue_series.map((point) => point.revenue)}
-            />
-            <StatTile
-              label="Orders"
-              value={String(stats.orders)}
-              delta={stats.orders_change}
-              deltaPeriod={rangeLabel}
-              trend={stats.revenue_series.map((point) => point.orders)}
-            />
-            {/* Only when the shop is actually counting. `undefined` means the
-                plugin on this install has no view counter yet, and a "0 views"
-                tile in that case tells a seller their listings are dead when
-                nothing has been measured at all. */}
-            {stats.views !== undefined && (
-              <StatTile
-                label="Product views"
-                value={stats.views.toLocaleString("en-UG")}
-                delta={stats.views_change}
-                deltaPeriod={rangeLabel}
-                hint={
-                  stats.views > 0 && stats.orders > 0
-                    ? `${((stats.orders / stats.views) * 100).toFixed(1)}% of views ordered`
-                    : stats.views > 0
-                      ? "No orders from these views yet"
-                      : undefined
-                }
-              />
-            )}
-            <StatTile
-              label="Units sold"
-              value={String(stats.units_sold)}
-              hint={`Across ${stats.products_live} live ${stats.products_live === 1 ? "listing" : "listings"}`}
-            />
-            <StatTile
-              label="Ready to pay out"
-              value={formatPrice(stats.payout_due)}
-              hint={`${formatPrice(stats.commission_owed)} commission outstanding`}
-            />
-          </div>
-
-          <div className="mt-5">
+          <h2 className="mb-4 text-[17px] font-extrabold text-shop-ink">Sales in detail</h2>
+          <div>
             <RevenueChart data={stats.revenue_series} formatValue={formatPrice} />
           </div>
 

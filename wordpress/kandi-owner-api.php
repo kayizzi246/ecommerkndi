@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kandi Owner API
  * Description: Owner-only REST endpoints (kandi/v1/owner) that let the shop owner add, edit and delete ANY product from the Kandi storefront without a seller account.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Kandi UG
  *
  * WHY THIS EXISTS
@@ -524,5 +524,343 @@ add_action( 'rest_api_init', function () {
 				return rest_ensure_response( array( 'ok' => true ) );
 			},
 		),
+	) );
+} );
+
+/* -------------------------------------------------------------------------
+ * 4. Sales overview — GET /owner/stats?range=7d|30d|90d|mtd|ytd
+ *
+ * The admin's front page. It answers, in this order, the questions that turn
+ * into money today:
+ *
+ *   1. Who tried to pay and did not finish? (`recover`) Each one is a shopper
+ *      who chose a product, typed an address and reached the payment step, so
+ *      a phone call or a WhatsApp message wins back a sale already made in
+ *      their head. Nothing else on the page converts as cheaply.
+ *   2. What is paid and waiting to be sent? (`to_ship`) Late dispatch is how a
+ *      first order fails to become a second one.
+ *   3. Which proven sellers can no longer be bought? (`sold_out_best`) A best
+ *      seller at zero stock is losing sales every hour it stays that way.
+ *   4. Only then the figures: revenue, orders, average order, best sellers.
+ *
+ * Self-contained like the rest of this file: no Seller Centre helpers, so it
+ * works on an install without that plugin.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Real UTC timestamps for a named range, measured in the shop's own timezone,
+ * plus the equally long window before it for the change figures.
+ */
+if ( ! function_exists( 'kandi_owner_range' ) ) :
+function kandi_owner_range( $range ) {
+	$zone  = wp_timezone();
+	$now   = new DateTimeImmutable( 'now', $zone );
+	$today = $now->setTime( 0, 0, 0 );
+
+	switch ( is_string( $range ) ? strtolower( $range ) : '30d' ) {
+		case '7d':
+			$start = $today->modify( '-6 days' );
+			break;
+		case '90d':
+			$start = $today->modify( '-89 days' );
+			break;
+		case 'mtd':
+			$start = $today->modify( 'first day of this month' );
+			break;
+		case 'ytd':
+			$start = $today->setDate( (int) $today->format( 'Y' ), 1, 1 );
+			break;
+		case '30d':
+		default:
+			$start = $today->modify( '-29 days' );
+			break;
+	}
+
+	$start_ts = $start->getTimestamp();
+	$end_ts   = $now->getTimestamp();
+	$span     = max( DAY_IN_SECONDS, $end_ts - $start_ts );
+
+	return array(
+		'start'          => $start_ts,
+		'end'            => $end_ts,
+		'previous_start' => $start_ts - $span,
+		'previous_end'   => $start_ts - 1,
+		'start_date'     => $start,
+		'zone'           => $zone,
+	);
+}
+endif;
+
+/** Order ids in a status set and time window, newest first, with a hard cap. */
+if ( ! function_exists( 'kandi_owner_order_ids' ) ) :
+function kandi_owner_order_ids( $statuses, $from, $to, $limit = 3000 ) {
+	return wc_get_orders( array(
+		'limit'        => $limit,
+		'status'       => $statuses,
+		'date_created' => $from . '...' . $to,
+		'orderby'      => 'date',
+		'order'        => 'DESC',
+		'return'       => 'ids',
+	) );
+}
+endif;
+
+/** The one-line shape an order takes in the admin's action lists. */
+if ( ! function_exists( 'kandi_owner_order_row' ) ) :
+function kandi_owner_order_row( $order ) {
+	$items = array();
+	$units = 0;
+	foreach ( $order->get_items() as $item ) {
+		$items[] = $item->get_name();
+		$units  += (int) $item->get_quantity();
+	}
+
+	$name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+
+	return array(
+		'id'         => $order->get_id(),
+		'number'     => (string) $order->get_order_number(),
+		'status'     => $order->get_status(),
+		'total'      => (float) $order->get_total(),
+		'customer'   => '' !== $name ? $name : 'Guest',
+		'phone'      => (string) $order->get_billing_phone(),
+		'city'       => (string) ( $order->get_shipping_city() ? $order->get_shipping_city() : $order->get_billing_city() ),
+		'items'      => $items,
+		'units'      => $units,
+		'created_at' => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : null,
+		'edit_url'   => admin_url( 'post.php?post=' . $order->get_id() . '&action=edit' ),
+	);
+}
+endif;
+
+/** Net order value: what was charged, less anything already refunded. */
+if ( ! function_exists( 'kandi_owner_net_total' ) ) :
+function kandi_owner_net_total( $order ) {
+	return (float) $order->get_total() - (float) $order->get_total_refunded();
+}
+endif;
+
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'kandi/v1', '/owner/stats', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'permission_callback' => 'kandi_owner_permission',
+		'callback'            => function ( WP_REST_Request $request ) {
+			if ( ! function_exists( 'wc_get_orders' ) ) {
+				return new WP_Error( 'kandi_no_woocommerce', 'WooCommerce is not active.', array( 'status' => 500 ) );
+			}
+
+			$range = kandi_owner_range( $request->get_param( 'range' ) );
+
+			// What counts as a sale. `on-hold` is in because cash-on-delivery
+			// and manual payments wait there; leaving it out would hide real
+			// orders from the revenue figure.
+			$paid = array( 'processing', 'completed', 'on-hold' );
+
+			/* ---- Current window: totals, daily series, best sellers ---- */
+			$revenue  = 0.0;
+			$units    = 0;
+			$by_day   = array();
+			$products = array();
+
+			$ids = kandi_owner_order_ids( $paid, $range['start'], $range['end'] );
+			foreach ( $ids as $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( ! $order ) {
+					continue;
+				}
+
+				$total    = kandi_owner_net_total( $order );
+				$revenue += $total;
+
+				$created = $order->get_date_created();
+				if ( $created ) {
+					$day = $created->setTimezone( $range['zone'] )->format( 'Y-m-d' );
+					if ( ! isset( $by_day[ $day ] ) ) {
+						$by_day[ $day ] = array( 'revenue' => 0.0, 'orders' => 0 );
+					}
+					$by_day[ $day ]['revenue'] += $total;
+					$by_day[ $day ]['orders']  += 1;
+				}
+
+				foreach ( $order->get_items() as $item ) {
+					$product_id = (int) $item->get_product_id();
+					$qty        = (int) $item->get_quantity();
+					$units     += $qty;
+					if ( ! isset( $products[ $product_id ] ) ) {
+						$products[ $product_id ] = array(
+							'id'      => $product_id,
+							'name'    => $item->get_name(),
+							'units'   => 0,
+							'revenue' => 0.0,
+						);
+					}
+					$products[ $product_id ]['units']   += $qty;
+					$products[ $product_id ]['revenue'] += (float) $item->get_total();
+				}
+			}
+
+			$orders = count( $ids );
+
+			// Every day in the window, including the empty ones — a chart that
+			// skips a day with no sales draws a line straight across the gap
+			// and hides exactly the day worth asking about.
+			$series = array();
+			$cursor = $range['start_date'];
+			$last   = ( new DateTimeImmutable( 'now', $range['zone'] ) )->format( 'Y-m-d' );
+			for ( $guard = 0; $guard < 400; $guard++ ) {
+				$key      = $cursor->format( 'Y-m-d' );
+				$series[] = array(
+					'date'    => $key,
+					'revenue' => round( isset( $by_day[ $key ] ) ? $by_day[ $key ]['revenue'] : 0, 2 ),
+					'orders'  => isset( $by_day[ $key ] ) ? (int) $by_day[ $key ]['orders'] : 0,
+				);
+				if ( $key >= $last ) {
+					break;
+				}
+				$cursor = $cursor->modify( '+1 day' );
+			}
+
+			usort( $products, function ( $a, $b ) {
+				return $b['revenue'] <=> $a['revenue'];
+			} );
+			$top = array_slice( array_values( $products ), 0, 8 );
+
+			/* ---- Previous window, for the change figures ---- */
+			$previous_revenue = 0.0;
+			$previous_ids     = kandi_owner_order_ids( $paid, $range['previous_start'], $range['previous_end'] );
+			foreach ( $previous_ids as $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( $order ) {
+					$previous_revenue += kandi_owner_net_total( $order );
+				}
+			}
+			$previous_orders = count( $previous_ids );
+
+			$change = function ( $current, $previous ) {
+				if ( $previous <= 0 ) {
+					return $current > 0 ? 100.0 : 0.0;
+				}
+				return round( ( ( $current - $previous ) / $previous ) * 100, 1 );
+			};
+
+			/* ---- Unfinished payments in the last 7 days: the recovery list ---- */
+			// Always the last week, whatever range is picked: a shopper who gave
+			// up three months ago is not a call worth making, and one from
+			// yesterday very much is.
+			$week_ago        = time() - 7 * DAY_IN_SECONDS;
+			$unpaid_statuses = array( 'pending', 'failed' );
+			if ( get_post_status_object( 'wc-checkout-draft' ) ) {
+				$unpaid_statuses[] = 'checkout-draft';
+			}
+
+			$recover     = array();
+			$recover_sum = 0.0;
+			$seen        = array();
+			foreach ( kandi_owner_order_ids( $unpaid_statuses, $week_ago, time(), 200 ) as $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( ! $order || $order->is_paid() ) {
+					continue;
+				}
+
+				// One row per shopper. Someone who retried the payment three
+				// times is one phone call, not three, and three rows would
+				// triple-count the money on the table.
+				$raw_phone = (string) $order->get_billing_phone();
+				$phone     = preg_replace( '/\D+/', '', $raw_phone );
+				$key       = '' !== $phone ? $phone : 'order-' . $order_id;
+				if ( isset( $seen[ $key ] ) ) {
+					continue;
+				}
+				$seen[ $key ] = true;
+
+				// A shopper who went on to pay through a later order does not
+				// need a call about the abandoned one.
+				$created = $order->get_date_created();
+				if ( '' !== $phone && $created ) {
+					$paid_since = wc_get_orders( array(
+						'limit'         => 1,
+						'return'        => 'ids',
+						'status'        => $paid,
+						'billing_phone' => $raw_phone,
+						'date_created'  => '>=' . $created->getTimestamp(),
+					) );
+					if ( ! empty( $paid_since ) ) {
+						continue;
+					}
+				}
+
+				$recover[]    = kandi_owner_order_row( $order );
+				$recover_sum += (float) $order->get_total();
+			}
+
+			/* ---- Paid and waiting to be sent ---- */
+			$to_ship_ids = wc_get_orders( array(
+				'limit'   => 50,
+				'status'  => array( 'processing', 'on-hold' ),
+				'orderby' => 'date',
+				'order'   => 'ASC', // Oldest first: they have waited longest.
+				'return'  => 'ids',
+			) );
+			$to_ship = array();
+			foreach ( $to_ship_ids as $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( $order ) {
+					$to_ship[] = kandi_owner_order_row( $order );
+				}
+			}
+
+			/* ---- Best sellers that can no longer be bought ---- */
+			// Sorted here rather than in the query: ordering wc_get_products by a
+			// meta value is not portable across WooCommerce versions, and the
+			// out-of-stock list is short enough to sort in PHP.
+			$sold_out_ids = wc_get_products( array(
+				'status'       => 'publish',
+				'stock_status' => 'outofstock',
+				'limit'        => -1,
+				'return'       => 'ids',
+			) );
+			$sold_counts = array();
+			foreach ( $sold_out_ids as $product_id ) {
+				$sold = (int) get_post_meta( $product_id, 'total_sales', true );
+				if ( $sold > 0 ) {
+					$sold_counts[ $product_id ] = $sold; // Never sold: not urgent.
+				}
+			}
+			arsort( $sold_counts );
+
+			$sold_out_best = array();
+			foreach ( array_slice( $sold_counts, 0, 8, true ) as $product_id => $sold ) {
+				$product = wc_get_product( $product_id );
+				if ( ! $product ) {
+					continue;
+				}
+				$image_id        = $product->get_image_id();
+				$sold_out_best[] = array(
+					'id'         => (int) $product_id,
+					'name'       => $product->get_name(),
+					'units_sold' => $sold,
+					'price'      => (float) $product->get_price(),
+					'image'      => $image_id ? (string) wp_get_attachment_image_url( $image_id, 'thumbnail' ) : '',
+				);
+			}
+
+			return rest_ensure_response( array(
+				'currency'          => get_woocommerce_currency(),
+				'revenue'           => round( $revenue, 2 ),
+				'revenue_change'    => $change( $revenue, $previous_revenue ),
+				'orders'            => $orders,
+				'orders_change'     => $change( $orders, $previous_orders ),
+				'average_order'     => $orders > 0 ? round( $revenue / $orders, 2 ) : 0,
+				'units_sold'        => $units,
+				'revenue_series'    => $series,
+				'top_products'      => $top,
+				'recover'           => $recover,
+				'recover_total'     => round( $recover_sum, 2 ),
+				'to_ship'           => $to_ship,
+				'sold_out_best'     => $sold_out_best,
+				'products_live'     => (int) wp_count_posts( 'product' )->publish,
+				'products_sold_out' => count( $sold_out_ids ),
+			) );
+		},
 	) );
 } );

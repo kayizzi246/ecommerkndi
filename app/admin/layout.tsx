@@ -21,10 +21,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="font-tabular flex min-h-screen flex-col bg-shop-surface">
       <header className="bg-shop-nav text-white">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-4 px-4 py-3 md:px-8">
-          <Link href="/admin/products" className="font-heading text-lg tracking-tight">
+          <Link href="/admin" className="font-heading text-lg tracking-tight">
             Shop <span className="text-shop-flame">Admin</span>
           </Link>
           <nav className="flex items-center gap-5 text-[13px] font-semibold">
+            <Link href="/admin" className="hover:text-bfl-yellow">
+              Sales
+            </Link>
             <Link href="/admin/products" className="hover:text-bfl-yellow">
               Products
             </Link>
