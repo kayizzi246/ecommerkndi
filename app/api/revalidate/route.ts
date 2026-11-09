@@ -79,7 +79,12 @@ export async function POST(request: Request) {
     return Response.json({ message: "Invalid API secret." }, { status: 403 });
   }
 
-  purge(!fromWordPress);
+  // WordPress asks for a hard purge (`?hard=1`) when the catalogue itself
+  // changed: a product added, edited, published, hidden, trashed or moved to
+  // another category. Those must show on the live shop at once. The soft purge
+  // stays for everything else, which is mostly stock moving as orders land.
+  const hardFromWordPress = new URL(request.url).searchParams.get("hard") === "1";
+  purge(!fromWordPress || hardFromWordPress);
   return Response.json({ revalidated: true, now: Date.now() });
 }
 

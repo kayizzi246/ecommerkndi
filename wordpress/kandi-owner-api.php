@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kandi Owner API
  * Description: Owner-only REST endpoints (kandi/v1/owner) that let the shop owner add, edit and delete ANY product from the Kandi storefront without a seller account.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Kandi UG
  *
  * WHY THIS EXISTS
@@ -1543,3 +1543,91 @@ add_action( 'admin_notices', function () {
 		);
 	}
 } );
+
+/* -------------------------------------------------------------------------
+ * 7. New and changed products show on the live shop straight away
+ *
+ * kandi-storefront-settings.php already pings the storefront on every product
+ * save, but as a SOFT purge: the next shopper still gets the cached copy while a
+ * fresh one is fetched behind them, and prerendered pages (home, categories)
+ * keep their old product lists until they next rebuild. Soft is right for
+ * stock moving as orders land, which happens all day. It is wrong for the
+ * catalogue changing: a product added, edited, published, hidden, trashed or
+ * moved to another category should be on the shop the moment it is saved.
+ *
+ * So those changes send one HARD purge (`/api/revalidate?hard=1`) at the very
+ * end of the request, after the automatic categories above have run, so the
+ * shop is rebuilt with the final categories and not the importer's guess.
+ * ---------------------------------------------------------------------- */
+
+/** Asks for a hard purge at the end of this request; returns whether one is due. */
+if ( ! function_exists( 'kandi_owner_want_hard_purge' ) ) :
+function kandi_owner_want_hard_purge( $want = null ) {
+	static $due = false;
+	if ( true === $want ) {
+		$due = true;
+	}
+	return $due;
+}
+endif;
+
+/**
+ * Requests that only move stock: an order being placed or paid. Those saves
+ * keep the soft purge. Cron is included because WooCommerce reduces stock
+ * there too; a product an importer PUBLISHES from cron is still caught by the
+ * status-change hook below.
+ */
+if ( ! function_exists( 'kandi_owner_is_stock_request' ) ) :
+function kandi_owner_is_stock_request() {
+	if ( wp_doing_cron() ) {
+		return true;
+	}
+	$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	return false !== strpos( $uri, '/kandi/v1/orders' ) || false !== strpos( $uri, 'wc-ajax=checkout' );
+}
+endif;
+
+// Published, unpublished, trashed, restored.
+add_action( 'transition_post_status', function ( $new_status, $old_status, $post ) {
+	if ( $post && 'product' === $post->post_type && $new_status !== $old_status ) {
+		kandi_owner_want_hard_purge( true );
+	}
+}, 10, 3 );
+
+// Edited in wp-admin, the Seller Centre, the owner /admin or an import.
+add_action( 'save_post_product', function ( $post_id ) {
+	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) || kandi_owner_is_stock_request() ) {
+		return;
+	}
+	kandi_owner_want_hard_purge( true );
+}, 30, 1 );
+
+// Moved to another category, including by the automatic filing above.
+add_action( 'set_object_terms', function ( $object_id, $terms, $tt_ids, $taxonomy ) {
+	if ( 'product_cat' === $taxonomy && 'product' === get_post_type( $object_id ) ) {
+		kandi_owner_want_hard_purge( true );
+	}
+}, 10, 4 );
+
+// Deleted outright.
+add_action( 'before_delete_post', function ( $post_id ) {
+	if ( 'product' === get_post_type( $post_id ) ) {
+		kandi_owner_want_hard_purge( true );
+	}
+}, 10, 1 );
+
+// Priority 99: after the automatic categories (priority 10) have been written.
+add_action( 'shutdown', function () {
+	if ( ! kandi_owner_want_hard_purge() || ! function_exists( 'kandi_storefront_url' ) ) {
+		return;
+	}
+	$base = kandi_storefront_url();
+	if ( '' === $base ) {
+		return;
+	}
+	wp_remote_post( $base . '/api/revalidate?hard=1', array(
+		'timeout'  => 1,
+		'blocking' => false,
+		'headers'  => array( 'X-Kandi-Secret' => kandi_owner_shared_secret() ),
+	) );
+}, 99 );

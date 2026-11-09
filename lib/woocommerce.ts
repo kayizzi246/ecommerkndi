@@ -71,7 +71,23 @@ export function buildCategoryTree(categories: ProductCategory[]): CategoryNode[]
   };
   sortByCount(roots);
 
-  return roots;
+  /**
+   * Empty categories are dropped from the tree, at every level.
+   *
+   * WordPress keeps every category that was ever created, and on this shop
+   * about half of them hold nothing (Jewelry > Watches, Kids > Jewelry > …).
+   * A menu link to an empty page reads as a broken shop. A category stays while
+   * it, or anything under it, has products; one with no `count` at all is kept,
+   * because that is "not reported", not "empty". The category page itself still
+   * answers if someone has the link.
+   */
+  const prune = (list: CategoryNode[]): CategoryNode[] =>
+    list.filter((node) => {
+      node.children = prune(node.children);
+      return node.count === undefined || node.count > 0 || node.children.length > 0;
+    });
+
+  return prune(roots);
 }
 
 export type ProductAttributeOption = {
