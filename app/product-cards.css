@@ -23,7 +23,6 @@
   height: 100%;
   min-width: 0;
   background: #fff;
-  border-radius: 10px;
   font-family: var(--font-ui);
   color: #222;
 }
@@ -33,7 +32,8 @@
   position: relative;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 10px;
+  /* Square corners: the photo is the product, not a rounded sticker. */
+  border-radius: 0;
   background: #f5f5f5;
   /* Keeps the photo's blend (below) inside the tile. */
   isolation: isolate;
@@ -82,11 +82,10 @@
 
 .pc-flag {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 0;
+  left: 0;
   z-index: 5;
-  border-radius: 4px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   font-size: 11px;
   font-weight: 700;
   line-height: 16px;
@@ -319,13 +318,6 @@
      columns read as a brick pattern rather than a table. An offset rather
      than a masonry layout, so a tile never jumps columns as more products
      load. Only on a two-column grid. */
-  .pc-grid.grid-cols-2 {
-    padding-bottom: 40px;
-  }
-  .pc-grid.grid-cols-2 > :nth-child(even) {
-    position: relative;
-    top: 40px;
-  }
   .pc-name {
     font-size: 12px;
   }

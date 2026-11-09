@@ -163,7 +163,7 @@ export default function RecentlyViewed({ className = "mt-12" }: { className?: st
                     true square with a 12px corner. This rail sits directly
                     above the grid on the same page, so a tile here at a
                     different shape reads as a different kind of product. */}
-                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-shop-hairline">
+                <div className="relative aspect-square w-full overflow-hidden bg-shop-hairline">
                   {item.image ? (
                     <Image
                       quality={90}

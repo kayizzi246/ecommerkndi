@@ -7,10 +7,6 @@ import TileCartButton from "@/components/TileCartButton";
 
 /** Stock at or under this shows "Only N left". */
 const LOW_STOCK_AT = 5;
-/** Lifetime units sold before a product is called a best seller. */
-const BEST_SELLER_AT = 50;
-const TOP_RATED_AT = 4.5;
-const TOP_RATED_REVIEWS = 3;
 /** Days a listing counts as new. */
 const NEW_FOR_DAYS = 14;
 
@@ -36,14 +32,13 @@ const GRID_SIZES =
   "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 260px";
 
 /**
- * The product tile, laid out the way Temu lays out theirs: a square photo, one
- * line of name, the price with the sold count beside it and the cart button to
- * the right, the old price underneath, then one merchandising line, the stars
- * and the delivery promise.
+ * The product tile, kept clean: a square photo with square corners, one line
+ * of name, the price with the sold count and the cart button, and the old
+ * price under it. One flag on the photo at most (sold out, the discount, or
+ * new), and one note only when stock is out or nearly out. Ratings, badges and
+ * the delivery promise live on the product page, not on every tile.
  *
- * Styled by the `pc-*` classes in app/product-cards.css rather than the older
- * `tile-*` rules in globals.css, which had been overridden in so many places
- * that changing one of them no longer reliably changed the tile.
+ * Styled by the `pc-*` classes in app/product-cards.css.
  */
 export default function ProductCard({
   product,
@@ -60,16 +55,7 @@ export default function ProductCard({
   const lowStock =
     !soldOut && product.stock_quantity !== null && product.stock_quantity > 0 && product.stock_quantity <= LOW_STOCK_AT;
   const href = `/products/${product.slug || product.id}`;
-
-  const bestSeller = product.total_sales >= BEST_SELLER_AT;
-  const topRated =
-    product.rating_count >= TOP_RATED_REVIEWS && product.average_rating >= TOP_RATED_AT;
   const isNew = listedRecently(product.date_created);
-
-  /* One merchandising line under the price, only when it says something
-     the tile does not already: the discount is on the flag and the struck
-     price, and "New" is on the flag, so neither is repeated here. */
-  const highlight = bestSeller ? "Best-selling item" : topRated ? "Top rated item" : null;
 
   const secondPhoto = product.gallery.find((url) => url && url !== product.image) ?? null;
 
@@ -118,17 +104,6 @@ export default function ProductCard({
           <span className="pc-flag pc-flag-new">New</span>
         ) : null}
 
-        {/* The campaign mark on reduced products: a small tag in the corner
-            of the photo rather than a ribbon across it. */}
-        {/* Only on the deepest cuts: a sticker on every reduced photo stopped
-            meaning anything and made the grid look stamped out. */}
-        {!soldOut && discount >= 40 && (
-          <span className="pc-bn-tag" aria-hidden>
-            Black November
-          </span>
-        )}
-
-
         {/* `z-20` lifts both controls above the whole-card link at the foot of
             this component, so they act instead of navigating. */}
         <div className="pc-wish">
@@ -163,7 +138,7 @@ export default function ProductCard({
             </p>
             {reduced && (
               <p className="pc-was">
-                Was: <s>{formatPrice(product.regular_price)}</s>
+                <s>{formatPrice(product.regular_price)}</s>
               </p>
             )}
           </div>
@@ -172,30 +147,11 @@ export default function ProductCard({
           </div>
         </div>
 
-        {highlight && !soldOut && <p className="pc-highlight">{highlight}</p>}
-
-        {product.rating_count > 0 && (
-          <p
-            className="pc-rating"
-            aria-label={`Rated ${product.average_rating.toFixed(1)} of 5 from ${product.rating_count} reviews`}
-          >
-            <TileStars rating={product.average_rating} />
-            <span aria-hidden>{product.rating_count.toLocaleString("en-US")}</span>
-          </p>
-        )}
-
         {soldOut ? (
           <p className="pc-note">Back in stock soon</p>
         ) : lowStock ? (
           <p className="pc-urgent">Only {product.stock_quantity} left</p>
-        ) : (
-          <p className="pc-delivery">
-            {/* The shop's Kampala express promise. Upcountry orders still take
-                the 1–3 business days stated on the product and delivery pages,
-                which is why the place is named. */}
-            Arrives in <strong>90 mins</strong> · Kampala
-          </p>
-        )}
+        ) : null}
       </div>
 
       {/* The whole tile is a pointer target. An overlay rather than an anchor
@@ -203,30 +159,5 @@ export default function ProductCard({
           inside a link. Hidden from assistive tech: the name is the real link. */}
       <Link href={href} aria-hidden tabIndex={-1} className="pc-overlay" />
     </article>
-  );
-}
-
-const STAR_PATH =
-  "M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5Z";
-
-/** Five stars filled to the rating, black on grey. */
-function TileStars({ rating }: { rating: number }) {
-  const row = (className: string) => (
-    <span className={`flex gap-px ${className}`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <svg key={i} className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path d={STAR_PATH} />
-        </svg>
-      ))}
-    </span>
-  );
-  const share = Math.max(0, Math.min(5, rating)) / 5;
-  return (
-    <span aria-hidden className="relative inline-flex">
-      {row("text-[#d4d4d4]")}
-      <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${share * 100}%` }}>
-        {row("text-[#222222]")}
-      </span>
-    </span>
   );
 }

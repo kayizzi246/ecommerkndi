@@ -184,8 +184,8 @@ button, input, select, textarea { font-family: inherit; }
 /* Carousel headings: heavy and large, so each shelf reads as its own
    department rather than one more row of the same page. */
 .hx-carousel .hx-panel-title {
-  font-size: 26px;
-  font-weight: 900;
+  font-size: 22px;
+  font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -194,7 +194,7 @@ button, input, select, textarea { font-family: inherit; }
 }
 @media (max-width: 639px) {
   .hx-carousel .hx-panel-title {
-    font-size: 21px;
+    font-size: 18px;
   }
 }
 
@@ -204,17 +204,9 @@ button, input, select, textarea { font-family: inherit; }
    colour cast. Where the browser supports scroll-driven animation the panel
    starts white and washes into its colour as it scrolls into view, with the
    heading rising in; everywhere else it simply shows its colour. */
-.hx-tone {
-  background: var(--tone-bg);
-}
-.hx-tone .hx-panel-title,
-.hx-tone .hx-see-all {
+/* Only the heading takes the department's colour; the panel stays white. */
+.hx-tone .hx-panel-title {
   color: var(--tone-ink);
-}
-.hx-tone .hx-see-all:hover {
-  color: var(--tone-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .hx-tone-new {
   --tone-bg: #fff4c2;
@@ -243,38 +235,6 @@ button, input, select, textarea { font-family: inherit; }
 .hx-tone-teal {
   --tone-bg: #d9f4f2;
   --tone-ink: #0f766e;
-}
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .hx-tone {
-      animation: hx-tone-wash linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 70%;
-    }
-    .hx-tone .hx-panel-title {
-      animation: hx-tone-rise linear both;
-      animation-timeline: view();
-      animation-range: entry 10% entry 80%;
-    }
-  }
-}
-@keyframes hx-tone-wash {
-  from {
-    background-color: #fff;
-  }
-  to {
-    background-color: var(--tone-bg);
-  }
-}
-@keyframes hx-tone-rise {
-  from {
-    opacity: 0.2;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 .hx-arrow {
   position: absolute;
@@ -364,7 +324,6 @@ button, input, select, textarea { font-family: inherit; }
   display: block;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 10px;
   background: #f5f5f5;
 }
 .hx-deal-photo img {
@@ -466,10 +425,9 @@ button, input, select, textarea { font-family: inherit; }
 }
 .wb-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  border-radius: 4px;
-  padding: 1px 6px;
+  top: 0;
+  left: 0;
+  padding: 1px 7px;
   background: var(--color-shop-sale-price);
   color: #fff;
   font-size: 11px;

@@ -68,7 +68,6 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: 8px;
   background: #fff;
   color: #111;
 }
@@ -92,7 +91,6 @@
   position: absolute;
   top: 0;
   left: 0;
-  border-bottom-right-radius: 8px;
   background: var(--color-shop-primary);
   padding: 3px 8px;
   font-size: 13px;
