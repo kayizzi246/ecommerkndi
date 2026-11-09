@@ -216,7 +216,7 @@ export default function SellerCommissionsPage() {
   const openPayout = payouts?.payouts.find((entry) => entry.status === "requested") ?? null;
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="max-w-[1200px]">
       <h1 className="text-[25px] font-extrabold text-black">Commissions &amp; payouts</h1>
       <p className="mt-1 text-[13px] text-bfl-grey">
         Kandi deducts {seller?.commission_rate ?? 0}% of each completed order. Everything else is

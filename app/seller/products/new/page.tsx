@@ -104,7 +104,7 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1000px]">
+    <div className="max-w-[1000px]">
       <nav className="mb-4 flex items-center gap-2 text-[13px] text-bfl-grey">
         <Link href="/seller/products" className="hover:text-black hover:underline">
           Products

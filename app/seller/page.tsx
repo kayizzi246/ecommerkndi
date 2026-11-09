@@ -115,7 +115,7 @@ export default function SellerOverviewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="max-w-[1200px]">
       {/* Page head */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>

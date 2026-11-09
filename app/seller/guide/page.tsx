@@ -19,7 +19,7 @@ export default function SellerGuidePage() {
   const commission = seller?.commission_rate ?? 0;
 
   return (
-    <div className="mx-auto max-w-[860px]">
+    <div className="max-w-[860px]">
       <header>
         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-shop-primary">
           New here?

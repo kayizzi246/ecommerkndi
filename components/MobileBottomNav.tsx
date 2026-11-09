@@ -63,7 +63,9 @@ export default function MobileBottomNav() {
    *
    * `startsWith` covers `/products/<id>` for every product.
    */
-  const ownsBottomBar = pathname.startsWith("/products/") || pathname === "/cart";
+  // /sell pins its own "Open your store" bar.
+  const ownsBottomBar =
+    pathname.startsWith("/products/") || pathname === "/cart" || pathname === "/sell";
   if (ownsBottomBar) return null;
 
   return (

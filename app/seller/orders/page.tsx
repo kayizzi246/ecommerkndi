@@ -185,7 +185,7 @@ export default function SellerOrdersPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="max-w-[1200px]">
       <h1 className="text-[25px] font-extrabold text-black">Orders &amp; sales</h1>
       <p className="mt-1 text-[13px] text-bfl-grey">
         Every order containing one of your products, with the buyer&apos;s delivery details and your

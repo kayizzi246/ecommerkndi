@@ -69,7 +69,7 @@ function SettingsForm({ seller, onSaved }: { seller: Seller; onSaved: () => Prom
   };
 
   return (
-    <div className="mx-auto max-w-[820px]">
+    <div className="max-w-[820px]">
       <h1 className="text-[27px] font-extrabold leading-tight text-shop-ink">Store settings</h1>
       <p className="mt-1 text-[14px] text-shop-muted">
         How your store appears to shoppers, and where we send your money.

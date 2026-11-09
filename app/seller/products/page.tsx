@@ -309,7 +309,7 @@ export default function SellerProductsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="max-w-[1200px]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[20px] font-extrabold leading-tight text-shop-ink">Products</h1>

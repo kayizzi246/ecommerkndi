@@ -4150,8 +4150,7 @@ body { font-size: 13px; }
 .tile-info .tile-price,
 .pc-price,
 .hx-deal-price,
-.bnd-hero-price,
-.bnd-tile-price,
+.bnd-price,
 .crail-total,
 .crail-price {
   font-weight: 800;

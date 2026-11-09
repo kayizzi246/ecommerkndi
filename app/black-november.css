@@ -5,224 +5,167 @@
  * ------------------------------------------------------------------------- */
 
 .bnd {
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
-  background: radial-gradient(ellipse at 20% 0%, #3a2408 0%, #120c06 45%, #0a0806 100%);
-  padding: 18px 18px 14px;
+  border-radius: 12px;
+  background: #111;
+  padding: 16px 16px 12px;
   color: #fff;
 }
 .bnd-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .bnd-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 20px;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--color-shop-primary);
+  line-height: 1.2;
 }
-.bnd-sub {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: #d8c4a9;
+.bnd-upto {
+  color: var(--color-shop-primary);
 }
 .bnd-all {
+  display: inline-flex;
   flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--color-shop-primary);
-  padding: 8px 16px;
+  align-items: center;
+  gap: 2px;
   font-size: 13px;
-  font-weight: 700;
-  color: #111;
+  font-weight: 600;
+  color: var(--color-shop-primary);
+}
+.bnd-all svg {
+  width: 16px;
+  height: 16px;
 }
 .bnd-all:hover {
-  background: var(--color-shop-primary-dark);
-}
-.bnd-body {
-  display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
-  gap: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-/* Deal of the day */
-.bnd-hero {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(255, 204, 0, 0.5);
-  border-radius: 12px;
-  background: #fff;
-  color: #111;
-}
-.bnd-hero-photo {
-  position: relative;
-  display: block;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background: #f5f5f5;
-}
-.bnd-hero-photo img {
-  transition: transform 400ms ease;
-}
-.bnd-hero:hover .bnd-hero-photo img {
-  transform: scale(1.04);
-}
-.bnd-hero-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  background: #111;
-  color: var(--color-shop-primary);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.bnd-hero-off {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  width: 64px;
-  height: 64px;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--color-shop-sale-price);
-  color: #fff;
-  font-size: 18px;
-  font-weight: 900;
-  box-shadow: 0 6px 16px rgba(198, 40, 40, 0.4);
-}
-.bnd-hero-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px 14px;
-}
-.bnd-hero-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 14px;
-  color: #222;
-}
-.bnd-hero-prices {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.bnd-hero-price {
-  font-size: 24px;
-  color: var(--color-shop-sale-price);
-}
-.bnd-hero-was {
-  font-size: 13px;
-  color: #888;
-}
-.bnd-hero-save {
-  width: fit-content;
-  border-radius: 6px;
-  background: var(--color-shop-successbg);
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-shop-save);
-}
-.bnd-hero-cta {
-  margin-top: 6px;
-  border-radius: 999px;
-  background: var(--color-shop-primary);
-  padding: 10px;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 800;
-  color: #111;
-}
-.bnd-hero:hover .bnd-hero-cta {
-  background: var(--color-shop-primary-dark);
-}
-
-/* The next best deals */
 .bnd-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
 }
 .bnd-tile {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
-  padding-bottom: 8px;
   color: #111;
 }
-.bnd-tile-photo {
+.bnd-photo {
   position: relative;
   display: block;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: #f5f5f5;
+  background: #f4f4f4;
 }
-.bnd-tile-photo img {
+.bnd-photo img {
   transition: transform 300ms ease;
 }
-.bnd-tile:hover .bnd-tile-photo img {
-  transform: scale(1.05);
+.bnd-tile:hover .bnd-photo img {
+  transform: scale(1.04);
 }
-.bnd-tile-off {
+.bnd-off {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  border-radius: 4px;
-  padding: 1px 6px;
-  background: #111;
-  color: var(--color-shop-primary);
-  font-size: 12px;
-  font-weight: 800;
+  top: 0;
+  left: 0;
+  border-bottom-right-radius: 8px;
+  background: var(--color-shop-primary);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
 }
-.bnd-tile-price {
-  margin: 6px 8px 0;
-  font-size: 15px;
+.bnd-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 9px 10px;
+}
+.bnd-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: #555;
+}
+.bnd-prices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+}
+.bnd-price {
+  font-size: 16px;
   color: var(--color-shop-sale-price);
 }
-.bnd-tile-was {
-  margin: 0 8px;
+.bnd-was {
   font-size: 11px;
-  color: #888;
+  color: #999;
+}
+.bnd-meta {
+  font-size: 11px;
+  color: #777;
 }
 
-/* Guarantees */
 .bnd-trust {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 22px;
-  margin-top: 14px;
-  border-top: 1px solid rgba(255, 204, 0, 0.2);
-  padding-top: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #f1e3cf;
+  gap: 4px 0;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
 }
-.bnd-trust li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.bnd-trust span + span::before {
+  content: "·";
+  margin: 0 10px;
+  color: rgba(255, 255, 255, 0.35);
 }
-.bnd-trust svg {
-  width: 18px;
-  height: 18px;
-  color: var(--color-shop-primary);
+
+@media (max-width: 1023px) {
+  .bnd-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
+@media (max-width: 639px) {
+  .bnd {
+    border-radius: 0;
+    padding: 14px 0 12px;
+  }
+  .bnd-head,
+  .bnd-trust {
+    padding: 0 12px;
+  }
+  .bnd-title {
+    font-size: 17px;
+  }
+  /* One swipeable row on phones, with the next tile peeking in. */
+  .bnd-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 12px;
+    padding: 0 12px;
+    scrollbar-width: none;
+  }
+  .bnd-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .bnd-grid > li {
+    width: 38%;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}
+
 
 /* ---- Sale page header ---- */
 .bn-hero {
@@ -240,6 +183,7 @@
   .bn-hero {
     border-radius: 18px;
   }
+
 }
 .bn-hero-glow {
   position: absolute;
@@ -324,78 +268,12 @@
   color: var(--color-shop-save);
 }
 
-@media (max-width: 1023px) {
-  .bnd-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .bnd-hero {
-    flex-direction: row;
-  }
-  .bnd-hero-photo {
-    width: 42%;
-    flex-shrink: 0;
-  }
-  .bnd-hero-info {
-    justify-content: center;
-  }
-}
 @media (max-width: 767px) {
   .bn-hero {
     grid-template-columns: minmax(0, 1fr);
     padding: 20px 16px;
   }
-}
-@media (max-width: 639px) {
-  .bnd {
-    padding: 14px 10px 12px;
-  }
-  .bnd-head {
-    align-items: center;
-  }
-  .bnd-title {
-    font-size: 19px;
-  }
-  .bnd-sub {
-    font-size: 12px;
-  }
-  .bnd-all {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-  .bnd-hero-off {
-    width: 48px;
-    height: 48px;
-    font-size: 14px;
-  }
-  .bnd-hero-price {
-    font-size: 19px;
-  }
-  .bnd-hero-name {
-    display: -webkit-box;
-    white-space: normal;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    font-size: 13px;
-  }
-  .bnd-hero-cta {
-    padding: 8px;
-    font-size: 14px;
-  }
-  .bnd-grid {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .bnd-grid > li {
-    width: 40%;
-    flex-shrink: 0;
-  }
-  .bnd-trust {
-    justify-content: flex-start;
-    gap: 6px 14px;
-    font-size: 12px;
-  }
+
 }
 
 
@@ -577,108 +455,6 @@
 }
 
 
-/* Deal of the day on narrow screens: badge to the foot of the photo so it
-   never meets the discount circle, and prices kept on one line each. */
-@media (max-width: 1023px) {
-  .bnd-hero-badge {
-    top: auto;
-    bottom: 8px;
-    left: 8px;
-    font-size: 10px;
-    padding: 3px 8px;
-  }
-  .bnd-hero-prices {
-    flex-wrap: wrap;
-    column-gap: 6px;
-  }
-  .bnd-hero-price,
-  .bnd-hero-was {
-    white-space: nowrap;
-  }
-}
-
-/* ---- Two featured deals, stacked (overrides the single-card layout above) ----
-   Each is a wide card, photo left and details right; together they fill the
-   column beside the two-row grid instead of one tall card with empty space. */
-.bnd-heroes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.bnd-heroes .bnd-hero {
-  flex: 1;
-  flex-direction: row;
-}
-.bnd-heroes .bnd-hero-photo {
-  width: 46%;
-  flex-shrink: 0;
-  aspect-ratio: auto;
-  min-height: 170px;
-}
-.bnd-heroes .bnd-hero-info {
-  min-width: 0;
-  justify-content: center;
-  padding: 12px;
-}
-.bnd-heroes .bnd-hero-badge {
-  position: static;
-  width: fit-content;
-  margin-bottom: 2px;
-  font-size: 11px;
-  padding: 3px 9px;
-}
-.bnd-heroes .bnd-hero-off {
-  width: 52px;
-  height: 52px;
-  font-size: 15px;
-}
-.bnd-heroes .bnd-hero-name {
-  display: -webkit-box;
-  white-space: normal;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  font-size: 13px;
-  line-height: 1.35;
-}
-.bnd-heroes .bnd-hero-prices {
-  flex-wrap: wrap;
-  column-gap: 6px;
-}
-.bnd-heroes .bnd-hero-price {
-  font-size: 20px;
-  white-space: nowrap;
-}
-.bnd-heroes .bnd-hero-was {
-  white-space: nowrap;
-}
-.bnd-heroes .bnd-hero-save {
-  font-size: 12px;
-}
-.bnd-heroes .bnd-hero-cta {
-  padding: 8px;
-  font-size: 14px;
-}
-@media (max-width: 1023px) {
-  .bnd-heroes .bnd-hero-badge {
-    top: auto;
-    bottom: auto;
-    left: auto;
-  }
-}
-@media (max-width: 639px) {
-  .bnd-heroes .bnd-hero-photo {
-    width: 42%;
-    min-height: 150px;
-  }
-  .bnd-heroes .bnd-hero-off {
-    width: 44px;
-    height: 44px;
-    font-size: 13px;
-  }
-  .bnd-heroes .bnd-hero-price {
-    font-size: 18px;
-  }
-}
 
 /* ---- Welcome back: the row as a continuously moving carousel ---- */
 .wb-viewport {
@@ -700,6 +476,7 @@
   .wb-marquee:active .wb-row {
     animation-play-state: paused;
   }
+
 }
 /* Shoppers who asked for less motion get the ordinary swipeable row. */
 @media (prefers-reduced-motion: reduce) {
@@ -709,6 +486,7 @@
   .wb-marquee .wb-row > [aria-hidden="true"] {
     display: none;
   }
+
 }
 @keyframes wb-scroll {
   from {
@@ -830,155 +608,4 @@
   font-size: 18px;
   font-weight: 800;
   color: #111;
-}
-
-/* ---- Featured deals: square photos, side by side on desktop ----
-   The photo was a tall strip (46% of a narrow column, stretched to the card's
-   height), so object-cover cut most of the product away. Now the photo is
-   always a square — supplier photos are square, so nothing is lost — and on
-   a desktop the two featured deals sit side by side above the grid instead
-   of being squeezed into one column beside it. */
-.bnd-heroes .bnd-hero {
-  align-items: center;
-}
-.bnd-heroes .bnd-hero-photo {
-  align-self: center;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
-}
-@media (min-width: 1024px) {
-  .bnd-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .bnd-heroes {
-    flex-direction: row;
-  }
-  .bnd-heroes .bnd-hero {
-    flex: 1;
-  }
-  .bnd-heroes .bnd-hero-photo {
-    width: 240px;
-  }
-  .bnd-heroes .bnd-hero-info {
-    gap: 6px;
-    padding: 16px 20px;
-  }
-  .bnd-heroes .bnd-hero-name {
-    font-size: 15px;
-  }
-  .bnd-heroes .bnd-hero-price {
-    font-size: 26px;
-  }
-  .bnd-heroes .bnd-hero-cta {
-    max-width: 240px;
-    padding: 10px;
-    font-size: 15px;
-  }
-}
-@media (min-width: 1280px) {
-  .bnd-grid {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-  }
-}
-
-/* ---- Five featured deals (overrides the two-card layouts above) ----
-   Vertical cards — square photo on top, details under it — five across on a
-   desktop, and a swipeable row below that so a phone is not five screens of
-   stacked cards. */
-.bnd-heroes {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.bnd-heroes::-webkit-scrollbar {
-  display: none;
-}
-.bnd-heroes .bnd-hero {
-  width: 46%;
-  flex: 0 0 auto;
-  flex-direction: column;
-  align-items: stretch;
-}
-.bnd-heroes .bnd-hero-photo {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  min-height: 0;
-}
-.bnd-heroes .bnd-hero-info {
-  justify-content: flex-start;
-  gap: 4px;
-  padding: 10px 12px 12px;
-}
-.bnd-heroes .bnd-hero-name {
-  font-size: 13px;
-}
-.bnd-heroes .bnd-hero-price {
-  font-size: 19px;
-}
-.bnd-heroes .bnd-hero-save {
-  font-size: 12px;
-}
-.bnd-heroes .bnd-hero-off {
-  width: 46px;
-  height: 46px;
-  font-size: 14px;
-}
-.bnd-heroes .bnd-hero-cta {
-  max-width: none;
-  margin-top: 4px;
-  padding: 8px;
-  font-size: 14px;
-}
-@media (min-width: 640px) {
-  .bnd-heroes .bnd-hero {
-    width: 30%;
-  }
-}
-@media (min-width: 1024px) {
-  .bnd-heroes {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    overflow: visible;
-  }
-  .bnd-heroes .bnd-hero {
-    width: auto;
-  }
-  .bnd-heroes .bnd-hero-photo {
-    width: 100%;
-  }
-  .bnd-heroes .bnd-hero-info {
-    padding: 10px 12px 12px;
-  }
-  .bnd-heroes .bnd-hero-name {
-    font-size: 13px;
-  }
-  .bnd-heroes .bnd-hero-price {
-    font-size: 20px;
-  }
-  .bnd-heroes .bnd-hero-cta {
-    max-width: none;
-    font-size: 14px;
-  }
-}
-
-/* Six across: price and old price kept on one line, and Buy now pinned to
-   the foot of each card so the six buttons line up. */
-@media (min-width: 1024px) {
-  .bnd-heroes .bnd-hero-info {
-    flex: 1;
-  }
-  .bnd-heroes .bnd-hero-prices {
-    flex-wrap: nowrap;
-  }
-  .bnd-heroes .bnd-hero-price {
-    font-size: 18px;
-  }
-  .bnd-heroes .bnd-hero-was {
-    font-size: 11px;
-  }
-  .bnd-heroes .bnd-hero-cta {
-    margin-top: auto;
-  }
 }
