@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 //  carousel per department, then Best sellers.
 // ============================================================
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
@@ -576,7 +577,6 @@ class _KApi {
 // ------------------------------------------------------------
 
 class _KKeys {
-  static const openProduct = 'kandi-open-product';
   static const shopCategory = 'kandi-shop-category';
   static const shopQuery = 'kandi-shop-query';
   static const shopSort = 'kandi-shop-sort';
@@ -586,16 +586,12 @@ class _KKeys {
 
 class _KNav {
   /// A product slides up as a tall bottom sheet over the current screen.
-  static Future<void> openProduct(BuildContext context, int id) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_KKeys.openProduct, id);
-    if (!context.mounted) return;
-    await sheet(context, const KandiProductScreen(), height: 0.94);
-  }
+  static Future<void> openProduct(BuildContext context, int id) =>
+      sheet(context, _KProductSheet(id: id), height: 0.94);
 
   /// The address picker, as a bottom sheet. True when an address was chosen.
   static Future<bool> openAddresses(BuildContext context) async =>
-      await sheet<bool>(context, const KandiAddressPickerScreen(), height: 0.9) == true;
+      await sheet<bool>(context, const _KAddressSheet(), height: 0.9) == true;
 
   /// Any screen as a rounded bottom sheet, [height] as a share of the screen.
   static Future<T?> sheet<T>(BuildContext context, Widget child, {double height = 0.9}) {
@@ -1345,3 +1341,865 @@ void _kToast(BuildContext context, String message) {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ));
 }
+
+// ------------------------------------------------------------
+//  The two bottom sheets: a product, and the delivery addresses
+// ------------------------------------------------------------
+
+String _kNorm(String value) => value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+/// A product: photos, price, sizes and colours (matched to the real
+/// WooCommerce variation), add to cart, and more like it.
+class _KProductSheet extends StatefulWidget {
+  const _KProductSheet({super.key, required this.id});
+  final int id;
+
+  @override
+  State<_KProductSheet> createState() => _KProductSheetState();
+}
+
+class _KProductSheetState extends State<_KProductSheet> {
+  _KProduct? _product;
+  List<_KProduct> _related = [];
+  bool _loading = true;
+  final Map<String, String> _picked = {};
+  int _quantity = 1;
+  int _photo = 0;
+  final _pages = PageController();
+  bool _adding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _KCart.instance.load(); // the bottom bar and cart badge read it
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final id = widget.id;
+    try {
+      final product = await _KApi.product(id);
+      if (!mounted) return;
+      setState(() {
+        _product = product;
+        _loading = false;
+      });
+      if (product != null && product.categoryIds.isNotEmpty) {
+        final related = await _KApi.products(
+          categoryId: product.categoryIds.last,
+          excludeIds: [product.id],
+          order: 'total_sales',
+          limit: 12,
+        );
+        if (mounted) setState(() => _related = related);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// The attributes a shopper has to choose (the ones variations depend on).
+  List<_KAttribute> get _choices {
+    final product = _product!;
+    if (product.variations.isEmpty) return const [];
+    final keys = product.variations.expand((v) => v.attributes.keys).map(_kNorm).toSet();
+    return product.attributes.where((a) => keys.contains(_kNorm(a.name))).toList();
+  }
+
+  bool _matches(_KVariation variation, Map<String, String> picked) {
+    for (final entry in variation.attributes.entries) {
+      final chosen = picked.entries.where((p) => _kNorm(p.key) == _kNorm(entry.key)).toList();
+      if (chosen.isEmpty || _kNorm(chosen.first.value) != _kNorm(entry.value)) return false;
+    }
+    return true;
+  }
+
+  _KVariation? get _variation {
+    final product = _product!;
+    if (product.variations.isEmpty || _picked.length < _choices.length) return null;
+    for (final variation in product.variations) {
+      if (_matches(variation, _picked)) return variation;
+    }
+    return null;
+  }
+
+  /// False when no in-stock variation has this option alongside the others chosen.
+  bool _available(_KAttribute attribute, _KOption option) {
+    final product = _product!;
+    if (product.variations.isEmpty) return true;
+    final trial = Map<String, String>.from(_picked)..[attribute.name] = option.name;
+    return product.variations.any((variation) {
+      if (!variation.inStock) return false;
+      for (final entry in variation.attributes.entries) {
+        final chosen = trial.entries.where((p) => _kNorm(p.key) == _kNorm(entry.key)).toList();
+        if (chosen.isNotEmpty && _kNorm(chosen.first.value) != _kNorm(entry.value)) return false;
+      }
+      return true;
+    });
+  }
+
+  Future<void> _add({bool thenCart = false}) async {
+    final product = _product!;
+    final missing = _choices.where((a) => !_picked.containsKey(a.name)).toList();
+    if (missing.isNotEmpty) {
+      _kToast(context, 'Choose a ${missing.first.name.toLowerCase()} first');
+      return;
+    }
+    final variation = _variation;
+    if (product.variations.isNotEmpty && (variation == null || !variation.inStock)) {
+      _kToast(context, 'That combination is sold out');
+      return;
+    }
+    setState(() => _adding = true);
+    await _KCart.instance.add(_KCartLine(
+      productId: product.id,
+      variationId: variation?.id ?? 0,
+      name: product.name,
+      image: (variation?.image?.isNotEmpty ?? false) ? variation!.image! : product.image,
+      price: variation?.price ?? product.price,
+      quantity: _quantity,
+      options: Map.of(_picked),
+    ));
+    if (!mounted) return;
+    setState(() => _adding = false);
+    if (thenCart) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen()));
+    } else {
+      _kToast(context, 'Added to your cart');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(backgroundColor: _KColors.white, body: Center(child: CircularProgressIndicator(color: _KColors.ink)));
+    }
+    final product = _product;
+    if (product == null) {
+      return Scaffold(
+        backgroundColor: _KColors.white,
+        appBar: AppBar(backgroundColor: _KColors.white, foregroundColor: _KColors.ink, elevation: 0),
+        body: Center(
+          child: _KEmpty(
+            icon: Icons.search_off_rounded,
+            title: 'This product is gone',
+            message: 'It may have sold out or been removed.',
+            action: 'Back to shopping',
+            onAction: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    }
+
+    final variation = _variation;
+    final price = variation?.price ?? product.price;
+    final regular = (variation?.regularPrice ?? 0) > 0 ? variation!.regularPrice : product.regularPrice;
+    final reduced = regular > price;
+    final soldOut = product.soldOut || (variation != null && !variation.inStock);
+    final photos = [
+      if (variation?.image?.isNotEmpty ?? false) variation!.image!,
+      ...product.photos,
+    ].toSet().toList();
+
+    return Scaffold(
+      backgroundColor: _KColors.white,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: MediaQuery.of(context).size.width,
+            backgroundColor: _KColors.white,
+            foregroundColor: _KColors.ink,
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(6),
+              child: CircleAvatar(
+                backgroundColor: _KColors.white,
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: _KColors.ink),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(6),
+                child: CircleAvatar(
+                  backgroundColor: _KColors.white,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen())),
+                    icon: AnimatedBuilder(
+                      animation: _KCart.instance,
+                      builder: (_, __) => Badge(
+                        isLabelVisible: _KCart.instance.count > 0,
+                        label: Text('${_KCart.instance.count}'),
+                        backgroundColor: _KColors.sale,
+                        child: const Icon(Icons.shopping_bag_outlined, color: _KColors.ink),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                children: [
+                  PageView.builder(
+                    controller: _pages,
+                    itemCount: photos.isEmpty ? 1 : photos.length,
+                    onPageChanged: (index) => setState(() => _photo = index),
+                    itemBuilder: (_, index) => _KPhoto(photos.isEmpty ? '' : photos[index], fit: BoxFit.contain),
+                  ),
+                  if (photos.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < photos.length; i++)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: i == _photo ? 18 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: i == _photo ? _KColors.ink : _KColors.muted.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(_kMoney(price),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: reduced ? _KColors.sale : _KColors.ink,
+                            letterSpacing: -0.5,
+                          )),
+                      if (reduced) ...[
+                        const SizedBox(width: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(_kMoney(regular),
+                              style: const TextStyle(fontSize: 14, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
+                          child: Text('-${(((regular - price) / regular) * 100).floor()}%',
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (reduced)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('You save ${_kMoney(regular - price)}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _KColors.green)),
+                    ),
+                  const SizedBox(height: 10),
+                  Text(product.name,
+                      style: const TextStyle(fontSize: 17, height: 1.35, fontWeight: FontWeight.w600, color: _KColors.ink)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (product.ratingCount > 0) ...[
+                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 2),
+                        Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 12),
+                      ],
+                      if (product.totalSales > 0)
+                        Text('${_kCompact(product.totalSales)} sold', style: const TextStyle(fontSize: 13, color: _KColors.muted)),
+                      const Spacer(),
+                      Text(
+                        soldOut
+                            ? 'Sold out'
+                            : (product.stockQuantity != null && product.stockQuantity! <= 5)
+                                ? 'Only ${product.stockQuantity} left'
+                                : 'In stock',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: soldOut || (product.stockQuantity ?? 99) <= 5 ? _KColors.sale : _KColors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          for (final attribute in _choices)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _picked[attribute.name] == null ? attribute.name : '${attribute.name}: ${_picked[attribute.name]}',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final option in attribute.options)
+                          _KOptionChip(
+                            option: option,
+                            selected: _picked[attribute.name] == option.name,
+                            available: _available(attribute, option),
+                            onTap: () => setState(() {
+                              if (_picked[attribute.name] == option.name) {
+                                _picked.remove(attribute.name);
+                              } else {
+                                _picked[attribute.name] = option.name;
+                              }
+                              _photo = 0;
+                              if (_pages.hasClients) _pages.jumpToPage(0);
+                            }),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(16)),
+              child: const Column(
+                children: [
+                  _KPromise(Icons.local_shipping_outlined, 'Delivery across Uganda', 'Fee shown at checkout'),
+                  SizedBox(height: 10),
+                  _KPromise(Icons.payments_outlined, 'Pay on delivery in Kampala', 'Or MTN MoMo, Airtel Money, card'),
+                  SizedBox(height: 10),
+                  _KPromise(Icons.stars_outlined, 'Earn reward points', 'On every delivered order'),
+                ],
+              ),
+            ),
+          ),
+          if (_kPlain(product.description).isNotEmpty || _kPlain(product.shortDescription).isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    Text(
+                      _kPlain(product.description.isNotEmpty ? product.description : product.shortDescription),
+                      style: const TextStyle(fontSize: 14, height: 1.55, color: _KColors.body),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_related.length >= 3)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: _KCarousel(title: 'You may also like', products: _related, background: _KColors.ground),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(color: _KColors.white, border: Border(top: BorderSide(color: _KColors.line))),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Row(
+              children: [
+                Container(
+                  height: 52,
+                  decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(999)),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        icon: const Icon(Icons.remove_rounded),
+                      ),
+                      Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                      IconButton(
+                        onPressed: _quantity < 20 ? () => setState(() => _quantity++) : null,
+                        icon: const Icon(Icons.add_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: soldOut
+                      ? const _KButton(label: 'Sold out', onPressed: null, dark: true)
+                      : _KButton(label: 'Add to cart', busy: _adding, onPressed: () => _add()),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KOptionChip extends StatelessWidget {
+  const _KOptionChip({required this.option, required this.selected, required this.available, required this.onTap});
+  final _KOption option;
+  final bool selected;
+  final bool available;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = option.image ?? '';
+    return GestureDetector(
+      onTap: available || selected ? onTap : null,
+      child: Opacity(
+        opacity: available ? 1 : 0.35,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: image.isNotEmpty ? 4 : 16, vertical: 4),
+          constraints: const BoxConstraints(minWidth: 52, minHeight: 44),
+          decoration: BoxDecoration(
+            color: selected ? _KColors.ink : _KColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: selected ? _KColors.ink : _KColors.line, width: 1.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (image.isNotEmpty)
+                SizedBox(width: 36, height: 36, child: _KPhoto(image, radius: 8))
+              else if ((option.value ?? '').startsWith('#'))
+                Container(
+                  width: 18,
+                  height: 18,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: Color(int.tryParse('FF${option.value!.substring(1)}', radix: 16) ?? 0xFFCCCCCC),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _KColors.line),
+                  ),
+                ),
+              if (image.isNotEmpty) const SizedBox(width: 8),
+              Text(option.name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? _KColors.white : _KColors.ink,
+                    decoration: available ? null : TextDecoration.lineThrough,
+                  )),
+              if (image.isNotEmpty) const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KPromise extends StatelessWidget {
+  const _KPromise(this.icon, this.title, this.subtitle);
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: _KColors.ink, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: _KColors.muted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+/// The shopper's saved delivery addresses (kept in WooCommerce), and a form
+/// to add one. The area is searched with the website's place search, so
+/// delivery is priced from the real spot. Choosing one saves its id under
+/// `kandi-address-id` and closes the sheet with true.
+class _KAddressSheet extends StatefulWidget {
+  const _KAddressSheet({super.key});
+
+  @override
+  State<_KAddressSheet> createState() => _KAddressSheetState();
+}
+
+
+class _KAddressSheetState extends State<_KAddressSheet> {
+  List<Map<String, dynamic>> _addresses = [];
+  String? _selected;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    // Let the first frame build: the sign-in sheet cannot open from initState.
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    if (!_KAuth.signedIn) {
+      final ok = await _KAuth.ensure(context, reason: 'Sign in to save addresses');
+      if (!ok) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+    }
+    final prefs = await SharedPreferences.getInstance();
+    List<Map<String, dynamic>> rows = [];
+    try {
+      final data = await _KWoo.get('/addresses');
+      rows = ((data is Map ? data['addresses'] : null) as List? ?? const [])
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
+    } catch (e) {
+      if (mounted) _kToast(context, _KWoo.message(e));
+    }
+    if (!mounted) return;
+    setState(() {
+      _addresses = rows;
+      _selected = prefs.getString(_KKeys.address);
+      _loading = false;
+    });
+  }
+
+  Future<void> _choose(Map<String, dynamic> address) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_KKeys.address, address['id'] as String);
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _edit([Map<String, dynamic>? address]) async {
+    final saved = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _KAddressForm(existing: address),
+    );
+    if (saved != null) {
+      await _load();
+      if (address == null) await _choose(saved);
+    }
+  }
+
+  Future<void> _delete(Map<String, dynamic> address) async {
+    try {
+      await _KWoo.delete('/addresses/${address['id']}');
+    } catch (e) {
+      if (mounted) _kToast(context, _KWoo.message(e));
+    }
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _KColors.ground,
+      appBar: AppBar(
+        backgroundColor: _KColors.white,
+        foregroundColor: _KColors.ink,
+        elevation: 0,
+        title: const Text('Delivery address', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _KColors.ink))
+          : ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                for (final address in _addresses)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: _KColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: address['id'] == _selected ? _KColors.ink : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => _choose(address),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              address['id'] == _selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                              color: _KColors.ink,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('${address['label']}',
+                                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                                      if (address['lat'] != null) ...[
+                                        const SizedBox(width: 6),
+                                        const Icon(Icons.location_on_rounded, size: 16, color: _KColors.green),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text('${address['recipient']} · ${address['phone']}',
+                                      style: const TextStyle(fontSize: 13, color: _KColors.body)),
+                                  Text(
+                                    [address['street'], address['area'], address['city']]
+                                        .where((part) => part != null && '$part'.isNotEmpty)
+                                        .join(', '),
+                                    style: const TextStyle(fontSize: 13, color: _KColors.muted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              onSelected: (value) => value == 'edit' ? _edit(address) : _delete(address),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                PopupMenuItem(value: 'delete', child: Text('Delete')),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                _KButton(label: 'Add a new address', icon: Icons.add_location_alt_outlined, outline: true, onPressed: () => _edit()),
+              ],
+            ),
+    );
+  }
+}
+
+class _KAddressForm extends StatefulWidget {
+  const _KAddressForm({this.existing});
+  final Map<String, dynamic>? existing;
+  @override
+  State<_KAddressForm> createState() => _KAddressFormState();
+}
+
+class _KAddressFormState extends State<_KAddressForm> {
+  late final _label = TextEditingController(text: '${widget.existing?['label'] ?? 'Home'}');
+  late final _recipient = TextEditingController(text: '${widget.existing?['recipient'] ?? ''}');
+  late final _phone = TextEditingController(
+      text: '${widget.existing?['phone'] ?? (_KAuth.user?.phone ?? '').replaceFirst(RegExp(r'^\+?256'), '0')}');
+  late final _area = TextEditingController(text: '${widget.existing?['area'] ?? ''}');
+  late final _street = TextEditingController(text: '${widget.existing?['street'] ?? ''}');
+  late final _landmark = TextEditingController(text: '${widget.existing?['landmark'] ?? ''}');
+  late String _city = '${widget.existing?['city'] ?? 'Kampala'}';
+  late double? _lat = (widget.existing?['lat'] as num?)?.toDouble();
+  late double? _lng = (widget.existing?['lng'] as num?)?.toDouble();
+
+  List<Map<String, dynamic>> _places = [];
+  Timer? _debounce;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _searchPlaces(String text) {
+    _lat = null;
+    _lng = null;
+    _debounce?.cancel();
+    if (text.trim().length < 3) {
+      setState(() => _places = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final response = await http
+            .get(Uri.parse('$_kSiteUrl/api/delivery/suggest').replace(queryParameters: {'q': text.trim()}))
+            .timeout(const Duration(seconds: 10));
+        final data = jsonDecode(response.body);
+        if (!mounted) return;
+        setState(() => _places = ((data['places'] as List?) ?? const []).cast<Map<String, dynamic>>());
+      } catch (_) {}
+    });
+  }
+
+  /// Picks a suggestion. When it came without coordinates, the website's
+  /// delivery quote looks them up (one lookup, at the moment of choosing).
+  Future<void> _pick(Map<String, dynamic> place) async {
+    final label = '${place['label'] ?? ''}';
+    setState(() {
+      _area.text = label.split(',').first.trim();
+      _places = [];
+      final parts = label.split(',');
+      if (parts.length > 1) _city = parts[1].trim();
+    });
+    final point = place['point'];
+    if (point is Map && point['lat'] is num) {
+      _lat = (point['lat'] as num).toDouble();
+      _lng = (point['lng'] as num).toDouble();
+      return;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_kSiteUrl/api/delivery/quote'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'subtotal': 0, 'address': label}),
+      );
+      final data = jsonDecode(response.body);
+      if (data['point'] is Map) {
+        _lat = (data['point']['lat'] as num?)?.toDouble();
+        _lng = (data['point']['lng'] as num?)?.toDouble();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    final phone = _KAuth.ugPhone(_phone.text);
+    if (_recipient.text.trim().isEmpty || _street.text.trim().isEmpty || _area.text.trim().isEmpty) {
+      setState(() => _error = 'Fill in the name, area and street.');
+      return;
+    }
+    if (phone == null) {
+      setState(() => _error = 'Enter a Ugandan mobile number the rider can call.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final row = <String, dynamic>{
+      if (widget.existing != null) 'id': widget.existing!['id'],
+      'label': _label.text.trim().isEmpty ? 'Home' : _label.text.trim(),
+      'recipient': _recipient.text.trim(),
+      'phone': phone,
+      'area': _area.text.trim(),
+      'street': _street.text.trim(),
+      'landmark': _landmark.text.trim(),
+      'city': _city.isEmpty ? 'Kampala' : _city,
+      'lat': _lat,
+      'lng': _lng,
+    };
+    try {
+      final data = await _KWoo.post('/addresses', row);
+      final saved = Map<String, dynamic>.from((data as Map)['address'] as Map);
+      if (mounted) Navigator.of(context).pop(saved);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = _KWoo.message(e);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
+        decoration: const BoxDecoration(
+          color: _KColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            children: [
+              Text(widget.existing == null ? 'New address' : 'Edit address',
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 16),
+              _KField(controller: _recipient, label: 'Name of the person receiving'),
+              const SizedBox(height: 12),
+              _KField(controller: _phone, label: 'Their phone', hint: '0772 123 456', keyboard: TextInputType.phone),
+              const SizedBox(height: 12),
+              _KField(controller: _area, label: 'Area', hint: 'Start typing: Ntinda, Kira, Mukono…', onChanged: _searchPlaces),
+              if (_places.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  decoration: BoxDecoration(border: Border.all(color: _KColors.line), borderRadius: BorderRadius.circular(14)),
+                  child: Column(
+                    children: [
+                      for (final place in _places)
+                        ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.place_outlined),
+                          title: Text('${place['label']}'),
+                          onTap: () => _pick(place),
+                        ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _KField(controller: _street, label: 'Street, building or house', hint: 'Plot 12, Kira Road'),
+              const SizedBox(height: 12),
+              _KField(controller: _landmark, label: 'Landmark (optional)', hint: 'Opposite the Shell station'),
+              const SizedBox(height: 12),
+              _KField(controller: _label, label: 'Save as', hint: 'Home, Work…'),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700)),
+              ],
+              const SizedBox(height: 18),
+              _KButton(label: 'Save address', busy: _saving, onPressed: _save),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

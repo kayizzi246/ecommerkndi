@@ -1,20 +1,19 @@
 # Kandi app in FlutterFlow
 
-**Six pages, two bottom sheets.** Everything is a self-contained custom widget:
-no parameters, no shared file.
+**Six widgets, six pages.** Each is a self-contained custom widget: no
+parameters, no shared file.
 
-| Widget name (exact) | File | Shown as |
+| Widget name (exact) | File | Page |
 |---|---|---|
-| `KandiHomeScreen` | `kandi_home_screen.dart` | **Page**: Home (first page) |
-| `KandiShopScreen` | `kandi_shop_screen.dart` | **Page**: Shop (search, departments, sort) |
-| `KandiCartScreen` | `kandi_cart_screen.dart` | **Page**: Cart |
-| `KandiCheckoutScreen` | `kandi_checkout_screen.dart` | **Page**: Checkout |
-| `KandiAccountScreen` | `kandi_account_screen.dart` | **Page**: Account (orders, sign out) |
-| `KandiRewardsScreen` | `kandi_rewards_screen.dart` | **Page**: Rewards |
-| `KandiProductScreen` | `kandi_product_screen.dart` | **Bottom sheet** when a product is tapped |
-| `KandiAddressPickerScreen` | `kandi_address_picker_screen.dart` | **Bottom sheet** from Checkout and Account |
+| `KandiHomeScreen` | `kandi_home_screen.dart` | Home (first page) |
+| `KandiShopScreen` | `kandi_shop_screen.dart` | Shop (search, departments, sort) |
+| `KandiCartScreen` | `kandi_cart_screen.dart` | Cart |
+| `KandiCheckoutScreen` | `kandi_checkout_screen.dart` | Checkout (payment opens as a bottom sheet) |
+| `KandiAccountScreen` | `kandi_account_screen.dart` | Account (orders, sign out) |
+| `KandiRewardsScreen` | `kandi_rewards_screen.dart` | Rewards |
 
-The last two need **no page**: the other screens open them as sheets.
+The **product** and the **delivery addresses** are bottom sheets built into
+every file, so they need no widget and no page.
 
 ## Where the data lives
 
@@ -50,14 +49,15 @@ they use for the Google button. Without it they do not compile.
 
 **Custom Code > Dependencies**: `webview_flutter: ^4.7.0` (the Pesapal sheet).
 
-## 4. Add the eight widgets
+## 4. Add the six widgets
 
 For each row of the table: **Custom Code > Widgets > + > Widget**, the name
 exactly as shown, select everything in the editor, paste the whole file,
 **Save**. Leave the parameters empty.
 
 Delete every older Kandi widget that is not in the table (Categories, Deals,
-Orders, Search, Seller…, Stores, Track order, Verify, Wishlist).
+Orders, Search, Seller…, Stores, Track order, Verify, Wishlist, and also
+`KandiProductScreen` and `KandiAddressPickerScreen`, which are now sheets).
 
 Never type above `// DO NOT REMOVE OR MODIFY THE CODE ABOVE!`.
 
@@ -74,6 +74,5 @@ Home is the first page. No navigation actions are needed.
 | Key | Holds |
 |---|---|
 | `kandi-cart-v2` | The basket |
-| `kandi-open-product` | The product the product sheet shows |
 | `kandi-shop-category`, `kandi-shop-query`, `kandi-shop-sort` | What Shop opens on |
 | `kandi-address-id` | The address chosen at checkout |
