@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -17,20 +17,15 @@ import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
-/* ---- The shop's two faces ----
-   Figtree for everything people read (product names, prices, forms, the
-   Seller Centre and admin): a warm, open sans, variable from 300 to 900.
-   Bricolage Grotesque for headings: a characterful grotesque that gives
-   section titles and heroes a voice of their own. Both variable, so every
-   weight is one file. */
-const figtree = Figtree({
+/* ---- One face for the whole shop: Open Sans ----
+   The marketplace face (AliExpress sets its pages in it): plain, wide and
+   clear at the 11 to 13px a price tile is read at, with headings in the same
+   family at a heavier weight. Variable from 300 to 800, so it is one file.
+   To change the shop's font, change it here and nowhere else: globals.css
+   reads it through `--font-shop`. */
+const shopFont = Open_Sans({
   subsets: ["latin"],
-  variable: "--font-figtree",
-  display: "swap",
-});
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-bricolage",
+  variable: "--font-shop",
   display: "swap",
 });
 /**
@@ -224,7 +219,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${figtree.variable} ${bricolage.variable} h-full`}
+      className={`${shopFont.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

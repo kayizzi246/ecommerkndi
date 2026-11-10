@@ -1,5 +1,7 @@
 import { buildHomeFeed } from "@/lib/home-feed";
-import CategorySpotlights from "@/components/home/CategorySpotlights";
+import CategoryCircles from "@/components/home/CategoryCircles";
+import HeroDeals from "@/components/home/HeroDeals";
+import PromiseStrip from "@/components/home/PromiseStrip";
 import BlackFridayHero from "@/components/home/BlackFridayHero";
 import HomeCarousel from "@/components/home/HomeCarousel";
 import WelcomeBack from "@/components/home/WelcomeBack";
@@ -11,6 +13,7 @@ import { itemListJsonLd, productPath } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { forGrid } from "@/lib/product-grid";
+import { discountPercent, hasPriceReduction } from "@/lib/currency";
 
 /**
  * The opening grid trimmed to whole rows (a multiple of 12 fills every row at
@@ -175,20 +178,34 @@ export default async function Home() {
      carousel's products while enough other deals remain to fill it. */
   const carouselIds = new Set(carouselPicks.map((product) => product.id));
   const otherDeals = dealPicks.filter((product) => !carouselIds.has(product.id));
-  const dealsShown = otherDeals.length >= 14 ? otherDeals : dealPicks;
+  const dealPool = otherDeals.length >= 14 ? otherDeals : dealPicks;
+
+  /* The four deepest discounts sit beside the banner on a desktop. They are
+     held back from the deals row below while it has enough without them, so
+     the first screen does not show the same product twice. */
+  const heroDeals = dealPool
+    .filter((product) => hasPriceReduction(product.regular_price, product.price))
+    .sort((a, b) => discountPercent(b.regular_price, b.price) - discountPercent(a.regular_price, a.price))
+    .slice(0, 4);
+  const heroIds = new Set(heroDeals.map((product) => product.id));
+  const rowDeals = dealPool.filter((product) => !heroIds.has(product.id));
+  const dealsShown = heroDeals.length === 4 && rowDeals.length >= 10 ? rowDeals : dealPool;
 
   /* "New in": the newest listings in stock, across every department. */
-  const newIn = [...latest]
+  const newest = [...latest]
     .filter((product) => product.stock_status !== "outofstock" && product.date_created)
-    .sort((a, b) => Date.parse(b.date_created!) - Date.parse(a.date_created!))
-    .slice(0, 16);
+    .sort((a, b) => Date.parse(b.date_created!) - Date.parse(a.date_created!));
+  // Not the best sellers again: on a young catalogue the two lists overlap,
+  // and the same row twice reads as a page that failed to load.
+  const newestElsewhere = newest.filter((product) => !carouselIds.has(product.id));
+  const newIn = (newestElsewhere.length >= 6 ? newestElsewhere : newest).slice(0, 16);
 
   /* The grid opens on products the shopper has not just scrolled past. The
      carousel and the deals are drawn from the same catalogue, so the grid's
      first row used to repeat them, which reads as a page assembled by a
      machine. Those products move to the back of the opening grid, and so do second copies of an item imported twice under a
      near-identical title. */
-  const shownAbove = new Set([...carouselPicks, ...dealsShown].map((product) => product.id));
+  const shownAbove = new Set([...carouselPicks, ...dealPool].map((product) => product.id));
   const titleKey = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).slice(0, 5).join(" ");
   const seenTitles = new Set<string>();
@@ -253,17 +270,26 @@ export default async function Home() {
           what separates two sections is the seam between two white blocks
           rather than the size of the gap between them. */}
       <div className="mx-auto flex max-w-[var(--shell)] flex-col gap-2.5 px-0 pb-2 pt-0 md:gap-4 md:px-8 md:pb-3.5 md:pt-0">
-        {/* ---- The opening screen, Temu's order ----
+        {/* ---- The opening screen, in the marketplaces' order ----
 
-            A compact campaign banner, a carousel of best sellers, then the
-            deals with their prices showing — so the first screen is
-            merchandise rather than headings. */}
+            The campaign banner with the four deepest deals beside it, the
+            shop's promises, every department as a round photo, then the deals
+            with their prices and the time left, then the best sellers: the
+            first screen is prices and ways in, not headings. */}
         <div className="hx">
-          <BlackFridayHero />
+          <div className={heroDeals.length === 4 ? "hx-top hx-top-split" : "hx-top"}>
+            <BlackFridayHero />
+            <HeroDeals products={heroDeals} />
+          </div>
+          <PromiseStrip returnsDays={settings.commerce.returns_days} />
+          <CategoryCircles categories={categoryRails} />
           <WelcomeBack />
-          <CategorySpotlights categories={categoryRails} />
+          <BlackNovemberDeals
+            products={dealsShown}
+            returnsDays={settings.commerce.returns_days}
+            upTo={heroDeals[0] ? discountPercent(heroDeals[0].regular_price, heroDeals[0].price) : undefined}
+          />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
-          <BlackNovemberDeals products={dealsShown} returnsDays={settings.commerce.returns_days} />
 
           {/* ---- One carousel per department, before the grid ----
               New in first, then Men, Women and Kids, then every other

@@ -976,11 +976,9 @@
    */
   --shell: 1720px;
 
-  /* Helvetica for the whole shop. It is a system face, so nothing is
-     downloaded: Apple devices draw true Helvetica, and Windows and Android,
-     which do not ship it, fall back to Arial, which is metrically matched to
-     it and reads the same at tile sizes. */
-  --font-ui: var(--font-figtree), Arial, sans-serif;
+  /* The shop's one face, loaded in app/layout.tsx as `--font-shop`
+     (Open Sans), with Arial while it loads. */
+  --font-ui: var(--font-shop), Arial, sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -1004,8 +1002,8 @@
    * back to `--font-ui`. A supplier's 90-character title is body copy that
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
-  /* Headings: Bricolage Grotesque, falling back to the UI face. */
-  --font-display: var(--font-bricolage), var(--font-ui);
+  /* Headings: the same family as the text (Open Sans), heavier. */
+  --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —
      but the call sites are worth keeping tagged, because they are exactly the

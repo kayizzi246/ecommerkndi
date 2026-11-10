@@ -4,6 +4,7 @@ import type { Product } from "@/lib/woocommerce";
 import { discountPercent, formatPrice, hasPriceReduction } from "@/lib/currency";
 import { productPath } from "@/lib/seo";
 import DealsTrack from "@/components/home/DealsTrack";
+import DealsCountdown from "@/components/home/DealsCountdown";
 
 /**
  * The homepage's Black November deals: the deepest real discounts in the shop,
@@ -18,9 +19,12 @@ import DealsTrack from "@/components/home/DealsTrack";
 export default function BlackNovemberDeals({
   products,
   returnsDays,
+  upTo,
 }: {
   products: Product[];
   returnsDays: number;
+  /** The deepest discount in the shop, when it is shown elsewhere on the page and not in this row. */
+  upTo?: number;
 }) {
   // One of each product: imports often list the same item twice under
   // slightly different titles, and two identical tiles side by side look fake.
@@ -34,7 +38,7 @@ export default function BlackNovemberDeals({
     .slice(0, 20);
   if (deals.length < 6) return null;
 
-  const deepest = discountPercent(deals[0].regular_price, deals[0].price);
+  const deepest = Math.max(upTo ?? 0, discountPercent(deals[0].regular_price, deals[0].price));
 
   return (
     <section className="bnd" aria-labelledby="bnd-title">
@@ -42,6 +46,7 @@ export default function BlackNovemberDeals({
         <h2 id="bnd-title" className="bnd-title">
           Black November <span className="bnd-upto">up to {deepest}% off</span>
         </h2>
+        <DealsCountdown />
         <Link href="/sale" className="bnd-all">
           See all
           <svg aria-hidden viewBox="0 0 20 20" fill="currentColor">
