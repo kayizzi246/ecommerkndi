@@ -308,6 +308,12 @@ export type HomeFeed = {
    * all, fills a row. Shown on the homepage above the grid.
    */
   categoryRails: CategoryRail[];
+  /**
+   * The homepage's category row: every department, then the sections inside
+   * them (Men's Shoes, Bags, Watches…), each with a photo of a product that is
+   * in stock there.
+   */
+  categoryChips: CategoryChip[];
   /** The general catalogue behind "Picked for you" / the endless grid. */
   latest: Product[];
   latestTotalPages: number;
@@ -414,6 +420,11 @@ const DEPARTMENTS = [
 
 export type CategoryRail = { slug: string; title: string; products: Product[] };
 
+/** One round photo in the homepage's category row. */
+export type CategoryChip = { slug: string; title: string; photo: string };
+/** The most chips the row carries: the departments first, then their sections. */
+const CATEGORY_CHIP_LIMIT = 18;
+
 /** Products per category carousel, and the fewest worth a carousel at all. */
 const CATEGORY_RAIL_SIZE = 16;
 const CATEGORY_RAIL_MINIMUM = 6;
@@ -452,6 +463,11 @@ function spreadBySection(products: Product[], top: CategoryNode): Product[] {
     }
   }
   return out;
+}
+
+/** "Men" → "Men's", "Kids" → "Kids'": whose section a shared name belongs to. */
+function possessive(name: string): string {
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
 }
 
 function decodeName(name: string): string {
@@ -542,6 +558,64 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
       return { slug: node.slug, title: decodeName(node.name), products: picked };
     })
     .filter((rail) => rail.products.length >= CATEGORY_RAIL_MINIMUM);
+
+  /* ---- The category row: departments, then their sections ----
+     A section's photo is a product from its department's pool that is filed
+     under it (or under anything inside it), falling back to the picture set
+     for the category in wp-admin. A section with neither is left out, and no
+     product is used for two chips. When two departments have a section of the
+     same name (Shoes under Men and Women), each says whose it is. */
+  const chipPhotos = new Set<string>();
+  const departmentChips: CategoryChip[] = [];
+  const sectionChips: (CategoryChip & { count: number })[] = [];
+  const sectionNames = new Map<string, number>();
+  for (const { node } of categoryPools) {
+    for (const child of node.children) {
+      const name = decodeName(child.name).toLowerCase();
+      sectionNames.set(name, (sectionNames.get(name) ?? 0) + 1);
+    }
+  }
+  for (const { node, products } of categoryPools) {
+    const lead = products.find((product) => product.image && !chipPhotos.has(product.image));
+    if (lead) {
+      chipPhotos.add(lead.image);
+      departmentChips.push({ slug: node.slug, title: decodeName(node.name), photo: lead.image });
+    }
+  }
+  for (const { node, products } of categoryPools) {
+    for (const child of node.children) {
+      if ((child.count ?? 0) === 0) continue;
+      const inside = new Set<string>();
+      const walk = (branch: CategoryNode) => {
+        inside.add(branch.slug);
+        branch.children.forEach(walk);
+      };
+      walk(child);
+      const photo =
+        products.find(
+          (product) =>
+            product.image &&
+            !chipPhotos.has(product.image) &&
+            product.categories.some((category) => inside.has(category.slug))
+        )?.image ?? child.image;
+      if (!photo) continue;
+      chipPhotos.add(photo);
+      const name = decodeName(child.name);
+      const shared = (sectionNames.get(name.toLowerCase()) ?? 0) > 1;
+      sectionChips.push({
+        slug: child.slug,
+        title: shared ? `${possessive(decodeName(node.name))} ${name}` : name,
+        photo,
+        count: child.count ?? 0,
+      });
+    }
+  }
+  const categoryChips: CategoryChip[] = [
+    ...departmentChips,
+    ...sectionChips
+      .sort((a, b) => b.count - a.count)
+      .map(({ slug, title, photo }) => ({ slug, title, photo })),
+  ].slice(0, CATEGORY_CHIP_LIMIT);
 
   /**
    * Departments that are not big enough to send a shopper into yet.
@@ -831,6 +905,7 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     leadShoes:
       departmentPools.find((department) => department.id === "dept-shoes")?.products ?? [],
     categoryRails,
+    categoryChips,
     /**
      * The endless grid is deliberately *not* deduplicated.
      *

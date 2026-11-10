@@ -109,6 +109,7 @@ export default async function Home() {
     trending,
     departmentRails,
     categoryRails,
+    categoryChips,
     latest,
     latestTotalPages,
     deals,
@@ -282,7 +283,7 @@ export default async function Home() {
             <HeroDeals products={heroDeals} />
           </div>
           <PromiseStrip returnsDays={settings.commerce.returns_days} />
-          <CategoryCircles categories={categoryRails} />
+          <CategoryCircles categories={categoryChips} />
           <WelcomeBack />
           <BlackNovemberDeals
             products={dealsShown}

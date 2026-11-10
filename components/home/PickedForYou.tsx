@@ -85,7 +85,7 @@ export default function PickedForYou({
       <div className="phone-gutter no-scrollbar mb-3 flex items-center gap-2 overflow-x-auto border-b border-shop-line pb-2.5">
         <h2
           id="picked-heading"
-          className="mr-1 shrink-0 text-[14px] font-bold text-shop-ink md:text-[16px]"
+          className="hx-heading mr-1 shrink-0 text-shop-ink"
         >
           Shop all products
         </h2>

@@ -836,3 +836,30 @@ button, input, select, textarea { font-family: inherit; }
     transition: none;
   }
 }
+
+/* ---- Every section heading on the homepage: one size, the heaviest weight ----
+   The size the department carousels ("Men", "Women") set, a step larger.
+   900 is asked for; Open Sans stops at 800, so that is what is drawn. */
+.hx-panel-title,
+.hx-carousel .hx-panel-title,
+.bnd-title,
+.hx-side-head h2,
+.hx-heading,
+main .section-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.hx-side-head h2 {
+  font-size: 20px;
+}
+@media (max-width: 639px) {
+  .hx-panel-title,
+  .hx-carousel .hx-panel-title,
+  .bnd-title,
+  .hx-heading,
+  main .section-title {
+    font-size: 21px;
+  }
+}

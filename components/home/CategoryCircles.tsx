@@ -1,22 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { CategoryRail } from "@/lib/home-feed";
+import type { CategoryChip } from "@/lib/home-feed";
 
 /**
  * The departments as one swipeable row of round photos, the way the large
- * marketplaces open: a shopper sees every department at a glance and is one
- * tap from any of them. Each photo is a product that is in stock in that
- * department, so the row never advertises an empty shelf. Deals lead the row.
+ * marketplaces open: the departments, then the sections inside them, each one
+ * tap away. Each photo is a product that is in stock there (chosen in
+ * lib/home-feed.ts), so the row never advertises an empty shelf. Deals lead.
  */
-export default function CategoryCircles({ categories }: { categories: CategoryRail[] }) {
-  const picks = categories
-    .map((category) => ({
-      slug: category.slug,
-      title: category.title,
-      photo: category.products.find((product) => product.stock_status !== "outofstock" && product.image)?.image,
-    }))
-    .filter((category) => category.photo);
-
+export default function CategoryCircles({ categories }: { categories: CategoryChip[] }) {
+  const picks = categories;
   if (picks.length === 0) return null;
 
   return (
@@ -34,7 +27,7 @@ export default function CategoryCircles({ categories }: { categories: CategoryRa
           <li key={category.slug}>
             <Link href={`/category/${category.slug}`} className="hx-circle">
               <span className="hx-circle-photo">
-                <Image src={category.photo!} alt="" fill sizes="88px" className="object-cover" />
+                <Image src={category.photo} alt="" fill sizes="88px" className="object-cover" />
               </span>
               <span className="hx-circle-name">{category.title}</span>
             </Link>
