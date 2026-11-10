@@ -1,4 +1,5 @@
 import { buildHomeFeed } from "@/lib/home-feed";
+import CategorySpotlights from "@/components/home/CategorySpotlights";
 import BlackFridayHero from "@/components/home/BlackFridayHero";
 import HomeCarousel from "@/components/home/HomeCarousel";
 import WelcomeBack from "@/components/home/WelcomeBack";
@@ -260,6 +261,7 @@ export default async function Home() {
         <div className="hx">
           <BlackFridayHero />
           <WelcomeBack />
+          <CategorySpotlights categories={categoryRails} />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
           <BlackNovemberDeals products={dealsShown} returnsDays={settings.commerce.returns_days} />
 

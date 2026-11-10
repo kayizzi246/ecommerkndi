@@ -9,23 +9,29 @@ import 'package:flutter/material.dart';
 
 
 // ============================================================
-//  KANDI — ACCOUNT
+//  KANDI — ACCOUNT (and REWARDS, as a sheet)
 //  Google sign-in, points, order history and addresses (all
-//  in WooCommerce, through the Kandi Mobile API), help.
+//  in WooCommerce, through the Kandi Mobile API), help. The
+//  points card opens Rewards as a glass sheet: balance, what it
+//  is worth, how earning and spending work, the history.
 // ============================================================
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 // Supabase comes through FlutterFlow's own file (Settings > Integrations > Supabase must be on).
+// Sign-in goes straight to Supabase too (see _KAuth.signInWithGoogle): no generated auth files.
 import '/backend/supabase/supabase.dart';
-// Google sign-in comes through FlutterFlow's auth (Settings > Authentication > Supabase, Google on).
-import '/auth/supabase_auth/auth_util.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
+// The other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
 
 class KandiAccountScreen extends StatefulWidget {
   const KandiAccountScreen({super.key, this.width, this.height});
@@ -59,7 +65,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
   @override
   void initState() {
     super.initState();
-    _KCart.instance.load(); // the bottom bar and cart badge read it
+    _KCart.instance.load(); // the tab bar's cart badge reads it
     _auth = _kSupa.auth.onAuthStateChange.listen((_) => _load());
     _load();
   }
@@ -96,18 +102,44 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
     }
   }
 
+  Future<void> _openRewards() async {
+    final next = await _KNav.sheet<String>(context, const _KRewardsSheet(), height: 0.9);
+    if (!mounted) return;
+    if (next == 'shop') {
+      _KNav.tab(context, 0);
+    } else {
+      _load(); // the balance may have changed (signed in there)
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _KColors.ground,
-      bottomNavigationBar: const _KBottomNav(current: 4),
-      body: SafeArea(
-        bottom: false,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator(color: _KColors.ink))
-            : !_KAuth.signedIn
-                ? _signedOut()
-                : RefreshIndicator(color: _KColors.ink, onRefresh: _load, child: _signedIn()),
+      extendBody: true,
+      bottomNavigationBar: const _KTabBar(current: 3),
+      body: CustomScrollView(
+        physics: _kPhysics,
+        slivers: [
+          const CupertinoSliverNavigationBar(
+            largeTitle: Text('Account'),
+            backgroundColor: _KColors.glassBar,
+            border: Border(bottom: BorderSide(color: Color(0x14000000), width: 0.5)),
+            transitionBetweenRoutes: false,
+            automaticallyImplyLeading: false,
+          ),
+          if (_KAuth.signedIn) CupertinoSliverRefreshControl(onRefresh: _load),
+          if (_loading)
+            const SliverFillRemaining(child: Center(child: CupertinoActivityIndicator(radius: 14)))
+          else if (!_KAuth.signedIn)
+            SliverFillRemaining(hasScrollBody: false, child: _signedOut())
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              sliver: SliverList(delegate: SliverChildListDelegate(_signedIn())),
+            ),
+          const _KBarSpace(),
+        ],
       ),
     );
   }
@@ -133,106 +165,113 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
                 if (await _KAuth.ensure(context, reason: 'Sign in to Kandi')) _load();
               },
             ),
+            const SizedBox(height: 12),
+            _KButton(label: 'How rewards work', outline: true, onPressed: _openRewards),
           ],
         ),
       ),
     );
   }
 
-  Widget _signedIn() {
+  List<Widget> _signedIn() {
     final name = _KAuth.name;
     final photo = _KAuth.photo;
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: _KColors.ink, borderRadius: BorderRadius.circular(22)),
+    return [
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: _KColors.ink, borderRadius: BorderRadius.circular(26)),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: _KColors.yellow,
+              backgroundImage: photo.isNotEmpty ? CachedNetworkImageProvider(photo) : null,
+              child: photo.isNotEmpty
+                  ? null
+                  : Text(name.isEmpty ? 'K' : name[0].toUpperCase(),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name.isEmpty ? 'Kandi shopper' : name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.white)),
+                  Text(_KAuth.email, style: const TextStyle(color: Color(0xB3FFFFFF))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      _KPress(
+        onTap: _openRewards,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(22)),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: _KColors.yellow,
-                backgroundImage: photo.isNotEmpty ? CachedNetworkImageProvider(photo) : null,
-                child: photo.isNotEmpty
-                    ? null
-                    : Text(name.isEmpty ? 'K' : name[0].toUpperCase(),
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink)),
-              ),
-              const SizedBox(width: 14),
+              const Icon(Icons.stars_rounded, size: 30),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name.isEmpty ? 'Kandi shopper' : name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _KColors.white)),
-                    Text(_KAuth.email, style: const TextStyle(color: Color(0xB3FFFFFF))),
+                    Text('$_points points', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                    const Text('See rewards', style: TextStyle(fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
+              const Icon(Icons.chevron_right_rounded),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () => _KNav.tab(context, 2),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(18)),
-            child: Row(
-              children: [
-                const Icon(Icons.stars_rounded, size: 30),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$_points points', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                      const Text('See rewards ›', style: TextStyle(fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+      ),
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(_error!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700)),
         ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(_error!, style: const TextStyle(color: _KColors.sale, fontWeight: FontWeight.w700)),
-          ),
-        const SizedBox(height: 18),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text('My orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-        ),
-        const SizedBox(height: 8),
-        if (_orders.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
-            child: const Text('No orders yet. Your orders will show here with their delivery status.',
-                style: TextStyle(color: _KColors.body)),
-          )
-        else
-          for (final order in _orders) _order(order),
-        const SizedBox(height: 18),
-        _link(Icons.location_on_outlined, 'Delivery addresses', () {
-          _KNav.openAddresses(context);
-        }),
-        _link(Icons.chat_outlined, 'Chat on WhatsApp', () {
+      const SizedBox(height: 22),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4),
+        child: Text('My orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+      ),
+      const SizedBox(height: 8),
+      if (_orders.isEmpty)
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+          child: const Text('No orders yet. Your orders will show here with their delivery status.',
+              style: TextStyle(color: _KColors.body)),
+        )
+      else
+        for (final order in _orders) _order(order),
+      const SizedBox(height: 22),
+      // One grouped list, like iOS Settings.
+      _group([
+        _row(Icons.location_on_outlined, 'Delivery addresses', () => _KNav.openAddresses(context)),
+        _row(Icons.stars_outlined, 'Rewards', _openRewards),
+      ]),
+      const SizedBox(height: 14),
+      _group([
+        _row(Icons.chat_outlined, 'Chat on WhatsApp', () {
           launchUrl(Uri.parse('https://wa.me/256${_kSupportPhone.substring(1)}'), mode: LaunchMode.externalApplication);
         }),
-        _link(Icons.call_outlined, 'Call us: $_kSupportPhone', () => launchUrl(Uri.parse('tel:$_kSupportPhone'))),
-        _link(Icons.logout_rounded, 'Sign out', () async {
+        _row(Icons.call_outlined, 'Call us: $_kSupportPhone', () => launchUrl(Uri.parse('tel:$_kSupportPhone'))),
+      ]),
+      const SizedBox(height: 14),
+      _group([
+        _row(Icons.logout_rounded, 'Sign out', () async {
           await _KAuth.signOut();
           if (mounted) setState(() {});
-        }),
-        const SizedBox(height: 24),
-      ],
-    );
+        }, danger: true),
+      ]),
+    ];
   }
 
   Widget _order(Map<String, dynamic> order) {
@@ -241,7 +280,8 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
     final created = DateTime.tryParse('${order['created_at']}')?.toLocal();
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+      clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -250,7 +290,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           leading: SizedBox(
             width: 48,
             height: 48,
-            child: _KPhoto(items.isNotEmpty ? '${items.first['image'] ?? ''}' : '', radius: 10),
+            child: _KPhoto(items.isNotEmpty ? '${items.first['image'] ?? ''}' : '', radius: 12),
           ),
           title: Text('Order #${order['number'] ?? order['id'] ?? '—'}', style: const TextStyle(fontWeight: FontWeight.w900)),
           subtitle: Text(
@@ -261,7 +301,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
           ),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: status.$2.withOpacity(0.12), borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(color: status.$2.withAlpha(30), borderRadius: BorderRadius.circular(999)),
             child: Text(status.$1, style: TextStyle(color: status.$2, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
           children: [
@@ -288,15 +328,234 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
     );
   }
 
-  Widget _link(IconData icon, String label, VoidCallback onTap) {
+  /// Rows in one white rounded block with hairlines between them.
+  Widget _group(List<Widget> rows) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        leading: Icon(icon, color: _KColors.ink),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const Divider(height: 0.5, thickness: 0.5, indent: 56, color: _KColors.line),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _row(IconData icon, String label, VoidCallback onTap, {bool danger = false}) {
+    final color = danger ? _KColors.sale : _KColors.ink;
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
+      trailing: danger ? null : const Icon(Icons.chevron_right_rounded, color: _KColors.muted),
+      onTap: () {
+        _kHaptic();
+        onTap();
+      },
+    );
+  }
+}
+
+// ------------------------------------------------------------
+//  Rewards, as a glass sheet
+// ------------------------------------------------------------
+
+const Map<String, String> _reasons = {
+  'earned': 'Earned',
+  'redeemed': 'Used at checkout',
+  'refund': 'Returned',
+  'reversed': 'Taken back',
+  'adjust': 'Adjustment',
+};
+
+/// Points balance, what it is worth, how earning and spending work, and
+/// the history. Closes with 'shop' when the shopper taps Shop and earn.
+class _KRewardsSheet extends StatefulWidget {
+  const _KRewardsSheet();
+
+  @override
+  State<_KRewardsSheet> createState() => _KRewardsSheetState();
+}
+
+class _KRewardsSheetState extends State<_KRewardsSheet> {
+  bool _loading = true;
+  int _balance = 0;
+  int _ugxPerPoint = 1000;
+  int _pointValue = 10;
+  int _minRedeem = 100;
+  int _maxPercent = 50;
+  List<Map<String, dynamic>> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    // Points live on the shopper's WooCommerce account (Kandi Mobile API).
+    // Signed out, the sheet shows the default rules and a sign-in button.
+    if (_KAuth.signedIn) {
+      try {
+        final data = await _KWoo.get('/points') as Map;
+        final rules = (data['rules'] as Map?) ?? const {};
+        _ugxPerPoint = (rules['ugx_per_point'] as num?)?.toInt() ?? 1000;
+        _pointValue = (rules['point_value_ugx'] as num?)?.toInt() ?? 10;
+        _minRedeem = (rules['min_redeem_points'] as num?)?.toInt() ?? 100;
+        _maxPercent = (rules['max_redeem_percent'] as num?)?.toInt() ?? 50;
+        _balance = (data['balance'] as num?)?.toInt() ?? 0;
+        _history = ((data['history'] as List?) ?? const [])
+            .map((row) => Map<String, dynamic>.from(row as Map))
+            .toList();
+      } catch (e) {
+        if (mounted) _kToast(context, _KWoo.message(e));
+      }
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: _kSheetBar(context, 'Rewards'),
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator(radius: 14))
+          : ListView(
+              physics: _kPhysics,
+              padding: EdgeInsets.fromLTRB(12, 4, 12, 24 + MediaQuery.paddingOf(context).bottom),
+              children: [
+                _balanceCard(),
+                const SizedBox(height: 12),
+                _howItWorks(),
+                const SizedBox(height: 18),
+                if (_KAuth.signedIn) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Text('History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_history.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+                      child: const Text('Your points will show here after your first delivered order.',
+                          style: TextStyle(color: _KColors.body)),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          for (final entry in _history)
+                            ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: ((entry['delta'] as num?) ?? 0) >= 0 ? _KColors.greenSoft : const Color(0xFFFDECEC),
+                                child: Icon(
+                                  ((entry['delta'] as num?) ?? 0) >= 0 ? Icons.add_rounded : Icons.remove_rounded,
+                                  color: ((entry['delta'] as num?) ?? 0) >= 0 ? _KColors.green : _KColors.sale,
+                                ),
+                              ),
+                              title: Text(_reasons['${entry['reason']}'] ?? '${entry['reason']}',
+                                  style: const TextStyle(fontWeight: FontWeight.w800)),
+                              subtitle: Text('${entry['note'] ?? ''}'),
+                              trailing: Text(
+                                '${((entry['delta'] as num?) ?? 0) >= 0 ? '+' : ''}${entry['delta']}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: ((entry['delta'] as num?) ?? 0) >= 0 ? _KColors.green : _KColors.sale,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _balanceCard() {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(color: _KColors.ink, borderRadius: BorderRadius.circular(28)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('YOUR POINTS',
+              style: TextStyle(color: _KColors.yellow, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+          const SizedBox(height: 6),
+          Text(_KAuth.signedIn ? '$_balance' : '—',
+              style: const TextStyle(color: _KColors.white, fontSize: 56, fontWeight: FontWeight.w900, height: 1, letterSpacing: -2)),
+          const SizedBox(height: 6),
+          Text(
+            _KAuth.signedIn ? 'Worth ${_kMoney(_balance * _pointValue)} off your next order' : 'Sign in to start collecting',
+            style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 18),
+          if (!_KAuth.signedIn)
+            _KButton(
+              label: 'Continue with Google',
+              onPressed: () async {
+                if (await _KAuth.ensure(context, reason: 'Sign in to earn points')) {
+                  setState(() => _loading = true);
+                  _load();
+                }
+              },
+            )
+          else
+            _KButton(label: 'Shop and earn', onPressed: () => Navigator.of(context).pop('shop')),
+        ],
+      ),
+    );
+  }
+
+  Widget _howItWorks() {
+    Widget step(IconData icon, String title, String body) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(color: _KColors.yellowSoft, shape: BoxShape.circle),
+                child: Icon(icon, color: _KColors.ink),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
+                    Text(body, style: const TextStyle(fontSize: 13, color: _KColors.body, height: 1.4)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(22)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('How it works', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 14),
+          step(Icons.shopping_bag_outlined, 'Shop',
+              'Earn 1 point for every ${_kMoney(_ugxPerPoint)} you spend on items, when your order is delivered.'),
+          step(Icons.stars_outlined, 'Collect', 'Every $_minRedeem points are worth ${_kMoney(_minRedeem * _pointValue)}.'),
+          step(Icons.local_offer_outlined, 'Save',
+              'Use them at checkout from $_minRedeem points, for up to $_maxPercent% of your items.'),
+        ],
       ),
     );
   }
@@ -304,7 +563,7 @@ class _KandiAccountScreenState extends State<KandiAccountScreen> {
 
 // ============================================================
 //  Shared building blocks, private to this file
-//  (the same in every Kandi screen; change one, change all)
+//  (the same in all four Kandi screens; change one, change all)
 // ============================================================
 
 /// The website: delivery quotes, place search and Pesapal.
@@ -329,6 +588,13 @@ class _KColors {
   static const green = Color(0xFF15803D);
   static const greenSoft = Color(0xFFDFF6E6);
   static const white = Colors.white;
+
+  // Liquid glass tints: clear for floating controls, strong for sheets,
+  // bar for the pinned top bars, lens for the chosen tab.
+  static const glass = Color(0x8CFFFFFF);
+  static const glassStrong = Color(0xD6F8F8F6);
+  static const glassBar = Color(0xB8F7F7F5);
+  static const lens = Color(0x17000000);
 }
 
 /// "UGX 12,000".
@@ -584,30 +850,36 @@ class _KKeys {
 }
 
 class _KNav {
-  /// A product slides up as a tall bottom sheet over the current screen.
+  /// A product slides up as a tall glass sheet over the current screen.
   static Future<void> openProduct(BuildContext context, int id) =>
       sheet(context, _KProductSheet(id: id), height: 0.94);
 
-  /// The address picker, as a bottom sheet. True when an address was chosen.
+  /// The address picker, as a sheet. True when an address was chosen.
   static Future<bool> openAddresses(BuildContext context) async =>
       await sheet<bool>(context, const _KAddressSheet(), height: 0.9) == true;
 
-  /// Any screen as a rounded bottom sheet, [height] as a share of the screen.
-  static Future<T?> sheet<T>(BuildContext context, Widget child, {double height = 0.9}) {
+  /// Anything as a floating liquid-glass sheet. [height] is a share of the
+  /// screen; null lets the content decide (sign-in, sort, the address form).
+  static Future<T?> sheet<T>(BuildContext context, Widget child, {double? height = 0.9, bool dismissible = true}) {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      isDismissible: dismissible,
+      enableDrag: dismissible,
+      elevation: 0,
       backgroundColor: Colors.transparent,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: height,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: child,
-        ),
-      ),
+      barrierColor: const Color(0x38000000),
+      builder: (_) {
+        final glass = _KGlassSheet(child: child);
+        return height == null ? glass : FractionallySizedBox(heightFactor: height, child: glass);
+      },
     );
   }
+
+  /// The cart as a page of its own, above whatever is open (a product, say).
+  static Future<void> openCart(BuildContext context) =>
+      Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const KandiCartScreen()));
 
   /// Opens Shop already filtered to a category, a search or a sort.
   static Future<void> openShop(BuildContext context, {int? categoryId, String? query, String? sort}) async {
@@ -616,15 +888,15 @@ class _KNav {
     if (query != null) await prefs.setString(_KKeys.shopQuery, query);
     if (sort != null) await prefs.setString(_KKeys.shopSort, sort);
     if (!context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+    await Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const KandiShopScreen()));
   }
 
-  /// The bottom bar's tabs swap the screen rather than stacking it.
+  /// The four tabs (Home, Shop, Cart, Account) swap the screen rather than
+  /// stacking it, instantly, as iOS tab bars do.
   static void tab(BuildContext context, int index) {
     const screens = <Widget>[
       KandiHomeScreen(),
       KandiShopScreen(),
-      KandiRewardsScreen(),
       KandiCartScreen(),
       KandiAccountScreen(),
     ];
@@ -776,19 +1048,35 @@ class _KAuth {
   /// Signed in already, or signs in now through the sheet. True when signed in.
   static Future<bool> ensure(BuildContext context, {String reason = 'Sign in to continue'}) async {
     if (signedIn) return true;
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KSignInSheet(reason: reason),
-    );
+    final ok = await _KNav.sheet<bool>(context, _KSignInSheet(reason: reason), height: null);
     return ok == true && signedIn;
   }
 
-  static Future<void> signOut() async {
-    try {
-      await authManager.signOut();
-    } catch (_) {
-      await _kSupa.auth.signOut();
+  static Future<void> signOut() => _kSupa.auth.signOut();
+
+  /// Where Supabase sends the shopper back after Google. The web app comes back
+  /// to its own address; the phone app to its deep link. Both must be listed in
+  /// Supabase > Authentication > URL Configuration > Redirect URLs.
+  static const String appRedirect = 'kandiug://kandiug.com/auth-callback';
+
+  /// Google through Supabase. On the web the page leaves for Google and comes
+  /// back signed in; in the app this waits for the browser to hand back.
+  static Future<void> signInWithGoogle() async {
+    final waiting = kIsWeb
+        ? null
+        : _kSupa.auth.onAuthStateChange
+            .firstWhere((s) => s.event == AuthChangeEvent.signedIn)
+            .timeout(const Duration(minutes: 3));
+    await _kSupa.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? Uri.base.origin : appRedirect,
+    );
+    if (waiting != null) {
+      try {
+        await waiting;
+      } on TimeoutException {
+        // Still signed out; the sheet says it was cancelled.
+      }
     }
   }
 
@@ -819,8 +1107,7 @@ class _KSignInSheetState extends State<_KSignInSheet> {
       _error = null;
     });
     try {
-      // FlutterFlow's own Google sign-in for Supabase (Settings > Authentication).
-      await authManager.signInWithGoogle(context);
+      await _KAuth.signInWithGoogle();
       if (!mounted) return;
       if (_KAuth.signedIn) {
         Navigator.of(context).pop(true);
@@ -836,26 +1123,14 @@ class _KSignInSheetState extends State<_KSignInSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: const BoxDecoration(
-        color: _KColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 18),
             Text(widget.reason,
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
             const SizedBox(height: 6),
@@ -913,6 +1188,7 @@ class _KWoo {
 //  Building blocks
 // ------------------------------------------------------------
 
+/// The app's capsule button: yellow, black, or outlined. Squeezes when pressed.
 class _KButton extends StatelessWidget {
   const _KButton({
     super.key,
@@ -933,36 +1209,40 @@ class _KButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = outline ? _KColors.white : (dark ? _KColors.ink : _KColors.yellow);
+    final background = outline ? Colors.transparent : (dark ? _KColors.ink : _KColors.yellow);
     final foreground = dark && !outline ? _KColors.white : _KColors.ink;
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: busy ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: background,
-          foregroundColor: foreground,
-          disabledBackgroundColor: background.withOpacity(0.6),
-          shape: RoundedRectangleBorder(
+    return _KPress(
+      onTap: busy ? null : onPressed,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 160),
+        opacity: onPressed == null && !busy ? 0.45 : 1,
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: background,
             borderRadius: BorderRadius.circular(999),
-            side: outline ? const BorderSide(color: _KColors.ink, width: 1.5) : BorderSide.none,
+            border: outline ? Border.all(color: _KColors.ink, width: 1.5) : null,
+            boxShadow: outline || onPressed == null
+                ? null
+                : [BoxShadow(color: background.withAlpha(dark ? 60 : 90), blurRadius: 18, offset: const Offset(0, 6))],
           ),
+          child: busy
+              ? CupertinoActivityIndicator(color: foreground)
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[Icon(icon, size: 20, color: foreground), const SizedBox(width: 8)],
+                    Flexible(
+                      child: Text(label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: foreground)),
+                    ),
+                  ],
+                ),
         ),
-        child: busy
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                ],
-              ),
       ),
     );
   }
@@ -1005,7 +1285,7 @@ class _KField extends StatelessWidget {
             hintText: hint,
             prefixText: prefix,
             filled: true,
-            fillColor: _KColors.ground,
+            fillColor: _KColors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
@@ -1057,7 +1337,7 @@ class _KProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return _KPress(
       onTap: () => _KNav.openProduct(context, product.id),
       child: Container(
         width: width,
@@ -1178,6 +1458,7 @@ class _KCarousel extends StatelessWidget {
             height: 248,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 14),
+              physics: const BouncingScrollPhysics(),
               scrollDirection: Axis.horizontal,
               itemCount: products.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
@@ -1215,59 +1496,414 @@ class _KProductGrid extends StatelessWidget {
   }
 }
 
-/// The app's five tabs. Cart shows its count.
-class _KBottomNav extends StatelessWidget {
-  const _KBottomNav({super.key, required this.current});
+// ------------------------------------------------------------
+//  Liquid glass and the iOS feel
+//  Apple's glass material made from Flutter's own blur and colour
+//  filters, so it needs no package and works on iOS, Android and
+//  the web: a saturated frost, a bright rim where light catches
+//  the edge, a sheen along the top. Plus spring motion, squeeze-
+//  on-press and haptic ticks.
+// ------------------------------------------------------------
+
+/// iOS scrolling: rubber-band at the ends, always scrollable (so the
+/// pull-to-refresh works even on a short page).
+const ScrollPhysics _kPhysics = BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+
+/// A quick spring with a little overshoot, like UIKit's default.
+const Curve _kSpring = Cubic(0.34, 1.36, 0.64, 1);
+
+/// A light tick for taps and selections; [firm] for "added", "placed".
+void _kHaptic([bool firm = false]) {
+  if (firm) {
+    HapticFeedback.mediumImpact();
+  } else {
+    HapticFeedback.selectionClick();
+  }
+}
+
+/// Blur plus extra colour: what makes it glass rather than frosted plastic.
+/// (The web gets the blur alone, which every browser renders the same.)
+ui.ImageFilter _kGlassFilter(double blur) {
+  final frost = ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur);
+  if (kIsWeb) return frost;
+  const s = 1.6; // saturation
+  const r = 0.2126 * (1 - s), g = 0.7152 * (1 - s), b = 0.0722 * (1 - s);
+  return ui.ImageFilter.compose(
+    outer: const ColorFilter.matrix(<double>[
+      r + s, g, b, 0, 0, //
+      r, g + s, b, 0, 0, //
+      r, g, b + s, 0, 0, //
+      0, 0, 0, 1, 0, //
+    ]),
+    inner: frost,
+  );
+}
+
+/// A pane of liquid glass of any shape: what is behind it shows through,
+/// blurred and brightened; [child] sits on top, sharp.
+class _KGlass extends StatelessWidget {
+  const _KGlass({
+    super.key,
+    required this.child,
+    this.radius = 999,
+    this.blur = 18,
+    this.tint = _KColors.glass,
+    this.padding = EdgeInsets.zero,
+    this.shadow = true,
+  });
+
+  final Widget child;
+  final double radius;
+  final double blur;
+  final Color tint;
+  final EdgeInsetsGeometry padding;
+  final bool shadow;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = BorderRadius.circular(radius);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: shape,
+        boxShadow: shadow
+            ? const [
+                BoxShadow(color: Color(0x1A000000), blurRadius: 28, offset: Offset(0, 10)),
+                BoxShadow(color: Color(0x0D000000), blurRadius: 3, offset: Offset(0, 1)),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: shape,
+        child: BackdropFilter(
+          filter: _kGlassFilter(blur),
+          child: CustomPaint(
+            foregroundPainter: _KRimPainter(radius),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: shape,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color.alphaBlend(const Color(0x2EFFFFFF), tint), tint],
+                ),
+              ),
+              child: Padding(padding: padding, child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The glass edge: a hairline for definition on white, a bright rim where
+/// the light lands (top left) that fades and catches again bottom right,
+/// and a soft sheen just inside the top.
+class _KRimPainter extends CustomPainter {
+  const _KRimPainter(this.radius);
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final corner = Radius.circular(math.min(radius, size.shortestSide / 2));
+    final edge = RRect.fromRectAndRadius(rect.deflate(0.5), corner);
+
+    canvas.drawRRect(
+      edge,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5
+        ..color = const Color(0x1F000000),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(1), corner),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xF2FFFFFF), Color(0x40FFFFFF), Color(0x12FFFFFF), Color(0x99FFFFFF)],
+          stops: [0, 0.3, 0.7, 1],
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, corner),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment(0, -0.2),
+          colors: [Color(0x38FFFFFF), Color(0x00FFFFFF)],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_KRimPainter oldDelegate) => oldDelegate.radius != radius;
+}
+
+/// Presses like iOS: a quick squeeze, a springy release, a light tick.
+class _KPress extends StatefulWidget {
+  const _KPress({super.key, required this.child, this.onTap, this.scale = 0.96});
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scale;
+
+  @override
+  State<_KPress> createState() => _KPressState();
+}
+
+class _KPressState extends State<_KPress> {
+  bool _down = false;
+
+  void _set(bool down) {
+    if (widget.onTap != null && _down != down) setState(() => _down = down);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              _kHaptic();
+              widget.onTap!();
+            },
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: Duration(milliseconds: _down ? 90 : 420),
+        curve: _down ? Curves.easeOut : _kSpring,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// A round glass button (close, cart) that floats over photos and bars.
+class _KGlassIcon extends StatelessWidget {
+  const _KGlassIcon({super.key, required this.icon, required this.onTap, this.badge = 0, this.size = 44});
+  final IconData icon;
+  final VoidCallback onTap;
+  final int badge;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return _KPress(
+      onTap: onTap,
+      scale: 0.88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _KGlass(
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Icon(icon, color: _KColors.ink, size: size * 0.5),
+            ),
+          ),
+          if (badge > 0)
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 20),
+                height: 20,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _KColors.sale,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _KColors.white, width: 1.5),
+                ),
+                child: Text('$badge',
+                    style: const TextStyle(color: _KColors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A sheet made of glass: inset from the screen's edges, deep corners,
+/// a grabber on top. Everything the app slides up goes through this
+/// (see [_KNav.sheet]).
+class _KGlassSheet extends StatelessWidget {
+  const _KGlassSheet({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+      child: _KGlass(
+        radius: 34,
+        blur: 30,
+        tint: _KColors.glassStrong,
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            child,
+            Positioned(
+              top: 7,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    width: 38,
+                    height: 5,
+                    decoration: BoxDecoration(color: const Color(0x33000000), borderRadius: BorderRadius.circular(3)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The title row at the top of a sheet, with a glass close button.
+PreferredSizeWidget _kSheetBar(BuildContext context, String title) => AppBar(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: _KColors.ink,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      toolbarHeight: 70,
+      titleSpacing: 20,
+      title: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: _KColors.ink, letterSpacing: -0.5)),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 14, top: 10),
+          child: _KGlassIcon(icon: Icons.close_rounded, size: 38, onTap: () => Navigator.of(context).maybePop()),
+        ),
+      ],
+    );
+
+/// The pinned top bar's background: glass the page scrolls under.
+class _KGlassBar extends StatelessWidget {
+  const _KGlassBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: _kGlassFilter(22),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: _KColors.glassBar,
+            border: Border(bottom: BorderSide(color: Color(0x14000000), width: 0.5)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Room at the end of a scrolling page for whatever floats over its
+/// bottom (the tab bar, the cart total), so the last row can be reached.
+class _KBarSpace extends StatelessWidget {
+  const _KBarSpace({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 20));
+}
+
+/// The floating glass tab bar: Home, Shop, Cart, Account. A lens slides
+/// to the chosen tab on a spring, like iOS 26. Cart shows its count.
+/// Use it with `Scaffold(extendBody: true)` so pages scroll under it.
+class _KTabBar extends StatelessWidget {
+  const _KTabBar({super.key, required this.current});
   final int current;
+
+  /// The tab shown before this screen, so the lens slides from there.
+  static int _from = 0;
 
   @override
   Widget build(BuildContext context) {
     const items = [
-      (Icons.home_outlined, Icons.home, 'Home'),
+      (Icons.home_outlined, Icons.home_rounded, 'Home'),
       (Icons.grid_view_outlined, Icons.grid_view_rounded, 'Shop'),
-      (Icons.stars_outlined, Icons.stars_rounded, 'Rewards'),
-      (Icons.shopping_bag_outlined, Icons.shopping_bag, 'Cart'),
-      (Icons.person_outline, Icons.person, 'Account'),
+      (Icons.shopping_bag_outlined, Icons.shopping_bag_rounded, 'Cart'),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'Account'),
     ];
-    return AnimatedBuilder(
-      animation: _KCart.instance,
-      builder: (context, _) => Container(
-        decoration: const BoxDecoration(
-          color: _KColors.white,
-          border: Border(top: BorderSide(color: _KColors.line)),
-        ),
-        child: SafeArea(
-          top: false,
+    final from = _from;
+    _from = current;
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: _KGlass(
+          padding: const EdgeInsets.all(5),
           child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                for (var i = 0; i < items.length; i++)
-                  Expanded(
-                    child: InkWell(
-                      onTap: i == current ? null : () => _KNav.tab(context, i),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Badge(
-                            isLabelVisible: i == 3 && _KCart.instance.count > 0,
-                            label: Text('${_KCart.instance.count}'),
-                            backgroundColor: _KColors.sale,
-                            child: Icon(i == current ? items[i].$2 : items[i].$1,
-                                color: i == current ? _KColors.ink : _KColors.muted, size: 26),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(items[i].$3,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: i == current ? FontWeight.w800 : FontWeight.w500,
-                                color: i == current ? _KColors.ink : _KColors.muted,
-                              )),
-                        ],
+            height: 56,
+            child: AnimatedBuilder(
+              animation: _KCart.instance,
+              builder: (context, _) => Stack(
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: from.toDouble(), end: current.toDouble()),
+                    duration: const Duration(milliseconds: 520),
+                    curve: _kSpring,
+                    builder: (_, at, __) => Align(
+                      alignment: Alignment(-1 + 2 * at / (items.length - 1), 0),
+                      child: FractionallySizedBox(
+                        widthFactor: 1 / items.length,
+                        heightFactor: 1,
+                        child: Container(
+                          decoration: BoxDecoration(color: _KColors.lens, borderRadius: BorderRadius.circular(999)),
+                        ),
                       ),
                     ),
                   ),
-              ],
+                  Row(
+                    children: [
+                      for (var i = 0; i < items.length; i++)
+                        Expanded(
+                          child: _KPress(
+                            scale: 0.88,
+                            onTap: i == current ? null : () => _KNav.tab(context, i),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Badge(
+                                  isLabelVisible: i == 2 && _KCart.instance.count > 0,
+                                  label: Text('${_KCart.instance.count}'),
+                                  backgroundColor: _KColors.sale,
+                                  child: Icon(i == current ? items[i].$2 : items[i].$1,
+                                      color: i == current ? _KColors.ink : _KColors.body, size: 25),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(items[i].$3,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: i == current ? FontWeight.w800 : FontWeight.w600,
+                                      color: i == current ? _KColors.ink : _KColors.body,
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1329,16 +1965,93 @@ class _KEmpty extends StatelessWidget {
   }
 }
 
-/// A short message at the bottom of the screen.
+/// A short message in a dark glass capsule that drops in at the top of the
+/// screen, above any open sheet, and leaves on its own.
+OverlayEntry? _kToastEntry;
+
 void _kToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: _KColors.ink,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    ));
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) return;
+  _kToastEntry?.remove();
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _KToast(
+      message: message,
+      onDone: () {
+        if (_kToastEntry == entry) {
+          entry.remove();
+          _kToastEntry = null;
+        }
+      },
+    ),
+  );
+  _kToastEntry = entry;
+  overlay.insert(entry);
+}
+
+class _KToast extends StatefulWidget {
+  const _KToast({required this.message, required this.onDone});
+  final String message;
+  final VoidCallback onDone;
+
+  @override
+  State<_KToast> createState() => _KToastState();
+}
+
+class _KToastState extends State<_KToast> {
+  bool _shown = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _shown = true);
+    });
+    _timer = Timer(const Duration(milliseconds: 2400), () {
+      if (!mounted) return;
+      setState(() => _shown = false);
+      _timer = Timer(const Duration(milliseconds: 300), widget.onDone);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 8,
+      left: 16,
+      right: 16,
+      child: IgnorePointer(
+        child: Material(
+          type: MaterialType.transparency,
+          child: AnimatedSlide(
+            offset: _shown ? Offset.zero : const Offset(0, -1.6),
+            duration: const Duration(milliseconds: 420),
+            curve: _shown ? _kSpring : Curves.easeIn,
+            child: AnimatedOpacity(
+              opacity: _shown ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              child: Center(
+                child: _KGlass(
+                  tint: const Color(0xD9161616),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  child: Text(widget.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _KColors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ------------------------------------------------------------
@@ -1468,8 +2181,9 @@ class _KProductSheetState extends State<_KProductSheet> {
     if (!mounted) return;
     setState(() => _adding = false);
     if (thenCart) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen()));
+      _KNav.openCart(context);
     } else {
+      _kHaptic(true);
       _kToast(context, 'Added to your cart');
     }
   }
@@ -1477,21 +2191,17 @@ class _KProductSheetState extends State<_KProductSheet> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(backgroundColor: _KColors.white, body: Center(child: CircularProgressIndicator(color: _KColors.ink)));
+      return const Center(child: CupertinoActivityIndicator(radius: 14));
     }
     final product = _product;
     if (product == null) {
-      return Scaffold(
-        backgroundColor: _KColors.white,
-        appBar: AppBar(backgroundColor: _KColors.white, foregroundColor: _KColors.ink, elevation: 0),
-        body: Center(
-          child: _KEmpty(
-            icon: Icons.search_off_rounded,
-            title: 'This product is gone',
-            message: 'It may have sold out or been removed.',
-            action: 'Back to shopping',
-            onAction: () => Navigator.of(context).pop(),
-          ),
+      return Center(
+        child: _KEmpty(
+          icon: Icons.search_off_rounded,
+          title: 'This product is gone',
+          message: 'It may have sold out or been removed.',
+          action: 'Back to shopping',
+          onAction: () => Navigator.of(context).pop(),
         ),
       );
     }
@@ -1505,262 +2215,267 @@ class _KProductSheetState extends State<_KProductSheet> {
       if (variation?.image?.isNotEmpty ?? false) variation!.image!,
       ...product.photos,
     ].toSet().toList();
+    final bottom = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: _KColors.white,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: MediaQuery.of(context).size.width,
-            backgroundColor: _KColors.white,
-            foregroundColor: _KColors.ink,
-            elevation: 0,
-            leading: Padding(
-              padding: const EdgeInsets.all(6),
-              child: CircleAvatar(
-                backgroundColor: _KColors.white,
-                child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: _KColors.ink),
-                  onPressed: () => Navigator.of(context).pop(),
+    return Stack(
+      children: [
+        CustomScrollView(
+          physics: _kPhysics,
+          slivers: [
+            // The photos run edge to edge, under the glass buttons.
+            SliverToBoxAdapter(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pages,
+                      itemCount: photos.isEmpty ? 1 : photos.length,
+                      onPageChanged: (index) => setState(() => _photo = index),
+                      itemBuilder: (_, index) => _KPhoto(photos.isEmpty ? '' : photos[index], fit: BoxFit.contain),
+                    ),
+                    if (photos.length > 1)
+                      Positioned(
+                        bottom: 14,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: _KGlass(
+                            shadow: false,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var i = 0; i < photos.length; i++)
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 260),
+                                    curve: _kSpring,
+                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    width: i == _photo ? 18 : 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: i == _photo ? _KColors.ink : const Color(0x55000000),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(6),
-                child: CircleAvatar(
-                  backgroundColor: _KColors.white,
-                  child: IconButton(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen())),
-                    icon: AnimatedBuilder(
-                      animation: _KCart.instance,
-                      builder: (_, __) => Badge(
-                        isLabelVisible: _KCart.instance.count > 0,
-                        label: Text('${_KCart.instance.count}'),
-                        backgroundColor: _KColors.sale,
-                        child: const Icon(Icons.shopping_bag_outlined, color: _KColors.ink),
-                      ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(_kMoney(price),
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: reduced ? _KColors.sale : _KColors.ink,
+                              letterSpacing: -0.5,
+                            )),
+                        if (reduced) ...[
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(_kMoney(regular),
+                                style: const TextStyle(fontSize: 14, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
+                            child: Text('-${(((regular - price) / regular) * 100).floor()}%',
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
+                    if (reduced)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('You save ${_kMoney(regular - price)}',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _KColors.green)),
+                      ),
+                    const SizedBox(height: 10),
+                    Text(product.name,
+                        style: const TextStyle(fontSize: 17, height: 1.35, fontWeight: FontWeight.w600, color: _KColors.ink)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (product.ratingCount > 0) ...[
+                          const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                          const SizedBox(width: 2),
+                          Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 12),
+                        ],
+                        if (product.totalSales > 0)
+                          Text('${_kCompact(product.totalSales)} sold', style: const TextStyle(fontSize: 13, color: _KColors.muted)),
+                        const Spacer(),
+                        Text(
+                          soldOut
+                              ? 'Sold out'
+                              : (product.stockQuantity != null && product.stockQuantity! <= 5)
+                                  ? 'Only ${product.stockQuantity} left'
+                                  : 'In stock',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: soldOut || (product.stockQuantity ?? 99) <= 5 ? _KColors.sale : _KColors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  PageView.builder(
-                    controller: _pages,
-                    itemCount: photos.isEmpty ? 1 : photos.length,
-                    onPageChanged: (index) => setState(() => _photo = index),
-                    itemBuilder: (_, index) => _KPhoto(photos.isEmpty ? '' : photos[index], fit: BoxFit.contain),
-                  ),
-                  if (photos.length > 1)
-                    Positioned(
-                      bottom: 12,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            for (final attribute in _choices)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _picked[attribute.name] == null ? attribute.name : '${attribute.name}: ${_picked[attribute.name]}',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          for (var i = 0; i < photos.length; i++)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: i == _photo ? 18 : 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: i == _photo ? _KColors.ink : _KColors.muted.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
+                          for (final option in attribute.options)
+                            _KOptionChip(
+                              option: option,
+                              selected: _picked[attribute.name] == option.name,
+                              available: _available(attribute, option),
+                              onTap: () => setState(() {
+                                if (_picked[attribute.name] == option.name) {
+                                  _picked.remove(attribute.name);
+                                } else {
+                                  _picked[attribute.name] = option.name;
+                                }
+                                _photo = 0;
+                                if (_pages.hasClients) _pages.jumpToPage(0);
+                              }),
                             ),
                         ],
                       ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(_kMoney(price),
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: reduced ? _KColors.sale : _KColors.ink,
-                            letterSpacing: -0.5,
-                          )),
-                      if (reduced) ...[
-                        const SizedBox(width: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(_kMoney(regular),
-                              style: const TextStyle(fontSize: 14, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
-                          child: Text('-${(((regular - price) / regular) * 100).floor()}%',
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                        ),
-                      ],
                     ],
                   ),
-                  if (reduced)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('You save ${_kMoney(regular - price)}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _KColors.green)),
-                    ),
-                  const SizedBox(height: 10),
-                  Text(product.name,
-                      style: const TextStyle(fontSize: 17, height: 1.35, fontWeight: FontWeight.w600, color: _KColors.ink)),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
+                child: const Column(
+                  children: [
+                    _KPromise(Icons.local_shipping_outlined, 'Delivery across Uganda', 'Fee shown at checkout'),
+                    SizedBox(height: 10),
+                    _KPromise(Icons.payments_outlined, 'Pay on delivery in Kampala', 'Or MTN MoMo, Airtel Money, card'),
+                    SizedBox(height: 10),
+                    _KPromise(Icons.stars_outlined, 'Earn reward points', 'On every delivered order'),
+                  ],
+                ),
+              ),
+            ),
+            if (_kPlain(product.description).isNotEmpty || _kPlain(product.shortDescription).isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (product.ratingCount > 0) ...[
-                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
-                        const SizedBox(width: 2),
-                        Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 12),
-                      ],
-                      if (product.totalSales > 0)
-                        Text('${_kCompact(product.totalSales)} sold', style: const TextStyle(fontSize: 13, color: _KColors.muted)),
-                      const Spacer(),
+                      const Text('Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 8),
                       Text(
-                        soldOut
-                            ? 'Sold out'
-                            : (product.stockQuantity != null && product.stockQuantity! <= 5)
-                                ? 'Only ${product.stockQuantity} left'
-                                : 'In stock',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: soldOut || (product.stockQuantity ?? 99) <= 5 ? _KColors.sale : _KColors.green,
-                        ),
+                        _kPlain(product.description.isNotEmpty ? product.description : product.shortDescription),
+                        style: const TextStyle(fontSize: 14, height: 1.55, color: _KColors.body),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          for (final attribute in _choices)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _picked[attribute.name] == null ? attribute.name : '${attribute.name}: ${_picked[attribute.name]}',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final option in attribute.options)
-                          _KOptionChip(
-                            option: option,
-                            selected: _picked[attribute.name] == option.name,
-                            available: _available(attribute, option),
-                            onTap: () => setState(() {
-                              if (_picked[attribute.name] == option.name) {
-                                _picked.remove(attribute.name);
-                              } else {
-                                _picked[attribute.name] = option.name;
-                              }
-                              _photo = 0;
-                              if (_pages.hasClients) _pages.jumpToPage(0);
-                            }),
-                          ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
-            ),
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(16)),
-              child: const Column(
-                children: [
-                  _KPromise(Icons.local_shipping_outlined, 'Delivery across Uganda', 'Fee shown at checkout'),
-                  SizedBox(height: 10),
-                  _KPromise(Icons.payments_outlined, 'Pay on delivery in Kampala', 'Or MTN MoMo, Airtel Money, card'),
-                  SizedBox(height: 10),
-                  _KPromise(Icons.stars_outlined, 'Earn reward points', 'On every delivered order'),
-                ],
-              ),
-            ),
-          ),
-          if (_kPlain(product.description).isNotEmpty || _kPlain(product.shortDescription).isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    Text(
-                      _kPlain(product.description.isNotEmpty ? product.description : product.shortDescription),
-                      style: const TextStyle(fontSize: 14, height: 1.55, color: _KColors.body),
-                    ),
-                  ],
+            if (_related.length >= 3)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _KCarousel(title: 'You may also like', products: _related, background: _KColors.white),
                 ),
               ),
+            // Room for the floating glass bar.
+            SliverToBoxAdapter(child: SizedBox(height: 96 + bottom)),
+          ],
+        ),
+        Positioned(
+          top: 16,
+          left: 16,
+          child: _KGlassIcon(icon: Icons.close_rounded, onTap: () => Navigator.of(context).pop()),
+        ),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: AnimatedBuilder(
+            animation: _KCart.instance,
+            builder: (_, __) => _KGlassIcon(
+              icon: Icons.shopping_bag_outlined,
+              badge: _KCart.instance.count,
+              onTap: () => _KNav.openCart(context),
             ),
-          if (_related.length >= 3)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: _KCarousel(title: 'You may also like', products: _related, background: _KColors.ground),
-              ),
-            ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(color: _KColors.white, border: Border(top: BorderSide(color: _KColors.line))),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          ),
+        ),
+        // Quantity and Add to cart float on glass over the page.
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 10 + bottom,
+          child: _KGlass(
+            padding: const EdgeInsets.all(6),
             child: Row(
               children: [
                 Container(
                   height: 52,
-                  decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(color: const Color(0x0F000000), borderRadius: BorderRadius.circular(999)),
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        onPressed: _quantity > 1
+                            ? () {
+                                _kHaptic();
+                                setState(() => _quantity--);
+                              }
+                            : null,
                         icon: const Icon(Icons.remove_rounded),
                       ),
                       Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                       IconButton(
-                        onPressed: _quantity < 20 ? () => setState(() => _quantity++) : null,
+                        onPressed: _quantity < 20
+                            ? () {
+                                _kHaptic();
+                                setState(() => _quantity++);
+                              }
+                            : null,
                         icon: const Icon(Icons.add_rounded),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: soldOut
                       ? const _KButton(label: 'Sold out', onPressed: null, dark: true)
@@ -1770,7 +2485,7 @@ class _KProductSheetState extends State<_KProductSheet> {
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1786,7 +2501,12 @@ class _KOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = option.image ?? '';
     return GestureDetector(
-      onTap: available || selected ? onTap : null,
+      onTap: available || selected
+          ? () {
+              _kHaptic();
+              onTap();
+            }
+          : null,
       child: Opacity(
         opacity: available ? 1 : 0.35,
         child: Container(
@@ -1916,12 +2636,7 @@ class _KAddressSheetState extends State<_KAddressSheet> {
   }
 
   Future<void> _edit([Map<String, dynamic>? address]) async {
-    final saved = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KAddressForm(existing: address),
-    );
+    final saved = await _KNav.sheet<Map<String, dynamic>>(context, _KAddressForm(existing: address), height: null);
     if (saved != null) {
       await _load();
       if (address == null) await _choose(saved);
@@ -1940,17 +2655,13 @@ class _KAddressSheetState extends State<_KAddressSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _KColors.ground,
-      appBar: AppBar(
-        backgroundColor: _KColors.white,
-        foregroundColor: _KColors.ink,
-        elevation: 0,
-        title: const Text('Delivery address', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: _kSheetBar(context, 'Delivery address'),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _KColors.ink))
+          ? const Center(child: CupertinoActivityIndicator(radius: 14))
           : ListView(
-              padding: const EdgeInsets.all(12),
+              physics: _kPhysics,
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
               children: [
                 for (final address in _addresses)
                   Container(
@@ -2147,16 +2858,13 @@ class _KAddressFormState extends State<_KAddressForm> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
-        decoration: const BoxDecoration(
-          color: _KColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.86),
         child: SafeArea(
           top: false,
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            physics: _kPhysics,
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
             children: [
               Text(widget.existing == null ? 'New address' : 'Edit address',
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),

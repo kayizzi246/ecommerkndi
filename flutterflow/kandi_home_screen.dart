@@ -10,21 +10,25 @@ import 'package:flutter/material.dart';
 
 // ============================================================
 //  KANDI — HOME
-//  Search, the departments, Super deals, New in, one coloured
-//  carousel per department, then Best sellers.
+//  A glass search bar the page scrolls under, the departments,
+//  Super deals, New in, one coloured carousel per department,
+//  then Best sellers. Products open as glass sheets.
 // ============================================================
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 // Supabase comes through FlutterFlow's own file (Settings > Integrations > Supabase must be on).
+// Sign-in goes straight to Supabase too (see _KAuth.signInWithGoogle): no generated auth files.
 import '/backend/supabase/supabase.dart';
-// Google sign-in comes through FlutterFlow's auth (Settings > Authentication > Supabase, Google on).
-import '/auth/supabase_auth/auth_util.dart';
-
-// Other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
+// The other Kandi screens are reached through '/custom_code/widgets/index.dart' above.
 
 class KandiHomeScreen extends StatefulWidget {
   const KandiHomeScreen({super.key, this.width, this.height});
@@ -114,165 +118,175 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _KColors.ground,
-      bottomNavigationBar: const _KBottomNav(current: 0),
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: _KColors.ink,
-          onRefresh: () async {
-            await _KApi.categories(refresh: true);
-            await _load();
-          },
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: _header(context)),
-              if (_loading)
-                SliverList(
-                  delegate: SliverChildListDelegate(const [
-                    _KSkeleton(height: 150),
-                    _KSkeleton(height: 280),
-                    _KSkeleton(height: 280),
-                  ]),
-                )
-              else if (_error != null)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _KEmpty(icon: Icons.wifi_off_rounded, title: 'No connection', message: _error, action: 'Try again', onAction: _load),
-                )
-              else ...[
-                SliverToBoxAdapter(child: _banner(context)),
-                SliverToBoxAdapter(
-                  child: _KCarousel(
-                    title: 'Super deals',
-                    products: _deals,
-                    background: _KColors.ink,
-                    titleColor: _KColors.yellow,
-                    onSeeAll: () => _KNav.openShop(context, sort: 'discount'),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _KCarousel(
-                    title: 'New in',
-                    products: _newIn,
-                    background: _KColors.yellowSoft,
-                    titleColor: const Color(0xFF8A5A00),
-                    onSeeAll: () => _KNav.openShop(context, sort: 'newest'),
-                  ),
-                ),
-                for (var i = 0; i < _rails.length; i++)
-                  SliverToBoxAdapter(
-                    child: _KCarousel(
-                      title: _rails[i].category.name,
-                      products: _rails[i].products,
-                      background: (_tones[_rails[i].category.slug] ?? _spareTones[i % _spareTones.length])[0],
-                      titleColor: (_tones[_rails[i].category.slug] ?? _spareTones[i % _spareTones.length])[1],
-                      onSeeAll: () => _KNav.openShop(context, categoryId: _rails[i].category.id),
-                    ),
-                  ),
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 6, 16, 12),
-                    child: Text('Best sellers',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
-                  ),
-                ),
-                _KProductGrid(_best),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              ],
-            ],
+      extendBody: true,
+      bottomNavigationBar: const _KTabBar(current: 0),
+      body: CustomScrollView(
+        physics: _kPhysics,
+        slivers: [
+          _bar(context),
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              await _KApi.categories(refresh: true);
+              await _load();
+            },
           ),
-        ),
+          if (_departments.isNotEmpty) SliverToBoxAdapter(child: _departmentChips(context)),
+          if (_loading)
+            SliverList(
+              delegate: SliverChildListDelegate(const [
+                SizedBox(height: 12),
+                _KSkeleton(height: 150),
+                _KSkeleton(height: 280),
+                _KSkeleton(height: 280),
+              ]),
+            )
+          else if (_error != null)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _KEmpty(icon: Icons.wifi_off_rounded, title: 'No connection', message: _error, action: 'Try again', onAction: _load),
+            )
+          else ...[
+            SliverToBoxAdapter(child: _banner(context)),
+            SliverToBoxAdapter(
+              child: _KCarousel(
+                title: 'Super deals',
+                products: _deals,
+                background: _KColors.ink,
+                titleColor: _KColors.yellow,
+                onSeeAll: () => _KNav.openShop(context, sort: 'discount'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: _KCarousel(
+                title: 'New in',
+                products: _newIn,
+                background: _KColors.yellowSoft,
+                titleColor: const Color(0xFF8A5A00),
+                onSeeAll: () => _KNav.openShop(context, sort: 'newest'),
+              ),
+            ),
+            for (var i = 0; i < _rails.length; i++)
+              SliverToBoxAdapter(
+                child: _KCarousel(
+                  title: _rails[i].category.name,
+                  products: _rails[i].products,
+                  background: (_tones[_rails[i].category.slug] ?? _spareTones[i % _spareTones.length])[0],
+                  titleColor: (_tones[_rails[i].category.slug] ?? _spareTones[i % _spareTones.length])[1],
+                  onSeeAll: () => _KNav.openShop(context, categoryId: _rails[i].category.id),
+                ),
+              ),
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 6, 16, 12),
+                child: Text('Best sellers',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
+              ),
+            ),
+            _KProductGrid(_best),
+          ],
+          const _KBarSpace(),
+        ],
       ),
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Container(
-      color: _KColors.white,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// The pinned glass bar: the name, the search capsule, the cart.
+  Widget _bar(BuildContext context) {
+    return SliverAppBar(
+      pinned: true,
+      automaticallyImplyLeading: false,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 64,
+      titleSpacing: 14,
+      flexibleSpace: const _KGlassBar(),
+      title: Row(
         children: [
-          Row(
-            children: [
-              const Text('Kandi',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -1)),
-              Container(
-                margin: const EdgeInsets.only(left: 2, top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
-                child: const Text('UG', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _KColors.ink)),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: () => _KNav.tab(context, 3),
-                icon: AnimatedBuilder(
-                  animation: _KCart.instance,
-                  builder: (_, __) => Badge(
-                    isLabelVisible: _KCart.instance.count > 0,
-                    label: Text('${_KCart.instance.count}'),
-                    backgroundColor: _KColors.sale,
-                    child: const Icon(Icons.shopping_bag_outlined, color: _KColors.ink, size: 26),
-                  ),
+          const Text('Kandi',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -1)),
+          Container(
+            margin: const EdgeInsets.only(left: 2, top: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
+            child: const Text('UG', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _KColors.ink)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _KPress(
+              onTap: () => _KNav.openShop(context, query: ''),
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xB3FFFFFF),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0x14000000), width: 0.5),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.search_rounded, color: _KColors.ink, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Search shoes, bags…',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, color: _KColors.muted, fontWeight: FontWeight.w500)),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () => _KNav.openShop(context, query: ''),
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(999)),
-              child: const Row(
-                children: [
-                  Icon(Icons.search_rounded, color: _KColors.ink),
-                  SizedBox(width: 10),
-                  Text('Search shoes, bags, watches…', style: TextStyle(fontSize: 15, color: _KColors.muted)),
-                ],
-              ),
             ),
           ),
-          if (_departments.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 38,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _departments.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, index) {
-                  final department = _departments[index];
-                  final tone = _tones[department.slug] ?? _spareTones[index % _spareTones.length];
-                  return GestureDetector(
-                    onTap: () => _KNav.openShop(context, categoryId: department.id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(color: tone[0], borderRadius: BorderRadius.circular(999)),
-                      child: Text(department.name,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: tone[1])),
-                    ),
-                  );
-                },
-              ),
+          const SizedBox(width: 10),
+          AnimatedBuilder(
+            animation: _KCart.instance,
+            builder: (_, __) => _KGlassIcon(
+              icon: Icons.shopping_bag_outlined,
+              badge: _KCart.instance.count,
+              onTap: () => _KNav.tab(context, 2),
             ),
-          ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _departmentChips(BuildContext context) {
+    return SizedBox(
+      height: 62,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        physics: const BouncingScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        itemCount: _departments.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, index) {
+          final department = _departments[index];
+          final tone = _tones[department.slug] ?? _spareTones[index % _spareTones.length];
+          return _KPress(
+            onTap: () => _KNav.openShop(context, categoryId: department.id),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: tone[0], borderRadius: BorderRadius.circular(999)),
+              child: Text(department.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: tone[1])),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _banner(BuildContext context) {
     final deepest = _deals.isEmpty ? 0 : _deals.map((p) => p.discount).reduce((a, b) => a > b ? a : b);
-    return GestureDetector(
+    return _KPress(
       onTap: () => _KNav.openShop(context, sort: 'discount'),
       child: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(24)),
         child: Row(
           children: [
             Expanded(
@@ -305,7 +319,7 @@ class _KandiHomeScreenState extends State<KandiHomeScreen> {
 
 // ============================================================
 //  Shared building blocks, private to this file
-//  (the same in every Kandi screen; change one, change all)
+//  (the same in all four Kandi screens; change one, change all)
 // ============================================================
 
 /// The website: delivery quotes, place search and Pesapal.
@@ -330,6 +344,13 @@ class _KColors {
   static const green = Color(0xFF15803D);
   static const greenSoft = Color(0xFFDFF6E6);
   static const white = Colors.white;
+
+  // Liquid glass tints: clear for floating controls, strong for sheets,
+  // bar for the pinned top bars, lens for the chosen tab.
+  static const glass = Color(0x8CFFFFFF);
+  static const glassStrong = Color(0xD6F8F8F6);
+  static const glassBar = Color(0xB8F7F7F5);
+  static const lens = Color(0x17000000);
 }
 
 /// "UGX 12,000".
@@ -585,30 +606,36 @@ class _KKeys {
 }
 
 class _KNav {
-  /// A product slides up as a tall bottom sheet over the current screen.
+  /// A product slides up as a tall glass sheet over the current screen.
   static Future<void> openProduct(BuildContext context, int id) =>
       sheet(context, _KProductSheet(id: id), height: 0.94);
 
-  /// The address picker, as a bottom sheet. True when an address was chosen.
+  /// The address picker, as a sheet. True when an address was chosen.
   static Future<bool> openAddresses(BuildContext context) async =>
       await sheet<bool>(context, const _KAddressSheet(), height: 0.9) == true;
 
-  /// Any screen as a rounded bottom sheet, [height] as a share of the screen.
-  static Future<T?> sheet<T>(BuildContext context, Widget child, {double height = 0.9}) {
+  /// Anything as a floating liquid-glass sheet. [height] is a share of the
+  /// screen; null lets the content decide (sign-in, sort, the address form).
+  static Future<T?> sheet<T>(BuildContext context, Widget child, {double? height = 0.9, bool dismissible = true}) {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      isDismissible: dismissible,
+      enableDrag: dismissible,
+      elevation: 0,
       backgroundColor: Colors.transparent,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: height,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: child,
-        ),
-      ),
+      barrierColor: const Color(0x38000000),
+      builder: (_) {
+        final glass = _KGlassSheet(child: child);
+        return height == null ? glass : FractionallySizedBox(heightFactor: height, child: glass);
+      },
     );
   }
+
+  /// The cart as a page of its own, above whatever is open (a product, say).
+  static Future<void> openCart(BuildContext context) =>
+      Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const KandiCartScreen()));
 
   /// Opens Shop already filtered to a category, a search or a sort.
   static Future<void> openShop(BuildContext context, {int? categoryId, String? query, String? sort}) async {
@@ -617,15 +644,15 @@ class _KNav {
     if (query != null) await prefs.setString(_KKeys.shopQuery, query);
     if (sort != null) await prefs.setString(_KKeys.shopSort, sort);
     if (!context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiShopScreen()));
+    await Navigator.of(context).push(CupertinoPageRoute(builder: (_) => const KandiShopScreen()));
   }
 
-  /// The bottom bar's tabs swap the screen rather than stacking it.
+  /// The four tabs (Home, Shop, Cart, Account) swap the screen rather than
+  /// stacking it, instantly, as iOS tab bars do.
   static void tab(BuildContext context, int index) {
     const screens = <Widget>[
       KandiHomeScreen(),
       KandiShopScreen(),
-      KandiRewardsScreen(),
       KandiCartScreen(),
       KandiAccountScreen(),
     ];
@@ -777,19 +804,35 @@ class _KAuth {
   /// Signed in already, or signs in now through the sheet. True when signed in.
   static Future<bool> ensure(BuildContext context, {String reason = 'Sign in to continue'}) async {
     if (signedIn) return true;
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KSignInSheet(reason: reason),
-    );
+    final ok = await _KNav.sheet<bool>(context, _KSignInSheet(reason: reason), height: null);
     return ok == true && signedIn;
   }
 
-  static Future<void> signOut() async {
-    try {
-      await authManager.signOut();
-    } catch (_) {
-      await _kSupa.auth.signOut();
+  static Future<void> signOut() => _kSupa.auth.signOut();
+
+  /// Where Supabase sends the shopper back after Google. The web app comes back
+  /// to its own address; the phone app to its deep link. Both must be listed in
+  /// Supabase > Authentication > URL Configuration > Redirect URLs.
+  static const String appRedirect = 'kandiug://kandiug.com/auth-callback';
+
+  /// Google through Supabase. On the web the page leaves for Google and comes
+  /// back signed in; in the app this waits for the browser to hand back.
+  static Future<void> signInWithGoogle() async {
+    final waiting = kIsWeb
+        ? null
+        : _kSupa.auth.onAuthStateChange
+            .firstWhere((s) => s.event == AuthChangeEvent.signedIn)
+            .timeout(const Duration(minutes: 3));
+    await _kSupa.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? Uri.base.origin : appRedirect,
+    );
+    if (waiting != null) {
+      try {
+        await waiting;
+      } on TimeoutException {
+        // Still signed out; the sheet says it was cancelled.
+      }
     }
   }
 
@@ -820,8 +863,7 @@ class _KSignInSheetState extends State<_KSignInSheet> {
       _error = null;
     });
     try {
-      // FlutterFlow's own Google sign-in for Supabase (Settings > Authentication).
-      await authManager.signInWithGoogle(context);
+      await _KAuth.signInWithGoogle();
       if (!mounted) return;
       if (_KAuth.signedIn) {
         Navigator.of(context).pop(true);
@@ -837,26 +879,14 @@ class _KSignInSheetState extends State<_KSignInSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: const BoxDecoration(
-        color: _KColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: _KColors.line, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 18),
             Text(widget.reason,
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _KColors.ink, letterSpacing: -0.5)),
             const SizedBox(height: 6),
@@ -914,6 +944,7 @@ class _KWoo {
 //  Building blocks
 // ------------------------------------------------------------
 
+/// The app's capsule button: yellow, black, or outlined. Squeezes when pressed.
 class _KButton extends StatelessWidget {
   const _KButton({
     super.key,
@@ -934,36 +965,40 @@ class _KButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = outline ? _KColors.white : (dark ? _KColors.ink : _KColors.yellow);
+    final background = outline ? Colors.transparent : (dark ? _KColors.ink : _KColors.yellow);
     final foreground = dark && !outline ? _KColors.white : _KColors.ink;
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: busy ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: background,
-          foregroundColor: foreground,
-          disabledBackgroundColor: background.withOpacity(0.6),
-          shape: RoundedRectangleBorder(
+    return _KPress(
+      onTap: busy ? null : onPressed,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 160),
+        opacity: onPressed == null && !busy ? 0.45 : 1,
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: background,
             borderRadius: BorderRadius.circular(999),
-            side: outline ? const BorderSide(color: _KColors.ink, width: 1.5) : BorderSide.none,
+            border: outline ? Border.all(color: _KColors.ink, width: 1.5) : null,
+            boxShadow: outline || onPressed == null
+                ? null
+                : [BoxShadow(color: background.withAlpha(dark ? 60 : 90), blurRadius: 18, offset: const Offset(0, 6))],
           ),
+          child: busy
+              ? CupertinoActivityIndicator(color: foreground)
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[Icon(icon, size: 20, color: foreground), const SizedBox(width: 8)],
+                    Flexible(
+                      child: Text(label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: foreground)),
+                    ),
+                  ],
+                ),
         ),
-        child: busy
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
-                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                ],
-              ),
       ),
     );
   }
@@ -1006,7 +1041,7 @@ class _KField extends StatelessWidget {
             hintText: hint,
             prefixText: prefix,
             filled: true,
-            fillColor: _KColors.ground,
+            fillColor: _KColors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
@@ -1058,7 +1093,7 @@ class _KProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return _KPress(
       onTap: () => _KNav.openProduct(context, product.id),
       child: Container(
         width: width,
@@ -1179,6 +1214,7 @@ class _KCarousel extends StatelessWidget {
             height: 248,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 14),
+              physics: const BouncingScrollPhysics(),
               scrollDirection: Axis.horizontal,
               itemCount: products.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
@@ -1216,59 +1252,414 @@ class _KProductGrid extends StatelessWidget {
   }
 }
 
-/// The app's five tabs. Cart shows its count.
-class _KBottomNav extends StatelessWidget {
-  const _KBottomNav({super.key, required this.current});
+// ------------------------------------------------------------
+//  Liquid glass and the iOS feel
+//  Apple's glass material made from Flutter's own blur and colour
+//  filters, so it needs no package and works on iOS, Android and
+//  the web: a saturated frost, a bright rim where light catches
+//  the edge, a sheen along the top. Plus spring motion, squeeze-
+//  on-press and haptic ticks.
+// ------------------------------------------------------------
+
+/// iOS scrolling: rubber-band at the ends, always scrollable (so the
+/// pull-to-refresh works even on a short page).
+const ScrollPhysics _kPhysics = BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+
+/// A quick spring with a little overshoot, like UIKit's default.
+const Curve _kSpring = Cubic(0.34, 1.36, 0.64, 1);
+
+/// A light tick for taps and selections; [firm] for "added", "placed".
+void _kHaptic([bool firm = false]) {
+  if (firm) {
+    HapticFeedback.mediumImpact();
+  } else {
+    HapticFeedback.selectionClick();
+  }
+}
+
+/// Blur plus extra colour: what makes it glass rather than frosted plastic.
+/// (The web gets the blur alone, which every browser renders the same.)
+ui.ImageFilter _kGlassFilter(double blur) {
+  final frost = ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur);
+  if (kIsWeb) return frost;
+  const s = 1.6; // saturation
+  const r = 0.2126 * (1 - s), g = 0.7152 * (1 - s), b = 0.0722 * (1 - s);
+  return ui.ImageFilter.compose(
+    outer: const ColorFilter.matrix(<double>[
+      r + s, g, b, 0, 0, //
+      r, g + s, b, 0, 0, //
+      r, g, b + s, 0, 0, //
+      0, 0, 0, 1, 0, //
+    ]),
+    inner: frost,
+  );
+}
+
+/// A pane of liquid glass of any shape: what is behind it shows through,
+/// blurred and brightened; [child] sits on top, sharp.
+class _KGlass extends StatelessWidget {
+  const _KGlass({
+    super.key,
+    required this.child,
+    this.radius = 999,
+    this.blur = 18,
+    this.tint = _KColors.glass,
+    this.padding = EdgeInsets.zero,
+    this.shadow = true,
+  });
+
+  final Widget child;
+  final double radius;
+  final double blur;
+  final Color tint;
+  final EdgeInsetsGeometry padding;
+  final bool shadow;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = BorderRadius.circular(radius);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: shape,
+        boxShadow: shadow
+            ? const [
+                BoxShadow(color: Color(0x1A000000), blurRadius: 28, offset: Offset(0, 10)),
+                BoxShadow(color: Color(0x0D000000), blurRadius: 3, offset: Offset(0, 1)),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: shape,
+        child: BackdropFilter(
+          filter: _kGlassFilter(blur),
+          child: CustomPaint(
+            foregroundPainter: _KRimPainter(radius),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: shape,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color.alphaBlend(const Color(0x2EFFFFFF), tint), tint],
+                ),
+              ),
+              child: Padding(padding: padding, child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The glass edge: a hairline for definition on white, a bright rim where
+/// the light lands (top left) that fades and catches again bottom right,
+/// and a soft sheen just inside the top.
+class _KRimPainter extends CustomPainter {
+  const _KRimPainter(this.radius);
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final corner = Radius.circular(math.min(radius, size.shortestSide / 2));
+    final edge = RRect.fromRectAndRadius(rect.deflate(0.5), corner);
+
+    canvas.drawRRect(
+      edge,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5
+        ..color = const Color(0x1F000000),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(1), corner),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xF2FFFFFF), Color(0x40FFFFFF), Color(0x12FFFFFF), Color(0x99FFFFFF)],
+          stops: [0, 0.3, 0.7, 1],
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, corner),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment(0, -0.2),
+          colors: [Color(0x38FFFFFF), Color(0x00FFFFFF)],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_KRimPainter oldDelegate) => oldDelegate.radius != radius;
+}
+
+/// Presses like iOS: a quick squeeze, a springy release, a light tick.
+class _KPress extends StatefulWidget {
+  const _KPress({super.key, required this.child, this.onTap, this.scale = 0.96});
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scale;
+
+  @override
+  State<_KPress> createState() => _KPressState();
+}
+
+class _KPressState extends State<_KPress> {
+  bool _down = false;
+
+  void _set(bool down) {
+    if (widget.onTap != null && _down != down) setState(() => _down = down);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              _kHaptic();
+              widget.onTap!();
+            },
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: Duration(milliseconds: _down ? 90 : 420),
+        curve: _down ? Curves.easeOut : _kSpring,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// A round glass button (close, cart) that floats over photos and bars.
+class _KGlassIcon extends StatelessWidget {
+  const _KGlassIcon({super.key, required this.icon, required this.onTap, this.badge = 0, this.size = 44});
+  final IconData icon;
+  final VoidCallback onTap;
+  final int badge;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return _KPress(
+      onTap: onTap,
+      scale: 0.88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _KGlass(
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Icon(icon, color: _KColors.ink, size: size * 0.5),
+            ),
+          ),
+          if (badge > 0)
+            Positioned(
+              top: -3,
+              right: -3,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 20),
+                height: 20,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _KColors.sale,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _KColors.white, width: 1.5),
+                ),
+                child: Text('$badge',
+                    style: const TextStyle(color: _KColors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A sheet made of glass: inset from the screen's edges, deep corners,
+/// a grabber on top. Everything the app slides up goes through this
+/// (see [_KNav.sheet]).
+class _KGlassSheet extends StatelessWidget {
+  const _KGlassSheet({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+      child: _KGlass(
+        radius: 34,
+        blur: 30,
+        tint: _KColors.glassStrong,
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            child,
+            Positioned(
+              top: 7,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    width: 38,
+                    height: 5,
+                    decoration: BoxDecoration(color: const Color(0x33000000), borderRadius: BorderRadius.circular(3)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The title row at the top of a sheet, with a glass close button.
+PreferredSizeWidget _kSheetBar(BuildContext context, String title) => AppBar(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: _KColors.ink,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      toolbarHeight: 70,
+      titleSpacing: 20,
+      title: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: _KColors.ink, letterSpacing: -0.5)),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 14, top: 10),
+          child: _KGlassIcon(icon: Icons.close_rounded, size: 38, onTap: () => Navigator.of(context).maybePop()),
+        ),
+      ],
+    );
+
+/// The pinned top bar's background: glass the page scrolls under.
+class _KGlassBar extends StatelessWidget {
+  const _KGlassBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: _kGlassFilter(22),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: _KColors.glassBar,
+            border: Border(bottom: BorderSide(color: Color(0x14000000), width: 0.5)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Room at the end of a scrolling page for whatever floats over its
+/// bottom (the tab bar, the cart total), so the last row can be reached.
+class _KBarSpace extends StatelessWidget {
+  const _KBarSpace({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 20));
+}
+
+/// The floating glass tab bar: Home, Shop, Cart, Account. A lens slides
+/// to the chosen tab on a spring, like iOS 26. Cart shows its count.
+/// Use it with `Scaffold(extendBody: true)` so pages scroll under it.
+class _KTabBar extends StatelessWidget {
+  const _KTabBar({super.key, required this.current});
   final int current;
+
+  /// The tab shown before this screen, so the lens slides from there.
+  static int _from = 0;
 
   @override
   Widget build(BuildContext context) {
     const items = [
-      (Icons.home_outlined, Icons.home, 'Home'),
+      (Icons.home_outlined, Icons.home_rounded, 'Home'),
       (Icons.grid_view_outlined, Icons.grid_view_rounded, 'Shop'),
-      (Icons.stars_outlined, Icons.stars_rounded, 'Rewards'),
-      (Icons.shopping_bag_outlined, Icons.shopping_bag, 'Cart'),
-      (Icons.person_outline, Icons.person, 'Account'),
+      (Icons.shopping_bag_outlined, Icons.shopping_bag_rounded, 'Cart'),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'Account'),
     ];
-    return AnimatedBuilder(
-      animation: _KCart.instance,
-      builder: (context, _) => Container(
-        decoration: const BoxDecoration(
-          color: _KColors.white,
-          border: Border(top: BorderSide(color: _KColors.line)),
-        ),
-        child: SafeArea(
-          top: false,
+    final from = _from;
+    _from = current;
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: _KGlass(
+          padding: const EdgeInsets.all(5),
           child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                for (var i = 0; i < items.length; i++)
-                  Expanded(
-                    child: InkWell(
-                      onTap: i == current ? null : () => _KNav.tab(context, i),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Badge(
-                            isLabelVisible: i == 3 && _KCart.instance.count > 0,
-                            label: Text('${_KCart.instance.count}'),
-                            backgroundColor: _KColors.sale,
-                            child: Icon(i == current ? items[i].$2 : items[i].$1,
-                                color: i == current ? _KColors.ink : _KColors.muted, size: 26),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(items[i].$3,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: i == current ? FontWeight.w800 : FontWeight.w500,
-                                color: i == current ? _KColors.ink : _KColors.muted,
-                              )),
-                        ],
+            height: 56,
+            child: AnimatedBuilder(
+              animation: _KCart.instance,
+              builder: (context, _) => Stack(
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: from.toDouble(), end: current.toDouble()),
+                    duration: const Duration(milliseconds: 520),
+                    curve: _kSpring,
+                    builder: (_, at, __) => Align(
+                      alignment: Alignment(-1 + 2 * at / (items.length - 1), 0),
+                      child: FractionallySizedBox(
+                        widthFactor: 1 / items.length,
+                        heightFactor: 1,
+                        child: Container(
+                          decoration: BoxDecoration(color: _KColors.lens, borderRadius: BorderRadius.circular(999)),
+                        ),
                       ),
                     ),
                   ),
-              ],
+                  Row(
+                    children: [
+                      for (var i = 0; i < items.length; i++)
+                        Expanded(
+                          child: _KPress(
+                            scale: 0.88,
+                            onTap: i == current ? null : () => _KNav.tab(context, i),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Badge(
+                                  isLabelVisible: i == 2 && _KCart.instance.count > 0,
+                                  label: Text('${_KCart.instance.count}'),
+                                  backgroundColor: _KColors.sale,
+                                  child: Icon(i == current ? items[i].$2 : items[i].$1,
+                                      color: i == current ? _KColors.ink : _KColors.body, size: 25),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(items[i].$3,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: i == current ? FontWeight.w800 : FontWeight.w600,
+                                      color: i == current ? _KColors.ink : _KColors.body,
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1330,16 +1721,93 @@ class _KEmpty extends StatelessWidget {
   }
 }
 
-/// A short message at the bottom of the screen.
+/// A short message in a dark glass capsule that drops in at the top of the
+/// screen, above any open sheet, and leaves on its own.
+OverlayEntry? _kToastEntry;
+
 void _kToast(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: _KColors.ink,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    ));
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) return;
+  _kToastEntry?.remove();
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _KToast(
+      message: message,
+      onDone: () {
+        if (_kToastEntry == entry) {
+          entry.remove();
+          _kToastEntry = null;
+        }
+      },
+    ),
+  );
+  _kToastEntry = entry;
+  overlay.insert(entry);
+}
+
+class _KToast extends StatefulWidget {
+  const _KToast({required this.message, required this.onDone});
+  final String message;
+  final VoidCallback onDone;
+
+  @override
+  State<_KToast> createState() => _KToastState();
+}
+
+class _KToastState extends State<_KToast> {
+  bool _shown = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _shown = true);
+    });
+    _timer = Timer(const Duration(milliseconds: 2400), () {
+      if (!mounted) return;
+      setState(() => _shown = false);
+      _timer = Timer(const Duration(milliseconds: 300), widget.onDone);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 8,
+      left: 16,
+      right: 16,
+      child: IgnorePointer(
+        child: Material(
+          type: MaterialType.transparency,
+          child: AnimatedSlide(
+            offset: _shown ? Offset.zero : const Offset(0, -1.6),
+            duration: const Duration(milliseconds: 420),
+            curve: _shown ? _kSpring : Curves.easeIn,
+            child: AnimatedOpacity(
+              opacity: _shown ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              child: Center(
+                child: _KGlass(
+                  tint: const Color(0xD9161616),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  child: Text(widget.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _KColors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ------------------------------------------------------------
@@ -1469,8 +1937,9 @@ class _KProductSheetState extends State<_KProductSheet> {
     if (!mounted) return;
     setState(() => _adding = false);
     if (thenCart) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen()));
+      _KNav.openCart(context);
     } else {
+      _kHaptic(true);
       _kToast(context, 'Added to your cart');
     }
   }
@@ -1478,21 +1947,17 @@ class _KProductSheetState extends State<_KProductSheet> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(backgroundColor: _KColors.white, body: Center(child: CircularProgressIndicator(color: _KColors.ink)));
+      return const Center(child: CupertinoActivityIndicator(radius: 14));
     }
     final product = _product;
     if (product == null) {
-      return Scaffold(
-        backgroundColor: _KColors.white,
-        appBar: AppBar(backgroundColor: _KColors.white, foregroundColor: _KColors.ink, elevation: 0),
-        body: Center(
-          child: _KEmpty(
-            icon: Icons.search_off_rounded,
-            title: 'This product is gone',
-            message: 'It may have sold out or been removed.',
-            action: 'Back to shopping',
-            onAction: () => Navigator.of(context).pop(),
-          ),
+      return Center(
+        child: _KEmpty(
+          icon: Icons.search_off_rounded,
+          title: 'This product is gone',
+          message: 'It may have sold out or been removed.',
+          action: 'Back to shopping',
+          onAction: () => Navigator.of(context).pop(),
         ),
       );
     }
@@ -1506,262 +1971,267 @@ class _KProductSheetState extends State<_KProductSheet> {
       if (variation?.image?.isNotEmpty ?? false) variation!.image!,
       ...product.photos,
     ].toSet().toList();
+    final bottom = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: _KColors.white,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: MediaQuery.of(context).size.width,
-            backgroundColor: _KColors.white,
-            foregroundColor: _KColors.ink,
-            elevation: 0,
-            leading: Padding(
-              padding: const EdgeInsets.all(6),
-              child: CircleAvatar(
-                backgroundColor: _KColors.white,
-                child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: _KColors.ink),
-                  onPressed: () => Navigator.of(context).pop(),
+    return Stack(
+      children: [
+        CustomScrollView(
+          physics: _kPhysics,
+          slivers: [
+            // The photos run edge to edge, under the glass buttons.
+            SliverToBoxAdapter(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pages,
+                      itemCount: photos.isEmpty ? 1 : photos.length,
+                      onPageChanged: (index) => setState(() => _photo = index),
+                      itemBuilder: (_, index) => _KPhoto(photos.isEmpty ? '' : photos[index], fit: BoxFit.contain),
+                    ),
+                    if (photos.length > 1)
+                      Positioned(
+                        bottom: 14,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: _KGlass(
+                            shadow: false,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var i = 0; i < photos.length; i++)
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 260),
+                                    curve: _kSpring,
+                                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                                    width: i == _photo ? 18 : 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: i == _photo ? _KColors.ink : const Color(0x55000000),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(6),
-                child: CircleAvatar(
-                  backgroundColor: _KColors.white,
-                  child: IconButton(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KandiCartScreen())),
-                    icon: AnimatedBuilder(
-                      animation: _KCart.instance,
-                      builder: (_, __) => Badge(
-                        isLabelVisible: _KCart.instance.count > 0,
-                        label: Text('${_KCart.instance.count}'),
-                        backgroundColor: _KColors.sale,
-                        child: const Icon(Icons.shopping_bag_outlined, color: _KColors.ink),
-                      ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(_kMoney(price),
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: reduced ? _KColors.sale : _KColors.ink,
+                              letterSpacing: -0.5,
+                            )),
+                        if (reduced) ...[
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(_kMoney(regular),
+                                style: const TextStyle(fontSize: 14, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
+                            child: Text('-${(((regular - price) / regular) * 100).floor()}%',
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
+                    if (reduced)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('You save ${_kMoney(regular - price)}',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _KColors.green)),
+                      ),
+                    const SizedBox(height: 10),
+                    Text(product.name,
+                        style: const TextStyle(fontSize: 17, height: 1.35, fontWeight: FontWeight.w600, color: _KColors.ink)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (product.ratingCount > 0) ...[
+                          const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                          const SizedBox(width: 2),
+                          Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 12),
+                        ],
+                        if (product.totalSales > 0)
+                          Text('${_kCompact(product.totalSales)} sold', style: const TextStyle(fontSize: 13, color: _KColors.muted)),
+                        const Spacer(),
+                        Text(
+                          soldOut
+                              ? 'Sold out'
+                              : (product.stockQuantity != null && product.stockQuantity! <= 5)
+                                  ? 'Only ${product.stockQuantity} left'
+                                  : 'In stock',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: soldOut || (product.stockQuantity ?? 99) <= 5 ? _KColors.sale : _KColors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  PageView.builder(
-                    controller: _pages,
-                    itemCount: photos.isEmpty ? 1 : photos.length,
-                    onPageChanged: (index) => setState(() => _photo = index),
-                    itemBuilder: (_, index) => _KPhoto(photos.isEmpty ? '' : photos[index], fit: BoxFit.contain),
-                  ),
-                  if (photos.length > 1)
-                    Positioned(
-                      bottom: 12,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            for (final attribute in _choices)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _picked[attribute.name] == null ? attribute.name : '${attribute.name}: ${_picked[attribute.name]}',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          for (var i = 0; i < photos.length; i++)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: i == _photo ? 18 : 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: i == _photo ? _KColors.ink : _KColors.muted.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
+                          for (final option in attribute.options)
+                            _KOptionChip(
+                              option: option,
+                              selected: _picked[attribute.name] == option.name,
+                              available: _available(attribute, option),
+                              onTap: () => setState(() {
+                                if (_picked[attribute.name] == option.name) {
+                                  _picked.remove(attribute.name);
+                                } else {
+                                  _picked[attribute.name] = option.name;
+                                }
+                                _photo = 0;
+                                if (_pages.hasClients) _pages.jumpToPage(0);
+                              }),
                             ),
                         ],
                       ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(_kMoney(price),
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: reduced ? _KColors.sale : _KColors.ink,
-                            letterSpacing: -0.5,
-                          )),
-                      if (reduced) ...[
-                        const SizedBox(width: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(_kMoney(regular),
-                              style: const TextStyle(fontSize: 14, color: _KColors.muted, decoration: TextDecoration.lineThrough)),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: _KColors.yellow, borderRadius: BorderRadius.circular(6)),
-                          child: Text('-${(((regular - price) / regular) * 100).floor()}%',
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                        ),
-                      ],
                     ],
                   ),
-                  if (reduced)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('You save ${_kMoney(regular - price)}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _KColors.green)),
-                    ),
-                  const SizedBox(height: 10),
-                  Text(product.name,
-                      style: const TextStyle(fontSize: 17, height: 1.35, fontWeight: FontWeight.w600, color: _KColors.ink)),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: _KColors.white, borderRadius: BorderRadius.circular(18)),
+                child: const Column(
+                  children: [
+                    _KPromise(Icons.local_shipping_outlined, 'Delivery across Uganda', 'Fee shown at checkout'),
+                    SizedBox(height: 10),
+                    _KPromise(Icons.payments_outlined, 'Pay on delivery in Kampala', 'Or MTN MoMo, Airtel Money, card'),
+                    SizedBox(height: 10),
+                    _KPromise(Icons.stars_outlined, 'Earn reward points', 'On every delivered order'),
+                  ],
+                ),
+              ),
+            ),
+            if (_kPlain(product.description).isNotEmpty || _kPlain(product.shortDescription).isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (product.ratingCount > 0) ...[
-                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
-                        const SizedBox(width: 2),
-                        Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 12),
-                      ],
-                      if (product.totalSales > 0)
-                        Text('${_kCompact(product.totalSales)} sold', style: const TextStyle(fontSize: 13, color: _KColors.muted)),
-                      const Spacer(),
+                      const Text('Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 8),
                       Text(
-                        soldOut
-                            ? 'Sold out'
-                            : (product.stockQuantity != null && product.stockQuantity! <= 5)
-                                ? 'Only ${product.stockQuantity} left'
-                                : 'In stock',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: soldOut || (product.stockQuantity ?? 99) <= 5 ? _KColors.sale : _KColors.green,
-                        ),
+                        _kPlain(product.description.isNotEmpty ? product.description : product.shortDescription),
+                        style: const TextStyle(fontSize: 14, height: 1.55, color: _KColors.body),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          for (final attribute in _choices)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _picked[attribute.name] == null ? attribute.name : '${attribute.name}: ${_picked[attribute.name]}',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final option in attribute.options)
-                          _KOptionChip(
-                            option: option,
-                            selected: _picked[attribute.name] == option.name,
-                            available: _available(attribute, option),
-                            onTap: () => setState(() {
-                              if (_picked[attribute.name] == option.name) {
-                                _picked.remove(attribute.name);
-                              } else {
-                                _picked[attribute.name] = option.name;
-                              }
-                              _photo = 0;
-                              if (_pages.hasClients) _pages.jumpToPage(0);
-                            }),
-                          ),
-                      ],
-                    ),
-                  ],
                 ),
               ),
-            ),
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(16)),
-              child: const Column(
-                children: [
-                  _KPromise(Icons.local_shipping_outlined, 'Delivery across Uganda', 'Fee shown at checkout'),
-                  SizedBox(height: 10),
-                  _KPromise(Icons.payments_outlined, 'Pay on delivery in Kampala', 'Or MTN MoMo, Airtel Money, card'),
-                  SizedBox(height: 10),
-                  _KPromise(Icons.stars_outlined, 'Earn reward points', 'On every delivered order'),
-                ],
-              ),
-            ),
-          ),
-          if (_kPlain(product.description).isNotEmpty || _kPlain(product.shortDescription).isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    Text(
-                      _kPlain(product.description.isNotEmpty ? product.description : product.shortDescription),
-                      style: const TextStyle(fontSize: 14, height: 1.55, color: _KColors.body),
-                    ),
-                  ],
+            if (_related.length >= 3)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _KCarousel(title: 'You may also like', products: _related, background: _KColors.white),
                 ),
               ),
+            // Room for the floating glass bar.
+            SliverToBoxAdapter(child: SizedBox(height: 96 + bottom)),
+          ],
+        ),
+        Positioned(
+          top: 16,
+          left: 16,
+          child: _KGlassIcon(icon: Icons.close_rounded, onTap: () => Navigator.of(context).pop()),
+        ),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: AnimatedBuilder(
+            animation: _KCart.instance,
+            builder: (_, __) => _KGlassIcon(
+              icon: Icons.shopping_bag_outlined,
+              badge: _KCart.instance.count,
+              onTap: () => _KNav.openCart(context),
             ),
-          if (_related.length >= 3)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: _KCarousel(title: 'You may also like', products: _related, background: _KColors.ground),
-              ),
-            ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(color: _KColors.white, border: Border(top: BorderSide(color: _KColors.line))),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          ),
+        ),
+        // Quantity and Add to cart float on glass over the page.
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 10 + bottom,
+          child: _KGlass(
+            padding: const EdgeInsets.all(6),
             child: Row(
               children: [
                 Container(
                   height: 52,
-                  decoration: BoxDecoration(color: _KColors.ground, borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(color: const Color(0x0F000000), borderRadius: BorderRadius.circular(999)),
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        onPressed: _quantity > 1
+                            ? () {
+                                _kHaptic();
+                                setState(() => _quantity--);
+                              }
+                            : null,
                         icon: const Icon(Icons.remove_rounded),
                       ),
                       Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                       IconButton(
-                        onPressed: _quantity < 20 ? () => setState(() => _quantity++) : null,
+                        onPressed: _quantity < 20
+                            ? () {
+                                _kHaptic();
+                                setState(() => _quantity++);
+                              }
+                            : null,
                         icon: const Icon(Icons.add_rounded),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: soldOut
                       ? const _KButton(label: 'Sold out', onPressed: null, dark: true)
@@ -1771,7 +2241,7 @@ class _KProductSheetState extends State<_KProductSheet> {
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1787,7 +2257,12 @@ class _KOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = option.image ?? '';
     return GestureDetector(
-      onTap: available || selected ? onTap : null,
+      onTap: available || selected
+          ? () {
+              _kHaptic();
+              onTap();
+            }
+          : null,
       child: Opacity(
         opacity: available ? 1 : 0.35,
         child: Container(
@@ -1917,12 +2392,7 @@ class _KAddressSheetState extends State<_KAddressSheet> {
   }
 
   Future<void> _edit([Map<String, dynamic>? address]) async {
-    final saved = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KAddressForm(existing: address),
-    );
+    final saved = await _KNav.sheet<Map<String, dynamic>>(context, _KAddressForm(existing: address), height: null);
     if (saved != null) {
       await _load();
       if (address == null) await _choose(saved);
@@ -1941,17 +2411,13 @@ class _KAddressSheetState extends State<_KAddressSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _KColors.ground,
-      appBar: AppBar(
-        backgroundColor: _KColors.white,
-        foregroundColor: _KColors.ink,
-        elevation: 0,
-        title: const Text('Delivery address', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: _kSheetBar(context, 'Delivery address'),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _KColors.ink))
+          ? const Center(child: CupertinoActivityIndicator(radius: 14))
           : ListView(
-              padding: const EdgeInsets.all(12),
+              physics: _kPhysics,
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
               children: [
                 for (final address in _addresses)
                   Container(
@@ -2148,16 +2614,13 @@ class _KAddressFormState extends State<_KAddressForm> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
-        decoration: const BoxDecoration(
-          color: _KColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.86),
         child: SafeArea(
           top: false,
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            physics: _kPhysics,
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 16),
             children: [
               Text(widget.existing == null ? 'New address' : 'Edit address',
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),

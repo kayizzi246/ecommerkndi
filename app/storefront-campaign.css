@@ -519,3 +519,38 @@ button, input, select, textarea { font-family: inherit; }
 
 /* Original prices use the same readable strike throughout the storefront. */
 .original-price { font-family: inherit; font-variant-numeric: tabular-nums; color: var(--original-price-color, #666666); text-decoration-line: line-through; text-decoration-thickness: 1px; }
+
+/* Gift campaign: dark live text over the light artwork. */
+.hx-hero-gifts { background: #fff1d6; color: #35200e; }
+.hx-hero-gifts .hx-hero-shade { background: radial-gradient(ellipse 36% 95% at center, rgba(255,246,226,.96), rgba(255,246,226,.65) 65%, transparent); }
+.hx-hero-gifts .hx-hero-title { color: #35200e; }
+.hx-hero-gifts .hx-hero-big { color: #a61d24; }
+.hx-hero-gifts .hx-hero-sub { color: #503620; max-width: 400px; }
+.hx-hero-gifts .hx-hero-eyebrow { color: #8a1c23; background: #fff5e6; border-color: #c59058; }
+.hx-hero-gifts .hx-btn-ghost { color: #35200e; border-color: #705035; background: #fff6e6; }
+.hx-hero-gifts .hx-btn-ghost:hover { background: #ffe6bc; }
+.hx-discover-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.hx-discover-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eadfce; border-radius: 12px; background: #fff8ed; }
+.hx-discover-card:nth-child(2) { background: #edf5f0; border-color: #d6e6dc; }
+.hx-discover-card:nth-child(3) { background: #fff0ef; border-color: #f0dad7; }
+.hx-discover-card:nth-child(4) { background: #eef3ff; border-color: #dce4f5; }
+.hx-discover-photos { display: flex; gap: 6px; padding: 10px; }
+.hx-discover-photo { position: relative; flex: 1; min-width: 0; aspect-ratio: 1; background: white; border-radius: 8px; overflow: hidden; }
+.hx-discover-photo img { padding: 6px; transition: transform 180ms ease; }
+.hx-discover-card:hover img { transform: scale(1.04); }
+.hx-discover-card:focus-visible { outline: 3px solid #9a3412; outline-offset: 3px; }
+.hx-discover-label { margin-top: auto; padding: 0 12px 12px; color: #28221c; }
+.hx-discover-label h3 { font-size: 16px; font-weight: 700; }
+.hx-discover-label span { display: block; margin-top: 3px; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 1023px) { .hx-discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .hx-hero-gifts { padding-top: 32%; }
+  .hx-hero-gifts .hx-hero-image { object-fit: contain; object-position: center top; }
+  .hx-hero-gifts .hx-hero-shade { background: linear-gradient(transparent 0%, transparent 20%, #fff1d6 37%); }
+  .hx-hero-gifts .hx-hero-copy { padding-top: 10px; }
+  .hx-hero-gifts .hx-btn { min-height: 44px; }
+  .hx-discover-grid { gap: 8px; }
+  .hx-discover-label { padding: 0 10px 10px; }
+  .hx-discover-label h3 { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .hx-discover-photo img { transition: none; } }

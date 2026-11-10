@@ -3,18 +3,18 @@ import Image from "next/image";
 
 /**
  * The Black November banner at the top of the homepage: the campaign photo
- * and one centred offer, "UP TO 70% OFF", in the shop's gold.
+ * and a live offer over the gift-coloured artwork.
  */
 export default function BlackFridayHero() {
   return (
-    <section className="hx-hero" aria-labelledby="hx-hero-title">
+    <section className="hx-hero hx-hero-gifts" aria-labelledby="hx-hero-title">
       <Image
-        src="/images/black-friday-kandi.webp"
+        src="/images/kandi-gift-sale.webp"
         alt=""
         fill
-        priority
+        preload
         sizes="(max-width: 1720px) 100vw, 1720px"
-        className="object-cover"
+        className="hx-hero-image object-cover"
       />
       <div className="hx-hero-shade" aria-hidden />
       <div className="hx-hero-copy">
