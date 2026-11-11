@@ -58,9 +58,9 @@
 .pc-img-alt {
   opacity: 0;
 }
-.pc-soldout .pc-img {
-  opacity: 0.5;
-}
+/* A sold-out product keeps its photo at full strength: the "Sold out" flag
+   says it, and a clear picture still earns the visit and the back-in-stock
+   request. (Fading it also let the hover photo show through the main one.) */
 .pc-noimg {
   display: grid;
   place-items: center;

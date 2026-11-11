@@ -69,6 +69,18 @@ const ROW_UNIT = 12;
 /** One page of `/api/products`. */
 type FeedPage = { products: Product[]; total_pages: number };
 
+/**
+ * What can be bought comes first; sold-out products follow, in the order they
+ * had. Only for the mixed feeds (`personalize`): a listing the shopper sorted
+ * keeps exactly the order they asked for.
+ */
+function inStockFirst(products: Product[]): Product[] {
+  return [
+    ...products.filter((product) => product.stock_status !== "outofstock"),
+    ...products.filter((product) => product.stock_status === "outofstock"),
+  ];
+}
+
 export type ProductFeed = {
   products: Product[];
   loading: boolean;
@@ -145,9 +157,11 @@ export function useProductFeed({
 }): ProductFeed {
   /** Re-deal everything after the pinned head, leaving the head as given. */
   const arrangeAfterPin = (list: Product[], read: Interests | null) =>
-    pinned > 0
-      ? [...list.slice(0, pinned), ...arrangeProducts(list.slice(pinned), read, list.slice(0, pinned))]
-      : arrangeProducts(list, read);
+    inStockFirst(
+      pinned > 0
+        ? [...list.slice(0, pinned), ...arrangeProducts(list.slice(pinned), read, list.slice(0, pinned))]
+        : arrangeProducts(list, read)
+    );
 
   /* Pure scatter on the first render, which needs no browser data, so the
      server and the browser agree on the first page. */
@@ -320,7 +334,7 @@ export function useProductFeed({
       }
       const updated = [
         ...current,
-        ...(personalize ? arrangeProducts(batch, interests.current, current) : batch),
+        ...(personalize ? inStockFirst(arrangeProducts(batch, interests.current, current)) : batch),
       ];
       productsRef.current = updated;
       setProducts(updated);
