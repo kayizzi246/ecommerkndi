@@ -45,6 +45,7 @@ export default function InfiniteProducts({
   doneLabel,
   personalize = false,
   pinned = 0,
+  eager = 0,
 }: {
   initialProducts: Product[];
   totalPages: number;
@@ -57,6 +58,11 @@ export default function InfiniteProducts({
   personalize?: boolean;
   /** Products at the head that keep their place when personalised. */
   pinned?: number;
+  /**
+   * How many tiles at the head load their photos at once. For a page that
+   * opens on this grid (/shop); zero where the grid starts below the fold.
+   */
+  eager?: number;
 }) {
   const feed = useProductFeed({ initialProducts, totalPages, query, perPage, startPage, excludeId, personalize, pinned });
 
@@ -248,9 +254,9 @@ export default function InfiniteProducts({
            one sheet. Desktop is untouched: there is room there, and 4px between
            six columns of a 1720px shell would read as a contact sheet. */}
       <ul className={PRODUCT_GRID}>
-        {feed.products.map((product) => (
+        {feed.products.map((product, index) => (
           <li key={product.id}>
-            <ProductCard product={product} />
+            <ProductCard product={product} priority={index < eager} />
           </li>
         ))}
       </ul>

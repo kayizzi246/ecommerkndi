@@ -109,6 +109,9 @@ export default async function Home() {
     trending,
     departmentRails,
     categoryRails,
+    brandShoes,
+    shoesHref,
+    shoeBrandRails,
     categoryChips,
     latest,
     latestTotalPages,
@@ -284,6 +287,9 @@ export default async function Home() {
           </div>
           <PromiseStrip returnsDays={settings.commerce.returns_days} />
           <CategoryCircles categories={categoryChips} />
+          {/* Shoes lead the page: the brands shoppers ask for by name, dealt
+              out brand by brand, ahead of the deals. */}
+          <HomeCarousel title="Top brand shoes" href={shoesHref} products={brandShoes.map(forGrid)} tone="violet" />
           <WelcomeBack />
           <BlackNovemberDeals
             products={dealsShown}
@@ -291,6 +297,18 @@ export default async function Home() {
             upTo={heroDeals[0] ? discountPercent(heroDeals[0].regular_price, heroDeals[0].price) : undefined}
           />
           <HomeCarousel title="Best sellers" href="/search?sort=popular" products={carouselPicks.map(forGrid)} />
+
+          {/* A carousel each for the shoe brands with the most pairs in
+              stock (Nike, Adidas, New Balance today). */}
+          {shoeBrandRails.map((rail, index) => (
+            <HomeCarousel
+              key={rail.brand}
+              title={`${rail.brand} shoes`}
+              href={rail.href}
+              products={rail.products.map(forGrid)}
+              tone={["home", "men", "teal"][index % 3]}
+            />
+          ))}
 
           {/* ---- One carousel per department, before the grid ----
               New in first, then Men, Women and Kids, then every other

@@ -977,7 +977,7 @@
   --shell: 1720px;
 
   /* The shop's one face, loaded in app/layout.tsx as `--font-shop`
-     (Open Sans), with Arial while it loads. */
+     (Poppins), with Arial while it loads. */
   --font-ui: var(--font-shop), Arial, sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
@@ -1002,7 +1002,7 @@
    * back to `--font-ui`. A supplier's 90-character title is body copy that
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
-  /* Headings: the same family as the text (Open Sans), heavier. */
+  /* Headings: the same family as the text (Poppins), heavier. */
   --font-display: var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —

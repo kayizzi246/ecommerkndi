@@ -309,6 +309,16 @@ export type HomeFeed = {
    */
   categoryRails: CategoryRail[];
   /**
+   * Branded shoes dealt out brand by brand (a Jordan, a Nike, an Adidas, a New
+   * Balance, then round again), best sellers first within each brand. The
+   * first carousel on the homepage.
+   */
+  brandShoes: Product[];
+  /** Where that carousel's "See all" leads: the shop's largest shoe section. */
+  shoesHref: string;
+  /** A carousel each for the brands with the most shoes in stock. */
+  shoeBrandRails: BrandRail[];
+  /**
    * The homepage's category row: every department, then the sections inside
    * them (Men's Shoes, Bags, Watches…), each with a photo of a product that is
    * in stock there.
@@ -419,6 +429,43 @@ const DEPARTMENTS = [
 ] as const;
 
 export type CategoryRail = { slug: string; title: string; products: Product[] };
+
+/** One brand's shoes on the homepage, and where "See all" leads. */
+export type BrandRail = { brand: string; href: string; products: Product[] };
+
+/**
+ * The shoe brands shoppers ask for by name, quickest sellers first. A shoe's
+ * brand is read from its title, which is where every listing here states it.
+ * Jordan is tested before Nike because those listings say "Nike Jordan".
+ * Add a brand here and it joins the homepage once the shop stocks it.
+ */
+const SHOE_BRANDS: { name: string; match: RegExp; lead?: boolean }[] = [
+  { name: "Jordan", match: /\bjordan\b/i },
+  // `lead`: the shop is searched for this brand by name, so its carousel
+  // draws on every pair in stock rather than the first page of each section.
+  { name: "Nike", match: /\bnike\b|\bair max\b|\bair force\b|\bdunk\b/i, lead: true },
+  { name: "Adidas", match: /\badidas\b|\bsamba\b|\byeezy\b/i, lead: true },
+  { name: "New Balance", match: /\bnew balance\b|\bnb ?\d{3,4}/i, lead: true },
+  { name: "Puma", match: /\bpuma\b/i },
+  { name: "Asics", match: /\basics\b/i },
+  { name: "Converse", match: /\bconverse\b/i },
+  { name: "Vans", match: /\bvans\b/i },
+  { name: "Reebok", match: /\breebok\b/i },
+  { name: "Skechers", match: /\bskechers\b/i },
+  { name: "Timberland", match: /\btimberland\b/i },
+  { name: "Crocs", match: /\bcrocs\b/i },
+  { name: "Birkenstock", match: /\bbirkenstock\b/i },
+];
+/** Shoes in the mixed "Top brand shoes" carousel at the top of the page. */
+const BRAND_SHOES_SIZE = 20;
+/** A brand gets a carousel of its own from this many shoes, up to this many brands. */
+const BRAND_RAIL_MINIMUM = 6;
+const BRAND_RAIL_SIZE = 16;
+const BRAND_RAIL_LIMIT = 3;
+
+function shoeBrand(product: Product): string | null {
+  return SHOE_BRANDS.find((brand) => brand.match.test(product.name))?.name ?? null;
+}
 
 /** One round photo in the homepage's category row. */
 export type CategoryChip = { slug: string; title: string; photo: string };
@@ -538,6 +585,25 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     })
     .slice(0, 8);
 
+  /* ---- Shoes, by brand ----
+     Every "Shoes" section the departments have (Men's, Women's, Kids'), the
+     two largest fetched best sellers first. Started here so it runs alongside
+     the department carousels rather than after them. */
+  const shoeSections = departments
+    .flatMap((node) => node.children)
+    .filter((child) => /shoe/i.test(child.name) && (child.count ?? 0) > 0)
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+  const shoePoolsPending = Promise.all(
+    shoeSections
+      .slice(0, 2)
+      .map((section) => getProductsSafe({ category: section.slug, per_page: 48, sort: "popular" }))
+  );
+  const brandSearchesPending = Promise.all(
+    SHOE_BRANDS.filter((brand) => brand.lead).map((brand) =>
+      getProductsSafe({ search: brand.name, per_page: 24, sort: "popular" }, { retryEmpty: false })
+    )
+  );
+
   const categoryPools = await Promise.all(
     topLevel.map(async (node) => ({
       node,
@@ -558,6 +624,73 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
       return { slug: node.slug, title: decodeName(node.name), products: picked };
     })
     .filter((rail) => rail.products.length >= CATEGORY_RAIL_MINIMUM);
+
+  const shoeLists = (await shoePoolsPending).map((pool) =>
+    pool.products.filter((product) => product.stock_status !== "outofstock")
+  );
+  // Men's and women's alternate, so neither fills a brand's row on its own.
+  const shoes: Product[] = [];
+  const shoeIds = new Set<number>();
+  for (let i = 0; i < Math.max(0, ...shoeLists.map((list) => list.length)); i++) {
+    for (const list of shoeLists) {
+      const product = list[i];
+      if (product && !shoeIds.has(product.id)) {
+        shoeIds.add(product.id);
+        shoes.push(product);
+      }
+    }
+  }
+  // The brand searches add the pairs beyond those first pages. A search by
+  // name also finds a Nike hoodie, so only products filed under footwear count.
+  const footwear = /shoe|sneaker|sandal|boot|slipper/i;
+  for (const found of await brandSearchesPending) {
+    for (const product of found.products) {
+      if (
+        product.stock_status !== "outofstock" &&
+        !shoeIds.has(product.id) &&
+        product.categories.some((category) => footwear.test(category.name))
+      ) {
+        shoeIds.add(product.id);
+        shoes.push(product);
+      }
+    }
+  }
+  const byBrand = new Map<string, Product[]>(SHOE_BRANDS.map((brand) => [brand.name, []]));
+  for (const product of shoes) {
+    const brand = shoeBrand(product);
+    if (brand) byBrand.get(brand)!.push(product);
+  }
+  // What sells fastest leads each brand; unsold stock keeps the order it came in.
+  for (const list of byBrand.values()) list.sort((a, b) => b.total_sales - a.total_sales);
+
+  const brandShoes: Product[] = [];
+  for (let round = 0; brandShoes.length < BRAND_SHOES_SIZE; round++) {
+    const dealt = [...byBrand.values()].map((list) => list[round]).filter(Boolean);
+    if (dealt.length === 0) break;
+    brandShoes.push(...dealt.slice(0, BRAND_SHOES_SIZE - brandShoes.length));
+  }
+  // A shop with few branded pairs still opens on shoes: the rest fill the row.
+  if (brandShoes.length < BRAND_SHOES_SIZE) {
+    const taken = new Set(brandShoes.map((product) => product.id));
+    brandShoes.push(
+      ...shoes.filter((product) => !taken.has(product.id)).slice(0, BRAND_SHOES_SIZE - brandShoes.length)
+    );
+  }
+
+  // A brand's own carousel starts with the pairs the mixed one did not show.
+  const inMixed = new Set(brandShoes.map((product) => product.id));
+  const shoeBrandRails: BrandRail[] = [...byBrand.entries()]
+    .filter(([, list]) => list.length >= BRAND_RAIL_MINIMUM)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, BRAND_RAIL_LIMIT)
+    .map(([brand, list]) => ({
+      brand,
+      href: `/search?q=${encodeURIComponent(brand)}`,
+      products: [
+        ...list.filter((product) => !inMixed.has(product.id)),
+        ...list.filter((product) => inMixed.has(product.id)),
+      ].slice(0, BRAND_RAIL_SIZE),
+    }));
 
   /* ---- The category row: departments, then their sections ----
      A section's photo is a product from its department's pool that is filed
@@ -905,6 +1038,9 @@ export async function buildHomeFeed(): Promise<HomeFeed> {
     leadShoes:
       departmentPools.find((department) => department.id === "dept-shoes")?.products ?? [],
     categoryRails,
+    brandShoes,
+    shoesHref: shoeSections[0] ? `/category/${shoeSections[0].slug}` : "/search?q=shoes",
+    shoeBrandRails,
     categoryChips,
     /**
      * The endless grid is deliberately *not* deduplicated.

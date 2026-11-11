@@ -839,7 +839,7 @@ button, input, select, textarea { font-family: inherit; }
 
 /* ---- Every section heading on the homepage: one size, the heaviest weight ----
    The size the department carousels ("Men", "Women") set, a step larger.
-   900 is asked for; Open Sans stops at 800, so that is what is drawn. */
+   900 is asked for; the shop's Poppins stops at 800, so that is what is drawn. */
 .hx-panel-title,
 .hx-carousel .hx-panel-title,
 .bnd-title,

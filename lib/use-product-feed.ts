@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import type { Product } from "@/lib/woocommerce";
 import { arrangeProducts } from "@/lib/arrange-feed";
 import { readInterests, topInterests, type Interests } from "@/lib/interests";
+import { warmPhotos } from "@/lib/warm-photos";
 
 /**
  * The loader behind every infinite grid in the shop.
@@ -89,6 +90,7 @@ export function useProductFeed({
   refine,
   personalize = false,
   pinned = 0,
+  sizes,
 }: {
   /** The page the server rendered — usually page one. */
   initialProducts: Product[];
@@ -134,6 +136,12 @@ export function useProductFeed({
    * `personalize` re-deals the first page — the homepage's opening shoes.
    */
   pinned?: number;
+  /**
+   * The `sizes` this grid gives its tiles, when it is not the default. The
+   * photos of a page fetched ahead are downloaded ahead too (`warmPhotos`),
+   * and must be asked for at the width the tiles will use.
+   */
+  sizes?: string;
 }): ProductFeed {
   /** Re-deal everything after the pinned head, leaving the head as given. */
   const arrangeAfterPin = (list: Product[], read: Interests | null) =>
@@ -247,13 +255,16 @@ export function useProductFeed({
         const payload = (await response.json()) as FeedPage;
         if (!Array.isArray(payload.products) || !Number.isInteger(payload.total_pages) || payload.total_pages < 0) throw new Error("Invalid product response");
         if (payload.products.length === 0 && pageNumber <= payload.total_pages) throw new Error("Product page unavailable");
+        // The page is fetched before it is scrolled to, and so are its
+        // photos: by the time its rows appear, the pictures are in the cache.
+        warmPhotos(refine ? refine(payload.products) : payload.products, sizes);
         return payload;
       });
       pending.catch(() => inflight.current.delete(url));
       inflight.current.set(url, pending);
       return pending;
     },
-    [perPage, stableQuery]
+    [perPage, stableQuery, refine, sizes]
   );
 
   // Warm the second page once the first screen has had a moment to load its
@@ -331,9 +342,10 @@ export function useProductFeed({
       (entries) => {
         if (entries[0]?.isIntersecting) loadMore();
       },
-      // Triggered well ahead of the bottom; with the page above already
-      // prefetched, appending it is a state update rather than a request.
-      { rootMargin: "1400px" }
+      // Triggered about three screens ahead of the bottom, so a fast scroll
+      // does not catch up with it; with the page already prefetched,
+      // appending it is a state update rather than a request.
+      { rootMargin: "2400px" }
     );
 
     observer.observe(node);

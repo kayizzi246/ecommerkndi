@@ -80,6 +80,15 @@
 /* `pc-grid` (app/product-cards.css) replaced `product-grid-flush` with the
    Temu-style tile: plain gaps between rounded photos, no phone stagger. The
    column counts and the notes above about them are unchanged. */
+/**
+ * How wide a tile renders at each breakpoint, so the browser fetches a photo
+ * the right size. Follows `PRODUCT_GRID` (2 → 3 → 4 → 5 → 6 columns) and must
+ * change with it. Read by `ProductCard` and by `warmPhotos`, which have to
+ * agree or a warmed photo is not the file the tile asks for.
+ */
+export const GRID_SIZES =
+  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 260px";
+
 export const PRODUCT_GRID =
   "pc-grid grid grid-cols-2 " +
   "sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6";

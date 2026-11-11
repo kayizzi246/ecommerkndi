@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/IntentLink";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import type { Product } from "@/lib/woocommerce";

@@ -37,6 +37,9 @@ import type { Product } from "@/lib/woocommerce";
  * pass exists at all; the others are already ordered by the server and
  * re-sorting them is a no-op that costs nothing at this size.
  */
+/** Tiles in the first row at the widest grid; their photos load first. */
+const FIRST_ROW = 6;
+
 type Props = {
   /** The server's page one, already filtered and sorted. */
   initialProducts: Product[];
@@ -97,6 +100,7 @@ function FeedGrid({
     startPage,
     query,
     refine,
+    sizes,
   });
 
   const visible = sortProducts(feed.products, sort);
@@ -104,8 +108,10 @@ function FeedGrid({
   return (
     <>
       <div className={gridClassName}>
-        {visible.map((product) => (
-          <ProductCard key={product.id} product={product} sizes={sizes} />
+        {/* The first row is on screen when the page opens, so its photos load
+            straight away rather than waiting their turn as lazy images. */}
+        {visible.map((product, index) => (
+          <ProductCard key={product.id} product={product} sizes={sizes} priority={index < FIRST_ROW} />
         ))}
       </div>
 

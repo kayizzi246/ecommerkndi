@@ -4,6 +4,7 @@ import type { Product } from "@/lib/woocommerce";
 import { formatPrice, discountPercent, hasPriceReduction } from "@/lib/currency";
 import WishlistButton from "@/components/WishlistButton";
 import TileCartButton from "@/components/TileCartButton";
+import { GRID_SIZES } from "@/lib/product-grid";
 
 /** Stock at or under this shows "Only N left". */
 const LOW_STOCK_AT = 5;
@@ -22,14 +23,6 @@ function compactSold(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return String(value);
 }
-
-/**
- * How wide a tile renders at each breakpoint, so the browser fetches a photo
- * the right size. Follows `PRODUCT_GRID` (2 → 3 → 4 → 5 → 6 columns) and must
- * change with it.
- */
-const GRID_SIZES =
-  "(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 260px";
 
 /**
  * The product tile, kept clean: a square photo with square corners, one line
