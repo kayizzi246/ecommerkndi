@@ -17,7 +17,7 @@ import { codZoneFor } from "@/lib/cod-zones";
 import { isUgPhone, formatUgPhone } from "@/lib/phone";
 import { useCommerceTerms } from "@/lib/commerce-terms";
 
-const labelClass = "mb-1 block text-[13px] font-semibold text-shop-ink";
+const labelClass = "mb-1 block text-[14px] font-bold text-black";
 
 /** The grey line under a field that says what to put in it. */
 const hintClass = "mt-1 text-[12px] leading-4 text-shop-muted";
@@ -51,16 +51,16 @@ function StepHeading({
 }) {
   return (
     <div className="mb-3">
-      <h2 className="flex items-center gap-2 text-[16px] font-bold leading-tight text-black">
+      <h2 className="flex items-center gap-2.5 text-[20px] font-extrabold leading-tight text-black">
         <span
           aria-hidden
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-[12px] font-bold text-white"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[14px] font-extrabold text-white"
         >
           {step}
         </span>
         {title}
       </h2>
-      {sub && <p className="mt-1 text-[13px] leading-5 text-shop-muted">{sub}</p>}
+      {sub && <p className="mt-1.5 text-[14px] font-medium leading-5 text-shop-body">{sub}</p>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ function CheckoutTrust({ returnsDays }: { returnsDays: number }) {
 
   return (
     <div className="mt-5 rounded-lg border border-shop-line bg-shop-surface px-3 py-2.5">
-      <p className="text-[12px] font-semibold text-black">Shop with peace of mind</p>
+      <p className="text-[13px] font-extrabold text-black">Shop with peace of mind</p>
       <ul className="mt-1.5 space-y-1">
         {points.map((point) => (
           <li key={point.title} className="flex items-start gap-1.5">
@@ -159,7 +159,11 @@ export default function CheckoutPage() {
      can reopen instead of the page printing an error. */
   const [needsVerification, setNeedsVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentValue>("mobile");
+  /* Cash on delivery to begin with. It only takes effect where the shop offers
+     it: until a place inside the cash zone is picked, `effectiveMethod` below
+     shows Mobile Money instead. A first-time shopper who can pay at the door
+     is the one most likely to finish the order. */
+  const [method, setMethod] = useState<PaymentValue>("cod");
   /** Pesapal's payment URL while the modal is open. */
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   /** The WooCommerce order awaiting payment, so we can route on success. */
@@ -768,6 +772,11 @@ export default function CheckoutPage() {
             <span>Order confirmed</span>
           </nav>
 
+          <h1 className="text-[26px] font-extrabold leading-tight text-black">Checkout</h1>
+          <p className="mb-6 mt-1 text-[14px] font-medium text-shop-body">
+            3 quick steps. Takes about a minute.
+          </p>
+
           {/* ---- Three questions, not nine ----
                Name, phone, and where. Last name, town, country and a notes box
                used to sit here too, and every extra box on a phone is a reason
@@ -955,7 +964,7 @@ export default function CheckoutPage() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-[14px] font-semibold text-black">
+                        <span className="text-[15px] font-bold text-black">
                           {option.label}
                         </span>
                         {/* The networks this option actually takes, in place of
