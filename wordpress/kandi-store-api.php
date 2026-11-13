@@ -2566,6 +2566,229 @@ function kandi_qp_apply( $item, array $fields ) {
 }
 endif;
 
+/* -------------------------------------------------------------------------
+ * Fixing option names (sizes, colours, packs) that came in wrong on import.
+ *
+ * An option name lives in two places: on the product ("this shoe comes in
+ * these sizes") and on every variation ("this one is Large (L)"). Renaming it
+ * on one and not the other breaks the size picker on the storefront, so these
+ * helpers always change both.
+ *
+ *   • Custom (per-product) options are plain text, renamed on the product and
+ *     on each of its variations.
+ *   • Global options (Products → Attributes, e.g. "pa_size") are shared terms.
+ *     Renaming the term fixes it on every product that uses it. If a term with
+ *     the new name already exists, this product is moved onto that term
+ *     instead, so the shop does not end up with "Large (L)" twice.
+ * ---------------------------------------------------------------------- */
+
+/** Whether two option names are the same option (case, spacing and brackets ignored). */
+if ( ! function_exists( 'kandi_qp_same_option' ) ) :
+function kandi_qp_same_option( $a, $b ) {
+	return '' !== (string) $a && sanitize_title( (string) $a ) === sanitize_title( (string) $b );
+}
+endif;
+
+/**
+ * Renames one option of one variable product.
+ *
+ * $old is the stored value: the term slug for a global attribute, the text
+ * itself for a custom one. Returns the IDs of the products that changed, or a
+ * WP_Error.
+ */
+if ( ! function_exists( 'kandi_qp_rename_option' ) ) :
+function kandi_qp_rename_option( $product, $key, $old, $new ) {
+	$new = trim( sanitize_text_field( (string) $new ) );
+	$old = (string) $old;
+	if ( '' === $new ) {
+		return new WP_Error( 'empty', sprintf( '%s: an option name cannot be empty.', $product->get_name() ) );
+	}
+	if ( strlen( $new ) > 120 ) {
+		return new WP_Error( 'long', sprintf( '%s: "%s" is too long for an option name.', $product->get_name(), $new ) );
+	}
+	$attributes = $product->get_attributes();
+	if ( ! isset( $attributes[ $key ] ) ) {
+		return new WP_Error( 'missing', sprintf( '%s: that option no longer exists. Reload the page.', $product->get_name() ) );
+	}
+	$attribute = $attributes[ $key ];
+
+	// ---- Global attribute: a shared term.
+	if ( $attribute->is_taxonomy() ) {
+		$taxonomy = $attribute->get_name();
+		$term     = get_term_by( 'slug', $old, $taxonomy );
+		if ( ! $term ) {
+			return new WP_Error( 'missing', sprintf( '%s: that option no longer exists. Reload the page.', $product->get_name() ) );
+		}
+		if ( $term->name === $new ) {
+			return array();
+		}
+		$existing = get_term_by( 'name', $new, $taxonomy );
+		if ( ! $existing || (int) $existing->term_id === (int) $term->term_id ) {
+			// Fix the term itself: every product using it shows the new name.
+			$result = wp_update_term( $term->term_id, $taxonomy, array( 'name' => $new ) );
+			if ( is_wp_error( $result ) ) {
+				return new WP_Error( 'term', sprintf( '%s: %s', $product->get_name(), $result->get_error_message() ) );
+			}
+			return array_map( 'intval', (array) get_objects_in_term( $term->term_id, $taxonomy ) );
+		}
+		// A correctly named term already exists: move this product onto it.
+		$options = array();
+		foreach ( $attribute->get_options() as $term_id ) {
+			$options[] = (int) $term_id === (int) $term->term_id ? (int) $existing->term_id : (int) $term_id;
+		}
+		$attribute->set_options( array_values( array_unique( $options ) ) );
+		$from = $term->slug;
+		$to   = $existing->slug;
+	} else {
+		// ---- Custom attribute: plain text on the product.
+		$options = array();
+		foreach ( $attribute->get_options() as $option ) {
+			$options[] = kandi_qp_same_option( $option, $old ) ? $new : $option;
+		}
+		$attribute->set_options( array_values( array_unique( $options ) ) );
+		$from = $old;
+		$to   = $new;
+	}
+
+	$attributes[ $key ] = $attribute;
+	$product->set_attributes( $attributes );
+	$defaults = $product->get_default_attributes();
+	if ( isset( $defaults[ $key ] ) && kandi_qp_same_option( $defaults[ $key ], $from ) ) {
+		$defaults[ $key ] = $to;
+		$product->set_default_attributes( $defaults );
+	}
+	$product->save();
+
+	foreach ( (array) $product->get_children() as $child_id ) {
+		$variation = wc_get_product( $child_id );
+		if ( ! $variation ) {
+			continue;
+		}
+		$values = $variation->get_attributes();
+		if ( isset( $values[ $key ] ) && kandi_qp_same_option( $values[ $key ], $from ) ) {
+			$values[ $key ] = $to;
+			$variation->set_attributes( $values );
+			$variation->save();
+		}
+	}
+	return array( $product->get_id() );
+}
+endif;
+
+/**
+ * Renames an option on every product that has it: global terms by name, and
+ * custom options wherever a variation carries that text. Returns the IDs of
+ * the products that changed. Capped per run so a big shop does not time out;
+ * running it again picks up the rest.
+ */
+if ( ! function_exists( 'kandi_qp_rename_everywhere' ) ) :
+function kandi_qp_rename_everywhere( $old, $new, &$errors ) {
+	global $wpdb;
+	$old     = trim( (string) $old );
+	$changed = array();
+
+	// Global attributes (Products → Attributes).
+	foreach ( wc_get_attribute_taxonomy_names() as $taxonomy ) {
+		$term = get_term_by( 'name', $old, $taxonomy );
+		if ( ! $term ) {
+			continue;
+		}
+		$products = array_map( 'intval', (array) get_objects_in_term( $term->term_id, $taxonomy ) );
+		$existing = get_term_by( 'name', trim( sanitize_text_field( $new ) ), $taxonomy );
+		if ( ! $existing || (int) $existing->term_id === (int) $term->term_id ) {
+			// No clash: renaming the term fixes every product at once.
+			$result = wp_update_term( $term->term_id, $taxonomy, array( 'name' => trim( sanitize_text_field( $new ) ) ) );
+			if ( is_wp_error( $result ) ) {
+				$errors[] = $result->get_error_message();
+			} else {
+				$changed = array_merge( $changed, $products );
+			}
+			continue;
+		}
+		// The right name already exists as another term: move each product onto it.
+		foreach ( array_slice( $products, 0, 300 ) as $product_id ) {
+			$product = wc_get_product( $product_id );
+			if ( ! $product || ! $product->is_type( 'variable' ) ) {
+				continue;
+			}
+			$result = kandi_qp_rename_option( $product, $taxonomy, $term->slug, $new );
+			if ( is_wp_error( $result ) ) {
+				$errors[] = $result->get_error_message();
+			} else {
+				$changed = array_merge( $changed, $result );
+			}
+		}
+	}
+
+	// Custom attributes: any variation storing this text (MySQL matches it
+	// without regard to case).
+	$parents = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT p.post_parent
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID
+			 WHERE p.post_type = 'product_variation'
+			   AND m.meta_key LIKE %s
+			   AND m.meta_key NOT LIKE %s
+			   AND m.meta_value = %s
+			 LIMIT 300",
+			$wpdb->esc_like( 'attribute_' ) . '%',
+			$wpdb->esc_like( 'attribute_pa_' ) . '%',
+			$old
+		)
+	);
+	foreach ( array_map( 'intval', (array) $parents ) as $product_id ) {
+		$product = wc_get_product( $product_id );
+		if ( ! $product || ! $product->is_type( 'variable' ) ) {
+			continue;
+		}
+		foreach ( $product->get_attributes() as $key => $attribute ) {
+			if ( $attribute->is_taxonomy() ) {
+				continue;
+			}
+			foreach ( $attribute->get_options() as $option ) {
+				if ( kandi_qp_same_option( $option, $old ) && $option !== $new ) {
+					$result = kandi_qp_rename_option( wc_get_product( $product_id ), $key, $option, $new );
+					if ( is_wp_error( $result ) ) {
+						$errors[] = $result->get_error_message();
+					} else {
+						$changed = array_merge( $changed, $result );
+					}
+					break;
+				}
+			}
+		}
+	}
+	return array_values( array_unique( array_map( 'intval', $changed ) ) );
+}
+endif;
+
+/** The renamable options of a variable product: [ key => [ label, [ stored value => shown name ] ] ]. */
+if ( ! function_exists( 'kandi_qp_option_names' ) ) :
+function kandi_qp_option_names( $product ) {
+	$out = array();
+	foreach ( $product->get_attributes() as $key => $attribute ) {
+		if ( ! $attribute->get_variation() ) {
+			continue;
+		}
+		$values = array();
+		if ( $attribute->is_taxonomy() ) {
+			foreach ( wc_get_product_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'all' ) ) as $term ) {
+				$values[ $term->slug ] = $term->name;
+			}
+		} else {
+			foreach ( $attribute->get_options() as $option ) {
+				$values[ $option ] = $option;
+			}
+		}
+		if ( $values ) {
+			$out[ $key ] = array( wc_attribute_label( $attribute->get_name(), $product ), $values );
+		}
+	}
+	return $out;
+}
+endif;
+
 if ( ! function_exists( 'kandi_quick_prices_page' ) ) :
 function kandi_quick_prices_page() {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -2677,11 +2900,65 @@ function kandi_quick_prices_page() {
 			}
 		}
 
+		// ---- Option names typed on a product's "Fix names" row.
+		// Each box is named qp_attr[product][attribute][hex of stored value],
+		// so any character in the old name survives the trip.
+		$renames = isset( $_POST['qp_attr'] ) && is_array( $_POST['qp_attr'] ) ? wp_unslash( $_POST['qp_attr'] ) : array();
+		foreach ( $renames as $product_id => $by_attribute ) {
+			if ( ! is_array( $by_attribute ) ) {
+				continue;
+			}
+			foreach ( $by_attribute as $key => $values ) {
+				if ( ! is_array( $values ) ) {
+					continue;
+				}
+				foreach ( $values as $hex => $new ) {
+					$hex = (string) $hex;
+					if ( '' === $hex || ! ctype_xdigit( $hex ) || strlen( $hex ) % 2 ) {
+						continue;
+					}
+					// Fresh each time: an earlier rename saved the product.
+					$product = wc_get_product( (int) $product_id );
+					if ( ! $product || ! $product->is_type( 'variable' ) ) {
+						continue 3;
+					}
+					$result = kandi_qp_rename_option( $product, sanitize_title( (string) $key ), hex2bin( $hex ), $new );
+					if ( is_wp_error( $result ) ) {
+						$errors[] = $result->get_error_message();
+						continue;
+					}
+					foreach ( $result as $changed_id ) {
+						$touched[ (int) $changed_id ] = true;
+					}
+				}
+			}
+		}
+
 		foreach ( array_keys( $touched ) as $product_id ) {
 			kandi_qp_refresh( (int) $product_id );
 		}
 		if ( $touched ) {
 			$messages[] = sprintf( 'Saved %d product(s). The shop updates within a few minutes.', count( $touched ) );
+		}
+	}
+
+	// ---- "Rename everywhere": one wrong option name fixed on every product.
+	if ( isset( $_POST['kandi_qp_rename'] ) ) {
+		check_admin_referer( 'kandi_qp_rename' );
+		$from = trim( sanitize_text_field( wp_unslash( $_POST['qp_rename_from'] ?? '' ) ) );
+		$to   = trim( sanitize_text_field( wp_unslash( $_POST['qp_rename_to'] ?? '' ) ) );
+		if ( '' === $from || '' === $to ) {
+			$errors[] = 'Type both the wrong name and the right name.';
+		} elseif ( $from === $to ) {
+			$errors[] = 'The two names are the same.';
+		} else {
+			$changed = kandi_qp_rename_everywhere( $from, $to, $errors );
+			foreach ( $changed as $product_id ) {
+				kandi_qp_refresh( $product_id );
+			}
+			$messages[] = $changed
+				? sprintf( 'Renamed "%s" to "%s" on %d product(s). The shop updates within a few minutes.', $from, $to, count( $changed ) )
+				: sprintf( 'No product has an option called "%s". Check the spelling, or look at a product\'s variations below.', $from );
 		}
 	}
 
@@ -2742,6 +3019,8 @@ function kandi_quick_prices_page() {
 		.kandi-qp td { vertical-align: middle; }
 		.kandi-qp .kandi-qp-var td { background: #f6f7f7; }
 		.kandi-qp .kandi-qp-all td { background: #fcf9e8; }
+		.kandi-qp .kandi-qp-opts td { background: #f0f6fc; }
+		.kandi-qp-name.kandi-qp-edited { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; }
 		.kandi-qp-toggle { cursor: pointer; }
 	</style>
 	<div class="wrap">
@@ -2774,6 +3053,22 @@ function kandi_quick_prices_page() {
 			</select>
 			<button class="button">Filter</button>
 			<span style="color:#646970"><?php echo (int) $results->total; ?> products</span>
+		</form>
+
+		<form method="post" style="margin:0 0 16px;padding:12px 14px;background:#fff;border:1px solid #c3c4c7;border-left:4px solid #2271b1;max-width:860px">
+			<?php wp_nonce_field( 'kandi_qp_rename' ); ?>
+			<strong>Fix a size or option name on every product</strong>
+			<p style="margin:4px 0 10px;color:#646970">
+				For import mistakes that repeat, e.g. <code>Larger (l)</code> → <code>Large (L)</code>. Type the wrong name as it shows on the
+				product; capital letters do not need to match. To fix one product only, open its <strong>▸ variations</strong> below.
+			</p>
+			<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+				<input type="text" name="qp_rename_from" placeholder="Wrong name, e.g. Larger (l)" style="min-width:220px" required>
+				<span>→</span>
+				<input type="text" name="qp_rename_to" placeholder="Right name, e.g. Large (L)" style="min-width:220px" required>
+				<button type="submit" name="kandi_qp_rename" value="1" class="button button-primary"
+					onclick="return confirm('Rename this option on every product that has it?')">Rename everywhere</button>
+			</div>
 		</form>
 
 		<form method="post" id="kandi-qp-form">
@@ -2844,6 +3139,31 @@ function kandi_quick_prices_page() {
 							</td>
 							<td></td>
 						</tr>
+						<?php $option_names = kandi_qp_option_names( $product ); ?>
+						<?php if ( $option_names ) : ?>
+							<tr class="kandi-qp-opts kandi-qp-var-<?php echo esc_attr( $pid ); ?>" hidden>
+								<td></td>
+								<td></td>
+								<td colspan="5" style="padding-left:24px">
+									<strong>Fix names</strong>
+									<span style="color:#646970">— edit a size or option name, then Save changes. It changes on the product and on every variation.</span>
+									<?php foreach ( $option_names as $key => $option ) : ?>
+										<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+											<span style="min-width:60px;font-weight:600"><?php echo esc_html( $option[0] ); ?>:</span>
+											<?php foreach ( $option[1] as $stored => $shown ) :
+												$width = max( 70, min( 220, 14 + 8 * strlen( $shown ) ) );
+												?>
+												<input type="text" class="kandi-qp-box kandi-qp-name"
+													name="<?php echo esc_attr( 'qp_attr[' . $pid . '][' . $key . '][' . bin2hex( (string) $stored ) . ']' ); ?>"
+													value="<?php echo esc_attr( $shown ); ?>"
+													data-orig="<?php echo esc_attr( $shown ); ?>"
+													style="width:<?php echo (int) $width; ?>px">
+											<?php endforeach; ?>
+										</div>
+									<?php endforeach; ?>
+								</td>
+							</tr>
+						<?php endif; ?>
 						<?php foreach ( $items as $variation ) : ?>
 							<tr class="kandi-qp-var kandi-qp-var-<?php echo esc_attr( $pid ); ?>" hidden>
 								<td></td>
@@ -2889,6 +3209,12 @@ function kandi_quick_prices_page() {
 			   fields, and a page of variable products easily passes that,
 			   which would silently drop the rest of the changes. Empty
 			   "All variations" boxes are left out for the same reason. */
+			// An edited name box is outlined, so it is clear what Save will change.
+			document.querySelectorAll('.kandi-qp-name').forEach(function (box) {
+				box.addEventListener('input', function () {
+					box.classList.toggle('kandi-qp-edited', box.value !== box.getAttribute('data-orig'));
+				});
+			});
 			document.getElementById('kandi-qp-form').addEventListener('submit', function () {
 				document.querySelectorAll('.kandi-qp-box').forEach(function (box) {
 					if (box.value === box.getAttribute('data-orig')) { box.disabled = true; }

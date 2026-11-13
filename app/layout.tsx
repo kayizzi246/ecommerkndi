@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -8,6 +8,7 @@ import "./storefront-campaign.css";
 import "./product-cards.css";
 import "./motion.css";
 import "./black-november.css";
+import "./type-system.css";
 import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { getCategories, buildCategoryTree, wordpressOrigin } from "@/lib/woocommerce";
@@ -17,16 +18,23 @@ import StoreChrome from "@/components/StoreChrome";
 import { getSiteSettings, brandName } from "@/lib/site-settings";
 import { siteJsonLd, siteUrl, absolute } from "@/lib/seo";
 
-/* ---- One face for the whole shop: Poppins ----
-   Round and friendly, with headings in the same family at a heavier weight.
-   Poppins is not a variable font, so each weight is a file of its own: the
-   five the shop uses are listed, and a weight left out is drawn by the
-   nearest one that is here.
-   To change the shop's font, change it here and nowhere else: globals.css
-   reads it through `--font-shop`. */
+/* ---- Two faces, one job each ----
+   Inter reads: product names, prices, body copy, buttons. It is narrower than
+   Poppins, so more of a long product title fits on a tile, and its figures are
+   clear at small sizes, so a price is read at a glance.
+   Poppins is found: section titles, hero and campaign headlines, set heavy.
+   Inter is variable (every weight in one file); Poppins is static, so each
+   weight the headings use is listed.
+   To change either, change it here: globals.css reads `--font-body-face`
+   and `--font-shop`. */
+const bodyFont = Inter({
+  subsets: ["latin"],
+  variable: "--font-body-face",
+  display: "swap",
+});
 const shopFont = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["500", "600", "700", "800", "900"],
   variable: "--font-shop",
   display: "swap",
 });
@@ -221,7 +229,7 @@ export default async function RootLayout({
          `letter-spacing` it used to sit under; the short version is that it
          makes text a shade lighter on a Retina Mac and blurs it everywhere
          else. */
-      className={`${shopFont.variable} h-full`}
+      className={`${bodyFont.variable} ${shopFont.variable} h-full`}
     >
       {/* ---- Open the connection to the media host before it is needed ----
            Every product photograph on every page comes from the WordPress media

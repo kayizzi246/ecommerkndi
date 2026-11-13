@@ -1,0 +1,187 @@
+/* ---------------------------------------------------------------------------
+ * The shop's type system, and the phone's staggered grid.
+ *
+ * Imported LAST in app/layout.tsx so it settles the sizes and weights the
+ * earlier stylesheets went back and forth on. One place to tune them.
+ *
+ *   Inter   (--font-ui)       product names, prices, body, buttons
+ *   Poppins (--font-display)  section titles, hero and campaign headlines
+ *
+ * The rule behind every number below: a shopper deciding to buy reads three
+ * things on a tile, in this order: photo, price, name. So the price is the
+ * heaviest line, the name is legible in two lines rather than cut off after
+ * four words, and the section headings are loud enough to be found while
+ * scrolling.
+ * ------------------------------------------------------------------------- */
+
+/* ---- Headings: Poppins, heavy, tight ----
+   In the base layer, so a utility written on the element still wins. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+}
+
+.section-title,
+.heading-black,
+.hx-panel-title,
+.bnd-title,
+#hx-side-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hero-display,
+.hx-hero-title,
+.black-friday-copy h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+/* Product names are headings in the markup but body copy to the reader. */
+.font-normal-heading {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ---- Body ---- */
+body {
+  font-family: var(--font-ui);
+  color: #1a1a1a;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- The product tile ---- */
+
+/* Two lines of name, not one. "New Balance 9060 Grey Day…" tells a shopper
+   which shoe it is; "New Balance 9060 / ..." does not, and an unclear title
+   is a tap that never happens. Fixed two-line height keeps rows level. */
+.pc-name {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  min-height: 36px;
+  color: #262626;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The price is the loudest line on the tile. */
+.pc-price {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 22px;
+  letter-spacing: -0.015em;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+.pc-price-deal {
+  color: var(--color-shop-sale-price);
+}
+.pc-was {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+.pc-sold {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b6b6b;
+}
+
+/* Urgency and delivery lines: a touch heavier, so they are noticed. */
+.pc-urgent {
+  font-weight: 700;
+}
+.pc-delivery,
+.pc-highlight {
+  font-weight: 600;
+}
+
+/* Discount and status flags: bold and a size up, so "-34%" is seen first. */
+.pc-flag {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+/* Prices everywhere else in the shop. */
+.price,
+.price-display,
+.tile-info .tile-price,
+.hx-deal-price,
+.bnd-price,
+.crail-total,
+.crail-price {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Buttons: the action reads as an action ---- */
+.btn-shop,
+.btn-shop-outline,
+.btn-buy-now,
+.black-friday-cta {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+
+/* ---- Phones ---- */
+@media (max-width: 39.99rem) {
+  .pc-name {
+    font-size: 13px;
+    line-height: 17px;
+    min-height: 34px;
+  }
+  .pc-price {
+    font-size: 16px;
+    line-height: 21px;
+  }
+
+  /* ---- Staggered grid ----
+     The right-hand column sits lower than the left, so the two columns read
+     as a brick pattern rather than a table, which keeps a thumb scrolling.
+     An offset on an ordinary grid rather than CSS columns, so a tile never
+     jumps column when the feed loads more products. `top` rather than
+     `transform`, so the hover zoom on the photo is untouched. The bottom
+     padding gives the last lowered tile room before the next section. */
+  .pc-grid {
+    gap: 8px 6px;
+    padding: 6px 6px 56px;
+    background: #f2f2f2;
+  }
+  .pc-grid > * {
+    position: relative;
+  }
+  .pc-grid > :nth-child(even) {
+    top: 48px;
+  }
+  .pc-grid .pc {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .pc-grid .pc-photo {
+    border-radius: 0;
+  }
+}

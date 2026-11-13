@@ -978,7 +978,7 @@
 
   /* The shop's one face, loaded in app/layout.tsx as `--font-shop`
      (Poppins), with Arial while it loads. */
-  --font-ui: var(--font-shop), Arial, sans-serif;
+  --font-ui: var(--font-body-face), Arial, sans-serif;
   /* ---- The display face: Plus Jakarta Sans ----
    *
    * Everything that is FOUND rather than read resolves through this token —
@@ -1002,8 +1002,8 @@
    * back to `--font-ui`. A supplier's 90-character title is body copy that
    * happens to be marked up as a heading, and it should read like the sentences
    * around it, not like the section title above it. */
-  /* Headings: the same family as the text (Poppins), heavier. */
-  --font-display: var(--font-ui);
+  /* Headings: Poppins, set heavy (see app/type-system.css). */
+  --font-display: var(--font-shop), var(--font-ui);
   /* Alias kept so the Seller Centre and admin keep resolving to the UI face.
      It no longer names anything real — Inter draws no true tabular set —
      but the call sites are worth keeping tagged, because they are exactly the
@@ -1110,10 +1110,10 @@ body {
   /* Helvetica and Arial ship a regular and a bold and little between, so a
      500 renders as regular on most devices and the hierarchy vanishes. These
      land on weights the system faces actually have. */
-  --font-weight-semibold: 500;
-  --font-weight-bold: 600;
-  --font-weight-extrabold: 600;
-  --font-weight-black: 600;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
 }
 
 button,
